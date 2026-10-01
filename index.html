@@ -22,7 +22,7 @@ h1{font-size:1.4rem;margin:0 0 4px}
 .t:nth-child(even){background:var(--tile2)}
 .t.w{background:var(--wall);cursor:default}
 .t.dp{background:#2f6f9c;cursor:default}
-.t.bar{cursor:pointer}
+.t.brl{cursor:pointer}
 .t.sh{background:#86c4dc}
 .t.fo{background-image:linear-gradient(rgba(60,140,80,.25),rgba(60,140,80,.25))}
 .t.ir{background:var(--atk)}
@@ -250,14 +250,30 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .hmod{margin:0 0 6px}
 #prules{background:none;box-shadow:none;padding:0;font-size:inherit}
 #prules .menubtns{margin:14px auto 0}
+/* ---- move & attack, explosions, unlocks ---- */
+.t.mt{outline:3px dashed #fff;outline-offset:-4px}
+.t.mt::after{content:"";position:absolute;inset:30%;border-radius:50%;background:rgba(255,255,255,.8);box-shadow:0 0 0 2px rgba(0,0,0,.35);z-index:2;pointer-events:none}
+.t.bl{outline:3px solid #ff8a1c;outline-offset:-3px;background-image:repeating-linear-gradient(45deg,rgba(255,120,30,.55) 0 5px,rgba(255,120,30,.12) 5px 10px)}
+.boom{position:absolute;width:13%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,#fff6c2 0,#ffb43c 35%,#e2482a 62%,rgba(226,72,42,0) 72%);z-index:5;pointer-events:none;transform:translate(-50%,-50%);animation:boom .65s ease-out forwards}
+@keyframes boom{0%{transform:translate(-50%,-50%) scale(.3);opacity:1}100%{transform:translate(-50%,-50%) scale(3.2);opacity:0}}
+button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
+@keyframes rdy{50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--you) 40%,transparent)}}
+.ulist{display:grid;gap:10px}
+.ulist .hrow{margin:0}
+.ulock{opacity:.6;filter:grayscale(1)}
+.ulist small{display:block;font-size:.78rem;opacity:.85}
+.uprog{height:6px;background:rgba(128,128,128,.3);border-radius:3px;overflow:hidden;margin-top:6px}
+.uprog i{display:block;height:100%;background:var(--you)}
+@media (prefers-reduced-motion:reduce){button.b.pri.ready{animation:none}.boom{animation-duration:.2s}}
 </style>
 </head>
 <body>
 <main>
 <section id="menu">
 <div class="hero"><div class="discs" id="hero"></div><h1>Skirmish</h1><p>Turn-based tactics on a small battlefield.</p></div>
-<div class="menubtns" id="mbtns"><button class="b big" id="camp">Campaign</button><button class="b big" id="play">Quick Battle</button><button class="b big" id="how">How to Play</button></div>
+<div class="menubtns" id="mbtns"><button class="b big" id="camp">Campaign</button><button class="b big" id="play">Quick Battle</button><button class="b big" id="unl">Unlocks</button><button class="b big" id="how">How to Play</button></div>
 <div id="rulesview" hidden></div>
+<div id="unlockview" hidden></div>
 </section>
 <section id="world" hidden>
 <div class="hd"><button class="b" id="wback">Menu</button><h2>World Map</h2></div>
@@ -347,8 +363,9 @@ const MODS={
  REST:{name:"Field Rest",desc:"At the end of your turn, each of your units that neither moved nor attacked that turn recovers 2 HP."}};
 let WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set();
 const UKEY="skirmish_unlocks_v1",unlocks=(()=>{try{return JSON.parse(localStorage.getItem(UKEY)||"{}")||{}}catch(e){return{}}})();
-const unlock=id=>{if(unlocks[id])return false;unlocks[id]=1;try{localStorage.setItem(UKEY,JSON.stringify(unlocks))}catch(e){}return true};
-let BARRELS=new Set(),bchoice=null;
+const saveU=()=>{try{localStorage.setItem(UKEY,JSON.stringify(unlocks))}catch(e){}};
+const unlock=id=>{if(unlocks[id])return false;unlocks[id]=1;saveU();return true};
+let BARRELS=new Set(),XBAR=new Set(),bchoice=null,choiceMv=null,lastMove=null; // XBAR: the barrels that explode
 let WALLV=0,FORTV=new Map(); // one wall style per map; each connected fortress group shares one style
 const solid=k=>WALLS.has(k)||DEEP.has(k)||BARRELS.has(k);
 // Random terrain, mirrored through the map centre so both sides are fair. Start rows stay clear.
@@ -430,6 +447,8 @@ function genMap(o={}){
       fort.forEach(k=>{const[a,b]=k.split(",").map(Number);[[1,0],[-1,0],[0,1],[0,-1]].forEach(([dx,dy])=>{const x=a+dx,y=b+dy,kk=K(x,y);if(x>=0&&x<W&&y>=2&&y<=H-3&&!walls.has(kk)&&!forest.has(kk)&&!fort.has(kk)&&!taken(x,y)&&!cand.includes(kk))cand.push(kk)})});
       for(let n=1+R(2);n>0&&cand.length;n--)bars.add(cand.splice(R(cand.length),1)[0]);
     }
+    const xbars=new Set(); // exploding barrels (unlockable): each barrel has a 25% chance
+    if(unlocks.xbarrels)bars.forEach(k=>{if(Math.random()<.25)xbars.add(k)});
     const seen=new Set(["0,0"]),q=[[0,0]];
     while(q.length){
       const[x,y]=q.pop();
@@ -440,7 +459,7 @@ function genMap(o={}){
       }
     }
     if(seen.size===W*H-walls.size-deep.size-bars.size){
-      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;BARRELS=bars;WALLV=R(4);FORTV=new Map();
+      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;BARRELS=bars;XBAR=xbars;WALLV=R(4);FORTV=new Map();
       for(const k0 of fort){
         if(FORTV.has(k0))continue;
         const v=R(2),st=[k0];FORTV.set(k0,v);
@@ -464,6 +483,8 @@ const DP_V=[WV([[6,12],[16,26]],"#a9d6ee",.55),WV([[10,9],[4,24],[20,32]],"#a9d6
 const SH_V=[WV([[8,13],[18,27]],"#fff",.75),WV([[5,10],[19,20],[9,32]],"#fff",.7),WV([[14,12],[6,26]],"#fff",.75)];
 const BAR_A='<ellipse cx="20" cy="35" rx="17" ry="3" fill="rgba(0,0,0,.18)"/><path d="M5 17c0-3 3.500-4.500 6.500-4.500S18 14 18 17v13c0 3-3.500 4.500-6.500 4.500S5 33 5 30z" fill="#9a6b3a" stroke="#4a2f14" stroke-width="1.6"/><path d="M5 20.500c3 2 10 2 13 0M5 27c3 2 10 2 13 0" fill="none" stroke="#4a2f14" stroke-width="1.5"/><ellipse cx="11.500" cy="13" rx="6.500" ry="2.600" fill="#c08c52" stroke="#4a2f14" stroke-width="1.5"/><rect x="19" y="21" width="17" height="14" fill="#c9a064" stroke="#4a2f14" stroke-width="1.6"/><path d="M19 21l17 14M36 21L19 35" stroke="#7a5a2c" stroke-width="1.6"/><path d="M21 10c0-2.500 3-3.800 5.500-3.800s5.500 1.300 5.500 3.800v9c0 2.500-3 3.800-5.500 3.800S21 21.500 21 19z" fill="#8a5c30" stroke="#4a2f14" stroke-width="1.6"/><ellipse cx="26.500" cy="10" rx="5.500" ry="2.200" fill="#b98448" stroke="#4a2f14" stroke-width="1.4"/><path d="M21 14c2.500 1.800 8.500 1.800 11 0" fill="none" stroke="#4a2f14" stroke-width="1.4"/>';
 const BAR_V=[svg(BAR_A),svg(`<g transform="translate(40 0) scale(-1 1)">${BAR_A}</g>`)];
+const XBAR_V=svg('<ellipse cx="20" cy="36" rx="13" ry="2.6" fill="rgba(0,0,0,.22)"/><path d="M9 10c0-3 5-4.500 11-4.500S31 7 31 10v22c0 3-5 4.500-11 4.500S9 35 9 32z" fill="#c8372d" stroke="#4a1410" stroke-width="1.6"/><path d="M9 14.500c4 2.400 18 2.400 22 0M9 28.500c4 2.400 18 2.400 22 0" fill="none" stroke="#4a1410" stroke-width="1.5"/><ellipse cx="20" cy="10" rx="11" ry="3.400" fill="#e0574a" stroke="#4a1410" stroke-width="1.5"/><path d="M20 16.500l6.500 10.500h-13z" fill="#f2c230" stroke="#2b2200" stroke-width="1.2" stroke-linejoin="round"/><path d="M20 19.500v3.800" stroke="#2b2200" stroke-width="1.7" stroke-linecap="round"/><circle cx="20" cy="25.200" r="1" fill="#2b2200"/><path d="M14 9.500q2-1.200 4 0" stroke="rgba(255,255,255,.5)" stroke-width="1.3" fill="none"/>');
+const barArt=(x,y)=>XBAR.has(x+","+y)?XBAR_V:BAR_V[tv(x,y,2,19)];
 const WALL_V=[
  svg('<path d="M0 13H40M0 27H40M13 0V13M27 13V27M13 27V40" stroke="rgba(0,0,0,.35)" stroke-width="1.5" fill="none"/><path d="M0 0H40" stroke="rgba(255,255,255,.35)" stroke-width="3"/>'),
  svg(`<ellipse cx="13" cy="27" rx="10" ry="8" fill="#7f8b95" ${S1}/><ellipse cx="28" cy="24" rx="9" ry="10" fill="#8d98a1" ${S1}/><ellipse cx="20" cy="12" rx="8" ry="6.5" fill="#98a3ac" ${S1}/><path d="M8 24q3-4 7-3M24 19q3-3 6-1M16 10q3-2 6 0" stroke="rgba(255,255,255,.4)" fill="none" stroke-width="1.5"/>`),
@@ -560,8 +581,10 @@ function render(){
       if(!sel.acted){breakables(sel).forEach(k=>bt.add(k));atkZone(sel,spotsOf(sel,rc),pr,true);targets(sel).forEach(b=>tg.add(b));healTargets(sel).forEach(b=>hs.add(b));if(mods.y==="PUSH")units.filter(b=>b.team==="y"&&pushable(sel,b)).forEach(b=>tg.add(b))}
     }
   }
+  const cm=pendingMove(),bl=new Set();
+  if(bchoice&&XBAR.has(bchoice.x+","+bchoice.y))blastOf(bchoice.x+","+bchoice.y).forEach(([a,b])=>bl.add(a+","+b));
   let pd=null;
-  if(choice&&sel&&units.includes(choice)&&!over&&mods.y==="PUSH"&&sel.t==="K"&&d(sel,choice)===1){
+  if(!cm&&choice&&sel&&units.includes(choice)&&!over&&mods.y==="PUSH"&&sel.t==="K"&&d(sel,choice)===1){
     const[px,py]=pushDest(sel,choice),ax=Math.sign(choice.x-sel.x),ay=Math.sign(choice.y-sel.y);
     if(px!==choice.x||py!==choice.y)pd={k:px+","+py,a:ax>0?"\u2192":ax<0?"\u2190":ay>0?"\u2193":"\u2191"};
   }
@@ -572,10 +595,10 @@ function render(){
   }
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     const k=x+","+y,w=WALLS.has(k),dp=DEEP.has(k),sh=SHALLOW.has(k),f=FOREST.has(k),fr=FORT.has(k),bar=BARRELS.has(k),b=document.createElement("button"),u=at(x,y);
-    b.className="t"+(bar?" bar":"")+(w?" w":"")+(dp?" dp":"")+(sh?" sh":"")+(f?" fo":"")+(fr?" fr":"")+(tile&&tile.x===x&&tile.y===y?" ts":"")+(ig.has(k)?" ig":"")+(ir.has(k)?" ir":"")+(pr.has(k)?" pr":"")+(mv.has(k)?" m":"")+((u&&tg.has(u))||bt.has(k)?" a":"")+(u&&tg.has(u)&&mods.y==="PUSH"&&sel&&pushable(sel,u)?" pp":"")+(u&&hs.has(u)?" hl":"")+(u&&u===choice?" ch":"")+(pd&&pd.k===k?" pd":"");
+    b.className="t"+(bar?" brl":"")+(w?" w":"")+(dp?" dp":"")+(sh?" sh":"")+(f?" fo":"")+(fr?" fr":"")+(tile&&tile.x===x&&tile.y===y?" ts":"")+(ig.has(k)?" ig":"")+(ir.has(k)?" ir":"")+(pr.has(k)?" pr":"")+(mv.has(k)?" m":"")+((u&&tg.has(u))||bt.has(k)?" a":"")+(u&&tg.has(u)&&mods.y==="PUSH"&&sel&&pushable(sel,u)?" pp":"")+(u&&hs.has(u)?" hl":"")+(u&&u===choice?" ch":"")+(pd&&pd.k===k?" pd":"")+(cm&&cm.x===x&&cm.y===y?" mt":"")+(bl.has(k)?" bl":"");
     if(pd&&pd.k===k)b.dataset.arrow=pd.a;
-    b.innerHTML=bar?BAR_V[tv(x,y,2,19)]:w?WALL_V[WALLV]:dp?DP_V[tv(x,y,3,13)]:sh?SH_V[tv(x,y,3,15)]:f?FOREST_V[tv(x,y,4,9)]:fr?FORT_V[FORTV.get(k)||0]:ground(x,y);
-    b.setAttribute("aria-label",bar?"Barrels":w?"Wall":dp?"Deep water":u?(u.team==="y"?"Your ":"Enemy ")+NAME[u.t]+", "+u.hp+" health"+(u.slow?", slowed":""):mv.has(k)?"Move here":f?"Forest":sh?"Shallow water":fr?"Fortress":"Empty");
+    b.innerHTML=bar?barArt(x,y):w?WALL_V[WALLV]:dp?DP_V[tv(x,y,3,13)]:sh?SH_V[tv(x,y,3,15)]:f?FOREST_V[tv(x,y,4,9)]:fr?FORT_V[FORTV.get(k)||0]:ground(x,y);
+    b.setAttribute("aria-label",bar?(XBAR.has(k)?"Exploding barrel":"Barrels"):w?"Wall":dp?"Deep water":u?(u.team==="y"?"Your ":"Enemy ")+NAME[u.t]+", "+u.hp+" health"+(u.slow?", slowed":""):mv.has(k)?"Move here":f?"Forest":sh?"Shallow water":fr?"Fortress":"Empty");
     if(u){
       const e=document.createElement("div");
       e.className="u "+u.team+(spent(u)?" done":"")+(u.slow?" slow":"")+(u===sel||u===insp?" sel":"");
@@ -596,6 +619,8 @@ function render(){
     board.append(b);
   }
   $("end").disabled=over||busy||locked||turn!=="y"||!units.length;
+  const mine=units.filter(u=>u.team==="y");
+  $("end").classList.toggle("ready",!$("end").disabled&&mine.length>0&&mine.every(spent)); // nothing left to do: nudge toward End Turn
   $("turn").textContent=over||!units.length?"":(turn==="y"?"Your Turn":"Enemy Turn");
   const tc=COLORS[turn==="y"?col.y:col.f],tb=$("turn").style;
   tb.background=over?"var(--panel)":tc[1];tb.color=over?"var(--ink)":tc[2];tb.borderColor=over?"var(--ink)":tc[1];
@@ -610,10 +635,10 @@ function renderTile(){
   const el=$("tinfo");
   if(!tile){el.className="pb empty";el.innerHTML='<div class="lbl">Terrain</div><div class="ph">Tap a tile to see its terrain.</div>';return}
   const{x,y}=tile,k=x+","+y,w=WALLS.has(k),dp=DEEP.has(k),sh=SHALLOW.has(k),f=FOREST.has(k),fr=FORT.has(k),bar=BARRELS.has(k),u=at(x,y);
-  const name=bar?"Barrels":w?"Wall":dp?"Deep Water":sh?"Shallow Water":f?"Forest":fr?"Fortress":"Open Ground";
-  const art=bar?BAR_V[tv(x,y,2,19)]:w?WALL_V[WALLV]:dp?DP_V[tv(x,y,3,13)]:sh?SH_V[tv(x,y,3,15)]:f?FOREST_V[tv(x,y,4,9)]:fr?FORT_V[FORTV.get(k)||0]:ground(x,y);
+  const xb=XBAR.has(k),name=bar?(xb?"Exploding Barrel":"Barrels"):w?"Wall":dp?"Deep Water":sh?"Shallow Water":f?"Forest":fr?"Fortress":"Open Ground";
+  const art=bar?barArt(x,y):w?WALL_V[WALLV]:dp?DP_V[tv(x,y,3,13)]:sh?SH_V[tv(x,y,3,15)]:f?FOREST_V[tv(x,y,4,9)]:fr?FORT_V[FORTV.get(k)||0]:ground(x,y);
   const st=w?"background:var(--wall)":dp?"background:#2f6f9c":sh?"background:#86c4dc":f?TF:fr?FR:"";
-  const lines=bar?["Impassable. A unit in range can spend its action to break it."]:w?["Impassable. Units can't enter or cross it, but attacks can pass over it."]:dp?["Impassable. Units can't enter or cross it, but attacks can pass over it."]:sh?["Entering costs 1 extra movement."]:f?["Leaving it costs 1 movement.","Attacks into it have a 3% chance to miss."]:fr?["A unit standing here takes 1 less damage from all attacks.","Leaving it costs 1 movement."]:["No special effect."];
+  const lines=bar?(xb?["Impassable. Breaking it deals "+XB_DMG+" damage to every unit on the 8 tiles around it and sets off nearby barrels."]:["Impassable. A unit in range can spend its action to break it."]):w?["Impassable. Units can't enter or cross it, but attacks can pass over it."]:dp?["Impassable. Units can't enter or cross it, but attacks can pass over it."]:sh?["Entering costs 1 extra movement."]:f?["Leaving it costs 1 movement.","Attacks into it have a 3% chance to miss."]:fr?["A unit standing here takes 1 less damage from all attacks.","Leaving it costs 1 movement."]:["No special effect."];
   if(f&&mods.y==="FT")lines.push("Forest Tactics: your units here take 1 less ranged damage, and your attacks into forests miss 2% of the time.");
   if(f&&mods.f==="FT")lines.push("The enemy has Forest Tactics: its units here take 1 less ranged damage.");
   if(u)lines.push("Occupied by "+(u.team==="y"?"your ":u.team==="f"?"an enemy ":"a wild ")+NAME[u.t]+".");
@@ -648,7 +673,8 @@ function buildMenu(){
   if(bchoice&&sel&&!over&&turn==="y"){ // barrels: just Break and Cancel
     const t=bchoice,m=document.createElement("div");m.className="pmenu";
     const opt=(html,fn)=>{const b=document.createElement("button");b.innerHTML=html;b.onclick=fn;m.append(b)};
-    opt("<b>Break</b><small>Uses this unit's action</small>",()=>{bchoice=null;doBreak(sel,t)});
+    if(XBAR.has(t.x+","+t.y))opt(`<b>Detonate</b><small>${XB_DMG} damage to all nearby</small>`,()=>{bchoice=null;doBreak(sel,t)});
+    else opt("<b>Break</b><small>Uses this unit's action</small>",()=>{bchoice=null;doBreak(sel,t)});
     opt("<b>Cancel</b>",()=>{bchoice=null;say("Move, attack, or pick another unit.");render()});
     const above=t.y>=4;
     m.style.left=`clamp(72px,calc(2px + (100% - 4px) * ${(t.x+.5)/W}),calc(100% - 72px))`;
@@ -660,16 +686,17 @@ function buildMenu(){
   const t=choice,[px,py]=pushDest(sel,t),n=Math.abs(px-t.x)+Math.abs(py-t.y);
   const m=document.createElement("div");m.className="pmenu";
   const opt=(html,fn,off)=>{const b=document.createElement("button");b.innerHTML=html;b.onclick=fn;b.disabled=!!off;m.append(b)};
-  if(t.team!=="y")opt(`<b>Attack</b><small>${dmgTo(sel,t)} damage</small>`,()=>{choice=null;doAttack(sel,t)});
-  if(mods.y==="PUSH"&&sel.t==="K"&&t!==sel&&d(sel,t)===1){
+  const cm=pendingMove(),go=fn=>()=>{const a=sel;choice=null;if(cm)moveThen(a,cm,()=>fn(a));else fn(a)};
+  if(t.team!=="y")opt(`<b>${cm?"Move &amp; Attack":"Attack"}</b><small>${dmgTo(sel,t)} damage</small>`,go(a=>doAttack(a,t)));
+  if(!cm&&mods.y==="PUSH"&&sel.t==="K"&&t!==sel&&d(sel,t)===1){
     const ok=pushable(sel,t);
     opt(`<b>${!ok?"Can't Push":n?`Push ${n} Tile${n>1?"s":""}`:"Push (Blocked)"}</b><small>${!ok?"Too heavy":t.team==="y"?"Reposition ally":"Instead of attacking"}</small>`,()=>{choice=null;doPush(sel,t)},!ok||!n);
   }
-  if(sel.t==="E"&&t.team!==sel.team&&targets(sel).includes(t))opt(`<b>Slow</b><small>${t.slow?"Already slowed":"Move 1 next turn"}</small>`,()=>{choice=null;doSlow(sel,t)},!!t.slow);
-  if(healable(sel,t)){const hn=Math.min(TYPES[sel.t].heal,TYPES[t.t].hp-t.hp);opt(`<b>Heal</b><small>+${hn} HP</small>`,()=>{choice=null;doHeal(sel,t)})}
+  if(sel.t==="E"&&t.team!==sel.team&&(cm||targets(sel).includes(t)))opt(`<b>${cm?"Move &amp; Slow":"Slow"}</b><small>${t.slow?"Already slowed":"Move 1 next turn"}</small>`,go(a=>doSlow(a,t)),!!t.slow);
+  if(!cm&&healable(sel,t)){const hn=Math.min(TYPES[sel.t].heal,TYPES[t.t].hp-t.hp);opt(`<b>Heal</b><small>+${hn} HP</small>`,()=>{choice=null;doHeal(sel,t)})}
   opt("<b>Cancel</b>",()=>{choice=null;say("Move, attack, or pick another unit.");render()});
   // keep the push-preview arrow visible: sit beside the target for vertical pushes, above or below it for horizontal ones
-  if(t.x===sel.x){
+  if(!cm&&t.x===sel.x){
     const right=t.x<W-5;
     m.style.left=`calc(2px + (100% - 4px) * ${right?(t.x+1)/W:t.x/W} + ${right?6:-6}px)`;
     m.style.top=`clamp(84px,calc(2px + (100% - 4px) * ${(t.y+.5)/H}),calc(100% - 84px))`;
@@ -684,24 +711,52 @@ function buildMenu(){
 }
 function acts(){
   const a=$("acts");a.innerHTML="";
-  if(over||busy||turn!=="y"||!sel||!units.length)return;
+  if(over||busy||locked||turn!=="y"||!units.length)return;
   const add=(t,f)=>{const b=document.createElement("button");b.className="b";b.textContent=t;b.onclick=f;a.append(b);return b};
   if(choice&&units.includes(choice))return; // options are shown next to the target
+  if(lastMove&&units.includes(lastMove.u)&&!lastMove.u.acted&&!mode)add("Undo Move",undoMove);
+  if(!sel)return;
   if(mods.y==="TP"&&!tpUsed.y&&!sel.moved)add("Teleport",()=>{mode="tp";say("Choose an open tile on the far edge.");render()});
   if(mods.y==="PUSH"&&sel.t==="K"&&!sel.acted&&units.some(b=>b.team==="y"&&pushable(sel,b)))add("Push Ally",()=>{mode="push";say("Choose an adjacent ally to push.");render()});
   if(mode)add("Cancel",()=>{mode=null;say("Move, attack, or pick another unit.");render()});
 }
 
+// a move picked by tapping an enemy that can only be hit after moving; valid while that enemy is the open choice
+const pendingMove=()=>choiceMv&&sel&&choice&&choiceMv.u===choice&&units.includes(choice)?choiceMv:null;
+// the best tile to attack t from: fortress first, ranged units as far back as they can, then the shortest walk
+function attackSpot(a,t){
+  const T=TYPES[a.t];let best=null,bs=1e9;
+  reach(a).forEach(k=>{
+    const[x,y]=k.split(",").map(Number),dd=Math.abs(x-t.x)+Math.abs(y-t.y);
+    if(dd<T.mn||dd>T.rg)return;
+    const s=(FORT.has(k)?-2:0)+(SHALLOW.has(k)?.5:0)-(T.rg>1?dd:0)+.1*(Math.abs(x-a.x)+Math.abs(y-a.y));
+    if(s<bs){bs=s;best=[x,y]}
+  });
+  return best;
+}
+function moveThen(a,cm,fn){
+  const dist=Math.abs(a.x-cm.x)+Math.abs(a.y-cm.y),g=gid;
+  a.x=cm.x;a.y=cm.y;a.moved=1;choiceMv=null;lastMove=null;locked=true;render();
+  later(()=>{if(g!==gid)return;locked=false;if(units.includes(a))fn();else render()},Math.round((.1+.06*dist)*1000)+60); // let the slide finish first
+}
+function undoMove(){
+  const m=lastMove;lastMove=null;
+  if(!m||!units.includes(m.u)||m.u.acted||at(m.x,m.y))return render();
+  m.u.x=m.x;m.u.y=m.y;m.u.moved=0;if(m.tp)tpUsed.y=0;
+  sel=m.u;info=m.u;insp=null;mode=null;choice=null;bchoice=null;
+  say("Move undone. Pick a new tile.");render();
+}
 function click(x,y){
   if(locked)return;
   if(choice&&at(x,y)!==choice)choice=null;
-  bchoice=null;
+  bchoice=null;choiceMv=null;
   tile={x,y};
   if(over||busy||turn!=="y"||!units.length)return render();
   if(BARRELS.has(x+","+y)&&sel&&!mode&&!sel.acted&&canBreak(sel,x,y)){bchoice={x,y};say("Choose an action next to the barrels.");return render()}
   if(solid(x+","+y))return render();
   const u=at(x,y);
   if(mode==="tp"&&!u&&y===0){
+    lastMove={u:sel,x:sel.x,y:sel.y,tp:1};
     sel.x=x;sel.y=y;sel.moved=1;tpUsed.y=1;mode=null;
     say("Teleported. Attack or pick another unit.");return render();
   }
@@ -716,38 +771,84 @@ function click(x,y){
     if(sel&&!mode&&!sel.acted&&targets(sel).includes(u)){
       choice=u;say("Choose an action next to the unit.");return render();
     }
+    if(sel&&!mode&&!sel.acted&&!sel.moved){ // in reach after a move: walk there and act in one go
+      const sp=attackSpot(sel,u);
+      if(sp){choice=u;choiceMv={u,x:sp[0],y:sp[1]};say("Your unit will move to the marked tile first. Choose an action.");return render()}
+    }
     insp=insp===u?null:u;info=insp;
     if(insp)say("Gray: where it can move. Red: what it can hit.");
     return render();
   }
   if(!sel)return render();
-  if(!u&&!sel.moved&&reach(sel).includes(x+","+y)){
+  if(!u&&!sel.moved&&!mode&&reach(sel).includes(x+","+y)){
+    lastMove={u:sel,x:sel.x,y:sel.y};
     sel.x=x;sel.y=y;sel.moved=1;
-    say(targets(sel).length?"Tap a red enemy to attack.":healTargets(sel).length?"Tap a marked ally to heal it.":breakables(sel).length?"Tap the barrels to break them.":"No enemy in range. Pick another unit or end turn.");
+    say(targets(sel).length?"Tap a red enemy to attack.":healTargets(sel).length?"Tap a marked ally to heal it.":breakables(sel).length?"Tap the barrels to break them.":"No enemy in range. Pick another unit, undo the move, or end turn.");
     return render();
   }
+  if(!u&&!mode){sel=null;info=null;say("Select one of your units.")} // tapping empty ground deselects
   render();
 }
 function doAttack(a,u){
-  a.acted=1;a.moved=1;sel=null;insp=null;locked=true;
+  a.acted=1;a.moved=1;sel=null;insp=null;locked=true;lastMove=null;
   attack(a,u,()=>{locked=false;info=units.includes(u)?u:null;afterAction()});
 }
+const XB_DMG=4;
+const blastOf=k=>{const[x,y]=k.split(",").map(Number),r=[];for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const a=x+dx,b=y+dy;if((dx||dy)&&a>=0&&b>=0&&a<W&&b<H)r.push([a,b])}return r}; // the 8 surrounding tiles
+const blastDmg=u=>Math.max(1,XB_DMG-(FORT.has(u.x+","+u.y)?1:0));
+function boom(x,y){
+  try{
+    const t=board.children[y*W+x],r=t.getBoundingClientRect(),bw=$("bw").getBoundingClientRect(),s=document.createElement("div");
+    s.className="boom";s.style.left=(r.left-bw.left+r.width/2)+"px";s.style.top=(r.top-bw.top+r.height/2)+"px";$("fx").append(s);setTimeout(()=>s.remove(),700);
+  }catch(e){}
+}
+// breaks the barrel at k; exploding barrels hurt every unit around them and set off barrels in the blast. Returns barrels destroyed.
+function detonate(k0){
+  const q=[k0],hit=[];let n=0;
+  while(q.length){
+    const k=q.shift();if(!BARRELS.has(k))continue;
+    const[x,y]=k.split(",").map(Number),xb=XBAR.has(k);BARRELS.delete(k);XBAR.delete(k);n++;
+    if(!xb){floatText(x,y,"Broken");continue}
+    boom(x,y);floatText(x,y,"Boom!",true);
+    blastOf(k).forEach(([a,b])=>{const kk=a+","+b;if(BARRELS.has(kk))q.push(kk);const u=at(a,b);if(u)hit.push(u)});
+  }
+  hit.forEach(u=>{if(!units.includes(u))return;const dm=blastDmg(u);u.hp-=dm;floatText(u.x,u.y,"-"+dm);if(u.hp<=0)units=units.filter(v=>v!==u)});
+  return n;
+}
+// AI estimate of setting off the barrel at k: positive when it hurts your units more than the enemy's
+function blastValue(k){
+  const q=[k],seen=new Set(),hits=new Map();
+  while(q.length){
+    const c=q.shift();if(seen.has(c)||!BARRELS.has(c))continue;seen.add(c);
+    if(!XBAR.has(c))continue;
+    blastOf(c).forEach(([a,b])=>{const kk=a+","+b;if(BARRELS.has(kk))q.push(kk);const u=at(a,b);if(u)hits.set(u,(hits.get(u)||0)+blastDmg(u))});
+  }
+  let v=0;
+  hits.forEach((dm,u)=>{const val=Math.min(dm,u.hp)+(dm>=u.hp?8:0);v+=u.team==="y"?val:u.team==="f"?-1.5*val:0});
+  return v;
+}
 function doBreak(a,t){
-  a.acted=1;a.moved=1;sel=null;insp=null;mode=null;BARRELS.delete(t.x+","+t.y);
-  floatText(t.x,t.y,"Broken");say("Smashed the barrels.");render();
+  const k=t.x+","+t.y,xb=XBAR.has(k);
+  a.acted=1;a.moved=1;sel=null;insp=null;mode=null;lastMove=null;
+  const n=detonate(k);let msg=xb?"The barrel exploded!":"Smashed the barrels.";
+  if(a.team==="y"){ // three barrels destroyed unlocks exploding barrels
+    unlocks.bk=(unlocks.bk||0)+n;saveU();
+    if(unlocks.bk>=3&&unlock("xbarrels")){msg+=" New terrain unlocked: Exploding Barrels!";setTimeout(()=>notify("Unlocked: Exploding Barrels"),300)}
+  }
+  say(msg);if(!checkEnd())render();
 }
 function applyHeal(a,b){const n=Math.min(TYPES[a.t].heal,TYPES[b.t].hp-b.hp);b.hp+=n;floatText(b.x,b.y,"+"+n,"heal");return n}
 function doSlow(a,u){
-  a.acted=1;a.moved=1;sel=null;insp=null;locked=true;
+  a.acted=1;a.moved=1;sel=null;insp=null;locked=true;lastMove=null;
   animAttack(a,u,()=>{u.slow=1;floatText(u.x,u.y,"Slow","slow");say("Slowed the "+NAME[u.t]+": movement reduced to 1 on its next turn.");locked=false;info=u;afterAction()});
 }
 function doHeal(a,b){
-  const n=applyHeal(a,b);a.acted=a.moved=1;sel=null;mode=null;choice=null;info=b;
+  const n=applyHeal(a,b);a.acted=a.moved=1;sel=null;mode=null;choice=null;info=b;lastMove=null;
   say("Healed your "+NAME[b.t]+" for "+n+" HP.");render();
 }
 function doPush(a,u){
   const[nx,ny]=pushDest(a,u),n=Math.abs(nx-u.x)+Math.abs(ny-u.y);
-  u.x=nx;u.y=ny;a.acted=a.moved=1;sel=null;mode=null;choice=null;
+  u.x=nx;u.y=ny;a.acted=a.moved=1;sel=null;mode=null;choice=null;lastMove=null;
   say(n?"Pushed the "+NAME[u.t]+" "+n+" tile"+(n>1?"s":"")+".":"Blocked. The unit didn't move.");render();
 }
 function applyAttack(a,b){
@@ -837,31 +938,99 @@ function distMap(srcs){
   }
   return D;
 }
+const VAL={P:4,E:3,R:3,A:2}; // targets worth focusing first: healers, enchanters and artillery
+// exploding barrels the AI would like to set off, with how much each is worth to it
+const blastPlan=()=>[...XBAR].map(k=>[k,blastValue(k)]).filter(e=>e[1]>=4);
 // lower is better
-function evalTile(u,x,y,D,foes){
-  const g={x,y},rg=TYPES[u.t].rg,inR=foes.filter(p=>d(g,p)<=rg&&d(g,p)>=TYPES[u.t].mn);
+function evalTile(u,x,y,D,foes,xv){
+  const g={x,y},k=x+","+y,T=TYPES[u.t],rg=T.rg,inR=foes.filter(p=>d(g,p)<=rg&&d(g,p)>=T.mn);
   const gh={...u,x,y},threat=foes.reduce((s,p)=>s+(d(g,p)<=mvOf(p)+TYPES[p.t].rg?dmgTo(p,gh):0),0),wt=units.filter(w=>w.team==="w").reduce((n,w)=>n+(d(g,w)<=TYPES[w.t].rg?dmgTo(w,gh)*1.5:d(g,w)<=TYPES[w.t].rg+TYPES[w.t].mv?dmgTo(w,gh)*.5:0),0);
-  let s=(threat+wt)*0.5+(FOREST.has(x+","+y)?(mods[u.team]==="FT"?-1.5:1.5):0)+(FORT.has(x+","+y)?-2:0)+(SHALLOW.has(x+","+y)?1.5:0); // forests slow the next move, but Forest Tactics likes them
-  if(inR.length){
-    s-=20+Math.max(...inR.map(p=>10*dmgTo(u,p)/p.hp+(dmgTo(u,p)>=p.hp?10:0)));
-    if(rg>1)s-=Math.min(...inR.map(p=>d(g,p)))*0.5; // ranged units fire from max distance
+  const care=.5+(1-u.hp/T.hp)*.9; // wounded units value safety more
+  let s=(threat+wt)*care+(FOREST.has(k)?(mods[u.team]==="FT"?-1.5:1.5):0)+(FORT.has(k)?-2:0)+(SHALLOW.has(k)?1.5:0); // forests slow the next move, but Forest Tactics likes them
+  s+=blastOf(k).filter(([a,b])=>XBAR.has(a+","+b)).length*2; // don't loiter beside exploding barrels
+  const atk=inR.length?20+Math.max(...inR.map(p=>10*dmgTo(u,p)/p.hp+(dmgTo(u,p)>=p.hp?12:0)+(VAL[p.t]||0))):0;
+  const bv=(xv||[]).reduce((m,[bk,v])=>{const[a,b]=bk.split(",").map(Number),dd=Math.abs(a-x)+Math.abs(b-y);return dd>=T.mn&&dd<=rg&&!(Math.abs(a-x)<=1&&Math.abs(b-y)<=1)?Math.max(m,14+v):m},0);
+  if(atk||bv){
+    s-=Math.max(atk,bv);
+    if(rg>1&&inR.length)s-=Math.min(...inR.map(p=>d(g,p)))*0.5; // ranged units fire from max distance
   }else s+=D[y][x];
   return s;
 }
 function enemyTurn(note=""){
-  turn="f";sel=null;mode=null;choice=null;insp=null;info=null;busy=true;units.forEach(u=>{if(u.team==="f")u.moved=u.acted=0});say(note+"Enemy is moving...");render();
-  const queue=[...units.filter(u=>u.team==="f"),...units.filter(u=>u.team==="w")];let i=0;
+  turn="f";sel=null;mode=null;choice=null;insp=null;info=null;busy=true;lastMove=null;units.forEach(u=>{if(u.team==="f")u.moved=u.acted=0});say(note+"Enemy is moving...");render();
+  const wq=units.filter(u=>u.team==="w"),done=new Set();let wi=0,movedAny=false;
   const g=gid;
-  (function step(){
-    if(over||g!==gid)return;
-    if(i>=queue.length){
-      const healed=mods.f==="REST"?rest("f"):0;
-      units.forEach(u=>{u.moved=u.acted=0;if(u.team!=="y")delete u.slow});
-      turn="y";busy=false;say("Your turn. Select one of your units."+(healed?" Resting enemy units recovered HP.":""));render();notify("Enemy turn ended \u2014 your move");return;
+  // works out where u would like to stand: its best tile overall, and its best tile that isn't where it is now
+  function planFor(u,pl,D,xv){
+    const hurt=u.t==="P"?units.filter(p=>p.team==="f"&&p!==u&&p.hp<TYPES[p.t].hp):[];
+    // a healer heads for wounded allies while keeping out of danger; otherwise it acts like any other unit
+    const sc=hurt.length?(x,y)=>{const q={x,y},th=pl.reduce((n,p)=>n+(d(q,p)<=mvOf(p)+TYPES[p.t].rg?dmgTo(p,{...u,x,y}):0),0);return th*.5+(hurt.some(p=>d(q,p)<=TYPES.P.rg)?-10:Math.min(...hurt.map(p=>d(q,p))))}:(x,y)=>evalTile(u,x,y,D,pl,xv);
+    const p={u,s:sc(u.x,u.y),best:[u.x,u.y],tp:false,mS:1e9,mB:null,mTp:false};
+    for(const k of reach(u)){
+      const[x,y]=k.split(",").map(Number),s=sc(x,y);
+      if(s<p.s){p.s=s;p.best=[x,y]}
+      if(s<p.mS){p.mS=s;p.mB=[x,y]}
     }
-    const u=queue[i++];
-    if(!units.includes(u))return step();
-    if(u.team==="w"){
+    if(mods.f==="TP"&&!tpUsed.f){ // teleport only when it clearly beats walking
+      farRow("f").forEach(([x,y])=>{
+        const s=evalTile(u,x,y,D,pl,xv)+4;
+        if(s<p.s-2){p.s=s;p.best=[x,y];p.tp=true}
+        if(s<p.mS-2){p.mS=s;p.mB=[x,y];p.mTp=true}
+      });
+    }
+    return p;
+  }
+  function act(u){
+    if(g!==gid)return;
+    const fin=()=>{u.acted=1;if(!checkEnd())render();later(step,500)};
+    const pri=p=>(dmgTo(u,p)>=p.hp?100:0)+(VAL[p.t]||0)-p.hp*.5; // finish kills first, then soft, valuable targets
+    const ts=targets(u).sort((a,b)=>pri(b)-pri(a));
+    const hs=healTargets(u).sort((a,b)=>a.hp/TYPES[a.t].hp-b.hp/TYPES[b.t].hp);
+    if(hs.length&&(hs[0].hp<=TYPES[hs[0].t].hp-2||!ts.length)){u.acted=1;applyHeal(u,hs[0]);say("Enemy "+NAME[u.t]+" healed an ally.");render();return later(step,600)}
+    // set off an exploding barrel when it beats the best plain attack
+    const atkV=ts.length?Math.min(dmgTo(u,ts[0]),ts[0].hp)+(dmgTo(u,ts[0])>=ts[0].hp?8:0)+(VAL[ts[0].t]||0)*.5:0;
+    const xb=breakables(u).filter(k=>XBAR.has(k)).map(k=>[k,blastValue(k)]).sort((a,b)=>b[1]-a[1])[0];
+    if(xb&&xb[1]>=4&&xb[1]>atkV){
+      const[bx,by]=xb[0].split(",").map(Number);u.acted=1;
+      animAttack(u,{x:bx,y:by},()=>{detonate(xb[0]);say("Enemy "+NAME[u.t]+" set off an exploding barrel!");fin()});return;
+    }
+    if(u.t==="E"&&ts.length&&!ts.some(p=>dmgTo(u,p)>=p.hp)){
+      const sl=ts.filter(p=>!p.slow&&mvOf(p)>1).sort((a,b)=>TYPES[b.t].dmg-TYPES[a.t].dmg||TYPES[b.t].mv-TYPES[a.t].mv)[0];
+      if(sl){u.acted=1;animAttack(u,sl,()=>{sl.slow=1;floatText(sl.x,sl.y,"Slow","slow");say("Enemy "+NAME[u.t]+" slowed your "+NAME[sl.t]+".");fin()});return}
+    }
+    if(ts.length){
+      u.acted=1;
+      let pushed=false;
+      if(mods.f==="PUSH"&&u.t==="K"){ // push a survivor into a forest to slow it down
+        const c=ts.find(p=>pushable(u,p)&&dmgTo(u,p)<p.hp&&FOREST.has(pushDest(u,p)+"")&&pushDest(u,p)+""!==p.x+","+p.y);
+        if(c){[c.x,c.y]=pushDest(u,c);pushed=true;say("Enemy knight pushed your "+NAME[c.t]+" into a forest.")}
+      }
+      if(!pushed){attack(u,ts[0],fin);return}
+    }
+    fin();
+  }
+  function step(){
+    if(over||g!==gid)return;
+    const left=units.filter(u=>u.team==="f"&&!done.has(u));
+    if(left.length){
+      // re-plan every step and let the unit with the strongest option go next, so kills land before the rest commit
+      const pl=units.filter(p=>p.team==="y"),D=distMap(pl),xv=blastPlan(),plans=left.map(u=>planFor(u,pl,D,xv));
+      const stays=p=>p.best[0]===p.u.x&&p.best[1]===p.u.y;
+      let p=plans.reduce((a,b)=>b.s<a.s?b:a),dest=p.best,tp=p.tp;
+      if(!movedAny&&plans.every(stays)){ // nobody has moved yet and nobody wants to: make the cheapest unit move
+        const mv=plans.filter(q=>q.mB);
+        if(mv.length){p=mv.reduce((a,b)=>b.mS-b.s<a.mS-a.s?b:a);dest=p.mB;tp=p.mTp}
+      }
+      const u=p.u;done.add(u);
+      if(tp){tpUsed.f=1;say("Enemy teleported a "+NAME[u.t]+"!")}
+      if(dest[0]!==u.x||dest[1]!==u.y){u.moved=1;movedAny=true}
+      [u.x,u.y]=dest;render();
+      later(()=>act(u),350);
+      return;
+    }
+    if(wi<wq.length){
+      const u=wq[wi++];
+      if(!units.includes(u))return step();
       if(Math.random()<.6){ // wander to a random reachable tile; never chases anyone
         const opts=reach(u).map(k=>k.split(",").map(Number));
         if(opts.length){[u.x,u.y]=opts[Math.floor(Math.random()*opts.length)];render()}
@@ -874,43 +1043,11 @@ function enemyTurn(note=""){
       },350);
       return;
     }
-    const pl=units.filter(p=>p.team==="y"),D=distMap(pl),hurt=u.t==="P"?units.filter(p=>p.team==="f"&&p!==u&&p.hp<TYPES[p.t].hp):[];
-    // a healer heads for wounded allies while keeping out of danger; otherwise it acts like any other unit
-    const sc=hurt.length?(x,y)=>{const g={x,y},th=pl.reduce((n,p)=>n+(d(g,p)<=mvOf(p)+TYPES[p.t].rg?dmgTo(p,{...u,x,y}):0),0);return th*.5+(hurt.some(p=>d(g,p)<=TYPES.P.rg)?-10:Math.min(...hurt.map(p=>d(g,p))))}:(x,y)=>evalTile(u,x,y,D,pl);
-    let bestS=sc(u.x,u.y),best=[u.x,u.y];
-    for(const k of reach(u)){
-      const[x,y]=k.split(",").map(Number),s=sc(x,y);
-      if(s<bestS){bestS=s;best=[x,y]}
-    }
-    if(mods.f==="TP"&&!tpUsed.f){ // teleport only when it clearly beats walking
-      let ts=1e9,tb=null;
-      farRow("f").forEach(([x,y])=>{const s=evalTile(u,x,y,D,pl)+4;if(s<ts){ts=s;tb=[x,y]}});
-      if(tb&&ts<bestS-2){best=tb;tpUsed.f=1;say("Enemy teleported a "+NAME[u.t]+"!")}
-    }
-    if(best[0]!==u.x||best[1]!==u.y)u.moved=1;
-    [u.x,u.y]=best;render();
-    later(()=>{
-      if(g!==gid)return;
-      const ts=targets(u).sort((a,b)=>(dmgTo(u,b)>=b.hp)-(dmgTo(u,a)>=a.hp)||a.hp-b.hp);
-      const fin=()=>{u.acted=1;if(!checkEnd())render();later(step,500)};
-      const hs=healTargets(u).sort((a,b)=>a.hp/TYPES[a.t].hp-b.hp/TYPES[b.t].hp);
-      if(hs.length&&(hs[0].hp<=TYPES[hs[0].t].hp-2||!ts.length)){u.acted=1;applyHeal(u,hs[0]);say("Enemy "+NAME[u.t]+" healed an ally.");render();return later(step,600)}
-      if(u.t==="E"&&ts.length&&!ts.some(p=>dmgTo(u,p)>=p.hp)){
-        const sl=ts.filter(p=>!p.slow&&mvOf(p)>1).sort((a,b)=>TYPES[b.t].dmg-TYPES[a.t].dmg||TYPES[b.t].mv-TYPES[a.t].mv)[0];
-        if(sl){u.acted=1;animAttack(u,sl,()=>{sl.slow=1;floatText(sl.x,sl.y,"Slow","slow");say("Enemy "+NAME[u.t]+" slowed your "+NAME[sl.t]+".");fin()});return}
-      }
-      if(ts.length){
-        u.acted=1;
-        let pushed=false;
-        if(mods.f==="PUSH"&&u.t==="K"){ // push a survivor into a forest to slow it down
-          const c=ts.find(p=>pushable(u,p)&&dmgTo(u,p)<p.hp&&FOREST.has(pushDest(u,p)+"")&&pushDest(u,p)+""!==p.x+","+p.y);
-          if(c){[c.x,c.y]=pushDest(u,c);pushed=true;say("Enemy knight pushed your "+NAME[c.t]+" into a forest.")}
-        }
-        if(!pushed){attack(u,ts[0],fin);return}
-      }
-      fin();
-    },350);
-  })();
+    const healed=mods.f==="REST"?rest("f"):0;
+    units.forEach(u=>{u.moved=u.acted=0;if(u.team!=="y")delete u.slow});
+    turn="y";busy=false;say("Your turn. Select one of your units."+(healed?" Resting enemy units recovered HP.":""));render();notify("Enemy turn ended — your move");
+  }
+  step();
 }
 
 /* ---------- World map ---------- */
@@ -1049,7 +1186,7 @@ $("wrestart").onclick=()=>{
 /* ---------- Screens & setup ---------- */
 const COLORS={red:["Red","#c8372d","#fff"],yellow:["Yellow","#e6b820","#2b2200"],blue:["Blue","#2f6fb5","#fff"],orange:["Orange","#e2812a","#fff"],green:["Green","#3b9a4e","#fff"],purple:["Purple","#7b4bb0","#fff"],black:["Black","#232a31","#fff"],wild:["Wild","#7a5a36","#fff"]};
 const CHOICES=["red","yellow","blue","orange","green","purple"];
-const show=n=>{["menu","pick","game","world"].forEach(i=>$(i).hidden=i!==n);if(n==="menu"){$("rulesview").hidden=true;$("mbtns").hidden=false}};
+const show=n=>{["menu","pick","game","world"].forEach(i=>$(i).hidden=i!==n);if(n==="menu"){$("rulesview").hidden=true;$("unlockview").hidden=true;$("mbtns").hidden=false}};
 const disc=(t,c)=>`<div class="u" data-t="${t}" style="background:${c[1]};--tc:${c[1]};--ic:${c[2]}">${ICON[t]}</div>`;
 const foeColor=()=>pick.c==="red"?"black":"red";
 const cap=w=>w[0].toUpperCase()+w.slice(1);
@@ -1105,7 +1242,7 @@ $("rand").onclick=()=>{pick.x=[];for(let i=0;i<EXTRAS;i++){let t;do t=POOL[Math.
 $("clr").onclick=()=>{pick.x=[];renderSetup()};
 $("randm").onclick=()=>{const k=Object.keys(MODS);pick.m=k[Math.floor(Math.random()*k.length)];renderSetup()};
 function resetBattle(){
-  gid++;$("defeat").hidden=true;tile=null;units=[];sel=null;mode=null;choice=null;insp=null;info=null;turn="y";over=false;busy=false;locked=false;tpUsed={y:0,f:0};
+  gid++;$("defeat").hidden=true;tile=null;units=[];sel=null;mode=null;choice=null;choiceMv=null;bchoice=null;lastMove=null;insp=null;info=null;turn="y";over=false;busy=false;locked=false;tpUsed={y:0,f:0};
   const keys=Object.keys(MODS);mods={y:null,f:keys[Math.floor(Math.random()*keys.length)]};
 }
 function init(){
@@ -1158,6 +1295,7 @@ function hBoard(cols,rows,map,us,cs=44){
     if(c==="s")s+=`<rect x="${px}" y="${py}" width="${cs}" height="${cs}" fill="#86c4dc"/>`+nest(SH_V[0],px,py,cs);
     if(c==="d")s+=`<rect x="${px}" y="${py}" width="${cs}" height="${cs}" fill="#2f6f9c"/>`+nest(DP_V[0],px,py,cs);
     if(c==="b")s+=nest(BAR_V[0],px,py,cs);
+    if(c==="x")s+=nest(XBAR_V,px,py,cs);
     if(c==="f")s+=`<rect x="${px}" y="${py}" width="${cs}" height="${cs}" fill="rgba(60,140,80,.25)"/>`+nest(FOREST_V[0],px,py,cs);
     if(c==="F")s+=`<rect x="${px}" y="${py}" width="${cs}" height="${cs}" fill="#8d98a2"/>`+nest(FORT_V[0],px,py,cs);
     s+=`<rect x="${px}" y="${py}" width="${cs}" height="${cs}" fill="none" stroke="rgba(0,0,0,.12)"/>`;
@@ -1168,17 +1306,18 @@ function hBoard(cols,rows,map,us,cs=44){
 const hRow=(art,txt)=>`<div class="hrow"><div class="hico">${art}</div><div>${txt}</div></div>`;
 const hIcon=(t,team)=>`<svg viewBox="0 0 48 48" role="img" aria-hidden="true">${hDisc(t,HCOL[team],24,24,21)}</svg>`;
 const hTile=c=>hBoard(1,1,[c],[],48);
+const LOCK_ART='<svg viewBox="0 0 48 48" role="img" aria-hidden="true"><rect width="48" height="48" rx="8" fill="#9aa3ab"/><text x="24" y="33" text-anchor="middle" font-size="26" font-weight="700" fill="#fff">?</text></svg>';
 const HOWTO=[
  {id:"goal",title:"Goal",art:()=>hBoard(7,3,[".......",".......","......."],[["K","f",1,0],["A","f",3,0],["C","f",5,0],["K","y",1,2],["A","y",3,2],["C","y",5,2]]),
   body:()=>"<p>Destroy every enemy unit.</p>"},
  {id:"turn",title:"Your Turn",art:()=>hBoard(7,5,["..m....",".mmm...","mm.mma.",".mmm...","..m...."],[["K","y",2,2],["K","f",5,2]]),
-  body:()=>"<p>Tap a unit. Green tiles show where it can move and pale red tiles show what it can hit. Tap a green tile to move, then tap a red enemy to attack.</p><p>Each unit moves once and attacks once, and attacking ends its turn. Press End Turn when you're done.</p><p>Tapping an enemy opens a short action menu, so nothing happens until you choose.</p>"},
+  body:()=>"<p>Tap a unit. Green tiles show where it can move and pale red tiles show what it can hit. Tap a green tile to move, then tap a red enemy to attack.</p><p>Each unit moves once and attacks once, and attacking ends its turn. Press End Turn when you're done.</p><p>Tapping an enemy opens a short action menu, so nothing happens until you choose. If the enemy is only in reach after a move, tapping it marks the tile your unit will move to, and the menu offers Move &amp; Attack.</p><p>Moved to the wrong tile? Press Undo Move before that unit acts. Tap empty ground to deselect.</p>"},
  {id:"armies",title:"Armies",art:()=>{let s='<svg class="hart" viewBox="0 0 300 70" role="img" aria-hidden="true">';["K","A","C"].forEach((t,i)=>{s+=hDisc(t,HCOL.y,30+i*60,35,24)});[3,4].forEach(i=>{s+=`<circle cx="${30+i*60}" cy="35" r="24" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-dasharray="5 4"/><text x="${30+i*60}" y="44" text-anchor="middle" font-size="26" font-weight="700" fill="var(--ink)">?</text>`});return s+"</svg>"},
   body:()=>"<p>Each side fields five units: one knight, one archer, one cavalry unit, and two more. You choose your two extras, and the enemy's are random. Each army can include only one Apothecary and one Enchanter.</p>"},
  {id:"units",title:"Units",art:()=>"",
   body:()=>POOL.split("").map(t=>{const u=TYPES[t];return hRow(hIcon(t,"y"),`<b>${cap(NAME[t])}</b><br>${u.hp} HP, move ${u.mv}, ${u.mn>1?`range ${u.mn} to ${u.rg}`:`range ${u.rg}`}, damage ${u.dmg}${u.heal?`.<br>Heals an ally in range for up to ${u.heal} HP instead of attacking.`:""}${u.slow?`.<br>Slows an enemy in range instead of attacking: its movement drops to 1 on its next turn.`:""}`)}).join("")},
  {id:"terrain",title:"Terrain",art:()=>"",
-  body:()=>hRow(hTile("f"),"<b>Forest</b><br>Leaving a forest costs 1 extra movement, and attacks into a forest have a 3% chance to miss.")+hRow(hTile("F"),"<b>Fortress</b><br>Some maps have stone strongholds made of two to four tiles. A unit standing on one takes 1 less damage from all attacks, and leaving it costs 1 movement.")+hRow(hTile("s"),"<b>Shallow Water</b><br>Entering it costs 1 extra movement.")+hRow(hTile("d"),"<b>Deep Water</b><br>Impassable. Lakes, ponds and rivers are made of deep water, usually edged with shallows. Rivers have shallow fords.")+(unlocks.barrels?hRow(hTile("b"),"<b>Barrels</b><br>Impassable, but a unit in range can spend its action to break them. They appear next to fortresses."):hRow(`<svg viewBox="0 0 48 48" role="img" aria-hidden="true"><rect width="48" height="48" rx="8" fill="#9aa3ab"/><text x="24" y="33" text-anchor="middle" font-size="26" font-weight="700" fill="#fff">?</text></svg>`,"<b>Barrels (Locked)</b><br>Win two campaign battles to unlock."))+hRow(hTile("w"),"<b>Wall</b><br>Walls can't be crossed.")},
+  body:()=>hRow(hTile("f"),"<b>Forest</b><br>Leaving a forest costs 1 extra movement, and attacks into a forest have a 3% chance to miss.")+hRow(hTile("F"),"<b>Fortress</b><br>Some maps have stone strongholds made of two to four tiles. A unit standing on one takes 1 less damage from all attacks, and leaving it costs 1 movement.")+hRow(hTile("s"),"<b>Shallow Water</b><br>Entering it costs 1 extra movement.")+hRow(hTile("d"),"<b>Deep Water</b><br>Impassable. Lakes, ponds and rivers are made of deep water, usually edged with shallows. Rivers have shallow fords.")+(unlocks.barrels?hRow(hTile("b"),"<b>Barrels</b><br>Impassable, but a unit in range can spend its action to break them. They appear next to fortresses."):hRow(LOCK_ART,"<b>Barrels (Locked)</b><br>Win two campaign battles to unlock."))+(unlocks.xbarrels?hRow(hTile("x"),`<b>Exploding Barrels</b><br>Some barrels are rigged to blow. Breaking one deals ${XB_DMG} damage to every unit on the 8 tiles around it, friend or foe, and sets off barrels in the blast.`):hRow(LOCK_ART,"<b>Exploding Barrels (Locked)</b><br>Destroy three barrels to unlock."))+hRow(hTile("w"),"<b>Wall</b><br>Walls can't be crossed.")},
  {id:"mods",title:"Modifiers",art:()=>"",
   body:()=>"<p>Each side gets one modifier. You see the enemy's before you choose yours.</p>"+Object.values(MODS).map(m=>`<p class="hmod"><b>${m.name}</b><br>${m.desc}</p>`).join("")},
  {id:"wild",title:"Wild Animals",art:()=>"",
@@ -1218,6 +1357,24 @@ function howView(ctx,topic){
   const f=r.querySelector("button");if(f)f.focus({preventScroll:true});
 }
 const howMain={root:$("rulesview"),mainLabel:"Back to Main Menu",exit:()=>{$("rulesview").hidden=true;$("mbtns").hidden=false;$("how").focus()}};
+/* ---------- Unlocks ---------- */
+const UNLOCKS=[
+ {id:"barrels",name:"Barrels",art:()=>hTile("b"),desc:"Stacks of barrels can appear next to fortresses. They block movement, and a unit in range can spend its action to break them.",hint:"Win two campaign battles."},
+ {id:"xbarrels",name:"Exploding Barrels",art:()=>hTile("x"),desc:`Each barrel has a 25% chance to be explosive. Breaking one deals ${XB_DMG} damage to every unit on the 8 tiles around it and sets off barrels in the blast. The enemy knows how to use them too.`,
+  hint:()=>unlocks.barrels?"Destroy three barrels.":"Unlock Barrels, then destroy three of them.",prog:()=>unlocks.barrels?[Math.min(3,unlocks.bk||0),3]:null}
+];
+function unlockView(){
+  const r=$("unlockview"),got=UNLOCKS.filter(o=>unlocks[o.id]).length;
+  r.innerHTML=`<h2 class="htitle">Unlocks</h2><p class="hint" style="text-align:center">${got} of ${UNLOCKS.length} unlocked</p><div class="ulist">`
+   +UNLOCKS.map(o=>{
+     const on=!!unlocks[o.id],pr=!on&&o.prog&&o.prog(),hint=typeof o.hint==="function"?o.hint():o.hint;
+     return `<div class="hcard${on?"":" ulock"}" aria-label="${o.name}, ${on?"unlocked":"locked"}">`+hRow(on?o.art():LOCK_ART,`<b>${o.name}</b><small>${on?"Unlocked":"Locked"}</small>${on?o.desc:"How to unlock: "+hint}${pr?`<div class="uprog"><i style="width:${100*pr[0]/pr[1]}%"></i></div><small>${pr[0]} of ${pr[1]} barrels destroyed</small>`:""}`)+"</div>";
+   }).join("")+"</div>";
+  const box=document.createElement("div");box.className="menubtns";
+  mk(box,"b big","Back to Main Menu",()=>{r.hidden=true;$("mbtns").hidden=false;$("unl").focus()});r.append(box);
+  window.scrollTo(0,0);box.querySelector("button").focus({preventScroll:true});
+}
+$("unl").onclick=()=>{$("mbtns").hidden=true;$("unlockview").hidden=false;unlockView()};
 $("how").onclick=()=>{$("mbtns").hidden=true;$("rulesview").hidden=false;howView(howMain,null)};
 $("back").onclick=()=>show("menu");
 $("go").onclick=()=>{
@@ -1228,7 +1385,7 @@ $("end").onclick=()=>{
   if(over||busy||locked||!units.length||turn!=="y")return;
   const n=mods.y==="REST"?rest("y"):0;
   units.forEach(u=>{if(u.team==="y")delete u.slow});
-  notify("You ended your turn");
+  lastMove=null;notify("You ended your turn");
   enemyTurn(n?"Your resting units recovered HP. ":"");
 };
 $("reset").onclick=init;
@@ -1242,6 +1399,7 @@ function buildGuide(){
    +row(SH_V.map(v=>sw(v,"background:#86c4dc")).join(""),"Shallow Water","Entering it costs 1 extra movement. Often found around deep water, and sometimes as a ford across a river.")
    +row(DP_V.map(v=>sw(v,"background:#2f6f9c")).join(""),"Deep Water","Impassable. Units can't enter or cross it, but attacks can pass over it. Forms lakes, ponds and rivers.")
    +(unlocks.barrels?row(BAR_V.map(v=>sw(v,"")).join(""),"Barrels","Impassable. A unit in range can spend its action to break them. Found next to fortresses."):`<div class="tentry"><strong>Barrels (Locked)</strong><small>Win two campaign battles to unlock.</small></div>`)
+   +(unlocks.xbarrels?row(sw(XBAR_V,""),"Exploding Barrel",`Impassable. Breaking it deals ${XB_DMG} damage to every unit on the 8 tiles around it and sets off barrels in the blast. Each barrel has a 25% chance to be one.`):`<div class="tentry"><strong>Exploding Barrels (Locked)</strong><small>Destroy three barrels to unlock.</small></div>`)
    +row(WALL_V.map(v=>sw(v,"background:var(--wall)")).join(""),"Wall","Impassable. Units can't enter or cross it, but attacks can pass over it.")
    +row(FORT_V.map(v=>sw(v,FR)).join(""),"Fortress","Uncommon. A unit standing on one takes 1 less damage from all attacks, and leaving costs 1 movement.")
    +"<h3>Highlights</h3>"
@@ -1251,7 +1409,13 @@ function buildGuide(){
 const closeGuide=()=>{$("tguide").hidden=true};
 $("pguide").onclick=()=>{buildGuide();$("tguide").hidden=false;$("tclose").focus()};
 $("tclose").onclick=closeGuide;
-if(document.addEventListener)document.addEventListener("keydown",e=>{if(e.key==="Escape")closeGuide()});
+if(document.addEventListener)document.addEventListener("keydown",e=>{
+  if(e.key!=="Escape")return;
+  if(!$("tguide").hidden)return closeGuide();
+  if($("game").hidden||paused||locked||busy||over)return;
+  if(choice||bchoice||mode){choice=null;choiceMv=null;bchoice=null;mode=null;say("Move, attack, or pick another unit.");render()} // Esc backs out one step
+  else if(sel){sel=null;info=null;say("Select one of your units.");render()}
+});
 const closePause=()=>{paused=false;$("pause").hidden=true};
 const panel=n=>["pmain","pconfirm","pover"].forEach(p=>$(p).hidden=p!==n);
 const resetPause=()=>{$("pbtns").hidden=false;$("prules").hidden=true;$("ptitle").hidden=false;$("ptitle").textContent="Paused"};
