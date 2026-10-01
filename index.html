@@ -17,11 +17,12 @@ h1{font-size:1.4rem;margin:0 0 4px}
 #mods{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 8px;min-height:2.6em}
 .chip{display:flex;flex-direction:column;border-radius:8px;padding:5px 12px;font-size:.9rem;font-weight:700;line-height:1.25;box-shadow:0 0 0 1.5px rgba(255,255,255,.55),0 1px 3px rgba(0,0,0,.4)}
 .chip small{font-size:.7rem;font-weight:400;opacity:.92}
-#board{display:grid;grid-template-columns:repeat(10,1fr);gap:2px;background:var(--ink);padding:2px;border-radius:6px}
+#board{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:2px;background:var(--ink);padding:2px;border-radius:6px}
 .t{aspect-ratio:1;border:0;padding:0;background:var(--tile);position:relative;font:inherit;cursor:pointer;overflow:hidden}
 .t:nth-child(even){background:var(--tile2)}
 .t.w{background:var(--wall);cursor:default}
 .t.dp{background:#2f6f9c;cursor:default}
+.t.bar{cursor:pointer}
 .t.sh{background:#86c4dc}
 .t.fo{background-image:linear-gradient(rgba(60,140,80,.25),rgba(60,140,80,.25))}
 .t.ir{background:var(--atk)}
@@ -345,8 +346,11 @@ const MODS={
  PAD:{name:"Padded Armor",desc:"Archers take 1 less damage but have 1 less movement."},
  REST:{name:"Field Rest",desc:"At the end of your turn, each of your units that neither moved nor attacked that turn recovers 2 HP."}};
 let WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set();
+const UKEY="skirmish_unlocks_v1",unlocks=(()=>{try{return JSON.parse(localStorage.getItem(UKEY)||"{}")||{}}catch(e){return{}}})();
+const unlock=id=>{if(unlocks[id])return false;unlocks[id]=1;try{localStorage.setItem(UKEY,JSON.stringify(unlocks))}catch(e){}return true};
+let BARRELS=new Set(),bchoice=null;
 let WALLV=0,FORTV=new Map(); // one wall style per map; each connected fortress group shares one style
-const solid=k=>WALLS.has(k)||DEEP.has(k);
+const solid=k=>WALLS.has(k)||DEEP.has(k)||BARRELS.has(k);
 // Random terrain, mirrored through the map centre so both sides are fair. Start rows stay clear.
 function genMap(o={}){
   seed=Math.floor(Math.random()*1e5);
@@ -420,17 +424,23 @@ function genMap(o={}){
         t.forEach(([a,b])=>fort.add(a+","+b));break;
       }
     }
+    const bars=new Set(); // barrels (unlockable): 50% of maps with a fortress get 1-2, each beside a fortress tile
+    if(unlocks.barrels&&fort.size&&Math.random()<.5){
+      const cand=[];
+      fort.forEach(k=>{const[a,b]=k.split(",").map(Number);[[1,0],[-1,0],[0,1],[0,-1]].forEach(([dx,dy])=>{const x=a+dx,y=b+dy,kk=K(x,y);if(x>=0&&x<W&&y>=2&&y<=H-3&&!walls.has(kk)&&!forest.has(kk)&&!fort.has(kk)&&!taken(x,y)&&!cand.includes(kk))cand.push(kk)})});
+      for(let n=1+R(2);n>0&&cand.length;n--)bars.add(cand.splice(R(cand.length),1)[0]);
+    }
     const seen=new Set(["0,0"]),q=[[0,0]];
     while(q.length){
       const[x,y]=q.pop();
       for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){
         const nx=x+dx,ny=y+dy,k=nx+","+ny;
-        if(nx<0||ny<0||nx>=W||ny>=H||walls.has(k)||deep.has(k)||seen.has(k))continue;
+        if(nx<0||ny<0||nx>=W||ny>=H||walls.has(k)||deep.has(k)||bars.has(k)||seen.has(k))continue;
         seen.add(k);q.push([nx,ny]);
       }
     }
-    if(seen.size===W*H-walls.size-deep.size){
-      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;WALLV=R(4);FORTV=new Map();
+    if(seen.size===W*H-walls.size-deep.size-bars.size){
+      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;BARRELS=bars;WALLV=R(4);FORTV=new Map();
       for(const k0 of fort){
         if(FORTV.has(k0))continue;
         const v=R(2),st=[k0];FORTV.set(k0,v);
@@ -452,6 +462,8 @@ const S1='stroke="rgba(0,0,0,.4)" stroke-width="1.2"';
 const WV=(a,c,o)=>svg(`<g fill="none" stroke="${c}" stroke-width="1.8" stroke-linecap="round" opacity="${o}">`+a.map(([x,y])=>`<path d="M${x} ${y}q4-4 8 0t8 0"/>`).join("")+"</g>");
 const DP_V=[WV([[6,12],[16,26]],"#a9d6ee",.55),WV([[10,9],[4,24],[20,32]],"#a9d6ee",.5),WV([[14,15],[6,30]],"#a9d6ee",.55)];
 const SH_V=[WV([[8,13],[18,27]],"#fff",.75),WV([[5,10],[19,20],[9,32]],"#fff",.7),WV([[14,12],[6,26]],"#fff",.75)];
+const BAR_A='<ellipse cx="20" cy="35" rx="17" ry="3" fill="rgba(0,0,0,.18)"/><path d="M5 17c0-3 3.500-4.500 6.500-4.500S18 14 18 17v13c0 3-3.500 4.500-6.500 4.500S5 33 5 30z" fill="#9a6b3a" stroke="#4a2f14" stroke-width="1.6"/><path d="M5 20.500c3 2 10 2 13 0M5 27c3 2 10 2 13 0" fill="none" stroke="#4a2f14" stroke-width="1.5"/><ellipse cx="11.500" cy="13" rx="6.500" ry="2.600" fill="#c08c52" stroke="#4a2f14" stroke-width="1.5"/><rect x="19" y="21" width="17" height="14" fill="#c9a064" stroke="#4a2f14" stroke-width="1.6"/><path d="M19 21l17 14M36 21L19 35" stroke="#7a5a2c" stroke-width="1.6"/><path d="M21 10c0-2.500 3-3.800 5.500-3.800s5.500 1.300 5.500 3.800v9c0 2.500-3 3.800-5.500 3.800S21 21.500 21 19z" fill="#8a5c30" stroke="#4a2f14" stroke-width="1.6"/><ellipse cx="26.500" cy="10" rx="5.500" ry="2.200" fill="#b98448" stroke="#4a2f14" stroke-width="1.4"/><path d="M21 14c2.500 1.800 8.500 1.800 11 0" fill="none" stroke="#4a2f14" stroke-width="1.4"/>';
+const BAR_V=[svg(BAR_A),svg(`<g transform="translate(40 0) scale(-1 1)">${BAR_A}</g>`)];
 const WALL_V=[
  svg('<path d="M0 13H40M0 27H40M13 0V13M27 13V27M13 27V40" stroke="rgba(0,0,0,.35)" stroke-width="1.5" fill="none"/><path d="M0 0H40" stroke="rgba(255,255,255,.35)" stroke-width="3"/>'),
  svg(`<ellipse cx="13" cy="27" rx="10" ry="8" fill="#7f8b95" ${S1}/><ellipse cx="28" cy="24" rx="9" ry="10" fill="#8d98a1" ${S1}/><ellipse cx="20" cy="12" rx="8" ry="6.5" fill="#98a3ac" ${S1}/><path d="M8 24q3-4 7-3M24 19q3-3 6-1M16 10q3-2 6 0" stroke="rgba(255,255,255,.4)" fill="none" stroke-width="1.5"/>`),
@@ -519,31 +531,33 @@ function reach(u){ // entering shallow water costs 2; leaving a forest or fortre
   cost.delete(k0);
   return[...cost.keys()].filter(k=>{const[x,y]=k.split(",").map(Number);return !at(x,y)}); // can pass through allies, but not stop on them
 }
+const canBreak=(a,x,y)=>{const dd=d(a,{x,y}),T=TYPES[a.t];return dd>=T.mn&&dd<=T.rg};
+const breakables=u=>[...BARRELS].filter(k=>{const[x,y]=k.split(",").map(Number);return canBreak(u,x,y)});
 const healable=(a,b)=>!!TYPES[a.t].heal&&b!==a&&b.team===a.team&&b.hp<TYPES[b.t].hp&&d(a,b)<=TYPES[a.t].rg&&d(a,b)>=TYPES[a.t].mn;
 const healTargets=u=>units.filter(b=>healable(u,b));
-const spent=u=>!!u.acted||(u.team!=="w"&&!!u.moved&&!targets(u).length&&!healTargets(u).length&&!(mods.y==="PUSH"&&u.t==="K"&&units.some(b=>b.team==="y"&&pushable(u,b))));
+const spent=u=>!!u.acted||(u.team!=="w"&&!!u.moved&&!targets(u).length&&!healTargets(u).length&&(u.team!=="y"||!breakables(u).length)&&!(mods.y==="PUSH"&&u.t==="K"&&units.some(b=>b.team==="y"&&pushable(u,b))));
 const targets=u=>units.filter(e=>e.team!==u.team&&(u.team!=="f"||e.team!=="w")&&d(u,e)<=TYPES[u.t].rg&&d(u,e)>=TYPES[u.t].mn);
 
 const spotsOf=(u,rc)=>[[u.x,u.y],...rc.map(k=>k.split(",").map(Number))];
-function atkZone(u,spots,set){
+function atkZone(u,spots,set,bar){
   const{rg,mn}=TYPES[u.t];
   spots.forEach(([px,py])=>{
     for(let y=0;y<H;y++)for(let x=0;x<W;x++){
       const dd=Math.abs(x-px)+Math.abs(y-py);
-      if(dd>=mn&&dd<=rg&&!solid(x+","+y))set.add(x+","+y);
+      if(dd>=mn&&dd<=rg&&(!solid(x+","+y)||(bar&&BARRELS.has(x+","+y))))set.add(x+","+y);
     }
   });
 }
 function render(){
   board.innerHTML="";
-  const mv=new Set(),tg=new Set(),ig=new Set(),ir=new Set(),pr=new Set(),hs=new Set();
+  const mv=new Set(),tg=new Set(),ig=new Set(),ir=new Set(),pr=new Set(),hs=new Set(),bt=new Set();
   if(sel&&turn==="y"&&!over){
     if(mode==="tp")farRow("y").forEach(p=>mv.add(p+""));
     else if(mode==="push")units.filter(b=>b.team==="y"&&pushable(sel,b)).forEach(b=>tg.add(b));
     else{
       const rc=sel.moved?[]:reach(sel);
       rc.forEach(k=>mv.add(k));
-      if(!sel.acted){atkZone(sel,spotsOf(sel,rc),pr);targets(sel).forEach(b=>tg.add(b));healTargets(sel).forEach(b=>hs.add(b));if(mods.y==="PUSH")units.filter(b=>b.team==="y"&&pushable(sel,b)).forEach(b=>tg.add(b))}
+      if(!sel.acted){breakables(sel).forEach(k=>bt.add(k));atkZone(sel,spotsOf(sel,rc),pr,true);targets(sel).forEach(b=>tg.add(b));healTargets(sel).forEach(b=>hs.add(b));if(mods.y==="PUSH")units.filter(b=>b.team==="y"&&pushable(sel,b)).forEach(b=>tg.add(b))}
     }
   }
   let pd=null;
@@ -557,11 +571,11 @@ function render(){
     atkZone(insp,spotsOf(insp,rc),ir);
   }
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
-    const k=x+","+y,w=WALLS.has(k),dp=DEEP.has(k),sh=SHALLOW.has(k),f=FOREST.has(k),fr=FORT.has(k),b=document.createElement("button"),u=at(x,y);
-    b.className="t"+(w?" w":"")+(dp?" dp":"")+(sh?" sh":"")+(f?" fo":"")+(fr?" fr":"")+(tile&&tile.x===x&&tile.y===y?" ts":"")+(ig.has(k)?" ig":"")+(ir.has(k)?" ir":"")+(pr.has(k)?" pr":"")+(mv.has(k)?" m":"")+(u&&tg.has(u)?" a":"")+(u&&tg.has(u)&&mods.y==="PUSH"&&sel&&pushable(sel,u)?" pp":"")+(u&&hs.has(u)?" hl":"")+(u&&u===choice?" ch":"")+(pd&&pd.k===k?" pd":"");
+    const k=x+","+y,w=WALLS.has(k),dp=DEEP.has(k),sh=SHALLOW.has(k),f=FOREST.has(k),fr=FORT.has(k),bar=BARRELS.has(k),b=document.createElement("button"),u=at(x,y);
+    b.className="t"+(bar?" bar":"")+(w?" w":"")+(dp?" dp":"")+(sh?" sh":"")+(f?" fo":"")+(fr?" fr":"")+(tile&&tile.x===x&&tile.y===y?" ts":"")+(ig.has(k)?" ig":"")+(ir.has(k)?" ir":"")+(pr.has(k)?" pr":"")+(mv.has(k)?" m":"")+((u&&tg.has(u))||bt.has(k)?" a":"")+(u&&tg.has(u)&&mods.y==="PUSH"&&sel&&pushable(sel,u)?" pp":"")+(u&&hs.has(u)?" hl":"")+(u&&u===choice?" ch":"")+(pd&&pd.k===k?" pd":"");
     if(pd&&pd.k===k)b.dataset.arrow=pd.a;
-    b.innerHTML=w?WALL_V[WALLV]:dp?DP_V[tv(x,y,3,13)]:sh?SH_V[tv(x,y,3,15)]:f?FOREST_V[tv(x,y,4,9)]:fr?FORT_V[FORTV.get(k)||0]:ground(x,y);
-    b.setAttribute("aria-label",w?"Wall":dp?"Deep water":u?(u.team==="y"?"Your ":"Enemy ")+NAME[u.t]+", "+u.hp+" health"+(u.slow?", slowed":""):mv.has(k)?"Move here":f?"Forest":sh?"Shallow water":fr?"Fortress":"Empty");
+    b.innerHTML=bar?BAR_V[tv(x,y,2,19)]:w?WALL_V[WALLV]:dp?DP_V[tv(x,y,3,13)]:sh?SH_V[tv(x,y,3,15)]:f?FOREST_V[tv(x,y,4,9)]:fr?FORT_V[FORTV.get(k)||0]:ground(x,y);
+    b.setAttribute("aria-label",bar?"Barrels":w?"Wall":dp?"Deep water":u?(u.team==="y"?"Your ":"Enemy ")+NAME[u.t]+", "+u.hp+" health"+(u.slow?", slowed":""):mv.has(k)?"Move here":f?"Forest":sh?"Shallow water":fr?"Fortress":"Empty");
     if(u){
       const e=document.createElement("div");
       e.className="u "+u.team+(spent(u)?" done":"")+(u.slow?" slow":"")+(u===sel||u===insp?" sel":"");
@@ -595,11 +609,11 @@ function render(){
 function renderTile(){
   const el=$("tinfo");
   if(!tile){el.className="pb empty";el.innerHTML='<div class="lbl">Terrain</div><div class="ph">Tap a tile to see its terrain.</div>';return}
-  const{x,y}=tile,k=x+","+y,w=WALLS.has(k),dp=DEEP.has(k),sh=SHALLOW.has(k),f=FOREST.has(k),fr=FORT.has(k),u=at(x,y);
-  const name=w?"Wall":dp?"Deep Water":sh?"Shallow Water":f?"Forest":fr?"Fortress":"Open Ground";
-  const art=w?WALL_V[WALLV]:dp?DP_V[tv(x,y,3,13)]:sh?SH_V[tv(x,y,3,15)]:f?FOREST_V[tv(x,y,4,9)]:fr?FORT_V[FORTV.get(k)||0]:ground(x,y);
+  const{x,y}=tile,k=x+","+y,w=WALLS.has(k),dp=DEEP.has(k),sh=SHALLOW.has(k),f=FOREST.has(k),fr=FORT.has(k),bar=BARRELS.has(k),u=at(x,y);
+  const name=bar?"Barrels":w?"Wall":dp?"Deep Water":sh?"Shallow Water":f?"Forest":fr?"Fortress":"Open Ground";
+  const art=bar?BAR_V[tv(x,y,2,19)]:w?WALL_V[WALLV]:dp?DP_V[tv(x,y,3,13)]:sh?SH_V[tv(x,y,3,15)]:f?FOREST_V[tv(x,y,4,9)]:fr?FORT_V[FORTV.get(k)||0]:ground(x,y);
   const st=w?"background:var(--wall)":dp?"background:#2f6f9c":sh?"background:#86c4dc":f?TF:fr?FR:"";
-  const lines=w?["Impassable. Units can't enter or cross it, but attacks can pass over it."]:dp?["Impassable. Units can't enter or cross it, but attacks can pass over it."]:sh?["Entering costs 1 extra movement."]:f?["Leaving it costs 1 movement.","Attacks into it have a 3% chance to miss."]:fr?["A unit standing here takes 1 less damage from all attacks.","Leaving it costs 1 movement."]:["No special effect."];
+  const lines=bar?["Impassable. A unit in range can spend its action to break it."]:w?["Impassable. Units can't enter or cross it, but attacks can pass over it."]:dp?["Impassable. Units can't enter or cross it, but attacks can pass over it."]:sh?["Entering costs 1 extra movement."]:f?["Leaving it costs 1 movement.","Attacks into it have a 3% chance to miss."]:fr?["A unit standing here takes 1 less damage from all attacks.","Leaving it costs 1 movement."]:["No special effect."];
   if(f&&mods.y==="FT")lines.push("Forest Tactics: your units here take 1 less ranged damage, and your attacks into forests miss 2% of the time.");
   if(f&&mods.f==="FT")lines.push("The enemy has Forest Tactics: its units here take 1 less ranged damage.");
   if(u)lines.push("Occupied by "+(u.team==="y"?"your ":u.team==="f"?"an enemy ":"a wild ")+NAME[u.t]+".");
@@ -631,6 +645,17 @@ function floatText(x,y,t,miss){
 }
 function buildMenu(){
   const old=$("fx").querySelector(".pmenu");if(old)old.remove();
+  if(bchoice&&sel&&!over&&turn==="y"){ // barrels: just Break and Cancel
+    const t=bchoice,m=document.createElement("div");m.className="pmenu";
+    const opt=(html,fn)=>{const b=document.createElement("button");b.innerHTML=html;b.onclick=fn;m.append(b)};
+    opt("<b>Break</b><small>Uses this unit's action</small>",()=>{bchoice=null;doBreak(sel,t)});
+    opt("<b>Cancel</b>",()=>{bchoice=null;say("Move, attack, or pick another unit.");render()});
+    const above=t.y>=4;
+    m.style.left=`clamp(72px,calc(2px + (100% - 4px) * ${(t.x+.5)/W}),calc(100% - 72px))`;
+    m.style.top=`calc(2px + (100% - 4px) * ${above?t.y/H:(t.y+1)/H})`;
+    m.style.transform=above?"translate(-50%,calc(-100% - 6px))":"translate(-50%,6px)";
+    $("fx").append(m);return;
+  }
   if(!(choice&&sel&&units.includes(choice)&&!over&&turn==="y"))return;
   const t=choice,[px,py]=pushDest(sel,t),n=Math.abs(px-t.x)+Math.abs(py-t.y);
   const m=document.createElement("div");m.className="pmenu";
@@ -642,7 +667,6 @@ function buildMenu(){
   }
   if(sel.t==="E"&&t.team!==sel.team&&targets(sel).includes(t))opt(`<b>Slow</b><small>${t.slow?"Already slowed":"Move 1 next turn"}</small>`,()=>{choice=null;doSlow(sel,t)},!!t.slow);
   if(healable(sel,t)){const hn=Math.min(TYPES[sel.t].heal,TYPES[t.t].hp-t.hp);opt(`<b>Heal</b><small>+${hn} HP</small>`,()=>{choice=null;doHeal(sel,t)})}
-  if(t.team==="y"&&!TYPES[sel.t].heal)opt("<b>Select</b><small>Switch to this unit</small>",()=>{choice=null;mode=null;sel=t;info=t;say(t.acted?"That unit has finished.":"Green: where it can move. Red: what it can hit.");render()});
   opt("<b>Cancel</b>",()=>{choice=null;say("Move, attack, or pick another unit.");render()});
   // keep the push-preview arrow visible: sit beside the target for vertical pushes, above or below it for horizontal ones
   if(t.x===sel.x){
@@ -671,8 +695,11 @@ function acts(){
 function click(x,y){
   if(locked)return;
   if(choice&&at(x,y)!==choice)choice=null;
+  bchoice=null;
   tile={x,y};
-  if(over||busy||turn!=="y"||!units.length||solid(x+","+y))return render();
+  if(over||busy||turn!=="y"||!units.length)return render();
+  if(BARRELS.has(x+","+y)&&sel&&!mode&&!sel.acted&&canBreak(sel,x,y)){bchoice={x,y};say("Choose an action next to the barrels.");return render()}
+  if(solid(x+","+y))return render();
   const u=at(x,y);
   if(mode==="tp"&&!u&&y===0){
     sel.x=x;sel.y=y;sel.moved=1;tpUsed.y=1;mode=null;
@@ -696,7 +723,7 @@ function click(x,y){
   if(!sel)return render();
   if(!u&&!sel.moved&&reach(sel).includes(x+","+y)){
     sel.x=x;sel.y=y;sel.moved=1;
-    say(targets(sel).length?"Tap a red enemy to attack.":healTargets(sel).length?"Tap a marked ally to heal it.":"No enemy in range. Pick another unit or end turn.");
+    say(targets(sel).length?"Tap a red enemy to attack.":healTargets(sel).length?"Tap a marked ally to heal it.":breakables(sel).length?"Tap the barrels to break them.":"No enemy in range. Pick another unit or end turn.");
     return render();
   }
   render();
@@ -704,6 +731,10 @@ function click(x,y){
 function doAttack(a,u){
   a.acted=1;a.moved=1;sel=null;insp=null;locked=true;
   attack(a,u,()=>{locked=false;info=units.includes(u)?u:null;afterAction()});
+}
+function doBreak(a,t){
+  a.acted=1;a.moved=1;sel=null;insp=null;mode=null;BARRELS.delete(t.x+","+t.y);
+  floatText(t.x,t.y,"Broken");say("Smashed the barrels.");render();
 }
 function applyHeal(a,b){const n=Math.min(TYPES[a.t].heal,TYPES[b.t].hp-b.hp);b.hp+=n;floatText(b.x,b.y,"+"+n,"heal");return n}
 function doSlow(a,u){
@@ -757,16 +788,18 @@ function animAttack(a,b,cb){
 function afterAction(){if(!checkEnd())render()}
 const armyTypes=()=>["K","A","C",...(camp.cfg?camp.cfg.x:[])];
 function showEnd(win){
-  const g=gid,nm=camp.battle?WORLD[camp.battle.node]:null;
+  const g=gid,nm=camp.battle?WORLD[camp.battle.node]:null;let newU=false;
   endMode=nm?(win?"cwin":"close"):"quick";
   if(nm&&win){ // record campaign progress right away
     if(!camp.cleared.includes(nm.id))camp.cleared.push(nm.id);
     camp.hp=armyTypes().map((t,i)=>{const u=units.find(v=>v.team==="y"&&v.ci===i);return u?u.hp:1}); // fallen units return at 1 HP
     camp.pos=nm.id;if(nm.type==="boss")camp.done=true;saveCamp();
+    if(camp.cleared.filter(i=>{const n=WORLD[i];return n&&n.type!=="camp"&&n.type!=="heal"}).length>=2)newU=unlock("barrels"); // two real battles won
   }
   $("dtitle").textContent=win?"Victory":"Defeat";
   $("dtitle").style.color=win?"#2f8f4e":"var(--foe)";
   $("dmsg").textContent=win?(nm?(nm.type==="boss"?"You stormed "+nm.name+" and the campaign is complete!":"You secured "+nm.name+"."):"Every enemy unit has been destroyed and the field is yours."):"Your army has been wiped out and the enemy holds the field.";
+  if(newU)$("dmsg").textContent+=" New terrain unlocked: Barrels! They can now appear next to fortresses.";
   $("dagain").textContent=endMode==="quick"?"Play Again":endMode==="cwin"?"Continue":"Retry Battle";
   $("dmenu").textContent=endMode==="close"?"Return to Map":"Back to Main Menu";
   setTimeout(()=>{
@@ -1124,6 +1157,7 @@ function hBoard(cols,rows,map,us,cs=44){
     if(c==="w")s+=`<rect x="${px}" y="${py}" width="${cs}" height="${cs}" fill="var(--wall)"/><rect x="${px}" y="${py}" width="${cs}" height="${cs*.1}" fill="rgba(255,255,255,.22)"/><rect x="${px}" y="${py+cs*.9}" width="${cs}" height="${cs*.1}" fill="rgba(0,0,0,.28)"/>`;
     if(c==="s")s+=`<rect x="${px}" y="${py}" width="${cs}" height="${cs}" fill="#86c4dc"/>`+nest(SH_V[0],px,py,cs);
     if(c==="d")s+=`<rect x="${px}" y="${py}" width="${cs}" height="${cs}" fill="#2f6f9c"/>`+nest(DP_V[0],px,py,cs);
+    if(c==="b")s+=nest(BAR_V[0],px,py,cs);
     if(c==="f")s+=`<rect x="${px}" y="${py}" width="${cs}" height="${cs}" fill="rgba(60,140,80,.25)"/>`+nest(FOREST_V[0],px,py,cs);
     if(c==="F")s+=`<rect x="${px}" y="${py}" width="${cs}" height="${cs}" fill="#8d98a2"/>`+nest(FORT_V[0],px,py,cs);
     s+=`<rect x="${px}" y="${py}" width="${cs}" height="${cs}" fill="none" stroke="rgba(0,0,0,.12)"/>`;
@@ -1144,7 +1178,7 @@ const HOWTO=[
  {id:"units",title:"Units",art:()=>"",
   body:()=>POOL.split("").map(t=>{const u=TYPES[t];return hRow(hIcon(t,"y"),`<b>${cap(NAME[t])}</b><br>${u.hp} HP, move ${u.mv}, ${u.mn>1?`range ${u.mn} to ${u.rg}`:`range ${u.rg}`}, damage ${u.dmg}${u.heal?`.<br>Heals an ally in range for up to ${u.heal} HP instead of attacking.`:""}${u.slow?`.<br>Slows an enemy in range instead of attacking: its movement drops to 1 on its next turn.`:""}`)}).join("")},
  {id:"terrain",title:"Terrain",art:()=>"",
-  body:()=>hRow(hTile("f"),"<b>Forest</b><br>Leaving a forest costs 1 extra movement, and attacks into a forest have a 3% chance to miss.")+hRow(hTile("F"),"<b>Fortress</b><br>Some maps have stone strongholds made of two to four tiles. A unit standing on one takes 1 less damage from all attacks, and leaving it costs 1 movement.")+hRow(hTile("s"),"<b>Shallow Water</b><br>Entering it costs 1 extra movement.")+hRow(hTile("d"),"<b>Deep Water</b><br>Impassable. Lakes, ponds and rivers are made of deep water, usually edged with shallows. Rivers have shallow fords.")+hRow(hTile("w"),"<b>Wall</b><br>Walls can't be crossed.")},
+  body:()=>hRow(hTile("f"),"<b>Forest</b><br>Leaving a forest costs 1 extra movement, and attacks into a forest have a 3% chance to miss.")+hRow(hTile("F"),"<b>Fortress</b><br>Some maps have stone strongholds made of two to four tiles. A unit standing on one takes 1 less damage from all attacks, and leaving it costs 1 movement.")+hRow(hTile("s"),"<b>Shallow Water</b><br>Entering it costs 1 extra movement.")+hRow(hTile("d"),"<b>Deep Water</b><br>Impassable. Lakes, ponds and rivers are made of deep water, usually edged with shallows. Rivers have shallow fords.")+(unlocks.barrels?hRow(hTile("b"),"<b>Barrels</b><br>Impassable, but a unit in range can spend its action to break them. They appear next to fortresses."):hRow(`<svg viewBox="0 0 48 48" role="img" aria-hidden="true"><rect width="48" height="48" rx="8" fill="#9aa3ab"/><text x="24" y="33" text-anchor="middle" font-size="26" font-weight="700" fill="#fff">?</text></svg>`,"<b>Barrels (Locked)</b><br>Win two campaign battles to unlock."))+hRow(hTile("w"),"<b>Wall</b><br>Walls can't be crossed.")},
  {id:"mods",title:"Modifiers",art:()=>"",
   body:()=>"<p>Each side gets one modifier. You see the enemy's before you choose yours.</p>"+Object.values(MODS).map(m=>`<p class="hmod"><b>${m.name}</b><br>${m.desc}</p>`).join("")},
  {id:"wild",title:"Wild Animals",art:()=>"",
@@ -1207,6 +1241,7 @@ function buildGuide(){
    +row(FOREST_V.map(v=>sw(v,TF)).join(""),"Forest","Leaving a forest costs 1 movement. Attacks into a forest have a 3% chance to miss.")
    +row(SH_V.map(v=>sw(v,"background:#86c4dc")).join(""),"Shallow Water","Entering it costs 1 extra movement. Often found around deep water, and sometimes as a ford across a river.")
    +row(DP_V.map(v=>sw(v,"background:#2f6f9c")).join(""),"Deep Water","Impassable. Units can't enter or cross it, but attacks can pass over it. Forms lakes, ponds and rivers.")
+   +(unlocks.barrels?row(BAR_V.map(v=>sw(v,"")).join(""),"Barrels","Impassable. A unit in range can spend its action to break them. Found next to fortresses."):`<div class="tentry"><strong>Barrels (Locked)</strong><small>Win two campaign battles to unlock.</small></div>`)
    +row(WALL_V.map(v=>sw(v,"background:var(--wall)")).join(""),"Wall","Impassable. Units can't enter or cross it, but attacks can pass over it.")
    +row(FORT_V.map(v=>sw(v,FR)).join(""),"Fortress","Uncommon. A unit standing on one takes 1 less damage from all attacks, and leaving costs 1 movement.")
    +"<h3>Highlights</h3>"
