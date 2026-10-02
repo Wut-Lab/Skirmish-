@@ -123,8 +123,8 @@ html,body{margin:0;color:var(--ink);font-family:"Trebuchet MS","Segoe UI",sans-s
 button.b{font:inherit;padding:10px 14px;border:2px solid var(--ink);background:var(--panel);color:var(--ink);border-radius:6px;cursor:pointer;text-align:left;box-shadow:0 2px 0 var(--ink);transition:transform .08s,box-shadow .15s}
 button.b:not(:disabled):hover{transform:translateY(-1px);box-shadow:0 4px 0 var(--ink)}
 button.b:not(:disabled):active{transform:translateY(1px);box-shadow:0 1px 0 var(--ink)}
-.t.ig.ir{background:#8d98a2;box-shadow:inset 0 0 0 4px var(--atk)}
-.t.m.pr{box-shadow:inset 0 0 0 4px rgba(226,118,95,.55)}
+.t.ig.ir{background:#8d98a2;box-shadow:inset 0 0 0 3px var(--atk)}
+.t.m.pr{box-shadow:inset 0 0 0 3px rgba(226,118,95,.62)}
 .t:not(.w):hover{filter:brightness(1.07)}
 .dec{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35))}
 .t.a::after{content:"";position:absolute;inset:6%;border:3px solid rgba(255,255,255,.92);border-radius:50%;z-index:2;pointer-events:none;animation:ring 1.2s ease-in-out infinite}
@@ -257,6 +257,13 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 #warmy .stat.healed{animation:hchip 1.8s ease-out}
 @keyframes hchip{0%,100%{background:rgba(128,128,128,.18)}30%{background:rgba(76,195,138,.55);box-shadow:0 0 8px rgba(76,195,138,.7)}}
 @media (prefers-reduced-motion:reduce){.hfx{display:none}#warmy .stat.healed{animation:none}}
+/* ---- graphics polish: soft light on every tile, depth in deep water, earthy board frame ---- */
+.lt{position:absolute;inset:0;pointer-events:none;background:radial-gradient(125% 95% at 24% 16%,rgba(255,255,255,.17),rgba(255,255,255,0) 56%),radial-gradient(110% 100% at 88% 96%,rgba(0,0,0,.11),rgba(0,0,0,0) 60%)}
+.t.dp>.lt{background:radial-gradient(circle at 50% 56%,rgba(0,0,0,.26),rgba(0,0,0,0) 72%),radial-gradient(125% 95% at 24% 16%,rgba(255,255,255,.12),rgba(255,255,255,0) 55%)}
+.t.sh>.lt{background:radial-gradient(125% 95% at 24% 16%,rgba(255,255,255,.24),rgba(255,255,255,0) 58%),radial-gradient(110% 100% at 88% 96%,rgba(0,40,70,.12),rgba(0,0,0,0) 60%)}
+#board{background:#3a2e21;box-shadow:0 0 0 4px #6b5238,0 0 0 5px #2f2418,0 10px 0 rgba(0,0,0,.32),0 18px 30px rgba(0,0,0,.32)}
+.hp{height:5px;background:rgba(0,0,0,.55);border-radius:3px;box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+.hp i{border-radius:3px;background-image:linear-gradient(rgba(255,255,255,.45),rgba(255,255,255,0) 75%)}
 /* ---- move & attack, explosions, unlocks ---- */
 .t.mt{outline:3px dashed #fff;outline-offset:-4px}
 .t.mt::after{content:"";position:absolute;inset:30%;border-radius:50%;background:rgba(255,255,255,.8);box-shadow:0 0 0 2px rgba(0,0,0,.35);z-index:2;pointer-events:none}
@@ -502,8 +509,8 @@ function genMap(o={}){
   }
 }
 const svg=b=>'<svg class="dec" viewBox="0 0 40 40">'+b+'</svg>';
-const tree=(x,y,h,w,c)=>`<rect x="${x-1}" y="${y}" width="2" height="4" fill="#5a3d24"/><path d="M${x} ${y-h}L${x+w} ${y}H${x-w}z" fill="${c}"/>`;
-const oak=(x,y,r,c)=>`<rect x="${x-1.2}" y="${y}" width="2.4" height="${r*.8}" fill="#5a3d24"/><circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/><circle cx="${x-r*.3}" cy="${y-r*.3}" r="${r*.45}" fill="rgba(255,255,255,.16)"/>`;
+const tree=(x,y,h,w,c)=>`<ellipse cx="${x+1.2}" cy="${y+3.8}" rx="${w*.95}" ry="1.6" fill="rgba(0,0,0,.18)"/><rect x="${x-1}" y="${y}" width="2" height="4" fill="#5a3d24"/><path d="M${x} ${y-h}L${x+w} ${y}H${x-w}z" fill="${c}"/><path d="M${x} ${y-h}L${x+w} ${y}H${x}z" fill="rgba(0,0,0,.16)"/>`; // foliage lit from the upper left
+const oak=(x,y,r,c)=>`<ellipse cx="${x+1}" cy="${y+r*.8}" rx="${r*.9}" ry="1.7" fill="rgba(0,0,0,.18)"/><rect x="${x-1.2}" y="${y}" width="2.4" height="${r*.8}" fill="#5a3d24"/><circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/><path d="M${x+r*.25} ${y-r*.97}A${r} ${r} 0 0 1 ${x-r*.25} ${y+r*.97}A${r*.8} ${r*.9} 0 0 0 ${x+r*.25} ${y-r*.97}z" fill="rgba(0,0,0,.14)"/><circle cx="${x-r*.3}" cy="${y-r*.3}" r="${r*.45}" fill="rgba(255,255,255,.16)"/>`;
 const FOREST_V=[
  svg(tree(32,16,11,5,"#2f6b3f")+tree(20,20,15,6.5,"#3a7d4a")+tree(11,29,17,7,"#2f6b3f")+tree(29,30,19,8,"#245a34")),
  svg(oak(29,14,6.5,"#3f8a4c")+oak(12,18,7,"#2f7a40")+oak(22,28,8,"#4a9a55")),
@@ -573,7 +580,7 @@ const fortMask=(x,y)=>{const v=FORTV.get(x+","+y);return joinMask(x,y,k=>FORT.ha
 function wallArt(v,m){
   const n=m&1,e=m&2,s=m&4,w=m&8;
   if(v===0) // brick: the courses run straight on into a joined wall; open sides get a lit or shaded edge
-    return svg('<path d="M0 13H40M0 27H40M13 0V13M27 13V27M13 27V40" stroke="rgba(0,0,0,.35)" stroke-width="1.5" fill="none"/>'+(e?"":'<path d="M39.3 0V40" stroke="rgba(0,0,0,.3)" stroke-width="1.4"/>')+(w?"":'<path d="M.7 0V40" stroke="rgba(255,255,255,.25)" stroke-width="1.4"/>'));
+    return svg('<g><rect width="13" height="13" fill="rgba(255,255,255,.06)"/><rect x="13" width="27" height="13" fill="rgba(0,0,0,.05)"/><rect y="13" width="27" height="14" fill="rgba(0,0,0,.035)"/><rect x="27" y="13" width="13" height="14" fill="rgba(255,255,255,.05)"/><rect y="27" width="13" height="13" fill="rgba(255,255,255,.03)"/><rect x="13" y="27" width="27" height="13" fill="rgba(0,0,0,.06)"/></g><path d="M0 13H40M0 27H40M13 0V13M27 13V27M13 27V40" stroke="rgba(0,0,0,.35)" stroke-width="1.5" fill="none"/><path d="M0 14.4H40M0 28.4H40" stroke="rgba(255,255,255,.1)" stroke-width=".8"/>'+(e?"":'<path d="M39.3 0V40" stroke="rgba(0,0,0,.3)" stroke-width="1.4"/>')+(w?"":'<path d="M.7 0V40" stroke="rgba(255,255,255,.25)" stroke-width="1.4"/>'));
   if(v===1){ // boulders: a shared boulder straddles every joined edge
     const b=(cx,cy,rx,ry,f)=>`<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${f}" ${S1}/>`;
     return svg((n?b(20,0,7.5,5.5,"#8d98a1"):"")+(s?b(20,40,7.5,5.5,"#8d98a1"):"")+(e?b(40,20,5.5,7.5,"#98a3ac"):"")+(w?b(0,20,5.5,7.5,"#98a3ac"):"")
@@ -774,7 +781,7 @@ function render(){
     const k=x+","+y,w=WALLS.has(k),dp=DEEP.has(k),sh=SHALLOW.has(k),f=FOREST.has(k),fr=FORT.has(k),bar=BARRELS.has(k),b=document.createElement("button"),u=at(x,y);
     b.className="t"+(bar?" brl":"")+(w?" w"+(wallMask(x,y)&1?" jn":"")+(wallMask(x,y)&4?" js":""):"")+(dp?" dp":"")+(sh?" sh":"")+(SWAMP.has(k)?" sw":"")+(f?" fo":"")+(fr?" fr":"")+(tile&&tile.x===x&&tile.y===y?" ts":"")+(ig.has(k)?" ig":"")+(ir.has(k)?" ir":"")+(pr.has(k)?" pr":"")+(mv.has(k)?" m":"")+((u&&tg.has(u))||bt.has(k)?" a":"")+(u&&tg.has(u)&&mods.y==="PUSH"&&sel&&pushable(sel,u)?" pp":"")+(u&&hs.has(u)?" hl":"")+(u&&u===choice?" ch":"")+(pd&&pd.k===k?" pd":"")+(cm&&cm.x===x&&cm.y===y?" mt":"")+(bl.has(k)?" bl":"");
     if(pd&&pd.k===k)b.dataset.arrow=pd.a;
-    b.innerHTML=tileArt(x,y)+(fr?'<i class="tint"></i>':"")+joins(x,y); // fortress art covers its tile, so highlights go on a see-through layer above it
+    b.innerHTML='<i class="lt"></i>'+tileArt(x,y)+(fr?'<i class="tint"></i>':"")+joins(x,y); // fortress art covers its tile, so highlights go on a see-through layer above it
     b.setAttribute("aria-label",u?(u.team==="y"?"Your ":u.team==="w"?"Wild ":"Enemy ")+NAME[u.t]+", "+u.hp+" health"+(u.slow?", slowed":""):(mv.has(k)?"Move here, ":"")+TERRAIN[terrainKey(k)].name);
     if(u){
       const e=document.createElement("div");
@@ -790,7 +797,7 @@ function render(){
       const c=COLORS[col[u.team]];e.style.background=c[1];e.style.setProperty("--tc",c[1]);e.style.setProperty("--ic",c[2]);
       const h=document.createElement("div");h.className="hp";
       const hr=u.hp/TYPES[u.t].hp;
-      h.innerHTML="<i style='width:"+(100*hr)+"%;background:"+(hr>.5?"#5fd068":hr>.25?"#f0c33a":"#ee5a45")+"'></i>";
+      h.innerHTML="<i style='width:"+(100*hr)+"%;background-color:"+(hr>.5?"#5fd068":hr>.25?"#f0c33a":"#ee5a45")+"'></i>";
       b.append(e,h);
     }
     b.onclick=()=>click(x,y);
@@ -1320,8 +1327,14 @@ const nest=(str,x,y,w,style="")=>str.replace(/<svg[^>]*>/,`<svg x="${x}" y="${y}
 function mapArt(){
   let g='<defs><radialGradient id="pg" cx=".5" cy=".4" r=".85"><stop offset="0" stop-color="#eadfb8"/><stop offset="1" stop-color="#cbb78a"/></radialGradient></defs><rect width="400" height="520" fill="url(#pg)"/>';
   g+=`<path d="${DECO.river}" stroke="#8ec0d8" stroke-width="16" fill="none" stroke-linecap="round" opacity=".6"/>`;
-  DECO.trees.forEach(([x,y],i)=>{g+=`<g transform="translate(${x-20},${y-20})" opacity=".92">${tree(20,32,22,9,i%2?"#2f6b3f":"#3a7d4a")}</g>`});
-  DECO.rocks.forEach(([x,y])=>{g+=`<path d="M${x-14} ${y+8}L${x-2} ${y-14}L${x+4} ${y-4}L${x+8} ${y-10}L${x+18} ${y+8}z" fill="#8f99a3" stroke="#4a5560" stroke-width="1.5"/>`});
+  const clear=([x,y])=>Math.hypot(x-44,y-48)>46; // keep scenery off the compass rose
+  DECO.trees.filter(clear).forEach(([x,y],i)=>{g+=`<g transform="translate(${x-20},${y-20})" opacity=".92">${tree(20,32,22,9,i%2?"#2f6b3f":"#3a7d4a")}</g>`});
+  DECO.rocks.filter(clear).forEach(([x,y])=>{g+=`<path d="M${x-14} ${y+8}L${x-2} ${y-14}L${x+4} ${y-4}L${x+8} ${y-10}L${x+18} ${y+8}z" fill="#8f99a3" stroke="#4a5560" stroke-width="1.5"/>`});
+  // parchment fibres, aged edges, a fine border and a compass rose (top left, clear of the locations)
+  g+='<g stroke="rgba(120,90,50,.07)" stroke-width="1" fill="none"><path d="M0 120q120-14 240 6t160-8"/><path d="M0 300q90 12 200-4t200 10"/><path d="M0 430q140-10 260 8t140-6"/></g>';
+  g+='<defs><radialGradient id="vg" cx=".5" cy=".5" r=".72"><stop offset=".62" stop-color="#6b4a20" stop-opacity="0"/><stop offset="1" stop-color="#6b4a20" stop-opacity=".32"/></radialGradient></defs><rect width="400" height="520" fill="url(#vg)"/>';
+  g+='<rect x="7" y="7" width="386" height="506" rx="4" fill="none" stroke="#7a5c33" stroke-width="1.5" opacity=".55"/><rect x="11" y="11" width="378" height="498" rx="3" fill="none" stroke="#7a5c33" stroke-width=".7" opacity=".4"/>';
+  g+='<g transform="translate(44 48)" opacity=".75"><circle r="17" fill="rgba(255,248,225,.45)" stroke="#6b4a26" stroke-width="1.2"/><circle r="12.5" fill="none" stroke="#6b4a26" stroke-width=".6"/><path d="M0 -15L3.2 -3.2L15 0L3.2 3.2L0 15L-3.2 3.2L-15 0L-3.2 -3.2z" fill="#8b6b3e"/><path d="M0 -15L3.2 -3.2L0 0zM15 0L3.2 3.2L0 0zM0 15L-3.2 3.2L0 0zM-15 0L-3.2 -3.2L0 0z" fill="#4a3216"/><text y="-19.5" text-anchor="middle" font-size="8" font-weight="800" fill="#4a3216">N</text></g>';
   return g;
 }
 function renderWorld(){
