@@ -1478,7 +1478,7 @@ const HOWTO=[
  {id:"units",title:"Units",art:()=>"",
   body:()=>poolNow().split("").map(t=>hRow(hIcon(t,"y"),`<b>${cap(NAME[t])}</b><br>${unitStats(t)}${ABILITY[t]?"<br>"+ABILITY[t]:""}`)).join("")},
  {id:"combat",title:"Combat",art:()=>"",
-  body:()=>`<p>An attack deals the attacker's damage, minus the target's <b>armor</b>, never less than 1. <b>Pierce</b> cancels that much armor. Fortresses add 1 armor.</p><p>Every attack can be dodged: <b>evasion</b> is the target's chance to dodge, and standing in a forest adds ${pct(FOREST_EV)}. A dodge shows <b>Evade</b>.</p><p>Sturdy melee units and Archers <b>strike back</b> at an attacker within their own range for ${pct(RET_SHARE)} of their damage, if they survive the attack. The attacker can evade the strike back too. Attacking from beyond their range is safe: Artillery can outrange an Archer.</p><p>The attack menu shows the damage, the chance to hit, what changed the damage, and any strike back you would take.</p>`},
+  body:()=>`<p>An attack deals the attacker's damage, minus the target's <b>armor</b>, never less than 1. <b>Pierce</b> cancels that much armor. Fortresses add 1 armor.</p><p>Every attack can be dodged: <b>evasion</b> is the target's chance to dodge, and standing in a forest adds ${pct(FOREST_EV)}. A dodge shows <b>Evade</b>.</p><p>Sturdy melee units and Archers <b>strike back</b> at an attacker within their own range for ${pct(RET_SHARE)} of their damage, if they survive the attack. The attacker can evade the strike back too. Attacking from beyond their range is safe: Artillery can outrange an Archer.</p>`},
  {id:"terrain",title:"Terrain",art:()=>"",
   body:()=>`<div class="tgrid">${terrainRows()}</div>`},
  {id:"mods",title:"Modifiers",art:()=>"",
