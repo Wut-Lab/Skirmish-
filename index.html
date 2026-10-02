@@ -16,9 +16,10 @@ h1{font-size:1.4rem;margin:0 0 4px}
 .chip{display:flex;flex-direction:column;border-radius:8px;padding:5px 12px;font-size:.9rem;font-weight:700;line-height:1.25;box-shadow:0 0 0 1.5px rgba(255,255,255,.55),0 1px 3px rgba(0,0,0,.4)}
 .chip small{font-size:.7rem;font-weight:400;opacity:.92}
 .t:nth-child(even){background:var(--tile2)}
-.t.dp{background:#2f6f9c;cursor:default}
+.t.dp{background:var(--dp,#2f6f9c);cursor:default}
 .t.brl{cursor:pointer}
-.t.sh{background:#86c4dc}
+.t.sh{background:var(--sh,#86c4dc)}
+.murky{--dp:#1f2d27;--sh:#4c5d4a} /* Murky Swamp maps: dark, stagnant water (set on the board and the Terrain panel) */
 .t.sw{background:#4b4a33}
 .t.fo{background-image:linear-gradient(rgba(60,140,80,.25),rgba(60,140,80,.25))}
 .t.ir{background:var(--atk)}
@@ -376,7 +377,7 @@ const MODS={
  FT:{name:"Forest Tactics",desc:"Your units in a forest get +1 armor against ranged attacks. Enemies in a forest only get +5% evasion against your attacks, instead of +10%."},
  PAD:{name:"Padded Armor",desc:"Archers get +1 armor but have 1 less movement."},
  REST:{name:"Field Rest",desc:"At the end of your turn, each of your units that neither moved nor attacked that turn recovers 2 HP."}};
-let WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set(),SWAMP=new Set();
+let MURKY=false,WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set(),SWAMP=new Set();
 const UKEY="skirmish_unlocks_v1",unlocks=(()=>{try{return JSON.parse(localStorage.getItem(UKEY)||"{}")||{}}catch(e){return{}}})();
 const saveU=()=>{try{localStorage.setItem(UKEY,JSON.stringify(unlocks))}catch(e){}};
 const unlock=id=>{if(unlocks[id])return false;unlocks[id]=1;saveU();discover();return true};
@@ -488,7 +489,7 @@ function genMap(o={}){
       }
     }
     if(seen.size===W*H-walls.size-deep.size-bars.size){
-      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;SWAMP=swamp;BARRELS=bars;XBAR=xbars;WALLV=R(4);FORTV=new Map();FORTK=new Set();
+      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;SWAMP=swamp;MURKY=o.swamp>=3;BARRELS=bars;XBAR=xbars;WALLV=R(4);FORTV=new Map();FORTK=new Set();
       for(const k0 of fort){
         if(FORTV.has(k0))continue;
         const v=R(2),st=[k0];FORTV.set(k0,v);FORTK.add(k0);
@@ -629,8 +630,8 @@ const TERRAIN={
  ground:{name:"Open Ground",bg:"",art:()=>[0,1,2,3].map(v=>ground(3,4,v)),desc:"No special effect."},
  forest:{name:"Forest",bg:TF,art:()=>FOREST_V,desc:"Leaving a forest costs 1 movement. A unit in a forest gets +10% evasion."},
  swamp:{name:"Swamp",bg:"background:#4b4a33",art:()=>SW_V,desc:"Entering a swamp ends a unit's move for the turn. Leaving costs nothing extra."},
- shallow:{name:"Shallow Water",bg:"background:#86c4dc",art:()=>SH_V,desc:"Entering it costs 1 extra movement. Often found around deep water, and sometimes as a ford across a river."},
- deep:{name:"Deep Water",bg:"background:#2f6f9c",art:()=>DP_V,desc:"Impassable. Units can't enter or cross it, but attacks can pass over it. Forms lakes, ponds and rivers."},
+ shallow:{name:"Shallow Water",bg:"background:var(--sh,#86c4dc)",art:()=>SH_V,desc:"Entering it costs 1 extra movement. Often found around deep water, and sometimes as a ford across a river."},
+ deep:{name:"Deep Water",bg:"background:var(--dp,#2f6f9c)",art:()=>DP_V,desc:"Impassable. Units can't enter or cross it, but attacks can pass over it. Forms lakes, ponds and rivers."},
  barrels:{name:"Barrels",bg:"",art:()=>BAR_V,unlock:"barrels",desc:"Impassable. A unit in range can spend its action to break them. Found next to fortresses."},
  xbarrel:{name:"Exploding Barrel",bg:"",art:()=>[XBAR_V],unlock:"xbarrels",desc:`Impassable. Breaking it deals ${XB_DMG} damage to every unit on the 8 tiles around it and sets off barrels in the blast. Each barrel has a 25% chance to be one.`},
  wall:{name:"Wall",bg:"background:var(--wall)",art:()=>[0,1,2,3].map(v=>wallArt(v,0)),desc:"Impassable. Units can't enter or cross it, but attacks can pass over it."},
@@ -744,7 +745,7 @@ function atkZone(u,spots,set,bar){
   });
 }
 function render(){
-  board.innerHTML="";
+  board.innerHTML="";board.classList.toggle("murky",MURKY);
   const mv=new Set(),tg=new Set(),ig=new Set(),ir=new Set(),pr=new Set(),hs=new Set(),bt=new Set();
   if(sel&&turn==="y"&&!over){
     if(mode==="tp")farRow("y").forEach(p=>mv.add(p+""));
@@ -813,7 +814,7 @@ function renderTile(){
   if(f&&mods.y==="FT")lines.push(`Forest Tactics: your units here get +1 armor against ranged attacks, and enemies here only get +${pct(FT_FOREST_EV)} evasion against you.`);
   if(f&&mods.f==="FT")lines.push("The enemy has Forest Tactics: its units here get +1 armor against ranged attacks.");
   if(u)lines.push("Occupied by "+(u.team==="y"?"your ":u.team==="f"?"an enemy ":"a wild ")+NAME[u.t]+".");
-  el.className="pb";
+  el.className="pb"+(MURKY?" murky":""); // murky water colours on Murky Swamp maps
   el.innerHTML=`<div class="lbl">Terrain</div><div class="row">${terrainSwatch(key,tileArt(x,y))}<div class="ib"><div class="nm"><strong>${T.name}</strong><span>Tile ${String.fromCharCode(65+x)}${y+1}</span></div>${lines.map(l=>`<small>${l}</small>`).join("")}</div></div>`;
 }
 function renderInfo(){
@@ -1260,7 +1261,7 @@ const NAMES={
 // Builds a new random map: camp at the bottom, three rows of battles, a boss at the top.
 function genWorld(){
   const R=n=>Math.floor(Math.random()*n),rr=(a,b)=>a+Math.random()*(b-a),used=new Set();
-  const nodes=[{id:0,name:"Harrow Camp",x:Math.round(rr(50,350)),y:452,type:"camp",text:"Your starting camp. Nothing to fight here."}];
+  const nodes=[{id:0,name:"Harrow Camp",x:Math.round(rr(50,350)),y:466,type:"camp",text:"Your starting camp. Nothing to fight here."}];
   const layers=[[0]];let bag=[];
   const nextBiome=()=>{if(!bag.length)bag=["forest","plain","fort","wild","swamp"].sort(()=>Math.random()-.5);return bag.pop()};
   [378,292,206].forEach(y0=>{
@@ -1268,7 +1269,7 @@ function genWorld(){
     for(let i=0;i<c;i++){
       const b=nextBiome(),pool=NAMES[b].filter(n=>!used.has(n)),nm=pool[R(pool.length)];used.add(nm);
       ids.push(nodes.length);
-      nodes.push({id:nodes.length,name:nm,x:Math.round(60+280*(i+.5)/c+rr(-22,22)),y:Math.round(y0+rr(-16,16)),type:"battle",b,text:BTEXT[b]});
+      nodes.push({id:nodes.length,name:nm,x:Math.round(40+320*(i+.5)/c+rr(-10,10)),y:Math.round(y0+rr(-2,2)),type:"battle",b,text:BTEXT[b]});
     }
     layers.push(ids);
   });
@@ -1280,6 +1281,18 @@ function genWorld(){
   [1,2,3].sort(()=>Math.random()-.5).slice(0,1+(Math.random()<.4?1:0)).forEach((li,k)=>{ // 1 or 2 wetlands, never in the same row
     const c=layers[li].map(i=>nodes[i]).filter(n=>n.type==="battle");
     if(c.length)Object.assign(c[R(c.length)],{name:WN[k],b:"wetlands",text:BTEXT.wetlands});
+  });
+  // labels are ~7.4 units per character at 12px bold: keep same-row neighbours far enough apart, and labels inside the map
+  const half=n=>n.name.length*3.7+6;
+  layers.forEach(ids=>{
+    const row=ids.map(i=>nodes[i]).sort((a,b)=>a.x-b.x);
+    for(let pass=0;pass<20;pass++){
+      let moved=false;
+      for(let i=0;i<row.length-1;i++){const a=row[i],b=row[i+1],need=half(a)+half(b)+8,gap=b.x-a.x;if(gap<need){const push=(need-gap)/2;a.x-=push;b.x+=push;moved=true}}
+      row.forEach(n=>{const lo=half(n),hi=400-half(n);if(n.x<lo){n.x=lo;moved=true}if(n.x>hi){n.x=hi;moved=true}});
+      if(!moved)break;
+    }
+    row.forEach(n=>n.x=Math.round(n.x));
   });
   const es=new Set(),link=(a,b)=>es.add(a<b?a+"-"+b:b+"-"+a);
   for(let k=0;k<layers.length-1;k++){
