@@ -255,11 +255,17 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .t.w.jn{box-shadow:inset 0 -7px 0 rgba(0,0,0,.4)}
 .t.w.js{box-shadow:inset 0 4px 0 rgba(255,255,255,.28)}
 .t.w.jn.js{box-shadow:none}
-.discovery{position:fixed;left:50%;top:38%;z-index:30;display:grid;gap:2px;text-align:center;padding:14px 26px;border-radius:12px;background:var(--panel);color:var(--ink);border:2px solid #e0b21c;box-shadow:0 0 0 4px rgba(224,178,28,.25),0 10px 30px rgba(0,0,0,.35);pointer-events:none;animation:disc 2.8s ease-in-out forwards}
-.discovery b{white-space:nowrap;font-size:1.5rem;letter-spacing:.02em;color:#c8961a}
-.discovery small{font-size:.9rem;opacity:.85}
+.discovery{position:fixed;left:50%;top:38%;z-index:30;text-align:center;padding:16px 30px;border-radius:14px;background:rgba(255,246,214,.38);border:2px solid rgba(224,178,28,.85);box-shadow:0 0 0 4px rgba(224,178,28,.22),0 0 28px rgba(255,200,60,.45);pointer-events:none;animation:disc 2.8s ease-in-out forwards}
+.discovery b{white-space:nowrap;font-size:1.7rem;letter-spacing:.03em;color:#ffd35a;-webkit-text-stroke:1px #7a5a10;text-shadow:0 2px 0 #7a5a10,0 0 12px rgba(255,190,40,.8),0 0 3px #000}
 @keyframes disc{0%{opacity:0;transform:translate(-50%,-50%) scale(.85)}12%{opacity:1;transform:translate(-50%,-50%) scale(1.04)}20%,70%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-60%) scale(1)}}
 @media (prefers-reduced-motion:reduce){@keyframes disc{0%,100%{opacity:0;transform:translate(-50%,-50%)}10%,75%{opacity:1;transform:translate(-50%,-50%)}}}
+.hfx .hring{transform-box:fill-box;transform-origin:center;animation:hring 1.6s ease-out both}
+@keyframes hring{0%{opacity:.9;transform:scale(.6)}100%{opacity:0;transform:scale(2.4)}}
+.hfx .hplus{transform-box:fill-box;transform-origin:center;opacity:0;animation:hplus 1.3s ease-out both}
+@keyframes hplus{0%{opacity:0;transform:translateY(0) scale(.6)}25%{opacity:1;transform:translateY(-6px) scale(1)}100%{opacity:0;transform:translateY(-26px) scale(.9)}}
+#warmy .stat.healed{animation:hchip 1.8s ease-out}
+@keyframes hchip{0%,100%{background:rgba(128,128,128,.18)}30%{background:rgba(76,195,138,.55);box-shadow:0 0 8px rgba(76,195,138,.7)}}
+@media (prefers-reduced-motion:reduce){.hfx{display:none}#warmy .stat.healed{animation:none}}
 /* ---- move & attack, explosions, unlocks ---- */
 .t.mt{outline:3px dashed #fff;outline-offset:-4px}
 .t.mt::after{content:"";position:absolute;inset:30%;border-radius:50%;background:rgba(255,255,255,.8);box-shadow:0 0 0 2px rgba(0,0,0,.35);z-index:2;pointer-events:none}
@@ -374,10 +380,10 @@ const MODS={
 let WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set();
 const UKEY="skirmish_unlocks_v1",unlocks=(()=>{try{return JSON.parse(localStorage.getItem(UKEY)||"{}")||{}}catch(e){return{}}})();
 const saveU=()=>{try{localStorage.setItem(UKEY,JSON.stringify(unlocks))}catch(e){}};
-const unlock=id=>{if(unlocks[id])return false;unlocks[id]=1;saveU();discover(id);return true};
-function discover(id){ // a short "New Discovery!" banner that fades away on whatever screen is showing
-  const o=UNLOCKS.find(u=>u.id===id),d=document.createElement("div");d.className="discovery";d.setAttribute("role","status");
-  d.innerHTML=`<b>New Discovery!</b>${o?`<small>${TERRAIN[o.terrain].name}</small>`:""}`;
+const unlock=id=>{if(unlocks[id])return false;unlocks[id]=1;saveU();discover();return true};
+function discover(){ // a short "New Discovery!" banner that fades away on whatever screen is showing
+  const d=document.createElement("div");d.className="discovery";d.setAttribute("role","status");
+  d.innerHTML="<b>New Discovery!</b>"; // the name stays a surprise until it turns up in battle or the Unlocks menu
   document.body.append(d);setTimeout(()=>d.remove(),3000);
 }
 const XB_DMG=4; // exploding barrel damage
@@ -1248,6 +1254,15 @@ function renderWorld(){
   $("winfo").innerHTML=`<div class="lbl">Location</div><div class="ib"><div class="nm"><strong>${n.name}</strong><span>${here?"You are here":lab(n)}</span></div><small>${n.text}</small>${here||can?"":"<small>Not connected to your location. Travel along the paths.</small>"}</div>${btn?`<div class="bar"><button class="b pri" id="wgo">${btn}</button></div>`:""}`;
   if(can)$("wgo").onclick=()=>travel(n.id);
 }
+function healFx(n){ // a gentle glow at the healing spot: rings drift outward and little crosses float up
+  const sv=$("wmap").querySelector("svg");if(!sv)return;
+  const g=document.createElementNS("http://www.w3.org/2000/svg","g");g.setAttribute("class","hfx");g.setAttribute("aria-hidden","true");
+  const cross=(x,y,d)=>`<path class="hplus" d="M${x-2} ${y-6}h4v4h4v4h-4v4h-4v-4h-4v-4h4z" fill="#8dffb0" stroke="#2f8f4e" stroke-width="1" style="animation-delay:${d}s"/>`;
+  g.innerHTML=[0,.45,.9].map(dl=>`<circle class="hring" cx="${n.x}" cy="${n.y}" r="18" fill="none" stroke="#7fe0a0" stroke-width="3" style="animation-delay:${dl}s"/>`).join("")
+    +[[-16,4,.1],[14,0,.4],[-4,-8,.7],[8,10,1],[-12,-4,1.25]].map(([dx,dy,dl])=>cross(n.x+dx,n.y+dy,dl)).join("");
+  sv.insertBefore(g,$("wm"));setTimeout(()=>g.remove(),2600);
+  $("warmy").querySelectorAll(".stat").forEach(c=>c.classList.add("healed"));
+}
 function openWorld(){camp.battle=null;camp.sel=camp.pos;renderWorld();show("world")}
 function travel(id){
   if(worldLock)return;
@@ -1256,7 +1271,7 @@ function travel(id){
   const g=gid;
   setTimeout(()=>{
     worldLock=false;
-    if(n.type==="heal"&&!camp.cleared.includes(id)){camp.cleared.push(id);camp.pos=id;camp.hp=null;saveCamp();renderWorld()}
+    if(n.type==="heal"&&!camp.cleared.includes(id)){camp.cleared.push(id);camp.pos=id;camp.hp=null;saveCamp();renderWorld();$("wprog").textContent="Your army rested and recovered full health.";healFx(n)}
     else if(n.type==="camp"||camp.cleared.includes(id)){camp.pos=id;saveCamp();renderWorld()}
     else beginBattle(n);
   },850);
