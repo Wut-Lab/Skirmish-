@@ -358,12 +358,14 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 <script>
 const DIRS=[[1,0],[-1,0],[0,1],[0,-1]],pk=k=>k.split(",").map(Number); // the four neighbour steps; "x,y" tile key -> [x,y]
 const W=10,H=12,
-// hp, mv move, rg/mn range, dmg damage; ar armor, pi pierce, ev evasion (dodge chance), ret strikes back at attackers within its own range
-TYPES={K:{hp:12,mv:3,rg:1,mn:1,dmg:5,ar:2,ret:1},A:{hp:8,mv:3,rg:3,mn:1,dmg:4,pi:1,ev:.1,ret:1},R:{hp:10,mv:2,rg:4,mn:2,dmg:4,pi:2},W:{hp:8,mv:2,rg:1,mn:1,dmg:4,ev:.15,ret:1},B:{hp:16,mv:1,rg:1,mn:1,dmg:6,ar:1,ret:1},H:{hp:5,mv:3,rg:2,mn:1,dmg:3,ev:.25},C:{hp:9,mv:5,rg:1,mn:1,dmg:4,ar:1,ev:.1,ret:1},P:{hp:7,mv:3,rg:2,mn:1,dmg:1,heal:3,ev:.1},E:{hp:6,mv:3,rg:3,mn:1,dmg:2,slow:1,ev:.15},T:{hp:9,mv:3,rg:1,mn:1,dmg:3,ar:1,ret:1},N:{hp:8,mv:3,rg:1,mn:1,dmg:2,ev:.05},M:{hp:4,mv:2,rg:1,mn:1,dmg:2}};
+// hp, mv move, rg/mn range, dmg damage; ar armor, pi pierce, ev evasion (dodge chance), ret: a beast that retaliates (human units follow HUMAN / NO_RETALIATE below)
+TYPES={K:{hp:12,mv:3,rg:1,mn:1,dmg:5,ar:2},A:{hp:8,mv:3,rg:3,mn:1,dmg:4,pi:1,ev:.1},R:{hp:10,mv:2,rg:4,mn:2,dmg:4,pi:2},W:{hp:8,mv:2,rg:1,mn:1,dmg:4,ev:.15,ret:1},B:{hp:16,mv:1,rg:1,mn:1,dmg:6,ar:1,ret:1},H:{hp:5,mv:3,rg:2,mn:1,dmg:3,ev:.25},C:{hp:9,mv:5,rg:1,mn:1,dmg:4,ar:1,ev:.1},P:{hp:7,mv:3,rg:2,mn:1,dmg:1,heal:3,ev:.1},E:{hp:6,mv:3,rg:3,mn:1,dmg:2,slow:1,ev:.15},T:{hp:9,mv:3,rg:1,mn:1,dmg:3,ar:1},N:{hp:8,mv:3,rg:1,mn:1,dmg:2,ev:.05},M:{hp:4,mv:2,rg:1,mn:1,dmg:2}};
 const LIMIT1="PETN"; // one of each per army
 const UNIT_UNLOCK={T:"captain",N:"banner"}; // unlockable units and the unlock each needs
 const poolNow=()=>"KARCPE"+Object.keys(UNIT_UNLOCK).filter(t=>unlocks[UNIT_UNLOCK[t]]).join(""); // units an army may pick right now
-const FOREST_EV=.1,FT_FOREST_EV=.05,EV_CAP=.5,RET_SHARE=.5; // forest dodge bonus (less against Forest Tactics), dodge cap, strike-back share of damage
+const HUMAN="KARCPETNM",NO_RETALIATE="R"; // human units retaliate by default; list exceptions in NO_RETALIATE (Artillery for now)
+const canRetaliate=t=>HUMAN.includes(t)?!NO_RETALIATE.includes(t):!!TYPES[t].ret;
+const FOREST_EV=.1,FT_FOREST_EV=.05,EV_CAP=.5,RET_SHARE=.5; // forest dodge bonus (less against Forest Tactics), dodge cap, share of damage dealt when retaliating (always at least 1)
 const MUSTER_USES=2,MUSTER_ALIVE=2,BANNER_RANGE=2; // Captain: musters per battle, militia alive at once; Banner Bearer: aura reach
 const NAME={K:"knight",A:"archer",R:"artillery",W:"wolf",B:"bear",H:"hawk",C:"cavalry",P:"apothecary",E:"enchanter",T:"captain",N:"banner bearer",M:"militia"};
 const MODS={
@@ -613,7 +615,7 @@ const terrainSwatch=(key,art)=>`<div class="tsw" style="${TERRAIN[key].bg}">${ar
 // One source for unit descriptions: unit setup, How to Play and the in-game Unit panel.
 const rangeTxt=T=>(T.mn>1?T.mn+"-":"")+T.rg;
 const pct=v=>Math.round(v*100)+"%";
-const unitStats=t=>{const T=TYPES[t];return `HP ${T.hp}, move ${T.mv}, range ${rangeTxt(T)}, damage ${T.dmg}`+(T.ar?`, armor ${T.ar}`:"")+(T.pi?`, pierce ${T.pi}`:"")+(T.ev?`, evasion ${pct(T.ev)}`:"")+(T.ret?", strikes back":"")};
+const unitStats=t=>{const T=TYPES[t];return `HP ${T.hp}, move ${T.mv}, range ${rangeTxt(T)}, damage ${T.dmg}`+(T.ar?`, armor ${T.ar}`:"")+(T.pi?`, pierce ${T.pi}`:"")+(T.ev?`, evasion ${pct(T.ev)}`:"")+(canRetaliate(t)?", retaliates":"")};
 const ABILITY={P:`Heals an ally in range for up to ${TYPES.P.heal} HP instead of attacking.`,E:"Can slow an enemy in range instead of attacking: its movement drops to 1 on its next turn.",
  T:`Instead of attacking, can muster 1-2 militia onto open tiles beside it. Twice per battle, with at most ${MUSTER_ALIVE} of its militia at a time.`,
  N:`Allies within ${BANNER_RANGE} tiles deal +1 damage.`,M:"Mustered by a Captain. Weak, but useful for blocking and finishing off foes."};
@@ -641,10 +643,10 @@ function combat(a,b,from=a){
   const ev=Math.min(EV_CAP,(B.ev||0)+(FOREST.has(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0));
   return {dmg:Math.max(1,parts.reduce((t,p)=>t+p[1],0)),hit:1-ev,parts}; // every hit deals at least 1
 }
-// a unit with `ret` strikes back at an attacker within its own range for half damage (the attacker may evade it); null when it can't
+// a unit with `ret` retaliates against an attacker within its own range for half damage, at least 1 (the attacker may evade it); null when it can't
 function retaliation(att,def,from=att){
   const T=TYPES[def.t],dd=d(def,from);
-  if(!T.ret||dd<T.mn||dd>T.rg)return null; // e.g. Artillery firing from 4 tiles outranges an Archer
+  if(!canRetaliate(def.t)||dd<T.mn||dd>T.rg)return null; // e.g. Artillery firing from 4 tiles outranges an Archer
   const c=combat(def,{...att,x:from.x,y:from.y});
   return {dmg:Math.max(1,Math.floor(c.dmg*RET_SHARE)),hit:c.hit};
 }
@@ -790,7 +792,7 @@ function renderInfo(){
   if(u.t==="T")notes.push(`Musters left this battle: ${MUSTER_USES-(u.musters||0)}.`);
   if(inspired(u))notes.push("Inspired by a nearby Banner Bearer: deals +1 damage.");
   if(u.slow)notes.push("Slowed: movement reduced to 1 until the end of its next turn.");
-  if(T.ret)notes.push(`Strikes back at an attacker within its range for ${pct(RET_SHARE)} damage.`);
+  if(canRetaliate(u.t))notes.push(`Retaliates against an attacker within its range for ${pct(RET_SHARE)} damage (at least 1).`);
   if(fo)notes.push(`In a forest: +${pct(FOREST_EV)} evasion, and leaving costs 1 movement.`);
   if(FORT.has(u.x+","+u.y))notes.push("On a fortress: +1 armor, and leaving costs 1 movement.");
   if(u.t==="A"&&mods[u.team]==="PAD")notes.push("Padded Armor: +1 armor.");
@@ -825,7 +827,7 @@ function buildMenu(){
   const opt=(html,fn,off)=>{const b=document.createElement("button");b.innerHTML=html;b.onclick=fn;b.disabled=!!off;m.append(b)};
   const cm=pendingMove(),go=fn=>()=>{const a=sel;choice=null;if(cm)moveThen(a,cm,()=>fn(a));else fn(a)};
   if(t.team!=="y"){const c=combat(sel,t,cm||sel),note=combatNote(c),r=c.dmg<t.hp?retaliation(sel,t,cm||sel):null;
-    opt(`<b>${cm?"Move &amp; Attack":"Attack"}</b><small>${c.dmg} damage${c.hit<1?` \u00b7 ${pct(c.hit)} to hit`:""}</small>${note?`<small class="bd">${note}</small>`:""}${r?`<small class="bd">Strikes back for ${r.dmg}${r.hit<1?` (${pct(r.hit)})`:""}</small>`:""}`,go(a=>doAttack(a,t)))}
+    opt(`<b>${cm?"Move &amp; Attack":"Attack"}</b><small>${c.dmg} damage${c.hit<1?` \u00b7 ${pct(c.hit)} to hit`:""}</small>${note?`<small class="bd">${note}</small>`:""}${r?`<small class="bd">Retaliates for ${r.dmg}${r.hit<1?` (${pct(r.hit)})`:""}</small>`:""}`,go(a=>doAttack(a,t)))}
   if(!cm&&mods.y==="PUSH"&&sel.t==="K"&&t!==sel&&d(sel,t)===1){
     const ok=pushable(sel,t);
     opt(`<b>${!ok?"Can't Push":n?`Push ${n} Tile${n>1?"s":""}`:"Push (Blocked)"}</b><small>${!ok?"Too heavy":t.team==="y"?"Reposition ally":"Instead of attacking"}</small>`,()=>{choice=null;doPush(sel,t)},!ok||!n);
@@ -992,10 +994,10 @@ function doPush(a,u){
 const sent=w=>w[0].toUpperCase()+w.slice(1); // sentence case for status lines
 const who=u=>(u.team==="y"?"your ":u.team==="f"?"the enemy ":"the wild ")+NAME[u.t];
 function hitFor(a,b,c,back){ // resolve one blow from a to b: dodge roll, damage, removal
-  if(Math.random()<1-c.hit){floatText(b.x,b.y,"Evade",true);say(sent(who(b))+" evaded "+(back?"the strike back.":"the attack."));return}
+  if(Math.random()<1-c.hit){floatText(b.x,b.y,"Evade",true);say(sent(who(b))+" evaded "+(back?"the retaliation.":"the attack."));return}
   b.hp-=c.dmg;floatText(b.x,b.y,"-"+c.dmg);
-  if(b.hp<=0){units=units.filter(u=>u!==b);say(sent(who(a))+(back?" struck back and destroyed ":" destroyed ")+who(b)+".")}
-  else say(sent(who(a))+(back?" struck back at ":" hit ")+who(b)+" for "+c.dmg+" damage.");
+  if(b.hp<=0){units=units.filter(u=>u!==b);say(sent(who(a))+(back?" retaliated and destroyed ":" destroyed ")+who(b)+".")}
+  else say(sent(who(a))+(back?" retaliated against ":" hit ")+who(b)+" for "+c.dmg+" damage.");
 }
 function applyAttack(a,b){hitFor(a,b,combat(a,b))}
 function attack(a,b,done){
@@ -1100,7 +1102,7 @@ function evalTile(u,x,y,D,foes,xv){
   const care=.5+(1-u.hp/T.hp)*.9; // wounded units value safety more
   let s=(threat+wt)*care+(FOREST.has(k)?(mods[u.team]==="FT"?-1.5:1.5):0)+(FORT.has(k)?-2:0)+(SHALLOW.has(k)?1.5:0); // forests slow the next move, but Forest Tactics likes them
   s+=blastOf(k).filter(([a,b])=>XBAR.has(a+","+b)).length*2; // don't loiter beside exploding barrels
-  const atk=inR.length?20+Math.max(...inR.map(p=>{const c=combat(u,p,g),kill=c.dmg>=p.hp,r=kill?null:retaliation(u,p,g); // a kill avoids any strike back
+  const atk=inR.length?20+Math.max(...inR.map(p=>{const c=combat(u,p,g),kill=c.dmg>=p.hp,r=kill?null:retaliation(u,p,g); // a kill avoids any retaliation
     return c.hit*(10*c.dmg/p.hp+(kill?12:0))+(VAL[p.t]||0)-(r?r.hit*(r.dmg*2.5+(r.dmg>=u.hp?15:0))*care:0)})):0;
   const bv=(xv||[]).reduce((m,[bk,v])=>{const[a,b]=pk(bk),dd=Math.abs(a-x)+Math.abs(b-y);return dd>=T.mn&&dd<=rg&&!(Math.abs(a-x)<=1&&Math.abs(b-y)<=1)?Math.max(m,14+v):m},0);
   if(atk||bv){
@@ -1478,7 +1480,7 @@ const HOWTO=[
  {id:"units",title:"Units",art:()=>"",
   body:()=>poolNow().split("").map(t=>hRow(hIcon(t,"y"),`<b>${cap(NAME[t])}</b><br>${unitStats(t)}${ABILITY[t]?"<br>"+ABILITY[t]:""}`)).join("")},
  {id:"combat",title:"Combat",art:()=>"",
-  body:()=>`<p>An attack deals the attacker's damage, minus the target's <b>armor</b>, never less than 1. <b>Pierce</b> cancels that much armor. Fortresses add 1 armor.</p><p>Every attack can be dodged: <b>evasion</b> is the target's chance to dodge, and standing in a forest adds ${pct(FOREST_EV)}. A dodge shows <b>Evade</b>.</p><p>Sturdy melee units and Archers <b>strike back</b> at an attacker within their own range for ${pct(RET_SHARE)} of their damage, if they survive the attack. The attacker can evade the strike back too. Attacking from beyond their range is safe: Artillery can outrange an Archer.</p>`},
+  body:()=>`<p>An attack deals the attacker's damage, minus the target's <b>armor</b>, never less than 1. <b>Pierce</b> cancels that much armor. Fortresses add 1 armor.</p><p>Every attack can be dodged: <b>evasion</b> is the target's chance to dodge, and standing in a forest adds ${pct(FOREST_EV)}. A dodge shows <b>Evade</b>.</p><p>Every human unit${NO_RETALIATE?` except ${listAnd(NO_RETALIATE.split("").map(t=>cap(NAME[t])))}`:""} <b>retaliates</b> against an attacker within its own range, if it survives the attack. Retaliation deals ${pct(RET_SHARE)} of its damage, and always at least 1. The attacker can evade the retaliation. Attacking from beyond a unit's range is safe: a melee unit only retaliates against adjacent attackers, and Artillery can outrange an Archer. Wolves and bears retaliate too.</p>`},
  {id:"terrain",title:"Terrain",art:()=>"",
   body:()=>`<div class="tgrid">${terrainRows()}</div>`},
  {id:"mods",title:"Modifiers",art:()=>"",
