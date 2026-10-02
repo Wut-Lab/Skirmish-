@@ -19,7 +19,7 @@ h1{font-size:1.4rem;margin:0 0 4px}
 .t.dp{background:#2f6f9c;cursor:default}
 .t.brl{cursor:pointer}
 .t.sh{background:#86c4dc}
-.t.sw{background:#7b7748}
+.t.sw{background:#4b4a33}
 .t.fo{background-image:linear-gradient(rgba(60,140,80,.25),rgba(60,140,80,.25))}
 .t.ir{background:var(--atk)}
 .t.ig{background:#8d98a2}
@@ -425,7 +425,7 @@ function genMap(o={}){
     };
     // Water is not guaranteed (about 45% of maps have none). Otherwise it covers a random 3 tiles up to 2/3 of the map, favouring smaller bodies.
     const wsz=()=>deep.size+shal.size,cap=Math.floor(W*H*2/3);
-    const T=o.water?Math.round(24+Math.random()*26):Math.random()<.45?0:Math.round(3+(cap-3)*Math.pow(Math.random(),1.6));
+    const T=o.water?Math.round(24+Math.random()*26):o.pond?Math.round(6+Math.random()*8):Math.random()<.45?0:Math.round(3+(cap-3)*Math.pow(Math.random(),1.6));
     if(T>0&&T<=5){ // a tiny pond: a few tiles, not mirrored
       const tl=grow(T,1+R(W-2),3+R(H-6));
       tl.forEach(([a,b],i)=>(i===0&&Math.random()<.5&&T>=3?deep:shal).add(K(a,b)));
@@ -446,8 +446,9 @@ function genMap(o={}){
     };
     put(walls,3+R(3),true);put(forest,o.forest||4+R(4),false);
     const swamp=new Set(); // swamp patches: entering one ends a unit's move
-    for(let n=o.swamp?2+R(2):Math.random()<.35?1+R(2):0,t=0;n>0&&t<80;t++){
-      const tl=grow(2+R(3),1+R(W-2),3+R(H-6));
+    const SW=o.swamp>=3?{n:5+R(3),size:3}:o.swamp?{n:Math.random()<.6?1+R(2):0,size:2}:{n:Math.random()<.12?1:0,size:2}; // patches (mirrored) and their size
+    for(let n=SW.n,t=0;n>0&&t<200;t++){
+      const tl=grow(SW.size+R(3),1+R(W-2),3+R(H-6));
       if(!tl.every(([a,b])=>free(a,b)&&free(W-1-a,H-1-b)&&!swamp.has(K(a,b))&&!swamp.has(K(W-1-a,H-1-b))))continue;
       tl.forEach(([a,b])=>both(swamp,a,b));n--;
     }
@@ -509,9 +510,29 @@ const S1='stroke="rgba(0,0,0,.4)" stroke-width="1.2"';
 const WV=(a,c,o)=>svg(`<g fill="none" stroke="${c}" stroke-width="1.8" stroke-linecap="round" opacity="${o}">`+a.map(([x,y])=>`<path d="M${x} ${y}q4-4 8 0t8 0"/>`).join("")+"</g>");
 const DP_V=[WV([[6,12],[16,26]],"#a9d6ee",.55),WV([[10,9],[4,24],[20,32]],"#a9d6ee",.5),WV([[14,15],[6,30]],"#a9d6ee",.55)];
 const SH_V=[WV([[8,13],[18,27]],"#fff",.75),WV([[5,10],[19,20],[9,32]],"#fff",.7),WV([[14,12],[6,26]],"#fff",.75)];
-const reeds=(x,y)=>`<path d="M${x} ${y}v-9M${x+2.5} ${y}v-7M${x-2.5} ${y}v-6" stroke="#4f6b2c" stroke-width="1.4" stroke-linecap="round"/><ellipse cx="${x}" cy="${y-10}" rx="1.1" ry="2.6" fill="#6b4a26"/>`;
-const pool=(x,y,rx,ry)=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="#3f4a2a" opacity=".55"/><path d="M${x-rx*.5} ${y-ry*.2}q${rx*.3}-${ry*.5} ${rx*.6} 0" stroke="rgba(255,255,255,.25)" stroke-width="1" fill="none"/>`;
-const SW_V=[svg(pool(14,26,9,5)+pool(29,12,6,3.5)+reeds(30,33)+reeds(9,15)),svg(pool(24,22,11,6)+reeds(10,30)+reeds(33,13)+'<circle cx="20" cy="21" r="1.2" fill="rgba(255,255,255,.35)"/>'),svg(pool(11,12,6,3.5)+pool(27,30,9,4.5)+reeds(28,18)+reeds(12,34))];
+// gloomy swamp pieces: organic pools with algae rims, cattail clusters, a dead snag, a mossy log, lily pads, soft mist and fireflies
+const blobD=(cx,cy,rx,ry,j)=>{const n=j.length,p=j.map((m,i)=>{const a=i/n*2*Math.PI;return[cx+Math.cos(a)*rx*m,cy+Math.sin(a)*ry*m]}),f=v=>v.toFixed(1),mid=(a,b)=>`${f((a[0]+b[0])/2)} ${f((a[1]+b[1])/2)}`;
+  let d=`M${mid(p[0],p[1])}`;for(let i=1;i<=n;i++){const a=p[i%n],b=p[(i+1)%n];d+=`Q${f(a[0])} ${f(a[1])} ${mid(a,b)}`}return d+"z"}; // smooth closed blob through jittered points
+const J1=[1,.88,1.08,.94,1.04,1.1,.9,1.02],J2=[1.06,.92,1,1.1,.9,1,1.08,.94],J3=[.94,1.08,.96,1,1.1,.9,1,1.06];
+const muck=(cx,cy,rx,ry,j)=>`<path d="${blobD(cx,cy,rx+1.8,ry+1.4,j)}" fill="#3a4824"/><path d="${blobD(cx,cy,rx,ry,j)}" fill="#11160d"/><path d="${blobD(cx-rx*.15,cy-ry*.2,rx*.6,ry*.45,j)}" fill="#1d2817"/><path d="M${cx-rx*.55} ${cy-ry*.35}q${rx*.3} -${ry*.35} ${rx*.65} -${ry*.05}" stroke="rgba(200,215,170,.35)" stroke-width=".9" fill="none" stroke-linecap="round"/>`;
+const ripple=(x,y,r)=>`<ellipse cx="${x}" cy="${y}" rx="${r}" ry="${r*.45}" fill="none" stroke="rgba(190,205,160,.3)" stroke-width=".7"/><ellipse cx="${x}" cy="${y}" rx="${r*.5}" ry="${r*.22}" fill="none" stroke="rgba(190,205,160,.22)" stroke-width=".6"/>`;
+const bubbles=(x,y)=>`<circle cx="${x}" cy="${y}" r="1" fill="none" stroke="rgba(195,210,165,.5)" stroke-width=".7"/><circle cx="${x+2.4}" cy="${y-1.2}" r=".6" fill="none" stroke="rgba(195,210,165,.45)" stroke-width=".6"/><circle cx="${x+1}" cy="${y+1.4}" r=".45" fill="rgba(195,210,165,.4)"/>`;
+const tail=(x,y,h)=>`<path d="M${x} ${y}v-${h}" stroke="#4a5a2a" stroke-width="1"/><rect x="${x-1.3}" y="${y-h-5.5}" width="2.6" height="5.5" rx="1.3" fill="#4a2c14"/><path d="M${x-.45} ${y-h-4.6}v3.6" stroke="rgba(255,215,170,.25)" stroke-width=".6"/><path d="M${x} ${y-h-5.5}v-1.8" stroke="#4a5a2a" stroke-width=".8"/>`;
+const cattails=(x,y)=>`<path d="M${x} ${y}q-3-4-6-9M${x+1} ${y}q2-5 6-8M${x} ${y}q-1-6 1-12" stroke="#3a4d20" stroke-width="1.1" fill="none" stroke-linecap="round"/>`+tail(x-2,y,9)+tail(x+1,y,13)+tail(x+3.6,y,7);
+const sTuft=(x,y)=>`<path d="M${x} ${y}l-2.2-4.2M${x} ${y}l-.3-5.4M${x} ${y}l2.2-4.4M${x+1.6} ${y}l3.2-3" stroke="#384a20" stroke-width="1" stroke-linecap="round"/>`;
+const brokenReed=(x,y)=>`<path d="M${x} ${y}q.6-5 3.6-7.4M${x+2.2} ${y}v-6.4l2.8-2.6" stroke="#5c5838" stroke-width="1.1" fill="none" stroke-linecap="round"/>`;
+const lily=(x,y,r=2.7)=>`<path d="M${x} ${y}L${x+r} ${y-r*.38}A${r} ${r} 0 1 0 ${x+r} ${y+r*.38}Z" fill="#2c4722" stroke="#1d3016" stroke-width=".5"/><path d="M${x} ${y}l-${r*.7} -${r*.4}M${x} ${y}l-${r*.5} ${r*.6}" stroke="rgba(150,180,110,.3)" stroke-width=".5"/>`;
+const bloom=(x,y)=>`<circle cx="${x-1}" cy="${y}" r="1.1" fill="#d8d0c0"/><circle cx="${x+1}" cy="${y}" r="1.1" fill="#d8d0c0"/><circle cx="${x}" cy="${y-1}" r="1.1" fill="#e2dccc"/><circle cx="${x}" cy="${y}" r=".6" fill="#c9a83a"/>`;
+const snag=(x,y)=>`<ellipse cx="${x}" cy="${y+.6}" rx="5" ry="1.5" fill="#11160d" opacity=".7"/><path d="M${x-4} ${y}q2-1 3-3M${x+4} ${y}q-2-1 -3-3" stroke="#241b12" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M${x} ${y}q-1.5-7 .6-12q1.4-3 -.4-7" stroke="#241b12" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M${x+.3} ${y-9}q3-2 5-6M${x-.6} ${y-13}q-3-1.5 -5-5M${x+4.2} ${y-14.4}l1.8-1.4M${x-4.6} ${y-17.4}l-1.6.6" stroke="#241b12" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M${x+.6} ${y-2}q-1-5 .4-9" stroke="#3a2e20" stroke-width=".7" fill="none"/>`;
+const log=(x,y)=>`<g transform="rotate(-24 ${x} ${y})"><rect x="${x-11}" y="${y-3}" width="22" height="6" rx="3" fill="#36271a"/><path d="M${x-8} ${y-1}h12M${x-5} ${y+1.2}h10" stroke="#2a1d12" stroke-width=".6"/><ellipse cx="${x+11}" cy="${y}" rx="2" ry="3" fill="#5a4430"/><ellipse cx="${x+11}" cy="${y}" rx="1" ry="1.6" fill="none" stroke="#3a2a1a" stroke-width=".5"/><path d="M${x-9} ${y-3}q4-1.6 7 0q3 1 6-.4" stroke="#4d6328" stroke-width="1.6" fill="none" stroke-linecap="round"/></g>`;
+const mist=(x,y,w)=>[[6,.06],[3.2,.08],[1.2,.1]].map(([sw,o])=>`<path d="M${x} ${y}q${w/4}-2.2 ${w/2} 0t${w/2} 0" stroke="rgba(222,228,210,${o})" stroke-width="${sw}" fill="none" stroke-linecap="round"/>`).join("");
+const firefly=(x,y)=>`<circle cx="${x}" cy="${y}" r="2.6" fill="#d8f07a" opacity=".12"/><circle cx="${x}" cy="${y}" r="1" fill="#e4f59a" opacity=".6"/>`;
+const mud=(a,b,c,d)=>`<path d="${blobD(a,b,9,6,J2)}" fill="rgba(0,0,0,.14)"/><path d="${blobD(c,d,7,4,J3)}" fill="rgba(170,160,110,.08)"/>`;
+const SW_V=[
+ svg(mud(30,10,8,32)+muck(15,26,10,6,J1)+ripple(19,28,3)+lily(10,25)+bubbles(14,23)+cattails(31,36)+sTuft(6,13)+sTuft(24,12)+mist(2,8,18)+firefly(27,8)),
+ svg(mud(10,32,30,8)+muck(11,13,7,4,J2)+muck(27,31,8,4.5,J3)+snag(27,31)+bubbles(9,12)+sTuft(6,35)+sTuft(16,37)+brokenReed(33,16)+mist(10,22,22)),
+ svg(mud(32,8,8,34)+muck(13,14,9,5,J3)+muck(26,27,10,6,J1)+lily(22,26)+lily(30,29,2.2)+bloom(30,28)+ripple(12,16,3)+cattails(7,36)+sTuft(34,10)+firefly(33,19)+firefly(6,23)+mist(14,6,14)),
+ svg(mud(24,30,10,10)+muck(9,10,5,3,J1)+muck(31,14,5,3,J2)+muck(14,33,6,3.2,J3)+log(21,22)+sTuft(33,33)+sTuft(5,23)+brokenReed(26,37)+bubbles(30,13)+ripple(14,34,2.4)+mist(16,4,18))];
 const BAR_A='<ellipse cx="20" cy="35" rx="17" ry="3" fill="rgba(0,0,0,.18)"/><path d="M5 17c0-3 3.500-4.500 6.500-4.500S18 14 18 17v13c0 3-3.500 4.500-6.500 4.500S5 33 5 30z" fill="#9a6b3a" stroke="#4a2f14" stroke-width="1.6"/><path d="M5 20.500c3 2 10 2 13 0M5 27c3 2 10 2 13 0" fill="none" stroke="#4a2f14" stroke-width="1.5"/><ellipse cx="11.500" cy="13" rx="6.500" ry="2.600" fill="#c08c52" stroke="#4a2f14" stroke-width="1.5"/><rect x="19" y="21" width="17" height="14" fill="#c9a064" stroke="#4a2f14" stroke-width="1.6"/><path d="M19 21l17 14M36 21L19 35" stroke="#7a5a2c" stroke-width="1.6"/><path d="M21 10c0-2.500 3-3.800 5.500-3.800s5.500 1.300 5.500 3.800v9c0 2.500-3 3.800-5.500 3.800S21 21.500 21 19z" fill="#8a5c30" stroke="#4a2f14" stroke-width="1.6"/><ellipse cx="26.500" cy="10" rx="5.500" ry="2.200" fill="#b98448" stroke="#4a2f14" stroke-width="1.4"/><path d="M21 14c2.500 1.800 8.500 1.800 11 0" fill="none" stroke="#4a2f14" stroke-width="1.4"/>';
 const BAR_V=[svg(BAR_A),svg(`<g transform="translate(40 0) scale(-1 1)">${BAR_A}</g>`)];
 const XBAR_V=svg('<ellipse cx="20" cy="36" rx="13" ry="2.6" fill="rgba(0,0,0,.22)"/><path d="M9 10c0-3 5-4.500 11-4.500S31 7 31 10v22c0 3-5 4.500-11 4.500S9 35 9 32z" fill="#c8372d" stroke="#4a1410" stroke-width="1.6"/><path d="M9 14.500c4 2.400 18 2.400 22 0M9 28.500c4 2.400 18 2.400 22 0" fill="none" stroke="#4a1410" stroke-width="1.5"/><ellipse cx="20" cy="10" rx="11" ry="3.400" fill="#e0574a" stroke="#4a1410" stroke-width="1.5"/><path d="M20 16.500l6.500 10.500h-13z" fill="#f2c230" stroke="#2b2200" stroke-width="1.2" stroke-linejoin="round"/><path d="M20 19.500v3.800" stroke="#2b2200" stroke-width="1.7" stroke-linecap="round"/><circle cx="20" cy="25.200" r="1" fill="#2b2200"/><path d="M14 9.500q2-1.200 4 0" stroke="rgba(255,255,255,.5)" stroke-width="1.3" fill="none"/>');
@@ -607,7 +628,7 @@ function joins(x,y){
 const TERRAIN={
  ground:{name:"Open Ground",bg:"",art:()=>[0,1,2,3].map(v=>ground(3,4,v)),desc:"No special effect."},
  forest:{name:"Forest",bg:TF,art:()=>FOREST_V,desc:"Leaving a forest costs 1 movement. A unit in a forest gets +10% evasion."},
- swamp:{name:"Swamp",bg:"background:#7b7748",art:()=>SW_V,desc:"Entering a swamp ends a unit's move for the turn. Leaving costs nothing extra."},
+ swamp:{name:"Swamp",bg:"background:#4b4a33",art:()=>SW_V,desc:"Entering a swamp ends a unit's move for the turn. Leaving costs nothing extra."},
  shallow:{name:"Shallow Water",bg:"background:#86c4dc",art:()=>SH_V,desc:"Entering it costs 1 extra movement. Often found around deep water, and sometimes as a ford across a river."},
  deep:{name:"Deep Water",bg:"background:#2f6f9c",art:()=>DP_V,desc:"Impassable. Units can't enter or cross it, but attacks can pass over it. Forms lakes, ponds and rivers."},
  barrels:{name:"Barrels",bg:"",art:()=>BAR_V,unlock:"barrels",desc:"Impassable. A unit in range can spend its action to break them. Found next to fortresses."},
@@ -619,7 +640,7 @@ function tileArt(x,y){ // the art for one board tile, picking a stable variant p
   const k=x+","+y;
   switch(terrainKey(k)){
     case "xbarrel":return XBAR_V;case "barrels":return BAR_V[tv(x,y,2,19)];case "wall":return wallArt(WALLV,wallMask(x,y));
-    case "deep":return DP_V[tv(x,y,3,13)];case "shallow":return SH_V[tv(x,y,3,15)];case "swamp":return SW_V[tv(x,y,3,21)];case "forest":return FOREST_V[tv(x,y,4,9)];
+    case "deep":return DP_V[tv(x,y,3,13)];case "shallow":return SH_V[tv(x,y,3,15)];case "swamp":return SW_V[tv(x,y,4,21)];case "forest":return FOREST_V[tv(x,y,4,9)];
     case "fort":return fortArt(fortMask(x,y),FORTV.get(k)||0,FORTK.has(k));default:return ground(x,y);
   }
 }
@@ -1222,6 +1243,7 @@ function enemyTurn(note=""){
 /* ---------- World map ---------- */
 let WORLD=[],EDGES=[],DECO={trees:[],rocks:[],river:""};
 const BTEXT={
+ swamp:"Murky swamp. Thick mud covers the battlefield and stops units in their tracks, between stagnant ponds and dark woods.",
  wetlands:"Wetlands. Lakes, ponds, rivers and swamps cover the battlefield. Shallow water slows movement, swamps stop it, and deep water blocks it.",
  forest:"Thick woods. Extra forests on the battlefield.",
  plain:"Open country. Very few forests.",
@@ -1232,6 +1254,7 @@ const NAMES={
  plain:["Ashen Pass","Iron Bridge","Cinder Fields","Grey Marsh"],
  fort:["Stonewatch Keep","Redstone Gate","Hollow Crag","Lantern Hill"],
  wild:["Wolf Hollow","Crow's Rest","Duskwater","Ember Vale"],
+ swamp:["Blackwater Bog","Gloomfen","Murkmire","Rotting Hollow"],
  wetlands:["Mirewater Fen","Sodden Reach","Heron's Marsh","Drowned Meadow"],
  boss:["Blackspire","Ironcrown Citadel","Skullcrag Fortress"]};
 // Builds a new random map: camp at the bottom, three rows of battles, a boss at the top.
@@ -1239,7 +1262,7 @@ function genWorld(){
   const R=n=>Math.floor(Math.random()*n),rr=(a,b)=>a+Math.random()*(b-a),used=new Set();
   const nodes=[{id:0,name:"Harrow Camp",x:Math.round(rr(50,350)),y:452,type:"camp",text:"Your starting camp. Nothing to fight here."}];
   const layers=[[0]];let bag=[];
-  const nextBiome=()=>{if(!bag.length)bag=["forest","plain","fort","wild"].sort(()=>Math.random()-.5);return bag.pop()};
+  const nextBiome=()=>{if(!bag.length)bag=["forest","plain","fort","wild","swamp"].sort(()=>Math.random()-.5);return bag.pop()};
   [378,292,206].forEach(y0=>{
     const c=2+R(2),ids=[];
     for(let i=0;i<c;i++){
@@ -1270,7 +1293,7 @@ function genWorld(){
   WORLD=nodes;EDGES=[...es].map(e=>e.split("-").map(Number));
   DECO={trees:scatter(12),rocks:scatter(5),river:`M-10 ${ry()} C 70 ${ry()} 120 ${ry()} 220 ${ry()} S 340 ${ry()} 420 ${ry()}`};
 }
-const BIOME={forest:{forest:9},plain:{forest:2},fort:{fort:1},wild:{wild:1},boss:{fort:1,boss:1},wetlands:{water:1,forest:3,swamp:1}};
+const BIOME={forest:{forest:9},plain:{forest:2},fort:{fort:1},wild:{wild:1},boss:{fort:1,boss:1},wetlands:{water:1,forest:3,swamp:1},swamp:{swamp:3,pond:1,forest:6}};
 const adj=(a,b)=>EDGES.some(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a));
 const SAVE="skirmish-campaign";
 function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
@@ -1287,7 +1310,7 @@ function renderWorld(){
   const done=new Set(camp.cleared),cur=WORLD[camp.pos],pc=COLORS[camp.cfg.c];
   if(camp.sel==null)camp.sel=camp.pos;
   const stOf=n=>n.type==="camp"||done.has(n.id)?"cleared":adj(camp.pos,n.id)?"open":"locked";
-  const label={cleared:"Cleared",open:"Battle ahead",locked:"Out of reach"},lab=n=>stOf(n)==="open"?(n.type==="heal"?"Healing spot":n.b==="wetlands"?"Wetlands battle":label.open):label[stOf(n)];
+  const label={cleared:"Cleared",open:"Battle ahead",locked:"Out of reach"},lab=n=>stOf(n)==="open"?(n.type==="heal"?"Healing spot":n.b==="wetlands"?"Wetlands battle":n.b==="swamp"?"Swamp battle":label.open):label[stOf(n)];
   let s='<svg viewBox="0 0 400 520" role="img" aria-label="World map">'+mapArt();
   EDGES.forEach(([a,b])=>{
     const A=WORLD[a],B=WORLD[b],both=stOf(A)==="cleared"&&stOf(B)==="cleared",hot=a===camp.pos||b===camp.pos;
@@ -1295,9 +1318,10 @@ function renderWorld(){
   });
   WORLD.forEach(n=>{
     const st=stOf(n),cl=st==="cleared"&&n.type!=="camp",r=n.type==="boss"?21:17,S=n.type==="boss"?30:24;
-    const fill=n.type==="camp"?"#8c7752":n.type==="heal"?(st==="locked"?"#a39a88":cl?"#9fc9a8":"#7fd1a0"):cl?"#6aa55a":st==="open"?(n.type==="boss"?"#c4483a":n.b==="wetlands"?"#5fb3c9":"#e6b73f"):"#a39a88";
+    const fill=n.type==="camp"?"#8c7752":n.type==="heal"?(st==="locked"?"#a39a88":cl?"#9fc9a8":"#7fd1a0"):cl?"#6aa55a":st==="open"?(n.type==="boss"?"#c4483a":n.b==="wetlands"?"#5fb3c9":n.b==="swamp"?"#6d7a4f":"#e6b73f"):"#a39a88";
     const icon=n.type==="heal"?`<path d="M${n.x-3} ${n.y-9}h6v6h6v6h-6v6h-6v-6h-6v-6h6z" fill="#fff" stroke="#2f8f4e" stroke-width="2" stroke-linejoin="round"/>`
       :n.type==="camp"?`<path d="M${n.x-10} ${n.y+8}L${n.x} ${n.y-10}L${n.x+10} ${n.y+8}zM${n.x} ${n.y-10}V${n.y+8}" fill="#f2e6c0" stroke="#3b2a14" stroke-width="2" stroke-linejoin="round"/>`
+      :n.b==="swamp"?`<path d="M${n.x-8} ${n.y+7}v-9M${n.x-4} ${n.y+7}v-12M${n.x+1} ${n.y+7}v-8M${n.x+6} ${n.y+7}v-11" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><ellipse cx="${n.x-4}" cy="${n.y-6}" rx="1.8" ry="3.4" fill="#fff"/><ellipse cx="${n.x+6}" cy="${n.y-5}" rx="1.8" ry="3.4" fill="#fff"/><path d="M${n.x-10} ${n.y+8}h20" stroke="#fff" stroke-width="2" stroke-linecap="round"/>`
       :n.b==="wetlands"?`<path d="M${n.x-9} ${n.y-3}q4.5-5 9 0t9 0M${n.x-9} ${n.y+5}q4.5-5 9 0t9 0" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>`
       :n.b==="forest"?nest(FOREST_V[0],n.x-S/2,n.y-S/2,S)
       :n.b==="fort"?nest(FORT_ICON[0],n.x-S/2,n.y-S/2,S)
@@ -1511,7 +1535,7 @@ const HOWTO=[
         :k==="boss"?nest(FORT_ICON[1],x-14,y-14,28)
         :`<path d="M${x-6} ${y-6}L${x+6} ${y+6}M${x+6} ${y-6}L${x-6} ${y+6}" stroke="#3b2a14" stroke-width="3" stroke-linecap="round"/>`});
     return s+"</svg>"},
-  body:()=>`<p>Travel along the paths on the world map. Each new location starts a battle, and winning clears it. Every campaign uses a new random map. Defeat the boss at the top to finish.</p><p>You choose your extra units, modifier, and color once. Your units keep their health between battles. After each win, surviving units recover ${Math.round(CAMP_HEAL*100)}% of their max health, and a unit that falls returns with 1 HP.</p><p>Teal wave spaces are wetlands: battles fought across lakes, ponds and rivers. One or two appear on each map.</p><p>One or two healing spaces (green crosses) also appear on each map. Visiting one restores your whole army to full health, once.</p>`},
+  body:()=>`<p>Travel along the paths on the world map. Each new location starts a battle, and winning clears it. Every campaign uses a new random map. Defeat the boss at the top to finish.</p><p>You choose your extra units, modifier, and color once. Your units keep their health between battles. After each win, surviving units recover ${Math.round(CAMP_HEAL*100)}% of their max health, and a unit that falls returns with 1 HP.</p><p>Teal wave spaces are wetlands: battles fought across lakes, ponds and rivers. One or two appear on each map. Dark reed spaces are murky swamps, thick with mud that stops units in their tracks.</p><p>One or two healing spaces (green crosses) also appear on each map. Visiting one restores your whole army to full health, once.</p>`},
  {id:"scout",title:"Scouting",art:()=>{const m=[];for(let y=0;y<7;y++){let r="";for(let x=0;x<7;x++){const d=Math.abs(x-3)+Math.abs(y-3);r+=d===0?".":d<=2?"g":d===3?"p":"."}m.push(r)}return hBoard(7,7,m,[["K","f",3,3]],38)},
   body:()=>"<p>Tap any unit to see its details, including its health. Tap an enemy to see where it can move (gray) and hit (red). Tap it again to hide.</p>"}
 ];
