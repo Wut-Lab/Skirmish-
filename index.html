@@ -19,6 +19,7 @@ h1{font-size:1.4rem;margin:0 0 4px}
 .t.dp{background:#2f6f9c;cursor:default}
 .t.brl{cursor:pointer}
 .t.sh{background:#86c4dc}
+.t.sw{background:#7b7748}
 .t.fo{background-image:linear-gradient(rgba(60,140,80,.25),rgba(60,140,80,.25))}
 .t.ir{background:var(--atk)}
 .t.ig{background:#8d98a2}
@@ -375,7 +376,7 @@ const MODS={
  FT:{name:"Forest Tactics",desc:"Your units in a forest get +1 armor against ranged attacks. Enemies in a forest only get +5% evasion against your attacks, instead of +10%."},
  PAD:{name:"Padded Armor",desc:"Archers get +1 armor but have 1 less movement."},
  REST:{name:"Field Rest",desc:"At the end of your turn, each of your units that neither moved nor attacked that turn recovers 2 HP."}};
-let WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set();
+let WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set(),SWAMP=new Set();
 const UKEY="skirmish_unlocks_v1",unlocks=(()=>{try{return JSON.parse(localStorage.getItem(UKEY)||"{}")||{}}catch(e){return{}}})();
 const saveU=()=>{try{localStorage.setItem(UKEY,JSON.stringify(unlocks))}catch(e){}};
 const unlock=id=>{if(unlocks[id])return false;unlocks[id]=1;saveU();discover();return true};
@@ -444,10 +445,16 @@ function genMap(o={}){
       }
     };
     put(walls,3+R(3),true);put(forest,o.forest||4+R(4),false);
+    const swamp=new Set(); // swamp patches: entering one ends a unit's move
+    for(let n=o.swamp?2+R(2):Math.random()<.35?1+R(2):0,t=0;n>0&&t<80;t++){
+      const tl=grow(2+R(3),1+R(W-2),3+R(H-6));
+      if(!tl.every(([a,b])=>free(a,b)&&free(W-1-a,H-1-b)&&!swamp.has(K(a,b))&&!swamp.has(K(W-1-a,H-1-b))))continue;
+      tl.forEach(([a,b])=>both(swamp,a,b));n--;
+    }
     if(walls.size<5)continue;
     const fort=new Set();
     if(o.fort||Math.random()<.25){ // fortress groupings of 2 to 4 tiles
-      const cnt=1+R(2),occ=(a,b)=>walls.has(a+","+b)||forest.has(a+","+b)||fort.has(a+","+b)||taken(a,b);
+      const cnt=1+R(2),occ=(a,b)=>walls.has(a+","+b)||forest.has(a+","+b)||fort.has(a+","+b)||swamp.has(a+","+b)||taken(a,b);
       const blob=(n,x0,y0)=>{
         const t=[[x0,y0]];
         for(let i=0;i<40&&t.length<n;i++){
@@ -465,7 +472,7 @@ function genMap(o={}){
     const bars=new Set(); // barrels (unlockable): 50% of maps with a fortress get 1-2, each beside a fortress tile
     if(unlocks.barrels&&fort.size&&Math.random()<.5){
       const cand=[];
-      fort.forEach(k=>{const[a,b]=pk(k);DIRS.forEach(([dx,dy])=>{const x=a+dx,y=b+dy,kk=K(x,y);if(x>=0&&x<W&&y>=2&&y<=H-3&&!walls.has(kk)&&!forest.has(kk)&&!fort.has(kk)&&!taken(x,y)&&!cand.includes(kk))cand.push(kk)})});
+      fort.forEach(k=>{const[a,b]=pk(k);DIRS.forEach(([dx,dy])=>{const x=a+dx,y=b+dy,kk=K(x,y);if(x>=0&&x<W&&y>=2&&y<=H-3&&!walls.has(kk)&&!forest.has(kk)&&!fort.has(kk)&&!swamp.has(kk)&&!taken(x,y)&&!cand.includes(kk))cand.push(kk)})});
       for(let n=1+R(2);n>0&&cand.length;n--)bars.add(cand.splice(R(cand.length),1)[0]);
     }
     const xbars=new Set(); // exploding barrels (unlockable): each barrel has a 25% chance
@@ -480,7 +487,7 @@ function genMap(o={}){
       }
     }
     if(seen.size===W*H-walls.size-deep.size-bars.size){
-      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;BARRELS=bars;XBAR=xbars;WALLV=R(4);FORTV=new Map();FORTK=new Set();
+      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;SWAMP=swamp;BARRELS=bars;XBAR=xbars;WALLV=R(4);FORTV=new Map();FORTK=new Set();
       for(const k0 of fort){
         if(FORTV.has(k0))continue;
         const v=R(2),st=[k0];FORTV.set(k0,v);FORTK.add(k0);
@@ -502,6 +509,9 @@ const S1='stroke="rgba(0,0,0,.4)" stroke-width="1.2"';
 const WV=(a,c,o)=>svg(`<g fill="none" stroke="${c}" stroke-width="1.8" stroke-linecap="round" opacity="${o}">`+a.map(([x,y])=>`<path d="M${x} ${y}q4-4 8 0t8 0"/>`).join("")+"</g>");
 const DP_V=[WV([[6,12],[16,26]],"#a9d6ee",.55),WV([[10,9],[4,24],[20,32]],"#a9d6ee",.5),WV([[14,15],[6,30]],"#a9d6ee",.55)];
 const SH_V=[WV([[8,13],[18,27]],"#fff",.75),WV([[5,10],[19,20],[9,32]],"#fff",.7),WV([[14,12],[6,26]],"#fff",.75)];
+const reeds=(x,y)=>`<path d="M${x} ${y}v-9M${x+2.5} ${y}v-7M${x-2.5} ${y}v-6" stroke="#4f6b2c" stroke-width="1.4" stroke-linecap="round"/><ellipse cx="${x}" cy="${y-10}" rx="1.1" ry="2.6" fill="#6b4a26"/>`;
+const pool=(x,y,rx,ry)=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="#3f4a2a" opacity=".55"/><path d="M${x-rx*.5} ${y-ry*.2}q${rx*.3}-${ry*.5} ${rx*.6} 0" stroke="rgba(255,255,255,.25)" stroke-width="1" fill="none"/>`;
+const SW_V=[svg(pool(14,26,9,5)+pool(29,12,6,3.5)+reeds(30,33)+reeds(9,15)),svg(pool(24,22,11,6)+reeds(10,30)+reeds(33,13)+'<circle cx="20" cy="21" r="1.2" fill="rgba(255,255,255,.35)"/>'),svg(pool(11,12,6,3.5)+pool(27,30,9,4.5)+reeds(28,18)+reeds(12,34))];
 const BAR_A='<ellipse cx="20" cy="35" rx="17" ry="3" fill="rgba(0,0,0,.18)"/><path d="M5 17c0-3 3.500-4.500 6.500-4.500S18 14 18 17v13c0 3-3.500 4.500-6.500 4.500S5 33 5 30z" fill="#9a6b3a" stroke="#4a2f14" stroke-width="1.6"/><path d="M5 20.500c3 2 10 2 13 0M5 27c3 2 10 2 13 0" fill="none" stroke="#4a2f14" stroke-width="1.5"/><ellipse cx="11.500" cy="13" rx="6.500" ry="2.600" fill="#c08c52" stroke="#4a2f14" stroke-width="1.5"/><rect x="19" y="21" width="17" height="14" fill="#c9a064" stroke="#4a2f14" stroke-width="1.6"/><path d="M19 21l17 14M36 21L19 35" stroke="#7a5a2c" stroke-width="1.6"/><path d="M21 10c0-2.500 3-3.800 5.500-3.800s5.500 1.300 5.500 3.800v9c0 2.500-3 3.800-5.500 3.800S21 21.500 21 19z" fill="#8a5c30" stroke="#4a2f14" stroke-width="1.6"/><ellipse cx="26.500" cy="10" rx="5.500" ry="2.200" fill="#b98448" stroke="#4a2f14" stroke-width="1.4"/><path d="M21 14c2.500 1.800 8.500 1.800 11 0" fill="none" stroke="#4a2f14" stroke-width="1.4"/>';
 const BAR_V=[svg(BAR_A),svg(`<g transform="translate(40 0) scale(-1 1)">${BAR_A}</g>`)];
 const XBAR_V=svg('<ellipse cx="20" cy="36" rx="13" ry="2.6" fill="rgba(0,0,0,.22)"/><path d="M9 10c0-3 5-4.500 11-4.500S31 7 31 10v22c0 3-5 4.500-11 4.500S9 35 9 32z" fill="#c8372d" stroke="#4a1410" stroke-width="1.6"/><path d="M9 14.500c4 2.400 18 2.400 22 0M9 28.500c4 2.400 18 2.400 22 0" fill="none" stroke="#4a1410" stroke-width="1.5"/><ellipse cx="20" cy="10" rx="11" ry="3.400" fill="#e0574a" stroke="#4a1410" stroke-width="1.5"/><path d="M20 16.500l6.500 10.500h-13z" fill="#f2c230" stroke="#2b2200" stroke-width="1.2" stroke-linejoin="round"/><path d="M20 19.500v3.800" stroke="#2b2200" stroke-width="1.7" stroke-linecap="round"/><circle cx="20" cy="25.200" r="1" fill="#2b2200"/><path d="M14 9.500q2-1.200 4 0" stroke="rgba(255,255,255,.5)" stroke-width="1.3" fill="none"/>');
@@ -525,7 +535,7 @@ ICON.H='<svg viewBox="0 0 40 40"><path d="M20 7l4 6-4 3-4-3z" fill="var(--ic)"/>
 ICON.C='<svg viewBox="0 0 40 40"><path d="M26 4l-4 8L8 24l2 5 6-2 2 0-2 8h15V16z" fill="var(--ic)"/><path d="M27 8l6 5M30 13l5 8" stroke="var(--ic)" stroke-width="2.4" stroke-linecap="round"/><circle cx="21" cy="16" r="1.7" fill="var(--tc)"/><circle cx="11" cy="26" r="1" fill="var(--tc)"/></svg>';
 ICON.P='<svg viewBox="0 0 40 40"><path d="M16 5h8M17 6v9L9.5 29.5A4.5 4.5 0 0013.5 36h13a4.5 4.5 0 004-6.5L23 15V6" fill="none" stroke="var(--ic)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><path d="M12.5 26.5h15l3 4.5a2.2 2.2 0 01-1.9 3.5H11.4A2.2 2.2 0 019.5 31z" fill="var(--ic)"/><circle cx="17.5" cy="30.5" r="1.7" fill="var(--tc)"/><circle cx="23.5" cy="32" r="1.2" fill="var(--tc)"/></svg>';
 ICON.T='<svg viewBox="0 0 40 40"><path d="M20 6q9 0 11 8" stroke="var(--ic)" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M10 32V21a10 10 0 0120 0v11z" fill="var(--ic)"/><path d="M13.500 22.500h13" stroke="var(--tc)" stroke-width="2.600"/><path d="M20 25.500l1.500 3 3.300.500-2.400 2.300.600 3.300-3-1.600-3 1.600.600-3.300-2.400-2.300 3.300-.500z" fill="var(--tc)"/></svg>';
-ICON.N='<svg viewBox="0 0 40 40"><path d="M12 6v29" stroke="var(--ic)" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="5.500" r="2.600" fill="var(--ic)"/><path d="M14 8h18l-4.500 6.500L32 21H14z" fill="var(--ic)"/><path d="M19 12.500l1.300 2.400 2.700.400-2 1.800.500 2.600-2.500-1.300-2.500 1.300.500-2.600-2-1.800 2.700-.400z" fill="var(--tc)"/></svg>';
+ICON.N='<svg viewBox="0 0 40 40"><path d="M12 6v29" stroke="var(--ic)" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="5.500" r="2.600" fill="var(--ic)"/><path d="M14 8h18l-4.500 6.500L32 21H14z" fill="var(--ic)"/><path d="M18.20 9.65L18.82 11.40L20.67 11.45L19.20 12.57L19.73 14.35L18.20 13.30L16.67 14.35L17.20 12.57L15.73 11.45L17.58 11.40z" fill="var(--tc)"/><path d="M23.60 14.65L24.22 16.40L26.07 16.45L24.60 17.57L25.13 19.35L23.60 18.30L22.07 19.35L22.60 17.57L21.13 16.45L22.98 16.40z" fill="var(--tc)"/></svg>';
 ICON.M='<svg viewBox="0 0 40 40"><path d="M20 16v19" stroke="var(--ic)" stroke-width="3.200" stroke-linecap="round"/><path d="M12 5v7a8 8 0 0016 0V5M20 5v11" stroke="var(--ic)" stroke-width="2.800" fill="none" stroke-linecap="round"/></svg>';
 ICON.E='<svg viewBox="0 0 40 40"><path d="M9 33L23 19" stroke="var(--ic)" stroke-width="4" stroke-linecap="round"/><path d="M26 4l2.4 5.6 5.6 2.4-5.6 2.4L26 20l-2.4-5.6L18 12l5.6-2.4z" fill="var(--ic)"/><circle cx="10" cy="14" r="2" fill="var(--ic)"/><circle cx="32" cy="29" r="2.2" fill="var(--ic)"/><circle cx="22" cy="32" r="1.4" fill="var(--ic)"/></svg>';
 const TF="background-image:linear-gradient(rgba(60,140,80,.25),rgba(60,140,80,.25))",FR="background-image:linear-gradient(rgba(105,120,140,.42),rgba(105,120,140,.42))";
@@ -597,18 +607,19 @@ function joins(x,y){
 const TERRAIN={
  ground:{name:"Open Ground",bg:"",art:()=>[0,1,2,3].map(v=>ground(3,4,v)),desc:"No special effect."},
  forest:{name:"Forest",bg:TF,art:()=>FOREST_V,desc:"Leaving a forest costs 1 movement. A unit in a forest gets +10% evasion."},
+ swamp:{name:"Swamp",bg:"background:#7b7748",art:()=>SW_V,desc:"Entering a swamp ends a unit's move for the turn. Leaving costs nothing extra."},
  shallow:{name:"Shallow Water",bg:"background:#86c4dc",art:()=>SH_V,desc:"Entering it costs 1 extra movement. Often found around deep water, and sometimes as a ford across a river."},
  deep:{name:"Deep Water",bg:"background:#2f6f9c",art:()=>DP_V,desc:"Impassable. Units can't enter or cross it, but attacks can pass over it. Forms lakes, ponds and rivers."},
  barrels:{name:"Barrels",bg:"",art:()=>BAR_V,unlock:"barrels",desc:"Impassable. A unit in range can spend its action to break them. Found next to fortresses."},
  xbarrel:{name:"Exploding Barrel",bg:"",art:()=>[XBAR_V],unlock:"xbarrels",desc:`Impassable. Breaking it deals ${XB_DMG} damage to every unit on the 8 tiles around it and sets off barrels in the blast. Each barrel has a 25% chance to be one.`},
  wall:{name:"Wall",bg:"background:var(--wall)",art:()=>[0,1,2,3].map(v=>wallArt(v,0)),desc:"Impassable. Units can't enter or cross it, but attacks can pass over it."},
- fort:{name:"Fortress",bg:FR,art:()=>[fortArt(0,0,true),fortArt(0,1,true)],desc:"Uncommon. A unit standing on one gets +1 armor, and leaving costs 1 movement."}};
-const terrainKey=k=>BARRELS.has(k)?(XBAR.has(k)?"xbarrel":"barrels"):WALLS.has(k)?"wall":DEEP.has(k)?"deep":SHALLOW.has(k)?"shallow":FOREST.has(k)?"forest":FORT.has(k)?"fort":"ground";
+ fort:{name:"Fortress",bg:FR,art:()=>[fortArt(0,0,true),fortArt(0,1,true)],desc:"Uncommon. A unit standing on one gets +1 armor."}};
+const terrainKey=k=>BARRELS.has(k)?(XBAR.has(k)?"xbarrel":"barrels"):WALLS.has(k)?"wall":DEEP.has(k)?"deep":SHALLOW.has(k)?"shallow":SWAMP.has(k)?"swamp":FOREST.has(k)?"forest":FORT.has(k)?"fort":"ground";
 function tileArt(x,y){ // the art for one board tile, picking a stable variant per tile
   const k=x+","+y;
   switch(terrainKey(k)){
     case "xbarrel":return XBAR_V;case "barrels":return BAR_V[tv(x,y,2,19)];case "wall":return wallArt(WALLV,wallMask(x,y));
-    case "deep":return DP_V[tv(x,y,3,13)];case "shallow":return SH_V[tv(x,y,3,15)];case "forest":return FOREST_V[tv(x,y,4,9)];
+    case "deep":return DP_V[tv(x,y,3,13)];case "shallow":return SH_V[tv(x,y,3,15)];case "swamp":return SW_V[tv(x,y,3,21)];case "forest":return FOREST_V[tv(x,y,4,9)];
     case "fort":return fortArt(fortMask(x,y),FORTV.get(k)||0,FORTK.has(k));default:return ground(x,y);
   }
 }
@@ -667,12 +678,13 @@ function rest(team){ // Field Rest: idle units recover 2 HP
 const say=s=>$("status").textContent=s;
 function notify(t){const o=$("fx").querySelector(".banner");if(o)o.remove();const n=document.createElement("div");n.className="banner";n.textContent=t;$("fx").append(n);setTimeout(()=>n.remove(),1650)}
 
-function reach(u){ // entering shallow water costs 2; leaving a forest or fortress costs 1 extra
-  const bud=mvOf(u)-(FOREST.has(u.x+","+u.y)||FORT.has(u.x+","+u.y)?1:0),k0=u.x+","+u.y;
+function reach(u){ // entering shallow water costs 2; leaving a forest costs 1 extra; entering a swamp ends the move
+  const bud=mvOf(u)-(FOREST.has(u.x+","+u.y)?1:0),k0=u.x+","+u.y; // leaving a forest costs 1 extra
   const cost=new Map([[k0,0]]),q=[[u.x,u.y]];
   while(q.length){
     q.sort((a,b)=>cost.get(a+"")-cost.get(b+""));
     const[x,y]=q.shift(),c=cost.get(x+","+y);
+    if(SWAMP.has(x+","+y)&&(x!==u.x||y!==u.y))continue; // entering a swamp ends the move
     for(const[dx,dy] of DIRS){
       const nx=x+dx,ny=y+dy,k=nx+","+ny;
       const o=at(nx,ny);if(nx<0||ny<0||nx>=W||ny>=H||solid(k)||(o&&o.team!==u.team))continue;
@@ -736,7 +748,7 @@ function render(){
   }
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     const k=x+","+y,w=WALLS.has(k),dp=DEEP.has(k),sh=SHALLOW.has(k),f=FOREST.has(k),fr=FORT.has(k),bar=BARRELS.has(k),b=document.createElement("button"),u=at(x,y);
-    b.className="t"+(bar?" brl":"")+(w?" w"+(wallMask(x,y)&1?" jn":"")+(wallMask(x,y)&4?" js":""):"")+(dp?" dp":"")+(sh?" sh":"")+(f?" fo":"")+(fr?" fr":"")+(tile&&tile.x===x&&tile.y===y?" ts":"")+(ig.has(k)?" ig":"")+(ir.has(k)?" ir":"")+(pr.has(k)?" pr":"")+(mv.has(k)?" m":"")+((u&&tg.has(u))||bt.has(k)?" a":"")+(u&&tg.has(u)&&mods.y==="PUSH"&&sel&&pushable(sel,u)?" pp":"")+(u&&hs.has(u)?" hl":"")+(u&&u===choice?" ch":"")+(pd&&pd.k===k?" pd":"")+(cm&&cm.x===x&&cm.y===y?" mt":"")+(bl.has(k)?" bl":"");
+    b.className="t"+(bar?" brl":"")+(w?" w"+(wallMask(x,y)&1?" jn":"")+(wallMask(x,y)&4?" js":""):"")+(dp?" dp":"")+(sh?" sh":"")+(SWAMP.has(k)?" sw":"")+(f?" fo":"")+(fr?" fr":"")+(tile&&tile.x===x&&tile.y===y?" ts":"")+(ig.has(k)?" ig":"")+(ir.has(k)?" ir":"")+(pr.has(k)?" pr":"")+(mv.has(k)?" m":"")+((u&&tg.has(u))||bt.has(k)?" a":"")+(u&&tg.has(u)&&mods.y==="PUSH"&&sel&&pushable(sel,u)?" pp":"")+(u&&hs.has(u)?" hl":"")+(u&&u===choice?" ch":"")+(pd&&pd.k===k?" pd":"")+(cm&&cm.x===x&&cm.y===y?" mt":"")+(bl.has(k)?" bl":"");
     if(pd&&pd.k===k)b.dataset.arrow=pd.a;
     b.innerHTML=tileArt(x,y)+(fr?'<i class="tint"></i>':"")+joins(x,y); // fortress art covers its tile, so highlights go on a see-through layer above it
     b.setAttribute("aria-label",u?(u.team==="y"?"Your ":u.team==="w"?"Wild ":"Enemy ")+NAME[u.t]+", "+u.hp+" health"+(u.slow?", slowed":""):(mv.has(k)?"Move here, ":"")+TERRAIN[terrainKey(k)].name);
@@ -794,7 +806,7 @@ function renderInfo(){
   if(inspired(u))notes.push("Inspired by a nearby Banner Bearer: deals +1 damage.");
   if(u.slow)notes.push("Slowed: movement reduced to 1 until the end of its next turn.");
   if(fo)notes.push(`In a forest: +${pct(FOREST_EV)} evasion, and leaving costs 1 movement.`);
-  if(FORT.has(u.x+","+u.y))notes.push("On a fortress: +1 armor, and leaving costs 1 movement.");
+  if(FORT.has(u.x+","+u.y))notes.push("On a fortress: +1 armor.");
   if(u.t==="A"&&mods[u.team]==="PAD")notes.push("Padded Armor: +1 armor.");
   if(mods[u.team]==="FT"&&fo)notes.push("Forest Tactics: +1 armor against ranged attacks here.");
   if(u.team==="y"&&u.acted)notes.push("Finished for this turn.");else if(u.team==="y"&&u.moved)notes.push("Has moved this turn.");
@@ -1081,11 +1093,11 @@ function distMap(srcs){
     ch=false;
     for(let y=0;y<H;y++)for(let x=0;x<W;x++){
       if(solid(x+","+y))continue;
-      const c0=1+(FOREST.has(x+","+y)||FORT.has(x+","+y)?1:0);
+      const c0=1+(FOREST.has(x+","+y)?1:0);
       for(const[dx,dy] of DIRS){
         const nx=x+dx,ny=y+dy;
         if(nx<0||ny<0||nx>=W||ny>=H||solid(nx+","+ny))continue;
-        const cc=c0+(SHALLOW.has(nx+","+ny)?1:0);
+        const cc=c0+(SHALLOW.has(nx+","+ny)?1:SWAMP.has(nx+","+ny)?2:0);
         if(D[ny][nx]+cc<D[y][x]){D[y][x]=D[ny][nx]+cc;ch=true}
       }
     }
@@ -1210,7 +1222,7 @@ function enemyTurn(note=""){
 /* ---------- World map ---------- */
 let WORLD=[],EDGES=[],DECO={trees:[],rocks:[],river:""};
 const BTEXT={
- wetlands:"Wetlands. Lakes, ponds and rivers cover the battlefield. Shallow water slows movement and deep water blocks it.",
+ wetlands:"Wetlands. Lakes, ponds, rivers and swamps cover the battlefield. Shallow water slows movement, swamps stop it, and deep water blocks it.",
  forest:"Thick woods. Extra forests on the battlefield.",
  plain:"Open country. Very few forests.",
  fort:"A ruined stronghold. A fortress is guaranteed on the battlefield.",
@@ -1258,7 +1270,7 @@ function genWorld(){
   WORLD=nodes;EDGES=[...es].map(e=>e.split("-").map(Number));
   DECO={trees:scatter(12),rocks:scatter(5),river:`M-10 ${ry()} C 70 ${ry()} 120 ${ry()} 220 ${ry()} S 340 ${ry()} 420 ${ry()}`};
 }
-const BIOME={forest:{forest:9},plain:{forest:2},fort:{fort:1},wild:{wild:1},boss:{fort:1,boss:1},wetlands:{water:1,forest:3}};
+const BIOME={forest:{forest:9},plain:{forest:2},fort:{fort:1},wild:{wild:1},boss:{fort:1,boss:1},wetlands:{water:1,forest:3,swamp:1}};
 const adj=(a,b)=>EDGES.some(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a));
 const SAVE="skirmish-campaign";
 function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
