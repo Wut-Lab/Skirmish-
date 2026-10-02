@@ -250,6 +250,11 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .hmod{margin:0 0 6px}
 #prules{background:none;box-shadow:none;padding:0;font-size:inherit}
 #prules .menubtns{margin:14px auto 0}
+/* ---- joined walls: no bevel on edges that continue into another wall ---- */
+.jb{position:absolute;pointer-events:none}
+.t.w.jn{box-shadow:inset 0 -7px 0 rgba(0,0,0,.4)}
+.t.w.js{box-shadow:inset 0 4px 0 rgba(255,255,255,.28)}
+.t.w.jn.js{box-shadow:none}
 /* ---- move & attack, explosions, unlocks ---- */
 .t.mt{outline:3px dashed #fff;outline-offset:-4px}
 .t.mt::after{content:"";position:absolute;inset:30%;border-radius:50%;background:rgba(255,255,255,.8);box-shadow:0 0 0 2px rgba(0,0,0,.35);z-index:2;pointer-events:none}
@@ -367,7 +372,7 @@ const saveU=()=>{try{localStorage.setItem(UKEY,JSON.stringify(unlocks))}catch(e)
 const unlock=id=>{if(unlocks[id])return false;unlocks[id]=1;saveU();return true};
 const XB_DMG=4; // exploding barrel damage
 let BARRELS=new Set(),XBAR=new Set(),bchoice=null,choiceMv=null,lastMove=null; // XBAR: the barrels that explode
-let WALLV=0,FORTV=new Map(); // one wall style per map; each connected fortress group shares one style
+let WALLV=0,FORTV=new Map(),FORTK=new Set(); // one wall style per map; each connected fortress group shares one style; FORTK: the tile holding each fortress's keep
 const solid=k=>WALLS.has(k)||DEEP.has(k)||BARRELS.has(k);
 // Random terrain, mirrored through the map centre so both sides are fair. Start rows stay clear.
 function genMap(o={}){
@@ -460,10 +465,10 @@ function genMap(o={}){
       }
     }
     if(seen.size===W*H-walls.size-deep.size-bars.size){
-      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;BARRELS=bars;XBAR=xbars;WALLV=R(4);FORTV=new Map();
+      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;BARRELS=bars;XBAR=xbars;WALLV=R(4);FORTV=new Map();FORTK=new Set();
       for(const k0 of fort){
         if(FORTV.has(k0))continue;
-        const v=R(2),st=[k0];FORTV.set(k0,v);
+        const v=R(2),st=[k0];FORTV.set(k0,v);FORTK.add(k0);
         while(st.length){const[a,b]=st.pop().split(",").map(Number);for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const k=(a+dx)+","+(b+dy);if(fort.has(k)&&!FORTV.has(k)){FORTV.set(k,v);st.push(k)}}}
       }
       return;
@@ -485,11 +490,6 @@ const SH_V=[WV([[8,13],[18,27]],"#fff",.75),WV([[5,10],[19,20],[9,32]],"#fff",.7
 const BAR_A='<ellipse cx="20" cy="35" rx="17" ry="3" fill="rgba(0,0,0,.18)"/><path d="M5 17c0-3 3.500-4.500 6.500-4.500S18 14 18 17v13c0 3-3.500 4.500-6.500 4.500S5 33 5 30z" fill="#9a6b3a" stroke="#4a2f14" stroke-width="1.6"/><path d="M5 20.500c3 2 10 2 13 0M5 27c3 2 10 2 13 0" fill="none" stroke="#4a2f14" stroke-width="1.5"/><ellipse cx="11.500" cy="13" rx="6.500" ry="2.600" fill="#c08c52" stroke="#4a2f14" stroke-width="1.5"/><rect x="19" y="21" width="17" height="14" fill="#c9a064" stroke="#4a2f14" stroke-width="1.6"/><path d="M19 21l17 14M36 21L19 35" stroke="#7a5a2c" stroke-width="1.6"/><path d="M21 10c0-2.500 3-3.800 5.500-3.800s5.500 1.300 5.500 3.800v9c0 2.500-3 3.800-5.500 3.800S21 21.500 21 19z" fill="#8a5c30" stroke="#4a2f14" stroke-width="1.6"/><ellipse cx="26.500" cy="10" rx="5.500" ry="2.200" fill="#b98448" stroke="#4a2f14" stroke-width="1.4"/><path d="M21 14c2.500 1.800 8.500 1.800 11 0" fill="none" stroke="#4a2f14" stroke-width="1.4"/>';
 const BAR_V=[svg(BAR_A),svg(`<g transform="translate(40 0) scale(-1 1)">${BAR_A}</g>`)];
 const XBAR_V=svg('<ellipse cx="20" cy="36" rx="13" ry="2.6" fill="rgba(0,0,0,.22)"/><path d="M9 10c0-3 5-4.500 11-4.500S31 7 31 10v22c0 3-5 4.500-11 4.500S9 35 9 32z" fill="#c8372d" stroke="#4a1410" stroke-width="1.6"/><path d="M9 14.500c4 2.400 18 2.400 22 0M9 28.500c4 2.400 18 2.400 22 0" fill="none" stroke="#4a1410" stroke-width="1.5"/><ellipse cx="20" cy="10" rx="11" ry="3.400" fill="#e0574a" stroke="#4a1410" stroke-width="1.5"/><path d="M20 16.500l6.500 10.500h-13z" fill="#f2c230" stroke="#2b2200" stroke-width="1.2" stroke-linejoin="round"/><path d="M20 19.500v3.800" stroke="#2b2200" stroke-width="1.7" stroke-linecap="round"/><circle cx="20" cy="25.200" r="1" fill="#2b2200"/><path d="M14 9.500q2-1.200 4 0" stroke="rgba(255,255,255,.5)" stroke-width="1.3" fill="none"/>');
-const WALL_V=[
- svg('<path d="M0 13H40M0 27H40M13 0V13M27 13V27M13 27V40" stroke="rgba(0,0,0,.35)" stroke-width="1.5" fill="none"/><path d="M0 0H40" stroke="rgba(255,255,255,.35)" stroke-width="3"/>'),
- svg(`<ellipse cx="13" cy="27" rx="10" ry="8" fill="#7f8b95" ${S1}/><ellipse cx="28" cy="24" rx="9" ry="10" fill="#8d98a1" ${S1}/><ellipse cx="20" cy="12" rx="8" ry="6.5" fill="#98a3ac" ${S1}/><path d="M8 24q3-4 7-3M24 19q3-3 6-1M16 10q3-2 6 0" stroke="rgba(255,255,255,.4)" fill="none" stroke-width="1.5"/>`),
- svg(`<g fill="rgba(255,255,255,.1)" ${S1}><rect x="1.5" y="2" width="17" height="11" rx="2"/><rect x="21" y="2" width="17.5" height="11" rx="2"/><rect x="1.5" y="15" width="10" height="11" rx="2"/><rect x="14" y="15" width="17" height="11" rx="2"/><rect x="33" y="15" width="5.5" height="11" rx="2"/><rect x="1.5" y="28" width="17" height="10" rx="2"/><rect x="21" y="28" width="17.5" height="10" rx="2"/></g>`),
- svg('<rect width="40" height="40" fill="#3b2b1c"/>'+[0,1,2,3,4].map(i=>{const x=1+i*7.6,t=3+(i%2)*3;return `<path d="M${x} 40V${t+7}L${x+3.4} ${t}L${x+6.8} ${t+7}V40z" fill="#8b6a45" stroke="#4f3921" stroke-width="1.2"/>`}).join(""))];
 const tv=(x,y,n,k=0)=>((((x+k)*73856093)^((y+k*3)*19349663)^(seed*83492791))>>>0)%n;
 const tuft=(a,b)=>`<path d="M${a} ${b}l-2.5-5M${a} ${b}l0-6.5M${a} ${b}l2.5-5"/>`;
 function ground(x,y,fv){
@@ -511,9 +511,64 @@ ICON.C='<svg viewBox="0 0 40 40"><path d="M26 4l-4 8L8 24l2 5 6-2 2 0-2 8h15V16z
 ICON.P='<svg viewBox="0 0 40 40"><path d="M16 5h8M17 6v9L9.5 29.5A4.5 4.5 0 0013.5 36h13a4.5 4.5 0 004-6.5L23 15V6" fill="none" stroke="var(--ic)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><path d="M12.5 26.5h15l3 4.5a2.2 2.2 0 01-1.9 3.5H11.4A2.2 2.2 0 019.5 31z" fill="var(--ic)"/><circle cx="17.5" cy="30.5" r="1.7" fill="var(--tc)"/><circle cx="23.5" cy="32" r="1.2" fill="var(--tc)"/></svg>';
 ICON.E='<svg viewBox="0 0 40 40"><path d="M9 33L23 19" stroke="var(--ic)" stroke-width="4" stroke-linecap="round"/><path d="M26 4l2.4 5.6 5.6 2.4-5.6 2.4L26 20l-2.4-5.6L18 12l5.6-2.4z" fill="var(--ic)"/><circle cx="10" cy="14" r="2" fill="var(--ic)"/><circle cx="32" cy="29" r="2.2" fill="var(--ic)"/><circle cx="22" cy="32" r="1.4" fill="var(--ic)"/></svg>';
 const TF="background-image:linear-gradient(rgba(60,140,80,.25),rgba(60,140,80,.25))",FR="background-image:linear-gradient(rgba(105,120,140,.42),rgba(105,120,140,.42))";
-const FORT_V=[
+const FORT_ICON=[
  '<svg class="dec" viewBox="0 0 40 40"><ellipse cx="20" cy="36.5" rx="13" ry="2.6" fill="rgba(0,0,0,.28)"/><rect x="8" y="31" width="24" height="5" rx="1" fill="#8a95a1" stroke="#3f4953" stroke-width="1.2"/><path d="M12 31L14 17H26L28 31z" fill="#a3adb8" stroke="#3f4953" stroke-width="1.2"/><path d="M14.6 17L13.6 30h3L17.4 17z" fill="rgba(255,255,255,.28)"/><rect x="10" y="11" width="20" height="6.5" rx="1" fill="#b3bcc6" stroke="#3f4953" stroke-width="1.2"/><rect x="10" y="4.5" width="5.5" height="6.5" fill="#b3bcc6" stroke="#3f4953" stroke-width="1.2"/><rect x="17.2" y="4.5" width="5.6" height="6.5" fill="#b3bcc6" stroke="#3f4953" stroke-width="1.2"/><rect x="24.5" y="4.5" width="5.5" height="6.5" fill="#b3bcc6" stroke="#3f4953" stroke-width="1.2"/><rect x="19" y="20" width="2.2" height="7" rx="1" fill="#3f4953"/></svg>',
  '<svg class="dec" viewBox="0 0 40 40"><ellipse cx="20" cy="36.5" rx="14" ry="2.6" fill="rgba(0,0,0,.28)"/><rect x="11" y="12" width="18" height="24" fill="#9aa5b1" stroke="#3f4953" stroke-width="1.2"/><path d="M11 20H29M11 28H29M20 12V20M15.5 20V28M24.5 20V28" stroke="rgba(0,0,0,.25)" stroke-width="1" fill="none"/><path d="M12.5 12L12.5 35" stroke="rgba(255,255,255,.28)" stroke-width="2.5"/><rect x="8.5" y="8" width="23" height="5" fill="#b3bcc6" stroke="#3f4953" stroke-width="1.2"/><rect x="8.5" y="3.5" width="4.4" height="4.5" fill="#b3bcc6" stroke="#3f4953" stroke-width="1.2"/><rect x="15" y="3.5" width="4.4" height="4.5" fill="#b3bcc6" stroke="#3f4953" stroke-width="1.2"/><rect x="21.2" y="3.5" width="4.4" height="4.5" fill="#b3bcc6" stroke="#3f4953" stroke-width="1.2"/><rect x="27.6" y="3.5" width="4" height="4.5" fill="#b3bcc6" stroke="#3f4953" stroke-width="1.2"/><rect x="19" y="14" width="2.2" height="4.5" rx="1" fill="#3f4953"/><path d="M16.5 36V30.5a3.5 3.5 0 017 0V36z" fill="#3f4953"/></svg>'];
+/* ---- joined walls and fortresses: each tile is drawn from which neighbours share its type (bits N1 E2 S4 W8) ---- */
+const joinMask=(x,y,has)=>[[0,-1,1],[1,0,2],[0,1,4],[-1,0,8]].reduce((m,[dx,dy,bit])=>has((x+dx)+","+(y+dy))?m|bit:m,0);
+const wallMask=(x,y)=>joinMask(x,y,k=>WALLS.has(k));
+const fortMask=(x,y)=>{const v=FORTV.get(x+","+y);return joinMask(x,y,k=>FORT.has(k)&&FORTV.get(k)===v)}; // only the same fortress joins
+function wallArt(v,m){
+  const n=m&1,e=m&2,s=m&4,w=m&8;
+  if(v===0) // brick: the courses run straight on into a joined wall; open sides get a lit or shaded edge
+    return svg('<path d="M0 13H40M0 27H40M13 0V13M27 13V27M13 27V40" stroke="rgba(0,0,0,.35)" stroke-width="1.5" fill="none"/>'+(e?"":'<path d="M39.3 0V40" stroke="rgba(0,0,0,.3)" stroke-width="1.4"/>')+(w?"":'<path d="M.7 0V40" stroke="rgba(255,255,255,.25)" stroke-width="1.4"/>'));
+  if(v===1){ // boulders: a shared boulder straddles every joined edge
+    const b=(cx,cy,rx,ry,f)=>`<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${f}" ${S1}/>`;
+    return svg((n?b(20,0,7.5,5.5,"#8d98a1"):"")+(s?b(20,40,7.5,5.5,"#8d98a1"):"")+(e?b(40,20,5.5,7.5,"#98a3ac"):"")+(w?b(0,20,5.5,7.5,"#98a3ac"):"")
+      +b(14,26,8.5,7,"#7f8b95")+b(27,24,8,8.5,"#8d98a1")+b(20,13,7,6,"#98a3ac")+'<path d="M9 23q3-4 7-3M24 19q3-3 6-1M16 11q3-2 6 0" stroke="rgba(255,255,255,.4)" fill="none" stroke-width="1.5"/>');
+  }
+  if(v===2){ // dressed stone: joined sides drop their margin so the block courses line up across tiles
+    const rows=[[n?0:2,13,[0,19,40]],[15,26,[0,12.5,31.5,40]],[28,s?40:38,[0,19,40]]];let g="";
+    rows.forEach(([a,b,xs])=>{for(let i=0,L=xs.length-2;i<=L;i++){const l=xs[i]+(i?1:w?0:1.5),r=xs[i+1]-(i<L?1:e?0:1.5);g+=`<rect x="${l}" y="${a}" width="${r-l}" height="${b-a}" rx="2"/>`}});
+    return svg(`<g fill="rgba(255,255,255,.1)" ${S1}>${g}</g>`);
+  }
+  // wooden palisade: posts keep their points only where nothing continues above
+  return svg('<rect width="40" height="40" fill="#3b2b1c"/>'+[0,1,2,3,4].map(i=>{const x=i*8+.6,t=3+(i%2)*3;return n?`<rect x="${x}" y="-2" width="6.8" height="44" fill="#8b6a45" stroke="#4f3921" stroke-width="1.2"/>`:`<path d="M${x} 42V${t+7}L${x+3.4} ${t}L${x+6.8} ${t+7}V42z" fill="#8b6a45" stroke="#4f3921" stroke-width="1.2"/>`}).join(""));
+}
+const FORT_PAL=[{floor:"#9aa5b1",wall:"#b8c1cb",dark:"#3f4953",line:"rgba(63,73,83,.3)"},{floor:"#b5a27c",wall:"#d6c59c",dark:"#5e4d33",line:"rgba(94,77,51,.3)"}];
+// a fortress tile: courtyard flagstones, ramparts with crenels on open edges, round towers on outer corners, and the keep on one tile per fortress
+function fortArt(m,v,keep){
+  const P=FORT_PAL[v]||FORT_PAL[0],n=m&1,e=m&2,s=m&4,w=m&8,B=8,st=`stroke="${P.dark}" stroke-width="1.2"`;
+  const crn=(hor,pos)=>[5,15,25,35].map(c=>hor?`<rect x="${c-2}" y="${pos}" width="4" height="2.600" fill="${P.dark}" opacity=".5"/>`:`<rect x="${pos}" y="${c-2}" width="2.600" height="4" fill="${P.dark}" opacity=".5"/>`).join("");
+  const tower=(cx,cy)=>`<circle cx="${cx}" cy="${cy}" r="7.500" fill="${P.wall}" ${st}/><circle cx="${cx}" cy="${cy}" r="4" fill="none" stroke="${P.dark}" stroke-width="1" opacity=".55"/>`;
+  let g=`<rect width="40" height="40" fill="${P.floor}"/><path d="M0 14H40M0 27H40M10 0V14M30 0V14M20 14V27M6 27V40M28 27V40" stroke="${P.line}" stroke-width="1"/>`;
+  if(!n)g+=`<rect x="-2" y="0" width="44" height="${B}" fill="${P.wall}" ${st}/>`+crn(1,0); // rampart strips overhang so they join seamlessly
+  if(!s)g+=`<rect x="-2" y="${40-B}" width="44" height="${B}" fill="${P.wall}" ${st}/>`+crn(1,37.4);
+  if(!w)g+=`<rect x="0" y="-2" width="${B}" height="44" fill="${P.wall}" ${st}/>`+crn(0,0);
+  if(!e)g+=`<rect x="${40-B}" y="-2" width="${B}" height="44" fill="${P.wall}" ${st}/>`+crn(0,37.4);
+  if(!n&&!w)g+=tower(7,7);if(!n&&!e)g+=tower(33,7);if(!s&&!w)g+=tower(7,33);if(!s&&!e)g+=tower(33,33);
+  if(keep)g+=`<rect x="12" y="12" width="16" height="16" rx="1" fill="${P.wall}" ${st}/><rect x="15.500" y="15.500" width="9" height="9" fill="none" stroke="${P.dark}" stroke-width="1" opacity=".55"/>`
+    +[[12,12],[24.5,12],[12,24.5],[24.5,24.5]].map(([a,b])=>`<rect x="${a}" y="${b}" width="3.500" height="3.500" fill="${P.dark}" opacity=".5"/>`).join("");
+  return svg(g);
+}
+// fills the 2px board gap after a tile when it joins the tile to its right or below, so joined pieces read as one structure
+function joins(x,y){
+  const k=x+","+y,isW=WALLS.has(k);
+  if(!isW&&!FORT.has(k))return "";
+  const m=isW?wallMask(x,y):fortMask(x,y),same=isW?(kk=>WALLS.has(kk)):(kk=>FORT.has(kk)&&FORTV.get(kk)===FORTV.get(k));
+  const corner=(m&2)&&(m&4)&&same((x+1)+","+(y+1)),bar=(st,bg)=>`<i class="jb" style="${st};background:${bg}"></i>`;
+  let right,below;
+  if(!isW){ // carry the ramparts across the gap
+    const P=FORT_PAL[FORTV.get(k)||0],band=(a,b,dir)=>`linear-gradient(${dir},${P.wall} ${a}%,${P.floor} ${a}%,${P.floor} ${b}%,${P.wall} ${b}%)`;
+    right=band(m&1?0:20,m&4?100:80,"180deg");below=band(m&8?0:20,m&2?100:80,"90deg");
+  }else if(WALLV===3){right="#3b2b1c";below="repeating-linear-gradient(90deg,#3b2b1c 0 1.500%,#8b6a45 1.500% 18.500%,#3b2b1c 18.500% 20%)"}
+  else{
+    const lit=m&1?"":"linear-gradient(rgba(255,255,255,.28),rgba(255,255,255,.28)) top/100% 4px no-repeat,",shade=m&4?"":"linear-gradient(rgba(0,0,0,.4),rgba(0,0,0,.4)) bottom/100% 7px no-repeat,";
+    const rock=(dir,c)=>WALLV===1?`linear-gradient(${dir},transparent 31%,${c} 31%,${c} 69%,transparent 69%),`:""; // fill the shared boulder's middle
+    right=lit+shade+rock("180deg","#98a3ac")+"var(--wall)";below=WALLV===0?"linear-gradient(rgba(0,0,0,.3),rgba(0,0,0,.3)) var(--wall)":rock("90deg","#8d98a1")+"var(--wall)"; // brick keeps its mortar line
+  }
+  return (m&2?bar(`top:0;right:-2px;width:2px;height:${corner?"calc(100% + 2px)":"100%"}`,right):"")+(m&4?bar("left:0;bottom:-2px;height:2px;width:100%",below):"");
+}
 // One source for terrain: the in-game Terrain panel, the Terrain Guide, How to Play and Unlocks all read from here.
 // "unlock" names the unlock a terrain needs before it is shown anywhere but the Unlocks menu.
 const TERRAIN={
@@ -523,15 +578,15 @@ const TERRAIN={
  deep:{name:"Deep Water",bg:"background:#2f6f9c",art:()=>DP_V,desc:"Impassable. Units can't enter or cross it, but attacks can pass over it. Forms lakes, ponds and rivers."},
  barrels:{name:"Barrels",bg:"",art:()=>BAR_V,unlock:"barrels",desc:"Impassable. A unit in range can spend its action to break them. Found next to fortresses."},
  xbarrel:{name:"Exploding Barrel",bg:"",art:()=>[XBAR_V],unlock:"xbarrels",desc:`Impassable. Breaking it deals ${XB_DMG} damage to every unit on the 8 tiles around it and sets off barrels in the blast. Each barrel has a 25% chance to be one.`},
- wall:{name:"Wall",bg:"background:var(--wall)",art:()=>WALL_V,desc:"Impassable. Units can't enter or cross it, but attacks can pass over it."},
- fort:{name:"Fortress",bg:FR,art:()=>FORT_V,desc:"Uncommon. A unit standing on one takes 1 less damage from all attacks, and leaving costs 1 movement."}};
+ wall:{name:"Wall",bg:"background:var(--wall)",art:()=>[0,1,2,3].map(v=>wallArt(v,0)),desc:"Impassable. Units can't enter or cross it, but attacks can pass over it."},
+ fort:{name:"Fortress",bg:FR,art:()=>[fortArt(0,0,true),fortArt(0,1,true)],desc:"Uncommon. A unit standing on one takes 1 less damage from all attacks, and leaving costs 1 movement."}};
 const terrainKey=k=>BARRELS.has(k)?(XBAR.has(k)?"xbarrel":"barrels"):WALLS.has(k)?"wall":DEEP.has(k)?"deep":SHALLOW.has(k)?"shallow":FOREST.has(k)?"forest":FORT.has(k)?"fort":"ground";
 function tileArt(x,y){ // the art for one board tile, picking a stable variant per tile
   const k=x+","+y;
   switch(terrainKey(k)){
-    case "xbarrel":return XBAR_V;case "barrels":return BAR_V[tv(x,y,2,19)];case "wall":return WALL_V[WALLV];
+    case "xbarrel":return XBAR_V;case "barrels":return BAR_V[tv(x,y,2,19)];case "wall":return wallArt(WALLV,wallMask(x,y));
     case "deep":return DP_V[tv(x,y,3,13)];case "shallow":return SH_V[tv(x,y,3,15)];case "forest":return FOREST_V[tv(x,y,4,9)];
-    case "fort":return FORT_V[FORTV.get(k)||0];default:return ground(x,y);
+    case "fort":return fortArt(fortMask(x,y),FORTV.get(k)||0,FORTK.has(k));default:return ground(x,y);
   }
 }
 const terrainSwatch=(key,art)=>`<div class="tsw" style="${TERRAIN[key].bg}">${art===undefined?TERRAIN[key].art()[0]:art}</div>`;
@@ -620,9 +675,9 @@ function render(){
   }
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     const k=x+","+y,w=WALLS.has(k),dp=DEEP.has(k),sh=SHALLOW.has(k),f=FOREST.has(k),fr=FORT.has(k),bar=BARRELS.has(k),b=document.createElement("button"),u=at(x,y);
-    b.className="t"+(bar?" brl":"")+(w?" w":"")+(dp?" dp":"")+(sh?" sh":"")+(f?" fo":"")+(fr?" fr":"")+(tile&&tile.x===x&&tile.y===y?" ts":"")+(ig.has(k)?" ig":"")+(ir.has(k)?" ir":"")+(pr.has(k)?" pr":"")+(mv.has(k)?" m":"")+((u&&tg.has(u))||bt.has(k)?" a":"")+(u&&tg.has(u)&&mods.y==="PUSH"&&sel&&pushable(sel,u)?" pp":"")+(u&&hs.has(u)?" hl":"")+(u&&u===choice?" ch":"")+(pd&&pd.k===k?" pd":"")+(cm&&cm.x===x&&cm.y===y?" mt":"")+(bl.has(k)?" bl":"");
+    b.className="t"+(bar?" brl":"")+(w?" w"+(wallMask(x,y)&1?" jn":"")+(wallMask(x,y)&4?" js":""):"")+(dp?" dp":"")+(sh?" sh":"")+(f?" fo":"")+(fr?" fr":"")+(tile&&tile.x===x&&tile.y===y?" ts":"")+(ig.has(k)?" ig":"")+(ir.has(k)?" ir":"")+(pr.has(k)?" pr":"")+(mv.has(k)?" m":"")+((u&&tg.has(u))||bt.has(k)?" a":"")+(u&&tg.has(u)&&mods.y==="PUSH"&&sel&&pushable(sel,u)?" pp":"")+(u&&hs.has(u)?" hl":"")+(u&&u===choice?" ch":"")+(pd&&pd.k===k?" pd":"")+(cm&&cm.x===x&&cm.y===y?" mt":"")+(bl.has(k)?" bl":"");
     if(pd&&pd.k===k)b.dataset.arrow=pd.a;
-    b.innerHTML=tileArt(x,y);
+    b.innerHTML=tileArt(x,y)+joins(x,y);
     b.setAttribute("aria-label",u?(u.team==="y"?"Your ":u.team==="w"?"Wild ":"Enemy ")+NAME[u.t]+", "+u.hp+" health"+(u.slow?", slowed":""):(mv.has(k)?"Move here, ":"")+TERRAIN[terrainKey(k)].name);
     if(u){
       const e=document.createElement("div");
@@ -906,19 +961,22 @@ function animAttack(a,b,cb){
   }catch(e){fin()}
 }
 function afterAction(){if(!checkEnd())render()}
+const CAMP_HEAL=.2; // share of max HP every surviving unit recovers after a campaign win
+const campHeal=t=>Math.ceil(TYPES[t].hp*CAMP_HEAL);
 const armyTypes=()=>["K","A","C",...(camp.cfg?camp.cfg.x:[])];
 function showEnd(win){
   const g=gid,nm=camp.battle?WORLD[camp.battle.node]:null;let newU=false;
   endMode=nm?(win?"cwin":"close"):"quick";
   if(nm&&win){ // record campaign progress right away
     if(!camp.cleared.includes(nm.id))camp.cleared.push(nm.id);
-    camp.hp=armyTypes().map((t,i)=>{const u=units.find(v=>v.team==="y"&&v.ci===i);return u?u.hp:1}); // fallen units return at 1 HP
+    camp.hp=armyTypes().map((t,i)=>{const u=units.find(v=>v.team==="y"&&v.ci===i);return u?Math.min(TYPES[t].hp,u.hp+campHeal(t)):1}); // survivors patch up; fallen units return at 1 HP
     camp.pos=nm.id;if(nm.type==="boss")camp.done=true;saveCamp();
     if(camp.cleared.filter(i=>{const n=WORLD[i];return n&&n.type!=="camp"&&n.type!=="heal"}).length>=2)newU=unlock("barrels"); // two real battles won
   }
   $("dtitle").textContent=win?"Victory":"Defeat";
   $("dtitle").style.color=win?"#2f8f4e":"var(--foe)";
   $("dmsg").textContent=win?(nm?(nm.type==="boss"?"You stormed "+nm.name+" and the campaign is complete!":"You secured "+nm.name+"."):"Every enemy unit has been destroyed and the field is yours."):"Your army has been wiped out and the enemy holds the field.";
+  if(nm&&win&&nm.type!=="boss")$("dmsg").textContent+=` Your surviving units recover ${Math.round(CAMP_HEAL*100)}% of their health.`;
   if(newU)$("dmsg").textContent+=` New terrain unlocked: ${TERRAIN.barrels.name}! They can now appear next to fortresses.`;
   $("dagain").textContent=endMode==="quick"?"Play Again":endMode==="cwin"?"Continue":"Retry Battle";
   $("dmenu").textContent=endMode==="close"?"Return to Map":"Back to Main Menu";
@@ -1150,8 +1208,8 @@ function renderWorld(){
       :n.type==="camp"?`<path d="M${n.x-10} ${n.y+8}L${n.x} ${n.y-10}L${n.x+10} ${n.y+8}zM${n.x} ${n.y-10}V${n.y+8}" fill="#f2e6c0" stroke="#3b2a14" stroke-width="2" stroke-linejoin="round"/>`
       :n.b==="wetlands"?`<path d="M${n.x-9} ${n.y-3}q4.5-5 9 0t9 0M${n.x-9} ${n.y+5}q4.5-5 9 0t9 0" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>`
       :n.b==="forest"?nest(FOREST_V[0],n.x-S/2,n.y-S/2,S)
-      :n.b==="fort"?nest(FORT_V[0],n.x-S/2,n.y-S/2,S)
-      :n.b==="boss"?nest(FORT_V[1],n.x-S/2,n.y-S/2,S)
+      :n.b==="fort"?nest(FORT_ICON[0],n.x-S/2,n.y-S/2,S)
+      :n.b==="boss"?nest(FORT_ICON[1],n.x-S/2,n.y-S/2,S)
       :n.b==="wild"?nest(ICON.W,n.x-S/2,n.y-S/2,S,"--ic:#fff;--tc:#6b4a26")
       :`<path d="M${n.x-8} ${n.y-8}L${n.x+8} ${n.y+8}M${n.x+8} ${n.y-8}L${n.x-8} ${n.y+8}" stroke="#3b2a14" stroke-width="3" stroke-linecap="round"/>`;
     s+=`<g class="wn" data-id="${n.id}" role="button" tabindex="0" aria-label="${n.name}, ${n.id===camp.pos?"you are here":lab(n)}">`
@@ -1314,7 +1372,7 @@ function hBoard(cols,rows,map,us,cs=44){
     if(c==="s")s+=`<rect x="${px}" y="${py}" width="${cs}" height="${cs}" fill="#86c4dc"/>`+nest(SH_V[0],px,py,cs);
     if(c==="d")s+=`<rect x="${px}" y="${py}" width="${cs}" height="${cs}" fill="#2f6f9c"/>`+nest(DP_V[0],px,py,cs);
     if(c==="f")s+=`<rect x="${px}" y="${py}" width="${cs}" height="${cs}" fill="rgba(60,140,80,.25)"/>`+nest(FOREST_V[0],px,py,cs);
-    if(c==="F")s+=`<rect x="${px}" y="${py}" width="${cs}" height="${cs}" fill="#8d98a2"/>`+nest(FORT_V[0],px,py,cs);
+    if(c==="F")s+=`<rect x="${px}" y="${py}" width="${cs}" height="${cs}" fill="#8d98a2"/>`+nest(fortArt(0,0,true),px,py,cs);
     s+=`<rect x="${px}" y="${py}" width="${cs}" height="${cs}" fill="none" stroke="rgba(0,0,0,.12)"/>`;
   }
   (us||[]).forEach(([t,team,x,y])=>{s+=hDisc(t,HCOL[team],x*cs+cs/2,y*cs+cs/2,cs*.4)});
@@ -1347,10 +1405,10 @@ const HOWTO=[
       s+=k==="camp"?`<path d="M${x-8} ${y+6}L${x} ${y-8}L${x+8} ${y+6}z" fill="#f2e6c0" stroke="#3b2a14" stroke-width="2" stroke-linejoin="round"/>`
         :k==="h"?`<path d="M${x-3} ${y-9}h6v6h6v6h-6v6h-6v-6h-6v-6h6z" fill="#fff" stroke="#2f8f4e" stroke-width="2" stroke-linejoin="round"/>`
         :k==="w"?`<path d="M${x-9} ${y-3}q4.5-5 9 0t9 0M${x-9} ${y+5}q4.5-5 9 0t9 0" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>`
-        :k==="boss"?nest(FORT_V[1],x-14,y-14,28)
+        :k==="boss"?nest(FORT_ICON[1],x-14,y-14,28)
         :`<path d="M${x-6} ${y-6}L${x+6} ${y+6}M${x+6} ${y-6}L${x-6} ${y+6}" stroke="#3b2a14" stroke-width="3" stroke-linecap="round"/>`});
     return s+"</svg>"},
-  body:()=>"<p>Travel along the paths on the world map. Each new location starts a battle, and winning clears it. Every campaign uses a new random map. Defeat the boss at the top to finish.</p><p>You choose your extra units, modifier, and color once. Your units keep their health between battles, and a unit that falls returns with 1 HP after a win.</p><p>Teal wave spaces are wetlands: battles fought across lakes, ponds and rivers. One or two appear on each map.</p><p>One or two healing spaces (green crosses) also appear on each map. Visiting one restores your whole army to full health, once.</p>"},
+  body:()=>`<p>Travel along the paths on the world map. Each new location starts a battle, and winning clears it. Every campaign uses a new random map. Defeat the boss at the top to finish.</p><p>You choose your extra units, modifier, and color once. Your units keep their health between battles. After each win, surviving units recover ${Math.round(CAMP_HEAL*100)}% of their max health, and a unit that falls returns with 1 HP.</p><p>Teal wave spaces are wetlands: battles fought across lakes, ponds and rivers. One or two appear on each map.</p><p>One or two healing spaces (green crosses) also appear on each map. Visiting one restores your whole army to full health, once.</p>`},
  {id:"scout",title:"Scouting",art:()=>{const m=[];for(let y=0;y<7;y++){let r="";for(let x=0;x<7;x++){const d=Math.abs(x-3)+Math.abs(y-3);r+=d===0?".":d<=2?"g":d===3?"p":"."}m.push(r)}return hBoard(7,7,m,[["K","f",3,3]],38)},
   body:()=>"<p>Tap any unit to see its details, including its health. Tap an enemy to see where it can move (gray) and hit (red). Tap it again to hide.</p>"}
 ];
