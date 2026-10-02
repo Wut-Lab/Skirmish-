@@ -11,7 +11,8 @@
 main{max-width:520px;margin:0 auto;padding:14px}
 h1{font-size:1.4rem;margin:0 0 4px}
 [hidden]{display:none!important}
-#status{min-height:2.6em;margin:0 0 6px;font-size:.95rem}
+#biome{margin:0 0 8px;text-align:center;font-weight:800;font-size:1.25rem;letter-spacing:.02em}
+.sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0} /* status messages: read by screen readers, not shown */
 #mods{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 8px;min-height:2.6em}
 .chip{display:flex;flex-direction:column;border-radius:8px;padding:5px 12px;font-size:.9rem;font-weight:700;line-height:1.25;box-shadow:0 0 0 1.5px rgba(255,255,255,.55),0 1px 3px rgba(0,0,0,.4)}
 .chip small{font-size:.7rem;font-weight:400;opacity:.92}
@@ -313,7 +314,8 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 <button class="b go" id="go" disabled aria-describedby="need">Start Battle</button>
 </section>
 <section id="game" hidden>
-<p id="status"></p>
+<h2 id="biome"></h2>
+<p id="status" class="sr" aria-live="polite"></p>
 <div id="mods"></div>
 <div id="bw"><div id="board" role="grid" aria-label="Battle board"></div><div id="fx"></div></div>
 <div class="turnrow"><div id="turn"></div><button class="b pri" id="end">End Turn</button></div>
@@ -1306,6 +1308,9 @@ function genWorld(){
   WORLD=nodes;EDGES=[...es].map(e=>e.split("-").map(Number));
   DECO={trees:scatter(12),rocks:scatter(5),river:`M-10 ${ry()} C 70 ${ry()} 120 ${ry()} 220 ${ry()} S 340 ${ry()} 420 ${ry()}`};
 }
+const BIOME_NAME={forest:"Forest",plain:"Plains",fort:"Stronghold",wild:"Wilds",wetlands:"Wetlands",swamp:"Murky Swamp",boss:"Enemy Stronghold"};
+// a Quick Battle map has no biome of its own, so name it from what was generated
+const guessBiome=()=>SWAMP.size>=10?"swamp":DEEP.size+SHALLOW.size>=20?"wetlands":FORT.size?"fort":units.some(u=>u.team==="w")?"wild":FOREST.size>=16?"forest":"plain";
 const BIOME={forest:{forest:9},plain:{forest:2},fort:{fort:1},wild:{wild:1},boss:{fort:1,boss:1},wetlands:{water:1,forest:3,swamp:1},swamp:{swamp:3,pond:1,forest:6}};
 const adj=(a,b)=>EDGES.some(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a));
 const SAVE="skirmish-campaign";
@@ -1490,6 +1495,7 @@ function start(o={}){
     }
   }
   const loc=camp.battle?WORLD[camp.battle.node].name+(o.boss?" (boss battle). ":". "):"";
+  $("biome").textContent=BIOME_NAME[camp.battle?WORLD[camp.battle.node].b:guessBiome()];
   show("game");say(loc+"Your turn. Select one of your units."+(wild?" A wild "+NAME[wild.t]+" roams the map.":""));render();
 }
 $("hero").innerHTML=[["K","blue"],["C","green"],["R","yellow"],["A","red"]].map(([t,c])=>`<div class="pv">${disc(t,COLORS[c])}</div>`).join("");
