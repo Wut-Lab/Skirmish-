@@ -166,6 +166,16 @@ button.b.sm2{padding:8px 12px;font-size:.85rem}
 .turnrow button.pri{padding:0 24px}
 .pb .row{display:flex;gap:12px;align-items:center}
 .foot{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+#tomenu{flex:1}
+/* highlights on fortress tiles: same colours as other tiles, laid over the art so the castle shows through */
+.t.fr>.tint{position:absolute;inset:0;pointer-events:none;opacity:.6}
+.t.fr.pr>.tint{background:color-mix(in srgb,var(--atk) 42%,var(--tile))}
+.t.fr.m>.tint{background:var(--move)}
+.t.fr.ig>.tint{background:#8d98a2}
+.t.fr.ir>.tint,.t.fr.a>.tint{background:var(--atk)}
+.t.fr.hl>.tint{background:color-mix(in srgb,#4cc38a 55%,var(--tile));box-shadow:inset 0 0 0 4px #2f9e6a;opacity:.75}
+.t.fr.m.pr>.tint{box-shadow:inset 0 0 0 4px rgba(226,118,95,.85)}
+.t.fr.ig.ir>.tint{background:#8d98a2;box-shadow:inset 0 0 0 4px var(--atk)}
 #turn{flex:1;display:flex;align-items:center;min-height:48px;padding:8px 14px;box-sizing:border-box;font-size:1.05rem;font-weight:700;border-radius:8px;background:var(--panel);border:2px solid var(--ink);border-left:8px solid var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.15);border-left-width:2px;text-shadow:none}
 #info,#tinfo,#info.empty,#tinfo.empty{display:block;opacity:1;min-height:74px;margin-top:6px;padding:6px 10px 8px}
 .lbl{letter-spacing:.09em;text-transform:uppercase;opacity:.65;font-weight:700;font-size:.62rem;margin-bottom:3px}
@@ -308,7 +318,7 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 <div id="tinfo" class="pb empty"></div>
 <div id="info" class="pb empty"></div>
 <div class="bar" id="acts"></div>
-<div class="foot"><button class="b sm2" id="reset">New Game</button><button class="b sm2" id="tomenu">Menu</button></div>
+<div class="foot"><button class="b big" id="tomenu">Menu</button></div>
 <div class="ov" id="tguide" hidden>
 <div class="panel" role="dialog" aria-label="Terrain guide">
 <h2>Terrain Guide</h2>
@@ -347,17 +357,20 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 </main>
 <script>
 const DIRS=[[1,0],[-1,0],[0,1],[0,-1]],pk=k=>k.split(",").map(Number); // the four neighbour steps; "x,y" tile key -> [x,y]
-const W=10,H=12,TYPES={K:{hp:12,mv:3,rg:1,mn:1,dmg:5},A:{hp:8,mv:3,rg:3,mn:1,dmg:4},R:{hp:10,mv:2,rg:4,mn:2,dmg:4},W:{hp:8,mv:2,rg:1,mn:1,dmg:4},B:{hp:16,mv:1,rg:1,mn:1,dmg:6},H:{hp:5,mv:3,rg:2,mn:1,dmg:3},C:{hp:9,mv:5,rg:1,mn:1,dmg:4},P:{hp:7,mv:3,rg:2,mn:1,dmg:1,heal:3},E:{hp:6,mv:3,rg:3,mn:1,dmg:2,slow:1},T:{hp:9,mv:3,rg:1,mn:1,dmg:3},N:{hp:8,mv:3,rg:1,mn:1,dmg:2},M:{hp:4,mv:2,rg:1,mn:1,dmg:2}};
+const W=10,H=12,
+// hp, mv move, rg/mn range, dmg damage; ar armor, pi pierce, ev evasion (dodge chance), ret strikes back at attackers within its own range
+TYPES={K:{hp:12,mv:3,rg:1,mn:1,dmg:5,ar:2,ret:1},A:{hp:8,mv:3,rg:3,mn:1,dmg:4,pi:1,ev:.1,ret:1},R:{hp:10,mv:2,rg:4,mn:2,dmg:4,pi:2},W:{hp:8,mv:2,rg:1,mn:1,dmg:4,ev:.15,ret:1},B:{hp:16,mv:1,rg:1,mn:1,dmg:6,ar:1,ret:1},H:{hp:5,mv:3,rg:2,mn:1,dmg:3,ev:.25},C:{hp:9,mv:5,rg:1,mn:1,dmg:4,ar:1,ev:.1,ret:1},P:{hp:7,mv:3,rg:2,mn:1,dmg:1,heal:3,ev:.1},E:{hp:6,mv:3,rg:3,mn:1,dmg:2,slow:1,ev:.15},T:{hp:9,mv:3,rg:1,mn:1,dmg:3,ar:1,ret:1},N:{hp:8,mv:3,rg:1,mn:1,dmg:2,ev:.05},M:{hp:4,mv:2,rg:1,mn:1,dmg:2}};
 const LIMIT1="PETN"; // one of each per army
 const UNIT_UNLOCK={T:"captain",N:"banner"}; // unlockable units and the unlock each needs
 const poolNow=()=>"KARCPE"+Object.keys(UNIT_UNLOCK).filter(t=>unlocks[UNIT_UNLOCK[t]]).join(""); // units an army may pick right now
+const FOREST_EV=.1,FT_FOREST_EV=.05,EV_CAP=.5,RET_SHARE=.5; // forest dodge bonus (less against Forest Tactics), dodge cap, strike-back share of damage
 const MUSTER_USES=2,MUSTER_ALIVE=2,BANNER_RANGE=2; // Captain: musters per battle, militia alive at once; Banner Bearer: aura reach
 const NAME={K:"knight",A:"archer",R:"artillery",W:"wolf",B:"bear",H:"hawk",C:"cavalry",P:"apothecary",E:"enchanter",T:"captain",N:"banner bearer",M:"militia"};
 const MODS={
  TP:{name:"Teleport",desc:"Once per battle, one unit may teleport to any open tile on the far edge (replaces its move)."},
  PUSH:{name:"Push",desc:"Knights may push any unit except artillery and cavalry 2 tiles instead of attacking."},
- FT:{name:"Forest Tactics",desc:"Your units take 1 less damage from ranged attacks while standing in a forest. Your attacks into a forest miss 2% of the time instead of 3%."},
- PAD:{name:"Padded Armor",desc:"Archers take 1 less damage but have 1 less movement."},
+ FT:{name:"Forest Tactics",desc:"Your units in a forest get +1 armor against ranged attacks. Enemies in a forest only get +5% evasion against your attacks, instead of +10%."},
+ PAD:{name:"Padded Armor",desc:"Archers get +1 armor but have 1 less movement."},
  REST:{name:"Field Rest",desc:"At the end of your turn, each of your units that neither moved nor attacked that turn recovers 2 HP."}};
 let WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set();
 const UKEY="skirmish_unlocks_v1",unlocks=(()=>{try{return JSON.parse(localStorage.getItem(UKEY)||"{}")||{}}catch(e){return{}}})();
@@ -580,13 +593,13 @@ function joins(x,y){
 // "unlock" names the unlock a terrain needs before it is shown anywhere but the Unlocks menu.
 const TERRAIN={
  ground:{name:"Open Ground",bg:"",art:()=>[0,1,2,3].map(v=>ground(3,4,v)),desc:"No special effect."},
- forest:{name:"Forest",bg:TF,art:()=>FOREST_V,desc:"Leaving a forest costs 1 movement. Attacks into a forest have a 3% chance to miss."},
+ forest:{name:"Forest",bg:TF,art:()=>FOREST_V,desc:"Leaving a forest costs 1 movement. A unit in a forest gets +10% evasion."},
  shallow:{name:"Shallow Water",bg:"background:#86c4dc",art:()=>SH_V,desc:"Entering it costs 1 extra movement. Often found around deep water, and sometimes as a ford across a river."},
  deep:{name:"Deep Water",bg:"background:#2f6f9c",art:()=>DP_V,desc:"Impassable. Units can't enter or cross it, but attacks can pass over it. Forms lakes, ponds and rivers."},
  barrels:{name:"Barrels",bg:"",art:()=>BAR_V,unlock:"barrels",desc:"Impassable. A unit in range can spend its action to break them. Found next to fortresses."},
  xbarrel:{name:"Exploding Barrel",bg:"",art:()=>[XBAR_V],unlock:"xbarrels",desc:`Impassable. Breaking it deals ${XB_DMG} damage to every unit on the 8 tiles around it and sets off barrels in the blast. Each barrel has a 25% chance to be one.`},
  wall:{name:"Wall",bg:"background:var(--wall)",art:()=>[0,1,2,3].map(v=>wallArt(v,0)),desc:"Impassable. Units can't enter or cross it, but attacks can pass over it."},
- fort:{name:"Fortress",bg:FR,art:()=>[fortArt(0,0,true),fortArt(0,1,true)],desc:"Uncommon. A unit standing on one takes 1 less damage from all attacks, and leaving costs 1 movement."}};
+ fort:{name:"Fortress",bg:FR,art:()=>[fortArt(0,0,true),fortArt(0,1,true)],desc:"Uncommon. A unit standing on one gets +1 armor, and leaving costs 1 movement."}};
 const terrainKey=k=>BARRELS.has(k)?(XBAR.has(k)?"xbarrel":"barrels"):WALLS.has(k)?"wall":DEEP.has(k)?"deep":SHALLOW.has(k)?"shallow":FOREST.has(k)?"forest":FORT.has(k)?"fort":"ground";
 function tileArt(x,y){ // the art for one board tile, picking a stable variant per tile
   const k=x+","+y;
@@ -599,7 +612,8 @@ function tileArt(x,y){ // the art for one board tile, picking a stable variant p
 const terrainSwatch=(key,art)=>`<div class="tsw" style="${TERRAIN[key].bg}">${art===undefined?TERRAIN[key].art()[0]:art}</div>`;
 // One source for unit descriptions: unit setup, How to Play and the in-game Unit panel.
 const rangeTxt=T=>(T.mn>1?T.mn+"-":"")+T.rg;
-const unitStats=t=>{const T=TYPES[t];return `HP ${T.hp}, move ${T.mv}, range ${rangeTxt(T)}, damage ${T.dmg}`};
+const pct=v=>Math.round(v*100)+"%";
+const unitStats=t=>{const T=TYPES[t];return `HP ${T.hp}, move ${T.mv}, range ${rangeTxt(T)}, damage ${T.dmg}`+(T.ar?`, armor ${T.ar}`:"")+(T.pi?`, pierce ${T.pi}`:"")+(T.ev?`, evasion ${pct(T.ev)}`:"")+(T.ret?", strikes back":"")};
 const ABILITY={P:`Heals an ally in range for up to ${TYPES.P.heal} HP instead of attacking.`,E:"Can slow an enemy in range instead of attacking: its movement drops to 1 on its next turn.",
  T:`Instead of attacking, can muster 1-2 militia onto open tiles beside it. Twice per battle, with at most ${MUSTER_ALIVE} of its militia at a time.`,
  N:`Allies within ${BANNER_RANGE} tiles deal +1 damage.`,M:"Mustered by a Captain. Weak, but useful for blocking and finishing off foes."};
@@ -616,15 +630,23 @@ const mvOf=u=>{const m=TYPES[u.t].mv-(u.t==="A"&&mods[u.team]==="PAD"?1:0);retur
 const inspired=(u,at=u)=>units.some(b=>b.t==="N"&&b.team===u.team&&b!==u&&d(b,at)<=BANNER_RANGE); // within a Banner Bearer's aura (at: where u would stand)
 /* ---------- Combat: the one place an attack's damage and hit chance are worked out ----------
    Every modifier is a labelled line in `parts`, so the attack menu, the game and the AI always agree.
-   A new stat or effect = one more add(...) line here. `from` = where the attacker would stand (default: where it is). */
+   A new stat or effect = one more add(...) line here. `from` = where the attacker would stand (default: where it is).
+   Armor = the target's own plus terrain and modifiers; the attacker's pierce cancels up to that much of it. */
 function combat(a,b,from=a){
-  const k=b.x+","+b.y,parts=[["Base",TYPES[a.t].dmg]],add=(label,v)=>{if(v)parts.push([label,v])};
+  const k=b.x+","+b.y,A=TYPES[a.t],B=TYPES[b.t],parts=[["Base",A.dmg]],add=(label,v)=>{if(v)parts.push([label,v])};
   add("Banner",inspired(a,from)?1:0);
-  add("Padded Armor",b.t==="A"&&mods[b.team]==="PAD"?-1:0);
-  add("Forest Tactics",mods[b.team]==="FT"&&TYPES[a.t].rg>1&&FOREST.has(k)?-1:0);
-  add("Fortress",FORT.has(k)?-1:0);
-  const hit=FOREST.has(k)?(mods[a.team]==="FT"?.98:.97):1; // attacks into a forest can miss; Forest Tactics misses less
-  return {dmg:Math.max(1,parts.reduce((t,p)=>t+p[1],0)),hit,parts}; // every hit deals at least 1
+  const armor=[["Armor",B.ar||0],["Padded Armor",b.t==="A"&&mods[b.team]==="PAD"?1:0],["Forest Tactics",mods[b.team]==="FT"&&A.rg>1&&FOREST.has(k)?1:0],["Fortress",FORT.has(k)?1:0]];
+  armor.forEach(([l,v])=>add(l,-v));
+  add("Pierce",Math.min(A.pi||0,armor.reduce((t,x)=>t+x[1],0)));
+  const ev=Math.min(EV_CAP,(B.ev||0)+(FOREST.has(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0));
+  return {dmg:Math.max(1,parts.reduce((t,p)=>t+p[1],0)),hit:1-ev,parts}; // every hit deals at least 1
+}
+// a unit with `ret` strikes back at an attacker within its own range for half damage (the attacker may evade it); null when it can't
+function retaliation(att,def,from=att){
+  const T=TYPES[def.t],dd=d(def,from);
+  if(!T.ret||dd<T.mn||dd>T.rg)return null; // e.g. Artillery firing from 4 tiles outranges an Archer
+  const c=combat(def,{...att,x:from.x,y:from.y});
+  return {dmg:Math.max(1,Math.floor(c.dmg*RET_SHARE)),hit:c.hit};
 }
 const dmgTo=(a,b,from)=>combat(a,b,from).dmg;
 // "4 base +1 Banner −1 Fortress" for the attack menu; empty when nothing modifies the base
@@ -713,7 +735,7 @@ function render(){
     const k=x+","+y,w=WALLS.has(k),dp=DEEP.has(k),sh=SHALLOW.has(k),f=FOREST.has(k),fr=FORT.has(k),bar=BARRELS.has(k),b=document.createElement("button"),u=at(x,y);
     b.className="t"+(bar?" brl":"")+(w?" w"+(wallMask(x,y)&1?" jn":"")+(wallMask(x,y)&4?" js":""):"")+(dp?" dp":"")+(sh?" sh":"")+(f?" fo":"")+(fr?" fr":"")+(tile&&tile.x===x&&tile.y===y?" ts":"")+(ig.has(k)?" ig":"")+(ir.has(k)?" ir":"")+(pr.has(k)?" pr":"")+(mv.has(k)?" m":"")+((u&&tg.has(u))||bt.has(k)?" a":"")+(u&&tg.has(u)&&mods.y==="PUSH"&&sel&&pushable(sel,u)?" pp":"")+(u&&hs.has(u)?" hl":"")+(u&&u===choice?" ch":"")+(pd&&pd.k===k?" pd":"")+(cm&&cm.x===x&&cm.y===y?" mt":"")+(bl.has(k)?" bl":"");
     if(pd&&pd.k===k)b.dataset.arrow=pd.a;
-    b.innerHTML=tileArt(x,y)+joins(x,y);
+    b.innerHTML=tileArt(x,y)+(fr?'<i class="tint"></i>':"")+joins(x,y); // fortress art covers its tile, so highlights go on a see-through layer above it
     b.setAttribute("aria-label",u?(u.team==="y"?"Your ":u.team==="w"?"Wild ":"Enemy ")+NAME[u.t]+", "+u.hp+" health"+(u.slow?", slowed":""):(mv.has(k)?"Move here, ":"")+TERRAIN[terrainKey(k)].name);
     if(u){
       const e=document.createElement("div");
@@ -752,8 +774,8 @@ function renderTile(){
   const el=$("tinfo");
   if(!tile){el.className="pb empty";el.innerHTML='<div class="lbl">Terrain</div><div class="ph">Tap a tile to see its terrain.</div>';return}
   const{x,y}=tile,k=x+","+y,f=FOREST.has(k),u=at(x,y),key=terrainKey(k),T=TERRAIN[key],lines=[T.desc];
-  if(f&&mods.y==="FT")lines.push("Forest Tactics: your units here take 1 less ranged damage, and your attacks into forests miss 2% of the time.");
-  if(f&&mods.f==="FT")lines.push("The enemy has Forest Tactics: its units here take 1 less ranged damage.");
+  if(f&&mods.y==="FT")lines.push(`Forest Tactics: your units here get +1 armor against ranged attacks, and enemies here only get +${pct(FT_FOREST_EV)} evasion against you.`);
+  if(f&&mods.f==="FT")lines.push("The enemy has Forest Tactics: its units here get +1 armor against ranged attacks.");
   if(u)lines.push("Occupied by "+(u.team==="y"?"your ":u.team==="f"?"an enemy ":"a wild ")+NAME[u.t]+".");
   el.className="pb";
   el.innerHTML=`<div class="lbl">Terrain</div><div class="row">${terrainSwatch(key,tileArt(x,y))}<div class="ib"><div class="nm"><strong>${T.name}</strong><span>Tile ${String.fromCharCode(65+x)}${y+1}</span></div>${lines.map(l=>`<small>${l}</small>`).join("")}</div></div>`;
@@ -768,12 +790,13 @@ function renderInfo(){
   if(u.t==="T")notes.push(`Musters left this battle: ${MUSTER_USES-(u.musters||0)}.`);
   if(inspired(u))notes.push("Inspired by a nearby Banner Bearer: deals +1 damage.");
   if(u.slow)notes.push("Slowed: movement reduced to 1 until the end of its next turn.");
-  if(fo)notes.push("In a forest: leaving costs 1 movement.");
-  if(FORT.has(u.x+","+u.y))notes.push("On a fortress: takes 1 less damage, and leaving costs 1 movement.");
-  if(u.t==="A"&&mods[u.team]==="PAD")notes.push("Padded Armor: takes 1 less damage.");
-  if(mods[u.team]==="FT"&&fo)notes.push("Forest Tactics: takes 1 less ranged damage here.");
+  if(T.ret)notes.push(`Strikes back at an attacker within its range for ${pct(RET_SHARE)} damage.`);
+  if(fo)notes.push(`In a forest: +${pct(FOREST_EV)} evasion, and leaving costs 1 movement.`);
+  if(FORT.has(u.x+","+u.y))notes.push("On a fortress: +1 armor, and leaving costs 1 movement.");
+  if(u.t==="A"&&mods[u.team]==="PAD")notes.push("Padded Armor: +1 armor.");
+  if(mods[u.team]==="FT"&&fo)notes.push("Forest Tactics: +1 armor against ranged attacks here.");
   if(u.team==="y"&&u.acted)notes.push("Finished for this turn.");else if(u.team==="y"&&u.moved)notes.push("Has moved this turn.");
-  const stats=[["Move",mvOf(u)],["Range",rangeTxt(T)],["Damage",T.dmg+(inspired(u)?"+1":"")],...(T.heal?[["Heal",T.heal]]:[])].map(([k,v])=>`<span class="stat">${k} <b>${v}</b></span>`).join("");
+  const stats=[["Move",mvOf(u)],["Range",rangeTxt(T)],["Damage",T.dmg+(inspired(u)?"+1":"")],...(T.heal?[["Heal",T.heal]]:[]),...(T.ar?[["Armor",T.ar]]:[]),...(T.pi?[["Pierce",T.pi]]:[]),...(T.ev?[["Evasion",pct(T.ev)]]:[])].map(([k,v])=>`<span class="stat">${k} <b>${v}</b></span>`).join("");
   el.className="pb";el.style.borderLeft=`8px solid ${c[1]}`;
   el.innerHTML=`<div class="lbl">Unit</div><div class="row"><div class="pv">${disc(u.t,c)}</div><div class="ib"><div class="nm"><strong>${cap(NAME[u.t])}</strong><span>${u.team==="y"?"Your unit":u.team==="w"?"Wild":"Enemy"}</span></div><div class="hprow"><span>HP</span><b>${u.hp} / ${T.hp}</b></div><div class="hpb"><i style="width:${100*r}%;background:${r>.5?"#4caf50":r>.25?"#e0b21c":"#d64b3a"}"></i></div><div class="stats">${stats}</div>${notes.map(n=>`<small>${n}</small>`).join("")}</div></div>`;
 }
@@ -801,7 +824,8 @@ function buildMenu(){
   const m=document.createElement("div");m.className="pmenu";
   const opt=(html,fn,off)=>{const b=document.createElement("button");b.innerHTML=html;b.onclick=fn;b.disabled=!!off;m.append(b)};
   const cm=pendingMove(),go=fn=>()=>{const a=sel;choice=null;if(cm)moveThen(a,cm,()=>fn(a));else fn(a)};
-  if(t.team!=="y"){const c=combat(sel,t,cm||sel),note=combatNote(c);opt(`<b>${cm?"Move &amp; Attack":"Attack"}</b><small>${c.dmg} damage${c.hit<1?` \u00b7 ${Math.round(c.hit*100)}% to hit`:""}</small>${note?`<small class="bd">${note}</small>`:""}`,go(a=>doAttack(a,t)))}
+  if(t.team!=="y"){const c=combat(sel,t,cm||sel),note=combatNote(c),r=c.dmg<t.hp?retaliation(sel,t,cm||sel):null;
+    opt(`<b>${cm?"Move &amp; Attack":"Attack"}</b><small>${c.dmg} damage${c.hit<1?` \u00b7 ${pct(c.hit)} to hit`:""}</small>${note?`<small class="bd">${note}</small>`:""}${r?`<small class="bd">Strikes back for ${r.dmg}${r.hit<1?` (${pct(r.hit)})`:""}</small>`:""}`,go(a=>doAttack(a,t)))}
   if(!cm&&mods.y==="PUSH"&&sel.t==="K"&&t!==sel&&d(sel,t)===1){
     const ok=pushable(sel,t);
     opt(`<b>${!ok?"Can't Push":n?`Push ${n} Tile${n>1?"s":""}`:"Push (Blocked)"}</b><small>${!ok?"Too heavy":t.team==="y"?"Reposition ally":"Instead of attacking"}</small>`,()=>{choice=null;doPush(sel,t)},!ok||!n);
@@ -965,16 +989,24 @@ function doPush(a,u){
   u.x=nx;u.y=ny;a.acted=a.moved=1;sel=null;mode=null;choice=null;lastMove=null;
   say(n?"Pushed the "+NAME[u.t]+" "+n+" tile"+(n>1?"s":"")+".":"Blocked. The unit didn't move.");render();
 }
-function applyAttack(a,b){
-  const c=combat(a,b);
-  if(Math.random()<1-c.hit){
-    say(a.team==="y"?"Your attack missed in the forest.":a.team==="f"?"The enemy's attack missed in the forest.":"The wild animal's attack missed in the forest.");floatText(b.x,b.y,"Miss",true);return;
-  }
-  const n=c.dmg;b.hp-=n;floatText(b.x,b.y,"-"+n);
-  if(b.hp<=0){units=units.filter(u=>u!==b);say((a.team==="y"?"You destroyed":a.team==="f"?"Enemy destroyed":"A wild "+NAME[a.t]+" destroyed")+" a "+NAME[b.t]+".")}
-  else say(a.team==="w"?"A wild "+NAME[a.t]+" hit a "+NAME[b.t]+" for "+n+" damage.":(a.team==="y"?"Hit for ":"Took ")+n+" damage.");
+const sent=w=>w[0].toUpperCase()+w.slice(1); // sentence case for status lines
+const who=u=>(u.team==="y"?"your ":u.team==="f"?"the enemy ":"the wild ")+NAME[u.t];
+function hitFor(a,b,c,back){ // resolve one blow from a to b: dodge roll, damage, removal
+  if(Math.random()<1-c.hit){floatText(b.x,b.y,"Evade",true);say(sent(who(b))+" evaded "+(back?"the strike back.":"the attack."));return}
+  b.hp-=c.dmg;floatText(b.x,b.y,"-"+c.dmg);
+  if(b.hp<=0){units=units.filter(u=>u!==b);say(sent(who(a))+(back?" struck back and destroyed ":" destroyed ")+who(b)+".")}
+  else say(sent(who(a))+(back?" struck back at ":" hit ")+who(b)+" for "+c.dmg+" damage.");
 }
-function attack(a,b,done){animAttack(a,b,()=>{applyAttack(a,b);if(done)done()})}
+function applyAttack(a,b){hitFor(a,b,combat(a,b))}
+function attack(a,b,done){
+  const g=gid,fin=()=>{if(done)done()};
+  animAttack(a,b,()=>{
+    applyAttack(a,b);
+    const r=units.includes(a)&&units.includes(b)?retaliation(a,b):null;
+    if(!r)return fin();
+    later(()=>{if(g!==gid)return;if(!units.includes(a)||!units.includes(b))return fin();animAttack(b,a,()=>{hitFor(b,a,r,true);fin()})},300);
+  });
+}
 function burst(rb,bw){
   const s=document.createElement("div");s.className="burst";
   s.style.left=(rb.left-bw.left+rb.width/2)+"px";s.style.top=(rb.top-bw.top+rb.height/2)+"px";$("fx").append(s);
@@ -1033,7 +1065,7 @@ function checkEnd(){
   const y=units.some(u=>u.team==="y"),f=units.some(u=>u.team==="f");
   if(y&&f)return false;
   over=true;render();
-  say(y?(camp.battle?"Victory!":"Victory! All enemy units are down. Press New Game to play again."):"Defeat. Your force was wiped out. Press New Game to try again.");
+  say(y?(camp.battle?"Victory!":"Victory! All enemy units are down."):"Defeat. Your force was wiped out.");
   showEnd(y);
   return true;
 }
@@ -1068,7 +1100,8 @@ function evalTile(u,x,y,D,foes,xv){
   const care=.5+(1-u.hp/T.hp)*.9; // wounded units value safety more
   let s=(threat+wt)*care+(FOREST.has(k)?(mods[u.team]==="FT"?-1.5:1.5):0)+(FORT.has(k)?-2:0)+(SHALLOW.has(k)?1.5:0); // forests slow the next move, but Forest Tactics likes them
   s+=blastOf(k).filter(([a,b])=>XBAR.has(a+","+b)).length*2; // don't loiter beside exploding barrels
-  const atk=inR.length?20+Math.max(...inR.map(p=>{const dm=dmgTo(u,p,g);return 10*dm/p.hp+(dm>=p.hp?12:0)+(VAL[p.t]||0)})):0;
+  const atk=inR.length?20+Math.max(...inR.map(p=>{const c=combat(u,p,g),kill=c.dmg>=p.hp,r=kill?null:retaliation(u,p,g); // a kill avoids any strike back
+    return c.hit*(10*c.dmg/p.hp+(kill?12:0))+(VAL[p.t]||0)-(r?r.hit*(r.dmg*2.5+(r.dmg>=u.hp?15:0))*care:0)})):0;
   const bv=(xv||[]).reduce((m,[bk,v])=>{const[a,b]=pk(bk),dd=Math.abs(a-x)+Math.abs(b-y);return dd>=T.mn&&dd<=rg&&!(Math.abs(a-x)<=1&&Math.abs(b-y)<=1)?Math.max(m,14+v):m},0);
   if(atk||bv){
     s-=Math.max(atk,bv);
@@ -1104,8 +1137,8 @@ function enemyTurn(note=""){
   function act(u){
     if(g!==gid)return;
     const fin=()=>{u.acted=1;if(!checkEnd())render();later(step,500)};
-    const pri=p=>(dmgTo(u,p)>=p.hp?100:0)+(VAL[p.t]||0)-p.hp*.5; // finish kills first, then soft, valuable targets
-    const ts=targets(u).sort((a,b)=>pri(b)-pri(a));
+    const pri=p=>{const c=combat(u,p),kill=c.dmg>=p.hp,r=kill?null:retaliation(u,p);return (kill?100*c.hit:0)+(VAL[p.t]||0)-p.hp*.5-(r?r.hit*r.dmg*2:0)}; // likely kills first, then soft, valuable targets that won't hit back hard
+    const ts=targets(u).filter(p=>{const r=dmgTo(u,p)<p.hp&&retaliation(u,p);return !(r&&r.dmg>=u.hp&&r.hit>.5)}).sort((a,b)=>pri(b)-pri(a)); // never trade itself for nothing
     const hs=healTargets(u).sort((a,b)=>a.hp/TYPES[a.t].hp-b.hp/TYPES[b.t].hp);
     if(hs.length&&(hs[0].hp<=TYPES[hs[0].t].hp-2||!ts.length)){u.acted=1;applyHeal(u,hs[0]);say("Enemy "+NAME[u.t]+" healed an ally.");render();return later(step,600)}
     if(canMuster(u)&&!ts.some(p=>dmgTo(u,p)>=p.hp)){const n=muster(u);say(`Enemy captain mustered ${n} militia.`);render();return later(step,600)} // muster unless a kill is on offer
@@ -1405,7 +1438,6 @@ function start(o={}){
       if(!solid(x+","+y)&&!at(x,y)){wild={t,team:"w",x,y,hp:TYPES[t].hp,moved:0,acted:0};units.push(wild)}
     }
   }
-  $("reset").hidden=!!camp.battle;
   const loc=camp.battle?WORLD[camp.battle.node].name+(o.boss?" (boss battle). ":". "):"";
   show("game");say(loc+"Your turn. Select one of your units."+(wild?" A wild "+NAME[wild.t]+" roams the map.":""));render();
 }
@@ -1445,6 +1477,8 @@ const HOWTO=[
   body:()=>`<p>Each side fields five units: one knight, one archer, one cavalry unit, and two more. You choose your two extras, and the enemy's are random. Each army can include only ${listAnd(poolNow().split("").filter(t=>LIMIT1.includes(t)).map(t=>"one "+cap(NAME[t])))}.</p>`},
  {id:"units",title:"Units",art:()=>"",
   body:()=>poolNow().split("").map(t=>hRow(hIcon(t,"y"),`<b>${cap(NAME[t])}</b><br>${unitStats(t)}${ABILITY[t]?"<br>"+ABILITY[t]:""}`)).join("")},
+ {id:"combat",title:"Combat",art:()=>"",
+  body:()=>`<p>An attack deals the attacker's damage, minus the target's <b>armor</b>, never less than 1. <b>Pierce</b> cancels that much armor. Fortresses add 1 armor.</p><p>Every attack can be dodged: <b>evasion</b> is the target's chance to dodge, and standing in a forest adds ${pct(FOREST_EV)}. A dodge shows <b>Evade</b>.</p><p>Sturdy melee units and Archers <b>strike back</b> at an attacker within their own range for ${pct(RET_SHARE)} of their damage, if they survive the attack. The attacker can evade the strike back too. Attacking from beyond their range is safe: Artillery can outrange an Archer.</p>`},
  {id:"terrain",title:"Terrain",art:()=>"",
   body:()=>`<div class="tgrid">${terrainRows()}</div>`},
  {id:"mods",title:"Modifiers",art:()=>"",
@@ -1522,7 +1556,6 @@ $("end").onclick=()=>{
   lastMove=null;notify("You ended your turn");
   enemyTurn(n?"Your resting units recovered HP. ":"");
 };
-$("reset").onclick=init;
 // The terrain list shared by the in-game Terrain Guide and How to Play. Locked terrain only appears in the Unlocks menu.
 function terrainRows(){
   return Object.entries(TERRAIN).filter(([,t])=>!t.unlock||unlocks[t.unlock]).map(([key,t])=>
