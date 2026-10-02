@@ -616,7 +616,7 @@ const terrainSwatch=(key,art)=>`<div class="tsw" style="${TERRAIN[key].bg}">${ar
 // One source for unit descriptions: unit setup, How to Play and the in-game Unit panel.
 const rangeTxt=T=>(T.mn>1?T.mn+"-":"")+T.rg;
 const pct=v=>Math.round(v*100)+"%";
-const unitStats=t=>{const T=TYPES[t];return `HP ${T.hp}, move ${T.mv}, range ${rangeTxt(T)}, damage ${T.dmg}`+(T.ar?`, armor ${T.ar}`:"")+(T.pi?`, pierce ${T.pi}`:"")+(T.ev?`, evasion ${pct(T.ev)}`:"")+(canRetaliate(t)?", retaliates":"")};
+const unitStats=t=>{const T=TYPES[t];return `HP ${T.hp}, move ${T.mv}, range ${rangeTxt(T)}, damage ${T.dmg}`+(T.ar?`, armor ${T.ar}`:"")+(T.pi?`, pierce ${T.pi}`:"")+(T.ev?`, evasion ${pct(T.ev)}`:"")};
 const ABILITY={P:`Heals an ally in range for up to ${TYPES.P.heal} HP instead of attacking.`,E:"Can slow an enemy in range instead of attacking: its movement drops to 1 on its next turn.",
  T:`Instead of attacking, can muster 1-2 militia onto open tiles beside it. Twice per battle, with at most ${MUSTER_ALIVE} of its militia at a time.`,
  N:`Allies within ${BANNER_RANGE} tiles deal +1 damage.`,M:"Mustered by a Captain. Weak, but useful for blocking and finishing off foes."};
