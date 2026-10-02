@@ -255,6 +255,11 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .t.w.jn{box-shadow:inset 0 -7px 0 rgba(0,0,0,.4)}
 .t.w.js{box-shadow:inset 0 4px 0 rgba(255,255,255,.28)}
 .t.w.jn.js{box-shadow:none}
+.discovery{position:fixed;left:50%;top:38%;z-index:30;display:grid;gap:2px;text-align:center;padding:14px 26px;border-radius:12px;background:var(--panel);color:var(--ink);border:2px solid #e0b21c;box-shadow:0 0 0 4px rgba(224,178,28,.25),0 10px 30px rgba(0,0,0,.35);pointer-events:none;animation:disc 2.8s ease-in-out forwards}
+.discovery b{white-space:nowrap;font-size:1.5rem;letter-spacing:.02em;color:#c8961a}
+.discovery small{font-size:.9rem;opacity:.85}
+@keyframes disc{0%{opacity:0;transform:translate(-50%,-50%) scale(.85)}12%{opacity:1;transform:translate(-50%,-50%) scale(1.04)}20%,70%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-60%) scale(1)}}
+@media (prefers-reduced-motion:reduce){@keyframes disc{0%,100%{opacity:0;transform:translate(-50%,-50%)}10%,75%{opacity:1;transform:translate(-50%,-50%)}}}
 /* ---- move & attack, explosions, unlocks ---- */
 .t.mt{outline:3px dashed #fff;outline-offset:-4px}
 .t.mt::after{content:"";position:absolute;inset:30%;border-radius:50%;background:rgba(255,255,255,.8);box-shadow:0 0 0 2px rgba(0,0,0,.35);z-index:2;pointer-events:none}
@@ -369,7 +374,12 @@ const MODS={
 let WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set();
 const UKEY="skirmish_unlocks_v1",unlocks=(()=>{try{return JSON.parse(localStorage.getItem(UKEY)||"{}")||{}}catch(e){return{}}})();
 const saveU=()=>{try{localStorage.setItem(UKEY,JSON.stringify(unlocks))}catch(e){}};
-const unlock=id=>{if(unlocks[id])return false;unlocks[id]=1;saveU();return true};
+const unlock=id=>{if(unlocks[id])return false;unlocks[id]=1;saveU();discover(id);return true};
+function discover(id){ // a short "New Discovery!" banner that fades away on whatever screen is showing
+  const o=UNLOCKS.find(u=>u.id===id),d=document.createElement("div");d.className="discovery";d.setAttribute("role","status");
+  d.innerHTML=`<b>New Discovery!</b>${o?`<small>${TERRAIN[o.terrain].name}</small>`:""}`;
+  document.body.append(d);setTimeout(()=>d.remove(),3000);
+}
 const XB_DMG=4; // exploding barrel damage
 let BARRELS=new Set(),XBAR=new Set(),bchoice=null,choiceMv=null,lastMove=null; // XBAR: the barrels that explode
 let WALLV=0,FORTV=new Map(),FORTK=new Set(); // one wall style per map; each connected fortress group shares one style; FORTK: the tile holding each fortress's keep
@@ -535,20 +545,25 @@ function wallArt(v,m){
   // wooden palisade: posts keep their points only where nothing continues above
   return svg('<rect width="40" height="40" fill="#3b2b1c"/>'+[0,1,2,3,4].map(i=>{const x=i*8+.6,t=3+(i%2)*3;return n?`<rect x="${x}" y="-2" width="6.8" height="44" fill="#8b6a45" stroke="#4f3921" stroke-width="1.2"/>`:`<path d="M${x} 42V${t+7}L${x+3.4} ${t}L${x+6.8} ${t+7}V42z" fill="#8b6a45" stroke="#4f3921" stroke-width="1.2"/>`}).join(""));
 }
-const FORT_PAL=[{floor:"#9aa5b1",wall:"#b8c1cb",dark:"#3f4953",line:"rgba(63,73,83,.3)"},{floor:"#b5a27c",wall:"#d6c59c",dark:"#5e4d33",line:"rgba(94,77,51,.3)"}];
-// a fortress tile: courtyard flagstones, ramparts with crenels on open edges, round towers on outer corners, and the keep on one tile per fortress
+const FORT_PAL=[{floor:"#c49a5e",plank:"rgba(90,58,24,.38)",wall:"#e4dccb",dark:"#5a4128",roof:"#9a5034",roofD:"#5e2c18"},{floor:"#a97d4b",plank:"rgba(60,38,14,.4)",wall:"#e4dccb",dark:"#4a3420",roof:"#56677a",roofD:"#323e4c"}];
+const FORT_B=5; // battlement thickness, shared with the gap fill in joins()
+// a fortress tile: a wooden plank floor, low stone battlements on open edges, roofed turrets on outer corners, and a flagged keep on one tile per fortress
 function fortArt(m,v,keep){
-  const P=FORT_PAL[v]||FORT_PAL[0],n=m&1,e=m&2,s=m&4,w=m&8,B=8,st=`stroke="${P.dark}" stroke-width="1.2"`;
-  const crn=(hor,pos)=>[5,15,25,35].map(c=>hor?`<rect x="${c-2}" y="${pos}" width="4" height="2.600" fill="${P.dark}" opacity=".5"/>`:`<rect x="${pos}" y="${c-2}" width="2.600" height="4" fill="${P.dark}" opacity=".5"/>`).join("");
-  const tower=(cx,cy)=>`<circle cx="${cx}" cy="${cy}" r="7.500" fill="${P.wall}" ${st}/><circle cx="${cx}" cy="${cy}" r="4" fill="none" stroke="${P.dark}" stroke-width="1" opacity=".55"/>`;
-  let g=`<rect width="40" height="40" fill="${P.floor}"/><path d="M0 14H40M0 27H40M10 0V14M30 0V14M20 14V27M6 27V40M28 27V40" stroke="${P.line}" stroke-width="1"/>`;
-  if(!n)g+=`<rect x="-2" y="0" width="44" height="${B}" fill="${P.wall}" ${st}/>`+crn(1,0); // rampart strips overhang so they join seamlessly
-  if(!s)g+=`<rect x="-2" y="${40-B}" width="44" height="${B}" fill="${P.wall}" ${st}/>`+crn(1,37.4);
-  if(!w)g+=`<rect x="0" y="-2" width="${B}" height="44" fill="${P.wall}" ${st}/>`+crn(0,0);
-  if(!e)g+=`<rect x="${40-B}" y="-2" width="${B}" height="44" fill="${P.wall}" ${st}/>`+crn(0,37.4);
-  if(!n&&!w)g+=tower(7,7);if(!n&&!e)g+=tower(33,7);if(!s&&!w)g+=tower(7,33);if(!s&&!e)g+=tower(33,33);
-  if(keep)g+=`<rect x="12" y="12" width="16" height="16" rx="1" fill="${P.wall}" ${st}/><rect x="15.500" y="15.500" width="9" height="9" fill="none" stroke="${P.dark}" stroke-width="1" opacity=".55"/>`
-    +[[12,12],[24.5,12],[12,24.5],[24.5,24.5]].map(([a,b])=>`<rect x="${a}" y="${b}" width="3.500" height="3.500" fill="${P.dark}" opacity=".5"/>`).join("");
+  const P=FORT_PAL[v]||FORT_PAL[0],n=m&1,e=m&2,s=m&4,w=m&8,B=FORT_B,st=`stroke="${P.dark}" stroke-width="1.1"`;
+  let g=`<rect width="40" height="40" fill="${P.floor}"/><path d="M0 6.500H40M0 13.500H40M0 20.500H40M0 27.500H40M0 34.500H40" stroke="${P.plank}" stroke-width="1"/>`
+    +`<path d="M12 0V6.500M30 6.500V13.500M6 13.500V20.500M22 20.500V27.500M36 20.500V27.500M14 27.500V34.500M28 34.500V40" stroke="${P.plank}" stroke-width="1"/>`;
+  const merl=(hor,pos)=>[4,12,20,28,36].map(c=>hor?`<rect x="${c-2}" y="${pos}" width="4" height="${B}" fill="${P.wall}" ${st}/>`:`<rect x="${pos}" y="${c-2}" width="${B}" height="4" fill="${P.wall}" ${st}/>`).join("");
+  const band=(x,y,wd,ht)=>`<rect x="${x}" y="${y}" width="${wd}" height="${ht}" fill="${P.wall}" opacity=".55"/>`;
+  if(!n)g+=band(-2,0,44,B)+merl(1,0); // low battlements: a pale walkway with merlons, overhanging so joined tiles line up
+  if(!s)g+=band(-2,40-B,44,B)+merl(1,40-B);
+  if(!w)g+=band(0,-2,B,44)+merl(0,0);
+  if(!e)g+=band(40-B,-2,B,44)+merl(0,40-B);
+  const turret=(cx,cy)=>`<circle cx="${cx}" cy="${cy}" r="7.500" fill="${P.roof}" stroke="${P.roofD}" stroke-width="1.300"/>`
+    +`<path d="M${cx} ${cy}L${cx-7.500} ${cy}M${cx} ${cy}L${cx+7.500} ${cy}M${cx} ${cy}L${cx} ${cy-7.500}M${cx} ${cy}L${cx} ${cy+7.500}M${cx} ${cy}l-5.300-5.300M${cx} ${cy}l5.300-5.300M${cx} ${cy}l-5.300 5.300M${cx} ${cy}l5.300 5.300" stroke="${P.roofD}" stroke-width=".8" opacity=".7"/>`
+    +`<path d="M${cx-5} ${cy-2}a5.500 5.500 0 0 1 4-4" stroke="rgba(255,255,255,.45)" stroke-width="1.300" fill="none"/><circle cx="${cx}" cy="${cy}" r="1.300" fill="${P.roofD}"/>`;
+  if(!n&&!w)g+=turret(7,7);if(!n&&!e)g+=turret(33,7);if(!s&&!w)g+=turret(7,33);if(!s&&!e)g+=turret(33,33);
+  if(keep)g+=`<rect x="11" y="11" width="18" height="18" fill="${P.roof}" stroke="${P.roofD}" stroke-width="1.300"/><path d="M11 11L20 20L29 11M11 29L20 20L29 29" stroke="${P.roofD}" stroke-width="1" fill="none"/>`
+    +`<path d="M12.500 12.500L20 20L12.500 27.500z" fill="rgba(255,255,255,.18)"/><path d="M20 20V6.500" stroke="#3a2a1a" stroke-width="1.300"/><path d="M20 6.500l7.500 2.300-7.500 2.300z" fill="#f2c230" stroke="#7a5a10" stroke-width=".8"/>`;
   return svg(g);
 }
 // fills the 2px board gap after a tile when it joins the tile to its right or below, so joined pieces read as one structure
@@ -559,8 +574,8 @@ function joins(x,y){
   const corner=(m&2)&&(m&4)&&same((x+1)+","+(y+1)),bar=(st,bg)=>`<i class="jb" style="${st};background:${bg}"></i>`;
   let right,below;
   if(!isW){ // carry the ramparts across the gap
-    const P=FORT_PAL[FORTV.get(k)||0],band=(a,b,dir)=>`linear-gradient(${dir},${P.wall} ${a}%,${P.floor} ${a}%,${P.floor} ${b}%,${P.wall} ${b}%)`;
-    right=band(m&1?0:20,m&4?100:80,"180deg");below=band(m&8?0:20,m&2?100:80,"90deg");
+    const P=FORT_PAL[FORTV.get(k)||0],t=FORT_B/40*100,band=(a,b,dir)=>`linear-gradient(${dir},${P.wall} ${a}%,${P.floor} ${a}%,${P.floor} ${b}%,${P.wall} ${b}%)`;
+    right=band(m&1?0:t,m&4?100:100-t,"180deg");below=band(m&8?0:t,m&2?100:100-t,"90deg");
   }else if(WALLV===3){right="#3b2b1c";below="repeating-linear-gradient(90deg,#3b2b1c 0 1.500%,#8b6a45 1.500% 18.500%,#3b2b1c 18.500% 20%)"}
   else{
     const lit=m&1?"":"linear-gradient(rgba(255,255,255,.28),rgba(255,255,255,.28)) top/100% 4px no-repeat,",shade=m&4?"":"linear-gradient(rgba(0,0,0,.4),rgba(0,0,0,.4)) bottom/100% 7px no-repeat,";
@@ -907,7 +922,7 @@ function doBreak(a,t){
   const n=detonate(k);let msg=xb?"The barrel exploded!":"Smashed the barrels.";
   if(a.team==="y"){ // three barrels destroyed unlocks exploding barrels
     unlocks.bk=(unlocks.bk||0)+n;saveU();
-    if(unlocks.bk>=3&&unlock("xbarrels")){msg+=` New terrain unlocked: ${TERRAIN.xbarrel.name}!`;setTimeout(()=>notify("Unlocked: "+TERRAIN.xbarrel.name),300)}
+    if(unlocks.bk>=3)unlock("xbarrels");
   }
   say(msg);if(!checkEnd())render();
 }
@@ -965,21 +980,20 @@ const CAMP_HEAL=.2; // share of max HP every surviving unit recovers after a cam
 const campHeal=t=>Math.ceil(TYPES[t].hp*CAMP_HEAL);
 const armyTypes=()=>["K","A","C",...(camp.cfg?camp.cfg.x:[])];
 function showEnd(win){
-  const g=gid,nm=camp.battle?WORLD[camp.battle.node]:null;let newU=false;
+  const g=gid,nm=camp.battle?WORLD[camp.battle.node]:null;
   endMode=nm?(win?"cwin":"close"):"quick";
   if(nm&&win){ // record campaign progress right away
     if(!camp.cleared.includes(nm.id))camp.cleared.push(nm.id);
     camp.hp=armyTypes().map((t,i)=>{const u=units.find(v=>v.team==="y"&&v.ci===i);return u?Math.min(TYPES[t].hp,u.hp+campHeal(t)):1}); // survivors patch up; fallen units return at 1 HP
     camp.pos=nm.id;if(nm.type==="boss")camp.done=true;saveCamp();
-    if(camp.cleared.filter(i=>{const n=WORLD[i];return n&&n.type!=="camp"&&n.type!=="heal"}).length>=2)newU=unlock("barrels"); // two real battles won
+    if(camp.cleared.filter(i=>{const n=WORLD[i];return n&&n.type!=="camp"&&n.type!=="heal"}).length>=2)unlock("barrels"); // two real battles won
   }
   $("dtitle").textContent=win?"Victory":"Defeat";
   $("dtitle").style.color=win?"#2f8f4e":"var(--foe)";
   $("dmsg").textContent=win?(nm?(nm.type==="boss"?"You stormed "+nm.name+" and the campaign is complete!":"You secured "+nm.name+"."):"Every enemy unit has been destroyed and the field is yours."):"Your army has been wiped out and the enemy holds the field.";
-  if(nm&&win&&nm.type!=="boss")$("dmsg").textContent+=` Your surviving units recover ${Math.round(CAMP_HEAL*100)}% of their health.`;
-  if(newU)$("dmsg").textContent+=` New terrain unlocked: ${TERRAIN.barrels.name}! They can now appear next to fortresses.`;
   $("dagain").textContent=endMode==="quick"?"Play Again":endMode==="cwin"?"Continue":"Retry Battle";
   $("dmenu").textContent=endMode==="close"?"Return to Map":"Back to Main Menu";
+  if(nm&&win&&nm.type!=="boss")return later(()=>{if(g===gid&&over){$("pause").hidden=true;$("tguide").hidden=true;paused=false;camp.battle=null;openWorld()}},900); // between campaign battles: straight back to the map, no message
   setTimeout(()=>{
     if(g!==gid||!over)return;
     paused=false;$("pause").hidden=true;$("tguide").hidden=true;
@@ -990,7 +1004,7 @@ function checkEnd(){
   const y=units.some(u=>u.team==="y"),f=units.some(u=>u.team==="f");
   if(y&&f)return false;
   over=true;render();
-  say(y?"Victory! All enemy units are down. Press New Game to play again.":"Defeat. Your force was wiped out. Press New Game to try again.");
+  say(y?(camp.battle?"Victory!":"Victory! All enemy units are down. Press New Game to play again."):"Defeat. Your force was wiped out. Press New Game to try again.");
   showEnd(y);
   return true;
 }
@@ -1242,7 +1256,7 @@ function travel(id){
   const g=gid;
   setTimeout(()=>{
     worldLock=false;
-    if(n.type==="heal"&&!camp.cleared.includes(id)){camp.cleared.push(id);camp.pos=id;camp.hp=null;saveCamp();renderWorld();$("wprog").textContent="Your army rested and recovered full health."}
+    if(n.type==="heal"&&!camp.cleared.includes(id)){camp.cleared.push(id);camp.pos=id;camp.hp=null;saveCamp();renderWorld()}
     else if(n.type==="camp"||camp.cleared.includes(id)){camp.pos=id;saveCamp();renderWorld()}
     else beginBattle(n);
   },850);
