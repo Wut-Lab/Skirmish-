@@ -38,7 +38,7 @@ h1{font-size:1.4rem;margin:0 0 4px}
 .t:focus-visible{outline:3px solid var(--ink);outline-offset:-3px;z-index:1}
 .dec{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .u{position:absolute;inset:9%;border-radius:50%;display:grid;place-items:center;box-shadow:0 1px 3px rgba(0,0,0,.45),0 0 0 1.5px rgba(255,255,255,.6)}
-.u[data-t=K]{border-radius:22%}.u[data-t=R]{border-radius:50% 50% 14% 14%}.u[data-t=C]{border-radius:50% 50% 50% 14%}.u[data-t=P]{border-radius:50% 14% 50% 14%}.u[data-t=E]{border-radius:14% 50% 50% 50%}.u.slow::after{content:"\2193";position:absolute;top:-5px;left:-5px;width:17px;height:17px;border-radius:50%;background:#4a7fd1;color:#fff;font-size:.8rem;font-weight:800;line-height:17px;text-align:center;box-shadow:0 0 0 1.5px #fff}
+.u[data-t=K]{border-radius:22%}.u[data-t=R]{border-radius:50% 50% 14% 14%}.u[data-t=C]{border-radius:50% 50% 50% 14%}.u[data-t=P]{border-radius:50% 14% 50% 14%}.u[data-t=E]{border-radius:14% 50% 50% 50%}.u[data-t=T]{border-radius:22% 22% 50% 50%}.u[data-t=N]{border-radius:14% 50% 14% 50%}.u[data-t=M]{inset:19%;border-radius:40%}.u.insp::before{content:"+1";position:absolute;top:-6px;right:-6px;min-width:15px;height:15px;padding:0 2px;border-radius:8px;background:#e0b21c;color:#2b2200;font-size:.6rem;font-weight:800;line-height:15px;text-align:center;box-shadow:0 0 0 1.5px #fff;z-index:2}.u.slow::after{content:"\2193";position:absolute;top:-5px;left:-5px;width:17px;height:17px;border-radius:50%;background:#4a7fd1;color:#fff;font-size:.8rem;font-weight:800;line-height:17px;text-align:center;box-shadow:0 0 0 1.5px #fff}
 .u svg{width:90%;height:90%}
 .u.done{opacity:.55;filter:saturate(.25) brightness(1.35)}
 .u.sel{box-shadow:0 0 0 3px var(--ink)}
@@ -75,7 +75,13 @@ button.b.big{text-align:center;font-size:1.05rem;padding:14px}
 .card small,.cards small,.opts small{display:block;font-size:.78rem;opacity:.85;margin-top:2px}
 .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 #pu .uc:last-child:nth-child(odd){grid-column:1/-1}
-button.b.uc{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;padding:10px 6px}
+button.b.uc{display:flex;flex-direction:row;align-items:center;text-align:left;gap:8px;padding:7px 8px;min-width:0}
+button.b.uc .pv{width:34px;height:34px}
+.uct{min-width:0;display:grid;gap:1px}
+.ucn{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.uct small{font-size:.7rem;opacity:.8;line-height:1.25;margin:0}
+.utag{justify-self:start;font-size:.66rem;font-weight:700;padding:1px 6px;border-radius:6px;background:rgba(224,178,28,.25);margin-top:2px}
+.cnt{font-size:.64rem;font-weight:800;padding:1px 6px;border-radius:6px;background:var(--you);color:#fff}
 .sw{display:flex;gap:12px;flex-wrap:wrap;padding:4px}
 .swb{width:40px;height:40px;border-radius:50%;border:3px solid transparent;box-shadow:0 0 0 2px var(--ink);cursor:pointer;padding:0}
 .swb[aria-pressed=true]{border-color:var(--panel);box-shadow:0 0 0 4px var(--ink)}
@@ -368,9 +374,12 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 </section>
 </main>
 <script>
-const W=10,H=12,TYPES={K:{hp:12,mv:3,rg:1,mn:1,dmg:5},A:{hp:8,mv:3,rg:3,mn:1,dmg:4},R:{hp:10,mv:2,rg:4,mn:2,dmg:4},W:{hp:8,mv:2,rg:1,mn:1,dmg:4},B:{hp:16,mv:1,rg:1,mn:1,dmg:6},H:{hp:5,mv:3,rg:2,mn:1,dmg:3},C:{hp:9,mv:5,rg:1,mn:1,dmg:4},P:{hp:7,mv:3,rg:2,mn:1,dmg:1,heal:3},E:{hp:6,mv:3,rg:3,mn:1,dmg:2,slow:1}};
-const LIMIT1="PE",POOL="KARCPE";
-const NAME={K:"knight",A:"archer",R:"artillery",W:"wolf",B:"bear",H:"hawk",C:"cavalry",P:"apothecary",E:"enchanter"};
+const W=10,H=12,TYPES={K:{hp:12,mv:3,rg:1,mn:1,dmg:5},A:{hp:8,mv:3,rg:3,mn:1,dmg:4},R:{hp:10,mv:2,rg:4,mn:2,dmg:4},W:{hp:8,mv:2,rg:1,mn:1,dmg:4},B:{hp:16,mv:1,rg:1,mn:1,dmg:6},H:{hp:5,mv:3,rg:2,mn:1,dmg:3},C:{hp:9,mv:5,rg:1,mn:1,dmg:4},P:{hp:7,mv:3,rg:2,mn:1,dmg:1,heal:3},E:{hp:6,mv:3,rg:3,mn:1,dmg:2,slow:1},T:{hp:9,mv:3,rg:1,mn:1,dmg:3},N:{hp:8,mv:3,rg:1,mn:1,dmg:2},M:{hp:4,mv:2,rg:1,mn:1,dmg:2}};
+const LIMIT1="PETN"; // one of each per army
+const UNIT_UNLOCK={T:"captain",N:"banner"}; // unlockable units and the unlock each needs
+const poolNow=()=>"KARCPE"+Object.keys(UNIT_UNLOCK).filter(t=>unlocks[UNIT_UNLOCK[t]]).join(""); // units an army may pick right now
+const MUSTER_USES=2,MUSTER_ALIVE=2,BANNER_RANGE=2; // Captain: musters per battle, militia alive at once; Banner Bearer: aura reach
+const NAME={K:"knight",A:"archer",R:"artillery",W:"wolf",B:"bear",H:"hawk",C:"cavalry",P:"apothecary",E:"enchanter",T:"captain",N:"banner bearer",M:"militia"};
 const MODS={
  TP:{name:"Teleport",desc:"Once per battle, one unit may teleport to any open tile on the far edge (replaces its move)."},
  PUSH:{name:"Push",desc:"Knights may push any unit except artillery and cavalry 2 tiles instead of attacking."},
@@ -382,6 +391,7 @@ const UKEY="skirmish_unlocks_v1",unlocks=(()=>{try{return JSON.parse(localStorag
 const saveU=()=>{try{localStorage.setItem(UKEY,JSON.stringify(unlocks))}catch(e){}};
 const unlock=id=>{if(unlocks[id])return false;unlocks[id]=1;saveU();discover();return true};
 function discover(){ // a short "New Discovery!" banner that fades away on whatever screen is showing
+  if(document.querySelector(".discovery"))return; // two unlocks at once share one banner
   const d=document.createElement("div");d.className="discovery";d.setAttribute("role","status");
   d.innerHTML="<b>New Discovery!</b>"; // the name stays a surprise until it turns up in battle or the Unlocks menu
   document.body.append(d);setTimeout(()=>d.remove(),3000);
@@ -525,6 +535,9 @@ ICON.B='<svg viewBox="0 0 40 40"><circle cx="10.5" cy="11" r="4.5" fill="var(--i
 ICON.H='<svg viewBox="0 0 40 40"><path d="M20 7l4 6-4 3-4-3z" fill="var(--ic)"/><path d="M20 14L3 12l7 8-5 4 11-1 4 10 4-10 11 1-5-4 7-8z" fill="var(--ic)"/><circle cx="18.2" cy="12" r="1" fill="var(--tc)"/></svg>';
 ICON.C='<svg viewBox="0 0 40 40"><path d="M26 4l-4 8L8 24l2 5 6-2 2 0-2 8h15V16z" fill="var(--ic)"/><path d="M27 8l6 5M30 13l5 8" stroke="var(--ic)" stroke-width="2.4" stroke-linecap="round"/><circle cx="21" cy="16" r="1.7" fill="var(--tc)"/><circle cx="11" cy="26" r="1" fill="var(--tc)"/></svg>';
 ICON.P='<svg viewBox="0 0 40 40"><path d="M16 5h8M17 6v9L9.5 29.5A4.5 4.5 0 0013.5 36h13a4.5 4.5 0 004-6.5L23 15V6" fill="none" stroke="var(--ic)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><path d="M12.5 26.5h15l3 4.5a2.2 2.2 0 01-1.9 3.5H11.4A2.2 2.2 0 019.5 31z" fill="var(--ic)"/><circle cx="17.5" cy="30.5" r="1.7" fill="var(--tc)"/><circle cx="23.5" cy="32" r="1.2" fill="var(--tc)"/></svg>';
+ICON.T='<svg viewBox="0 0 40 40"><path d="M20 6q9 0 11 8" stroke="var(--ic)" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M10 32V21a10 10 0 0120 0v11z" fill="var(--ic)"/><path d="M13.500 22.500h13" stroke="var(--tc)" stroke-width="2.600"/><path d="M20 25.500l1.500 3 3.300.500-2.400 2.300.600 3.300-3-1.600-3 1.600.600-3.300-2.400-2.300 3.300-.500z" fill="var(--tc)"/></svg>';
+ICON.N='<svg viewBox="0 0 40 40"><path d="M12 6v29" stroke="var(--ic)" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="5.500" r="2.600" fill="var(--ic)"/><path d="M14 8h18l-4.500 6.500L32 21H14z" fill="var(--ic)"/><path d="M19 12.500l1.300 2.400 2.700.400-2 1.800.500 2.600-2.500-1.300-2.500 1.300.500-2.600-2-1.800 2.700-.400z" fill="var(--tc)"/></svg>';
+ICON.M='<svg viewBox="0 0 40 40"><path d="M20 16v19" stroke="var(--ic)" stroke-width="3.200" stroke-linecap="round"/><path d="M12 5v7a8 8 0 0016 0V5M20 5v11" stroke="var(--ic)" stroke-width="2.800" fill="none" stroke-linecap="round"/></svg>';
 ICON.E='<svg viewBox="0 0 40 40"><path d="M9 33L23 19" stroke="var(--ic)" stroke-width="4" stroke-linecap="round"/><path d="M26 4l2.4 5.6 5.6 2.4-5.6 2.4L26 20l-2.4-5.6L18 12l5.6-2.4z" fill="var(--ic)"/><circle cx="10" cy="14" r="2" fill="var(--ic)"/><circle cx="32" cy="29" r="2.2" fill="var(--ic)"/><circle cx="22" cy="32" r="1.4" fill="var(--ic)"/></svg>';
 const TF="background-image:linear-gradient(rgba(60,140,80,.25),rgba(60,140,80,.25))",FR="background-image:linear-gradient(rgba(105,120,140,.42),rgba(105,120,140,.42))";
 const FORT_ICON=[
@@ -614,7 +627,12 @@ const terrainSwatch=(key,art)=>`<div class="tsw" style="${TERRAIN[key].bg}">${ar
 // One source for unit descriptions: unit setup, How to Play and the in-game Unit panel.
 const rangeTxt=T=>(T.mn>1?T.mn+"-":"")+T.rg;
 const unitStats=t=>{const T=TYPES[t];return `HP ${T.hp}, move ${T.mv}, range ${rangeTxt(T)}, damage ${T.dmg}`};
-const ABILITY={P:`Heals an ally in range for up to ${TYPES.P.heal} HP instead of attacking.`,E:"Can slow an enemy in range instead of attacking: its movement drops to 1 on its next turn."};
+const ABILITY={P:`Heals an ally in range for up to ${TYPES.P.heal} HP instead of attacking.`,E:"Can slow an enemy in range instead of attacking: its movement drops to 1 on its next turn.",
+ T:`Instead of attacking, can muster 1-2 militia onto open tiles beside it. Twice per battle, with at most ${MUSTER_ALIVE} of its militia at a time.`,
+ N:`Allies within ${BANNER_RANGE} tiles deal +1 damage.`,M:"Mustered by a Captain. Weak, but useful for blocking and finishing off foes."};
+const TAG={P:"Heals",E:"Slows",T:"Musters militia",N:"+1 damage aura"}; // short ability labels for the setup cards
+const listAnd=a=>a.length<2?a.join(""):a.slice(0,-1).join(", ")+" and "+a[a.length-1];
+const limitNames=()=>listAnd(poolNow().split("").filter(t=>LIMIT1.includes(t)).map(t=>"the "+cap(NAME[t])));
 
 let camp={cfg:null,pos:0,cleared:[],done:false,battle:null,sel:null,hp:null},campSetup=false,endMode="quick",worldLock=false,choice=null,locked=false,tile=null,info=null,paused=false,gid=0,seed=0,col={y:"blue",f:"red"},insp=null,units=[],sel=null,turn="y",over=false,busy=false,mode=null,mods={y:null,f:null},tpUsed={y:0,f:0},pick={t:null,m:null};
 const prevPos=new WeakMap();
@@ -622,7 +640,8 @@ const $=id=>document.getElementById(id),board=$("board");
 const d=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 const at=(x,y)=>units.find(u=>u.x===x&&u.y===y);
 const mvOf=u=>{const m=TYPES[u.t].mv-(u.t==="A"&&mods[u.team]==="PAD"?1:0);return u.slow?Math.min(m,TYPES.E.slow):m};
-const dmgTo=(a,b)=>Math.max(1,TYPES[a.t].dmg-(b.t==="A"&&mods[b.team]==="PAD"?1:0)-(mods[b.team]==="FT"&&TYPES[a.t].rg>1&&FOREST.has(b.x+","+b.y)?1:0)-(FORT.has(b.x+","+b.y)?1:0));
+const inspired=u=>units.some(b=>b.t==="N"&&b.team===u.team&&b!==u&&d(b,u)<=BANNER_RANGE); // within a Banner Bearer's aura
+const dmgTo=(a,b)=>Math.max(1,TYPES[a.t].dmg+(inspired(a)?1:0)-(b.t==="A"&&mods[b.team]==="PAD"?1:0)-(mods[b.team]==="FT"&&TYPES[a.t].rg>1&&FOREST.has(b.x+","+b.y)?1:0)-(FORT.has(b.x+","+b.y)?1:0));
 const open=(x,y)=>x>=0&&y>=0&&x<W&&y<H&&!solid(x+","+y)&&!at(x,y);
 const farRow=t=>{const y=t==="y"?0:H-1,r=[];for(let x=0;x<W;x++)if(open(x,y))r.push([x,y]);return r};
 const pushable=(a,b)=>a.t==="K"&&b!==a&&b.t!=="R"&&b.t!=="C"&&d(a,b)===1;
@@ -657,7 +676,16 @@ const canBreak=(a,x,y)=>{const dd=d(a,{x,y}),T=TYPES[a.t];return dd>=T.mn&&dd<=T
 const breakables=u=>[...BARRELS].filter(k=>{const[x,y]=k.split(",").map(Number);return canBreak(u,x,y)});
 const healable=(a,b)=>!!TYPES[a.t].heal&&b!==a&&b.team===a.team&&b.hp<TYPES[b.t].hp&&d(a,b)<=TYPES[a.t].rg&&d(a,b)>=TYPES[a.t].mn;
 const healTargets=u=>units.filter(b=>healable(u,b));
-const spent=u=>!!u.acted||(u.team!=="w"&&!!u.moved&&!targets(u).length&&!healTargets(u).length&&(u.team!=="y"||!breakables(u).length)&&!(mods.y==="PUSH"&&u.t==="K"&&units.some(b=>b.team==="y"&&pushable(u,b))));
+const musterSpots=u=>[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>[u.x+dx,u.y+dy]).filter(([x,y])=>open(x,y));
+const canMuster=u=>u.t==="T"&&!u.acted&&(u.musters||0)<MUSTER_USES&&units.filter(m=>m.cap===u).length<MUSTER_ALIVE&&musterSpots(u).length>0;
+function muster(u){ // 1-2 militia appear beside the captain, nearest the enemy first; they can act from next turn
+  const foes=units.filter(e=>e.team!==u.team&&e.team!=="w"),near=([x,y])=>foes.length?Math.min(...foes.map(e=>Math.abs(e.x-x)+Math.abs(e.y-y))):0;
+  const spots=musterSpots(u).sort((a,b)=>near(a)-near(b)),n=Math.min(MUSTER_ALIVE-units.filter(m=>m.cap===u).length,1+(Math.random()<.5?1:0),spots.length);
+  for(let i=0;i<n;i++){const[x,y]=spots[i];units.push({t:"M",team:u.team,x,y,hp:TYPES.M.hp,moved:1,acted:1,cap:u,spawn:1})}
+  u.musters=(u.musters||0)+1;u.acted=u.moved=1;
+  return n;
+}
+const spent=u=>!!u.acted||(u.team!=="w"&&!!u.moved&&!canMuster(u)&&!targets(u).length&&!healTargets(u).length&&(u.team!=="y"||!breakables(u).length)&&!(mods.y==="PUSH"&&u.t==="K"&&units.some(b=>b.team==="y"&&pushable(u,b))));
 const targets=u=>units.filter(e=>e.team!==u.team&&(u.team!=="f"||e.team!=="w")&&d(u,e)<=TYPES[u.t].rg&&d(u,e)>=TYPES[u.t].mn);
 
 const spotsOf=(u,rc)=>[[u.x,u.y],...rc.map(k=>k.split(",").map(Number))];
@@ -702,7 +730,8 @@ function render(){
     b.setAttribute("aria-label",u?(u.team==="y"?"Your ":u.team==="w"?"Wild ":"Enemy ")+NAME[u.t]+", "+u.hp+" health"+(u.slow?", slowed":""):(mv.has(k)?"Move here, ":"")+TERRAIN[terrainKey(k)].name);
     if(u){
       const e=document.createElement("div");
-      e.className="u "+u.team+(spent(u)?" done":"")+(u.slow?" slow":"")+(u===sel||u===insp?" sel":"");
+      e.className="u "+u.team+(spent(u)?" done":"")+(u.slow?" slow":"")+(inspired(u)?" insp":"")+(u===sel||u===insp?" sel":"");
+      if(u.spawn){e.className+=" tpin";delete u.spawn}
       const pp=prevPos.get(u);prevPos.set(u,[x,y]);
       if(pp&&(pp[0]!==x||pp[1]!==y)){
         const ddx=pp[0]-x,ddy=pp[1]-y,dist=Math.abs(ddx)+Math.abs(ddy);
@@ -749,13 +778,15 @@ function renderInfo(){
   const u=info,T=TYPES[u.t],c=COLORS[col[u.team]],fo=FOREST.has(u.x+","+u.y),r=u.hp/T.hp,notes=[];
   if(u.team==="w")notes.push("Wild: wanders at random and attacks any unit in range.");
   if(ABILITY[u.t])notes.push(ABILITY[u.t]);
+  if(u.t==="T")notes.push(`Musters left this battle: ${MUSTER_USES-(u.musters||0)}.`);
+  if(inspired(u))notes.push("Inspired by a nearby Banner Bearer: deals +1 damage.");
   if(u.slow)notes.push("Slowed: movement reduced to 1 until the end of its next turn.");
   if(fo)notes.push("In a forest: leaving costs 1 movement.");
   if(FORT.has(u.x+","+u.y))notes.push("On a fortress: takes 1 less damage, and leaving costs 1 movement.");
   if(u.t==="A"&&mods[u.team]==="PAD")notes.push("Padded Armor: takes 1 less damage.");
   if(mods[u.team]==="FT"&&fo)notes.push("Forest Tactics: takes 1 less ranged damage here.");
   if(u.team==="y"&&u.acted)notes.push("Finished for this turn.");else if(u.team==="y"&&u.moved)notes.push("Has moved this turn.");
-  const stats=[["Move",mvOf(u)],["Range",rangeTxt(T)],["Damage",T.dmg],...(T.heal?[["Heal",T.heal]]:[])].map(([k,v])=>`<span class="stat">${k} <b>${v}</b></span>`).join("");
+  const stats=[["Move",mvOf(u)],["Range",rangeTxt(T)],["Damage",T.dmg+(inspired(u)?"+1":"")],...(T.heal?[["Heal",T.heal]]:[])].map(([k,v])=>`<span class="stat">${k} <b>${v}</b></span>`).join("");
   el.className="pb";el.style.borderLeft=`8px solid ${c[1]}`;
   el.innerHTML=`<div class="lbl">Unit</div><div class="row"><div class="pv">${disc(u.t,c)}</div><div class="ib"><div class="nm"><strong>${cap(NAME[u.t])}</strong><span>${u.team==="y"?"Your unit":u.team==="w"?"Wild":"Enemy"}</span></div><div class="hprow"><span>HP</span><b>${u.hp} / ${T.hp}</b></div><div class="hpb"><i style="width:${100*r}%;background:${r>.5?"#4caf50":r>.25?"#e0b21c":"#d64b3a"}"></i></div><div class="stats">${stats}</div>${notes.map(n=>`<small>${n}</small>`).join("")}</div></div>`;
 }
@@ -814,6 +845,7 @@ function acts(){
   if(!sel)return;
   if(mods.y==="TP"&&!tpUsed.y&&!sel.moved)add("Teleport",()=>{mode="tp";say("Choose an open tile on the far edge.");render()});
   if(mods.y==="PUSH"&&sel.t==="K"&&!sel.acted&&units.some(b=>b.team==="y"&&pushable(sel,b)))add("Push Ally",()=>{mode="push";say("Choose an adjacent ally to push.");render()});
+  if(!mode&&canMuster(sel))add("Muster Militia",()=>{const n=muster(sel);sel=null;insp=null;lastMove=null;say(`Mustered ${n} militia. They can act next turn.`);render()});
   if(mode)add("Cancel",()=>{mode=null;say("Move, attack, or pick another unit.");render()});
 }
 
@@ -993,6 +1025,9 @@ function showEnd(win){
     camp.hp=armyTypes().map((t,i)=>{const u=units.find(v=>v.team==="y"&&v.ci===i);return u?Math.min(TYPES[t].hp,u.hp+campHeal(t)):1}); // survivors patch up; fallen units return at 1 HP
     camp.pos=nm.id;if(nm.type==="boss")camp.done=true;saveCamp();
     if(camp.cleared.filter(i=>{const n=WORLD[i];return n&&n.type!=="camp"&&n.type!=="heal"}).length>=2)unlock("barrels"); // two real battles won
+    unlocks.cw=(unlocks.cw||0)+1;saveU(); // campaign battle wins across every campaign
+    if(unlocks.cw>=4)unlock("captain");
+    if(nm.type==="boss")unlock("banner");
   }
   $("dtitle").textContent=win?"Victory":"Defeat";
   $("dtitle").style.color=win?"#2f8f4e":"var(--foe)";
@@ -1035,7 +1070,7 @@ function distMap(srcs){
   }
   return D;
 }
-const VAL={P:4,E:3,R:3,A:2}; // targets worth focusing first: healers, enchanters and artillery
+const VAL={P:4,E:3,R:3,A:2,N:4,T:3}; // targets worth focusing first: healers, enchanters and artillery
 // exploding barrels the AI would like to set off, with how much each is worth to it
 const blastPlan=()=>[...XBAR].map(k=>[k,blastValue(k)]).filter(e=>e[1]>=4);
 // lower is better
@@ -1061,7 +1096,8 @@ function enemyTurn(note=""){
   function planFor(u,pl,D,xv){
     const hurt=u.t==="P"?units.filter(p=>p.team==="f"&&p!==u&&p.hp<TYPES[p.t].hp):[];
     // a healer heads for wounded allies while keeping out of danger; otherwise it acts like any other unit
-    const sc=hurt.length?(x,y)=>{const q={x,y},th=pl.reduce((n,p)=>n+(d(q,p)<=mvOf(p)+TYPES[p.t].rg?dmgTo(p,{...u,x,y}):0),0);return th*.5+(hurt.some(p=>d(q,p)<=TYPES.P.rg)?-10:Math.min(...hurt.map(p=>d(q,p))))}:(x,y)=>evalTile(u,x,y,D,pl,xv);
+    const sc=hurt.length?(x,y)=>{const q={x,y},th=pl.reduce((n,p)=>n+(d(q,p)<=mvOf(p)+TYPES[p.t].rg?dmgTo(p,{...u,x,y}):0),0);return th*.5+(hurt.some(p=>d(q,p)<=TYPES.P.rg)?-10:Math.min(...hurt.map(p=>d(q,p))))}:u.t==="N"?(x,y)=>evalTile(u,x,y,D,pl,xv)-3*units.filter(a=>a.team==="f"&&a!==u&&Math.abs(a.x-x)+Math.abs(a.y-y)<=BANNER_RANGE).length // the bearer stays close to its allies
+      :(x,y)=>evalTile(u,x,y,D,pl,xv);
     const p={u,s:sc(u.x,u.y),best:[u.x,u.y],tp:false,mS:1e9,mB:null,mTp:false};
     for(const k of reach(u)){
       const[x,y]=k.split(",").map(Number),s=sc(x,y);
@@ -1084,6 +1120,7 @@ function enemyTurn(note=""){
     const ts=targets(u).sort((a,b)=>pri(b)-pri(a));
     const hs=healTargets(u).sort((a,b)=>a.hp/TYPES[a.t].hp-b.hp/TYPES[b.t].hp);
     if(hs.length&&(hs[0].hp<=TYPES[hs[0].t].hp-2||!ts.length)){u.acted=1;applyHeal(u,hs[0]);say("Enemy "+NAME[u.t]+" healed an ally.");render();return later(step,600)}
+    if(canMuster(u)&&!ts.some(p=>dmgTo(u,p)>=p.hp)){const n=muster(u);say(`Enemy captain mustered ${n} militia.`);render();return later(step,600)} // muster unless a kill is on offer
     // set off an exploding barrel when it beats the best plain attack
     const atkV=ts.length?Math.min(dmgTo(u,ts[0]),ts[0].hp)+(dmgTo(u,ts[0])>=ts[0].hp?8:0)+(VAL[ts[0].t]||0)*.5:0;
     const xb=breakables(u).filter(k=>XBAR.has(k)).map(k=>[k,blastValue(k)]).sort((a,b)=>b[1]-a[1])[0];
@@ -1108,7 +1145,7 @@ function enemyTurn(note=""){
   }
   function step(){
     if(over||g!==gid)return;
-    const left=units.filter(u=>u.team==="f"&&!done.has(u));
+    const left=units.filter(u=>u.team==="f"&&!done.has(u)&&!u.acted); // militia mustered this turn wait until next turn
     if(left.length){
       // re-plan every step and let the unit with the strongest option go next, so kills land before the rest commit
       const pl=units.filter(p=>p.team==="y"),D=distMap(pl),xv=blastPlan(),plans=left.map(u=>planFor(u,pl,D,xv));
@@ -1295,7 +1332,7 @@ const CHOICES=["red","yellow","blue","orange","green","purple"];
 const show=n=>{["menu","pick","game","world"].forEach(i=>$(i).hidden=i!==n);if(n==="menu"){$("rulesview").hidden=true;$("unlockview").hidden=true;$("mbtns").hidden=false}};
 const disc=(t,c)=>`<div class="u" data-t="${t}" style="background:${c[1]};--tc:${c[1]};--ic:${c[2]}">${ICON[t]}</div>`;
 const foeColor=()=>pick.c==="red"?"black":"red";
-const cap=w=>w[0].toUpperCase()+w.slice(1);
+const cap=w=>w.replace(/\b\w/g,c=>c.toUpperCase()); // "banner bearer" -> "Banner Bearer"
 function mk(parent,cls,html,on,pressed){
   const b=document.createElement("button");b.className=cls;b.innerHTML=html;b.onclick=on;
   if(pressed!==undefined)b.setAttribute("aria-pressed",String(pressed));
@@ -1322,12 +1359,13 @@ function renderSetup(){
     }
   }
   const left=EXTRAS-x.length;
-  $("uh").textContent=left?`Choose ${left} more extra unit${left>1?"s":""}. You can pick the same unit twice, except the Apothecary and Enchanter (limit 1 each).`:"Your army is full. Tapping a unit below replaces Extra 2, or tap a slot above to remove it.";
+  $("uh").textContent=left?`Choose ${left} more extra unit${left>1?"s":""}. You can pick the same unit twice, except ${limitNames()} (limit 1 each).`:"Your army is full. Tapping a unit below replaces Extra 2, or tap a slot above to remove it.";
   // unit options
   const pu=$("pu");pu.innerHTML="";
-  POOL.split("").forEach(t=>{
+  poolNow().split("").forEach(t=>{
     const T=TYPES[t],n=x.filter(v=>v===t).length;
-    const b=mk(pu,"b uc",`<div class="pv">${disc(t,mc)}</div><strong>${cap(NAME[t])}</strong><small>${unitStats(t)}</small>${ABILITY[t]?`<small>${ABILITY[t]}</small>`:""}${n?`<small><b>${LIMIT1.includes(t)?"In your army (limit 1)":"In your army: "+n}</b></small>`:""}`,
+    // compact card: icon beside the text, with a short ability tag (the full ability is in How to Play and the Unit panel)
+    const b=mk(pu,"b uc",`<div class="pv">${disc(t,mc)}</div><div class="uct"><div class="ucn"><strong>${cap(NAME[t])}</strong>${n?`<span class="cnt">${LIMIT1.includes(t)?"Limit 1":"\u00d7"+n}</span>`:""}</div><small>${unitStats(t)}</small>${TAG[t]?`<span class="utag">${TAG[t]}</span>`:""}</div>`,
       ()=>{if(x.length<EXTRAS)x.push(t);else x[EXTRAS-1]=t;renderSetup()},n>0);
     if(LIMIT1.includes(t)&&n>0)b.disabled=true;
     b.setAttribute("aria-label",`Add ${NAME[t]}`+(n?`, ${n} already chosen`:""));
@@ -1344,7 +1382,7 @@ function renderSetup(){
   $("need").textContent=need.length?`Still needed: ${need.join(" and ")}.`:`Ready to go: you play ${mc[0]} with ${MODS[pick.m].name}.`;
   $("go").disabled=need.length>0;
 }
-$("rand").onclick=()=>{pick.x=[];for(let i=0;i<EXTRAS;i++){let t;do t=POOL[Math.floor(Math.random()*POOL.length)];while(LIMIT1.includes(t)&&pick.x.includes(t));pick.x.push(t)}renderSetup()};
+$("rand").onclick=()=>{pick.x=[];const P=poolNow();for(let i=0;i<EXTRAS;i++){let t;do t=P[Math.floor(Math.random()*P.length)];while(LIMIT1.includes(t)&&pick.x.includes(t));pick.x.push(t)}renderSetup()};
 $("clr").onclick=()=>{pick.x=[];renderSetup()};
 $("randm").onclick=()=>{const k=Object.keys(MODS);pick.m=k[Math.floor(Math.random()*k.length)];renderSetup()};
 function resetBattle(){
@@ -1364,7 +1402,7 @@ function openCampSetup(){
 function start(o={}){
   genMap(o);col={y:pick.c,f:foeColor(),w:"wild"};
   const extra=pick.x.slice();
-  const rnd=(have=[])=>{let t;do t=POOL[Math.floor(Math.random()*POOL.length)];while(LIMIT1.includes(t)&&have.includes(t));return t},mine=["K","A","C",...extra],foe=["K","A","C"];foe.push(rnd(foe));foe.push(rnd(foe));
+  const P=poolNow(),rnd=(have=[])=>{let t;do t=P[Math.floor(Math.random()*P.length)];while(LIMIT1.includes(t)&&have.includes(t));return t},mine=["K","A","C",...extra],foe=["K","A","C"];foe.push(rnd(foe));foe.push(rnd(foe));
   mods.y=pick.m;units=[];
   [1,3,4,6,8].forEach((x,i)=>{
     units.push({t:mine[i],team:"y",ci:i,x,y:H-1,hp:Math.min(TYPES[mine[i]].hp,camp.battle&&camp.hp&&camp.hp[i]>0?camp.hp[i]:TYPES[mine[i]].hp),moved:0,acted:0});
@@ -1416,9 +1454,9 @@ const HOWTO=[
  {id:"turn",title:"Your Turn",art:()=>hBoard(7,5,["..m....",".mmm...","mm.mma.",".mmm...","..m...."],[["K","y",2,2],["K","f",5,2]]),
   body:()=>"<p>Tap a unit. Green tiles show where it can move and pale red tiles show what it can hit. Tap a green tile to move, then tap a red enemy to attack.</p><p>Each unit moves once and attacks once, and attacking ends its turn. Press End Turn when you're done.</p><p>Tapping an enemy opens a short action menu, so nothing happens until you choose. If the enemy is only in reach after a move, tapping it marks the tile your unit will move to, and the menu offers Move &amp; Attack.</p><p>Moved to the wrong tile? Press Undo Move before that unit acts. Tap empty ground to deselect.</p>"},
  {id:"armies",title:"Armies",art:()=>{let s='<svg class="hart" viewBox="0 0 300 70" role="img" aria-hidden="true">';["K","A","C"].forEach((t,i)=>{s+=hDisc(t,HCOL.y,30+i*60,35,24)});[3,4].forEach(i=>{s+=`<circle cx="${30+i*60}" cy="35" r="24" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-dasharray="5 4"/><text x="${30+i*60}" y="44" text-anchor="middle" font-size="26" font-weight="700" fill="var(--ink)">?</text>`});return s+"</svg>"},
-  body:()=>"<p>Each side fields five units: one knight, one archer, one cavalry unit, and two more. You choose your two extras, and the enemy's are random. Each army can include only one Apothecary and one Enchanter.</p>"},
+  body:()=>`<p>Each side fields five units: one knight, one archer, one cavalry unit, and two more. You choose your two extras, and the enemy's are random. Each army can include only ${listAnd(poolNow().split("").filter(t=>LIMIT1.includes(t)).map(t=>"one "+cap(NAME[t])))}.</p>`},
  {id:"units",title:"Units",art:()=>"",
-  body:()=>POOL.split("").map(t=>hRow(hIcon(t,"y"),`<b>${cap(NAME[t])}</b><br>${unitStats(t)}${ABILITY[t]?"<br>"+ABILITY[t]:""}`)).join("")},
+  body:()=>poolNow().split("").map(t=>hRow(hIcon(t,"y"),`<b>${cap(NAME[t])}</b><br>${unitStats(t)}${ABILITY[t]?"<br>"+ABILITY[t]:""}`)).join("")},
  {id:"terrain",title:"Terrain",art:()=>"",
   body:()=>`<div class="tgrid">${terrainRows()}</div>`},
  {id:"mods",title:"Modifiers",art:()=>"",
@@ -1464,14 +1502,19 @@ const howMain={root:$("rulesview"),mainLabel:"Back to Main Menu",exit:()=>{$("ru
 const UNLOCKS=[
  {id:"barrels",terrain:"barrels",hint:"Win two campaign battles."},
  {id:"xbarrels",terrain:"xbarrel",
-  hint:()=>unlocks.barrels?"Destroy three barrels.":"Unlock Barrels, then destroy three of them.",prog:()=>unlocks.barrels?[Math.min(3,unlocks.bk||0),3]:null}
+  hint:()=>unlocks.barrels?"Destroy three barrels.":"Unlock Barrels, then destroy three of them.",prog:()=>unlocks.barrels?[Math.min(3,unlocks.bk||0),3,"barrels destroyed"]:null},
+ {id:"captain",unit:"T",hint:"Win four campaign battles.",prog:()=>[Math.min(4,unlocks.cw||0),4,"campaign battles won"]},
+ {id:"banner",unit:"N",hint:"Defeat a campaign boss."}
 ];
+// name, art and description for an unlock, read from the terrain table or the unit descriptions
+const unlockInfo=o=>o.terrain?{name:TERRAIN[o.terrain].name,art:terrainSwatch(o.terrain),desc:TERRAIN[o.terrain].desc}
+  :{name:cap(NAME[o.unit]),art:hIcon(o.unit,"y"),desc:`${unitStats(o.unit)}. ${ABILITY[o.unit]} Limit one per army.`};
 function unlockView(){
   const r=$("unlockview"),got=UNLOCKS.filter(o=>unlocks[o.id]).length;
   r.innerHTML=`<h2 class="htitle">Unlocks</h2><p class="hint" style="text-align:center">${got} of ${UNLOCKS.length} unlocked</p><div class="ulist">`
    +UNLOCKS.map(o=>{
-     const on=!!unlocks[o.id],pr=!on&&o.prog&&o.prog(),hint=typeof o.hint==="function"?o.hint():o.hint,T=TERRAIN[o.terrain];
-     return `<div class="hcard${on?"":" ulock"}" aria-label="${T.name}, ${on?"unlocked":"locked"}">`+hRow(on?terrainSwatch(o.terrain):LOCK_ART,`<b>${T.name}</b><small>${on?"Unlocked":"Locked"}</small>${on?T.desc:"How to unlock: "+hint}${pr?`<div class="uprog"><i style="width:${100*pr[0]/pr[1]}%"></i></div><small>${pr[0]} of ${pr[1]} barrels destroyed</small>`:""}`)+"</div>";
+     const on=!!unlocks[o.id],pr=!on&&o.prog&&o.prog(),hint=typeof o.hint==="function"?o.hint():o.hint,T=unlockInfo(o);
+     return `<div class="hcard${on?"":" ulock"}" aria-label="${T.name}, ${on?"unlocked":"locked"}">`+hRow(on?T.art:LOCK_ART,`<b>${T.name}</b><small>${on?"Unlocked":"Locked"}</small>${on?T.desc:"How to unlock: "+hint}${pr?`<div class="uprog"><i style="width:${100*pr[0]/pr[1]}%"></i></div><small>${pr[0]} of ${pr[1]} ${pr[2]}</small>`:""}`)+"</div>";
    }).join("")+"</div>";
   const box=document.createElement("div");box.className="menubtns";
   mk(box,"b big","Back to Main Menu",()=>{r.hidden=true;$("mbtns").hidden=false;$("unl").focus()});r.append(box);
