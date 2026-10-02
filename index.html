@@ -602,7 +602,7 @@ const TERRAIN={
  barrels:{name:"Barrels",bg:"",art:()=>BAR_V,unlock:"barrels",desc:"Impassable. A unit in range can spend its action to break them. Found next to fortresses."},
  xbarrel:{name:"Exploding Barrel",bg:"",art:()=>[XBAR_V],unlock:"xbarrels",desc:`Impassable. Breaking it deals ${XB_DMG} damage to every unit on the 8 tiles around it and sets off barrels in the blast. Each barrel has a 25% chance to be one.`},
  wall:{name:"Wall",bg:"background:var(--wall)",art:()=>[0,1,2,3].map(v=>wallArt(v,0)),desc:"Impassable. Units can't enter or cross it, but attacks can pass over it."},
- fort:{name:"Fortress",bg:FR,art:()=>[fortArt(0,0,true),fortArt(0,1,true)],desc:"Uncommon. A unit standing on one gets +1 armor, and leaving costs 1 movement."}};
+ fort:{name:"Fortress",bg:FR,art:()=>[fortArt(0,0,true),fortArt(0,1,true)],desc:"Uncommon. A unit standing on one gets +1 armor."}};
 const terrainKey=k=>BARRELS.has(k)?(XBAR.has(k)?"xbarrel":"barrels"):WALLS.has(k)?"wall":DEEP.has(k)?"deep":SHALLOW.has(k)?"shallow":FOREST.has(k)?"forest":FORT.has(k)?"fort":"ground";
 function tileArt(x,y){ // the art for one board tile, picking a stable variant per tile
   const k=x+","+y;
@@ -667,8 +667,8 @@ function rest(team){ // Field Rest: idle units recover 2 HP
 const say=s=>$("status").textContent=s;
 function notify(t){const o=$("fx").querySelector(".banner");if(o)o.remove();const n=document.createElement("div");n.className="banner";n.textContent=t;$("fx").append(n);setTimeout(()=>n.remove(),1650)}
 
-function reach(u){ // entering shallow water costs 2; leaving a forest or fortress costs 1 extra
-  const bud=mvOf(u)-(FOREST.has(u.x+","+u.y)||FORT.has(u.x+","+u.y)?1:0),k0=u.x+","+u.y;
+function reach(u){ // entering shallow water costs 2; leaving a forest costs 1 extra
+  const bud=mvOf(u)-(FOREST.has(u.x+","+u.y)?1:0),k0=u.x+","+u.y; // leaving a forest costs 1 extra
   const cost=new Map([[k0,0]]),q=[[u.x,u.y]];
   while(q.length){
     q.sort((a,b)=>cost.get(a+"")-cost.get(b+""));
@@ -794,7 +794,7 @@ function renderInfo(){
   if(inspired(u))notes.push("Inspired by a nearby Banner Bearer: deals +1 damage.");
   if(u.slow)notes.push("Slowed: movement reduced to 1 until the end of its next turn.");
   if(fo)notes.push(`In a forest: +${pct(FOREST_EV)} evasion, and leaving costs 1 movement.`);
-  if(FORT.has(u.x+","+u.y))notes.push("On a fortress: +1 armor, and leaving costs 1 movement.");
+  if(FORT.has(u.x+","+u.y))notes.push("On a fortress: +1 armor.");
   if(u.t==="A"&&mods[u.team]==="PAD")notes.push("Padded Armor: +1 armor.");
   if(mods[u.team]==="FT"&&fo)notes.push("Forest Tactics: +1 armor against ranged attacks here.");
   if(u.team==="y"&&u.acted)notes.push("Finished for this turn.");else if(u.team==="y"&&u.moved)notes.push("Has moved this turn.");
@@ -1081,7 +1081,7 @@ function distMap(srcs){
     ch=false;
     for(let y=0;y<H;y++)for(let x=0;x<W;x++){
       if(solid(x+","+y))continue;
-      const c0=1+(FOREST.has(x+","+y)||FORT.has(x+","+y)?1:0);
+      const c0=1+(FOREST.has(x+","+y)?1:0);
       for(const[dx,dy] of DIRS){
         const nx=x+dx,ny=y+dy;
         if(nx<0||ny<0||nx>=W||ny>=H||solid(nx+","+ny))continue;
