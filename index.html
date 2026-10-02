@@ -166,6 +166,16 @@ button.b.sm2{padding:8px 12px;font-size:.85rem}
 .turnrow button.pri{padding:0 24px}
 .pb .row{display:flex;gap:12px;align-items:center}
 .foot{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+#tomenu{flex:1}
+/* highlights on fortress tiles: same colours as other tiles, laid over the art so the castle shows through */
+.t.fr>.tint{position:absolute;inset:0;pointer-events:none;opacity:.6}
+.t.fr.pr>.tint{background:color-mix(in srgb,var(--atk) 42%,var(--tile))}
+.t.fr.m>.tint{background:var(--move)}
+.t.fr.ig>.tint{background:#8d98a2}
+.t.fr.ir>.tint,.t.fr.a>.tint{background:var(--atk)}
+.t.fr.hl>.tint{background:color-mix(in srgb,#4cc38a 55%,var(--tile));box-shadow:inset 0 0 0 4px #2f9e6a;opacity:.75}
+.t.fr.m.pr>.tint{box-shadow:inset 0 0 0 4px rgba(226,118,95,.85)}
+.t.fr.ig.ir>.tint{background:#8d98a2;box-shadow:inset 0 0 0 4px var(--atk)}
 #turn{flex:1;display:flex;align-items:center;min-height:48px;padding:8px 14px;box-sizing:border-box;font-size:1.05rem;font-weight:700;border-radius:8px;background:var(--panel);border:2px solid var(--ink);border-left:8px solid var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.15);border-left-width:2px;text-shadow:none}
 #info,#tinfo,#info.empty,#tinfo.empty{display:block;opacity:1;min-height:74px;margin-top:6px;padding:6px 10px 8px}
 .lbl{letter-spacing:.09em;text-transform:uppercase;opacity:.65;font-weight:700;font-size:.62rem;margin-bottom:3px}
@@ -308,7 +318,7 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 <div id="tinfo" class="pb empty"></div>
 <div id="info" class="pb empty"></div>
 <div class="bar" id="acts"></div>
-<div class="foot"><button class="b sm2" id="reset">New Game</button><button class="b sm2" id="tomenu">Menu</button></div>
+<div class="foot"><button class="b big" id="tomenu">Menu</button></div>
 <div class="ov" id="tguide" hidden>
 <div class="panel" role="dialog" aria-label="Terrain guide">
 <h2>Terrain Guide</h2>
@@ -713,7 +723,7 @@ function render(){
     const k=x+","+y,w=WALLS.has(k),dp=DEEP.has(k),sh=SHALLOW.has(k),f=FOREST.has(k),fr=FORT.has(k),bar=BARRELS.has(k),b=document.createElement("button"),u=at(x,y);
     b.className="t"+(bar?" brl":"")+(w?" w"+(wallMask(x,y)&1?" jn":"")+(wallMask(x,y)&4?" js":""):"")+(dp?" dp":"")+(sh?" sh":"")+(f?" fo":"")+(fr?" fr":"")+(tile&&tile.x===x&&tile.y===y?" ts":"")+(ig.has(k)?" ig":"")+(ir.has(k)?" ir":"")+(pr.has(k)?" pr":"")+(mv.has(k)?" m":"")+((u&&tg.has(u))||bt.has(k)?" a":"")+(u&&tg.has(u)&&mods.y==="PUSH"&&sel&&pushable(sel,u)?" pp":"")+(u&&hs.has(u)?" hl":"")+(u&&u===choice?" ch":"")+(pd&&pd.k===k?" pd":"")+(cm&&cm.x===x&&cm.y===y?" mt":"")+(bl.has(k)?" bl":"");
     if(pd&&pd.k===k)b.dataset.arrow=pd.a;
-    b.innerHTML=tileArt(x,y)+joins(x,y);
+    b.innerHTML=tileArt(x,y)+(fr?'<i class="tint"></i>':"")+joins(x,y); // fortress art covers its tile, so highlights go on a see-through layer above it
     b.setAttribute("aria-label",u?(u.team==="y"?"Your ":u.team==="w"?"Wild ":"Enemy ")+NAME[u.t]+", "+u.hp+" health"+(u.slow?", slowed":""):(mv.has(k)?"Move here, ":"")+TERRAIN[terrainKey(k)].name);
     if(u){
       const e=document.createElement("div");
@@ -1033,7 +1043,7 @@ function checkEnd(){
   const y=units.some(u=>u.team==="y"),f=units.some(u=>u.team==="f");
   if(y&&f)return false;
   over=true;render();
-  say(y?(camp.battle?"Victory!":"Victory! All enemy units are down. Press New Game to play again."):"Defeat. Your force was wiped out. Press New Game to try again.");
+  say(y?(camp.battle?"Victory!":"Victory! All enemy units are down."):"Defeat. Your force was wiped out.");
   showEnd(y);
   return true;
 }
@@ -1405,7 +1415,6 @@ function start(o={}){
       if(!solid(x+","+y)&&!at(x,y)){wild={t,team:"w",x,y,hp:TYPES[t].hp,moved:0,acted:0};units.push(wild)}
     }
   }
-  $("reset").hidden=!!camp.battle;
   const loc=camp.battle?WORLD[camp.battle.node].name+(o.boss?" (boss battle). ":". "):"";
   show("game");say(loc+"Your turn. Select one of your units."+(wild?" A wild "+NAME[wild.t]+" roams the map.":""));render();
 }
@@ -1522,7 +1531,6 @@ $("end").onclick=()=>{
   lastMove=null;notify("You ended your turn");
   enemyTurn(n?"Your resting units recovered HP. ":"");
 };
-$("reset").onclick=init;
 // The terrain list shared by the in-game Terrain Guide and How to Play. Locked terrain only appears in the Unlocks menu.
 function terrainRows(){
   return Object.entries(TERRAIN).filter(([,t])=>!t.unlock||unlocks[t.unlock]).map(([key,t])=>
