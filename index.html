@@ -158,7 +158,7 @@ button.b:not(:disabled):active{transform:translateY(1px);box-shadow:0 1px 0 var(
 #tguide .panel{width:min(420px,100%)}
 #tguide h3{margin:14px 0 0;font-size:1.3rem;text-align:left}
 #tguide #tlist h3:first-child{margin-top:0}
-#tlist{display:grid;gap:12px}
+#tlist,.tgrid{display:grid;gap:12px}
 .tentry{display:grid;gap:4px;text-align:left;background:rgba(128,128,128,.1);border-radius:10px;padding:12px 14px}
 .tentry strong{font-size:1.02rem}
 .tentry small{display:block;font-size:.85rem;opacity:.9;line-height:1.45}
@@ -1317,7 +1317,7 @@ const HOWTO=[
  {id:"units",title:"Units",art:()=>"",
   body:()=>POOL.split("").map(t=>{const u=TYPES[t];return hRow(hIcon(t,"y"),`<b>${cap(NAME[t])}</b><br>${u.hp} HP, move ${u.mv}, ${u.mn>1?`range ${u.mn} to ${u.rg}`:`range ${u.rg}`}, damage ${u.dmg}${u.heal?`.<br>Heals an ally in range for up to ${u.heal} HP instead of attacking.`:""}${u.slow?`.<br>Slows an enemy in range instead of attacking: its movement drops to 1 on its next turn.`:""}`)}).join("")},
  {id:"terrain",title:"Terrain",art:()=>"",
-  body:()=>hRow(hTile("f"),"<b>Forest</b><br>Leaving a forest costs 1 extra movement, and attacks into a forest have a 3% chance to miss.")+hRow(hTile("F"),"<b>Fortress</b><br>Some maps have stone strongholds made of two to four tiles. A unit standing on one takes 1 less damage from all attacks, and leaving it costs 1 movement.")+hRow(hTile("s"),"<b>Shallow Water</b><br>Entering it costs 1 extra movement.")+hRow(hTile("d"),"<b>Deep Water</b><br>Impassable. Lakes, ponds and rivers are made of deep water, usually edged with shallows. Rivers have shallow fords.")+(unlocks.barrels?hRow(hTile("b"),"<b>Barrels</b><br>Impassable, but a unit in range can spend its action to break them. They appear next to fortresses."):hRow(LOCK_ART,"<b>Barrels (Locked)</b><br>Win two campaign battles to unlock."))+(unlocks.xbarrels?hRow(hTile("x"),`<b>Exploding Barrels</b><br>Some barrels are rigged to blow. Breaking one deals ${XB_DMG} damage to every unit on the 8 tiles around it, friend or foe, and sets off barrels in the blast.`):hRow(LOCK_ART,"<b>Exploding Barrels (Locked)</b><br>Destroy three barrels to unlock."))+hRow(hTile("w"),"<b>Wall</b><br>Walls can't be crossed.")},
+  body:()=>`<div class="tgrid">${terrainRows()}</div>`},
  {id:"mods",title:"Modifiers",art:()=>"",
   body:()=>"<p>Each side gets one modifier. You see the enemy's before you choose yours.</p>"+Object.values(MODS).map(m=>`<p class="hmod"><b>${m.name}</b><br>${m.desc}</p>`).join("")},
  {id:"wild",title:"Wild Animals",art:()=>"",
@@ -1389,19 +1389,23 @@ $("end").onclick=()=>{
   enemyTurn(n?"Your resting units recovered HP. ":"");
 };
 $("reset").onclick=init;
-function buildGuide(){
+// The terrain list shared by the in-game Terrain Guide and How to Play. Locked terrain only appears in the Unlocks menu.
+function terrainRows(){
   const sw=(inner,st="")=>`<div class="tsw" style="${st}">${inner}</div>`;
-  const row=(sws,title,desc,cls="")=>`<div class="tentry${cls}"><strong>${title}</strong><small>${desc}</small><div class="tsws">${sws}</div></div>`;
-  const grp=(title,items)=>`<div class="tentry"><strong>${title}</strong>${items.map(([st,inner,t,d])=>`<div class="hli">${sw(inner,st)}<div><b>${t}</b><small>${d}</small></div></div>`).join("")}</div>`;
-  $("tlist").innerHTML="<h3>Terrain</h3>"
-   +row([0,1,2,3].map(v=>sw(ground(3,4,v))).join(""),"Open Ground","No special effect.")
+  const row=(sws,title,desc)=>`<div class="tentry"><strong>${title}</strong><small>${desc}</small><div class="tsws">${sws}</div></div>`;
+  return row([0,1,2,3].map(v=>sw(ground(3,4,v))).join(""),"Open Ground","No special effect.")
    +row(FOREST_V.map(v=>sw(v,TF)).join(""),"Forest","Leaving a forest costs 1 movement. Attacks into a forest have a 3% chance to miss.")
    +row(SH_V.map(v=>sw(v,"background:#86c4dc")).join(""),"Shallow Water","Entering it costs 1 extra movement. Often found around deep water, and sometimes as a ford across a river.")
    +row(DP_V.map(v=>sw(v,"background:#2f6f9c")).join(""),"Deep Water","Impassable. Units can't enter or cross it, but attacks can pass over it. Forms lakes, ponds and rivers.")
-   +(unlocks.barrels?row(BAR_V.map(v=>sw(v,"")).join(""),"Barrels","Impassable. A unit in range can spend its action to break them. Found next to fortresses."):`<div class="tentry"><strong>Barrels (Locked)</strong><small>Win two campaign battles to unlock.</small></div>`)
-   +(unlocks.xbarrels?row(sw(XBAR_V,""),"Exploding Barrel",`Impassable. Breaking it deals ${XB_DMG} damage to every unit on the 8 tiles around it and sets off barrels in the blast. Each barrel has a 25% chance to be one.`):`<div class="tentry"><strong>Exploding Barrels (Locked)</strong><small>Destroy three barrels to unlock.</small></div>`)
+   +(unlocks.barrels?row(BAR_V.map(v=>sw(v,"")).join(""),"Barrels","Impassable. A unit in range can spend its action to break them. Found next to fortresses."):"")
+   +(unlocks.xbarrels?row(sw(XBAR_V,""),"Exploding Barrel",`Impassable. Breaking it deals ${XB_DMG} damage to every unit on the 8 tiles around it and sets off barrels in the blast. Each barrel has a 25% chance to be one.`):"")
    +row(WALL_V.map(v=>sw(v,"background:var(--wall)")).join(""),"Wall","Impassable. Units can't enter or cross it, but attacks can pass over it.")
-   +row(FORT_V.map(v=>sw(v,FR)).join(""),"Fortress","Uncommon. A unit standing on one takes 1 less damage from all attacks, and leaving costs 1 movement.")
+   +row(FORT_V.map(v=>sw(v,FR)).join(""),"Fortress","Uncommon. A unit standing on one takes 1 less damage from all attacks, and leaving costs 1 movement.");
+}
+function buildGuide(){
+  const sw=(inner,st="")=>`<div class="tsw" style="${st}">${inner}</div>`;
+  const grp=(title,items)=>`<div class="tentry"><strong>${title}</strong>${items.map(([st,inner,t,d])=>`<div class="hli">${sw(inner,st)}<div><b>${t}</b><small>${d}</small></div></div>`).join("")}</div>`;
+  $("tlist").innerHTML="<h3>Terrain</h3>"+terrainRows()
    +"<h3>Highlights</h3>"
    +grp("Allies",[["background:var(--move)","","Green","Where your selected unit can move."],["background:color-mix(in srgb,#4cc38a 55%,var(--tile));box-shadow:inset 0 0 0 4px #2f9e6a",'<i class="plus">+</i>',"Green Border With a Plus","An ally your selected healer can heal right now."]])
    +grp("Enemies",[["background:#e9b8a6;background:color-mix(in srgb,var(--atk) 42%,var(--tile))","","Pale Red","Everything your selected unit could hit after moving."],["background:var(--atk)",'<i class="rg"></i>',"Red Ring","An enemy you can attack right now."],["background:#8d98a2","","Gray","Where a tapped enemy can move."],["background:#8d98a2;box-shadow:inset 0 0 0 4px var(--atk)","","Gray With a Red Border","Tiles an enemy can both move to and attack."]]);
