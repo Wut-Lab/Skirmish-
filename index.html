@@ -278,7 +278,7 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .cbub{position:relative;background:#f3e6c4;color:#3a2a1a;border:2px solid #1a0f07;box-shadow:inset 0 0 12px rgba(120,80,30,.25);border-radius:14px;padding:10px 14px;font-weight:600;text-align:center;line-height:1.35;margin-top:6px}
 .cbub::before{content:"";position:absolute;top:-10px;left:68%;border:8px solid transparent;border-bottom-color:#1a0f07;border-top:0}
 .cbub::after{content:"";position:absolute;top:-7px;left:calc(68% + 2px);border:6px solid transparent;border-bottom-color:#f3e6c4;border-top:0}
-#cleave{justify-self:center;background:linear-gradient(#a8733a,#7a4c22);color:#fff3da;border-color:#1a0f07;box-shadow:0 3px 0 #1a0f07,inset 0 1px 0 rgba(255,255,255,.25);text-shadow:0 1px 0 rgba(0,0,0,.4)}
+#cleave,#haenter{justify-self:center;background:linear-gradient(#a8733a,#7a4c22);color:#fff3da;border-color:#1a0f07;box-shadow:0 3px 0 #1a0f07,inset 0 1px 0 rgba(255,255,255,.25);text-shadow:0 1px 0 rgba(0,0,0,.4)}
 .fog{animation:fog 14s ease-in-out infinite alternate}.fog2{animation-duration:18s;animation-direction:alternate-reverse}
 @keyframes fog{from{transform:translateX(-10px)}to{transform:translateX(12px)}}
 .t.cmp{cursor:pointer}
@@ -303,6 +303,7 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .rchip{display:flex;align-items:center;gap:5px;padding:3px 8px 3px 4px;border-radius:14px;font-size:.78rem;font-weight:700;background:var(--panel);box-shadow:0 0 0 2px var(--rc,#8a8f96)}
 .rchip svg,.rcard svg{display:block}
 .rpan{width:min(460px,100%)}
+#herbask .panel{width:min(380px,100%)}#herbask .rsub{text-align:center}#haleave{justify-self:center;background:#3a2616;color:#f1e4c6;border-color:#1a0f07}
 .rsub{color:#e8d6b0;font-size:.9rem;margin-top:-4px}
 #rchoices{display:grid;gap:10px;width:100%}
 .rcard{display:grid;grid-template-columns:52px 1fr;gap:4px 12px;align-items:center;text-align:left;font:inherit;color:#3a2a1a;background:#f3e6c4;border:2px solid #1a0f07;border-radius:10px;padding:10px 12px;cursor:pointer;box-shadow:inset 0 0 0 2px var(--rc),inset 0 0 14px rgba(120,80,30,.25),0 3px 0 #1a0f07;transition:transform .08s}
@@ -387,14 +388,6 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 <div id="info" class="pb empty"></div>
 <div class="bar" id="acts"></div>
 <div class="foot"><button class="b big" id="tomenu">Menu</button></div>
-<div class="ov" id="campv" hidden>
-<div class="panel cpan" role="dialog" aria-labelledby="ctitle">
-<h2 id="ctitle">Herbert's Camp</h2>
-<div id="cscene"></div>
-<div class="cbub" id="cline" aria-live="polite"></div>
-<button class="b big pri" id="cleave">Thank Herbert and Leave Camp</button>
-</div>
-</div>
 <div class="ov" id="tguide" hidden>
 <div class="panel" role="dialog" aria-label="Terrain guide">
 <h2>Terrain Guide</h2>
@@ -431,6 +424,22 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 </div>
 </section>
 </main>
+<div class="ov" id="campv" hidden>
+<div class="panel cpan" role="dialog" aria-labelledby="ctitle">
+<h2 id="ctitle">Herbert's Camp</h2>
+<div id="cscene"></div>
+<div class="cbub" id="cline" aria-live="polite"></div>
+<button class="b big pri" id="cleave">Thank Herbert and Leave Camp</button>
+</div>
+</div>
+<div class="ov" id="herbask" hidden>
+<div class="panel cpan" role="dialog" aria-labelledby="hatitle">
+<h2 id="hatitle">A Familiar Campfire</h2>
+<p class="rsub">Smoke curls from a campfire just off the path. Someone nearby is humming cheerfully.</p>
+<button class="b big pri" id="haenter">Enter the Camp</button>
+<button class="b big" id="haleave">Keep Moving</button>
+</div>
+</div>
 <script>
 const DIRS=[[1,0],[-1,0],[0,1],[0,-1]],pk=k=>k.split(",").map(Number); // the four neighbour steps; "x,y" tile key -> [x,y]
 const W=10,H=12,
@@ -1230,6 +1239,7 @@ function animAttack(a,b,cb){
 function afterAction(){if(!checkEnd())render()}
 const CAMP_HEAL=.2; // share of max HP every surviving unit recovers after a campaign win
 const campHeal=t=>Math.ceil(TYPES[t].hp*CAMP_HEAL);
+const HEAL_SPOT=.7,HEAL_TEXT="A safe resting place. Visiting it restores 70% of each unit's health, once.",HERB_SPOT=.2; // HERB_SPOT: chance Herbert camps at a healing spot (once he's unlocked)
 const armyTypes=()=>["K","A","C",...(camp.cfg?camp.cfg.x:[])];
 function showEnd(win){
   const g=gid,nm=camp.battle?WORLD[camp.battle.node]:null;
@@ -1443,7 +1453,7 @@ function genWorld(){
   nodes.push({id:nodes.length,name:NAMES.boss[R(3)],x:Math.round(rr(140,260)),y:80,type:"boss",b:"boss",text:"The enemy stronghold. A fortress is guaranteed, and the enemy brings an extra unit."});
   layers.push([nodes.length-1]);
   const HN=["Sunspring Glade","Quiet Hollow","Healer's Rest","Mercy Well"].sort(()=>Math.random()-.5),hl=1+R(2),pl=hl===2?[2,3]:[2+R(2)];
-  pl.forEach((li,k)=>{const n=nodes[layers[li][R(layers[li].length)]];Object.assign(n,{name:HN[k],type:"heal",b:"heal",text:"A safe resting place. Visiting it restores your whole army to full health, once."})});
+  pl.forEach((li,k)=>{const n=nodes[layers[li][R(layers[li].length)]];Object.assign(n,{name:HN[k],type:"heal",b:"heal",text:HEAL_TEXT,herb:!!unlocks.campsite&&Math.random()<HERB_SPOT})}); // herb: Herbert is quietly camped here
   const WN=["Mirewater Fen","Sodden Reach","Heron's Marsh","Drowned Meadow"].sort(()=>Math.random()-.5);
   [1,2,3].sort(()=>Math.random()-.5).slice(0,1+(Math.random()<.4?1:0)).forEach((li,k)=>{ // 1 or 2 wetlands, never in the same row
     const c=layers[li].map(i=>nodes[i]).filter(n=>n.type==="battle");
@@ -1480,7 +1490,7 @@ const BIOME={forest:{forest:9},plain:{forest:2},fort:{fort:1},wild:{wild:1},boss
 const adj=(a,b)=>EDGES.some(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a));
 const SAVE="skirmish-campaign";
 function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,offer:camp.offer,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
-function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],offer:d.offer||null,lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
+function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],offer:d.offer||null,lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
 const nest=(str,x,y,w,style="")=>str.replace(/<svg[^>]*>/,`<svg x="${x}" y="${y}" width="${w}" height="${w}" viewBox="0 0 40 40" style="${style}">`);
 function mapArt(){
   let g='<defs><radialGradient id="pg" cx=".5" cy=".4" r=".85"><stop offset="0" stop-color="#eadfb8"/><stop offset="1" stop-color="#cbb78a"/></radialGradient></defs><rect width="400" height="520" fill="url(#pg)"/>';
@@ -1557,7 +1567,11 @@ function travel(id){
   const g=gid;
   setTimeout(()=>{
     worldLock=false;
-    if(n.type==="heal"&&!camp.cleared.includes(id)){camp.cleared.push(id);camp.pos=id;camp.hp=null;saveCamp();renderWorld();$("wprog").textContent="Your army rested and recovered full health.";healFx(n)}
+    if(n.type==="heal"&&!camp.cleared.includes(id)){
+      camp.cleared.push(id);camp.pos=id;camp.hp=armyTypes().map((t,i)=>{const mx=TYPES[t].hp,h=camp.hp&&camp.hp[i]!=null?camp.hp[i]:mx;return Math.min(mx,h+Math.ceil(mx*HEAL_SPOT))});
+      saveCamp();renderWorld();$("wprog").textContent="Your army rested and recovered some health.";healFx(n);
+      if(n.herb)setTimeout(()=>{if(!$("world").hidden){$("herbask").hidden=false;$("haenter").focus()}},1400); // a familiar campfire...
+    }
     else if(n.type==="camp"||camp.cleared.includes(id)){camp.pos=id;saveCamp();renderWorld()}
     else beginBattle(n);
   },850);
@@ -1728,7 +1742,7 @@ const HOWTO=[
         :k==="boss"?nest(FORT_ICON[1],x-14,y-14,28)
         :`<path d="M${x-6} ${y-6}L${x+6} ${y+6}M${x+6} ${y-6}L${x-6} ${y+6}" stroke="#3b2a14" stroke-width="3" stroke-linecap="round"/>`});
     return s+"</svg>"},
-  body:()=>`<p>Travel along the paths on the world map. Each new location starts a battle, and winning clears it. Every campaign uses a new random map. Defeat the boss at the top to finish.</p><p>You choose your extra units, modifier, and color once. Your units keep their health between battles. After each win, surviving units recover ${Math.round(CAMP_HEAL*100)}% of their max health, and a unit that falls returns with 1 HP.</p><p>Each victory also earns gold, shown by the coin purse on the world map, and lets you choose one of two or three relics. Relics last for the rest of the campaign: rarer ones are stronger.</p><p>Teal wave spaces are wetlands: battles fought across lakes, ponds and rivers. One or two appear on each map. Dark reed spaces are murky swamps, thick with mud that stops units in their tracks.</p><p>One or two healing spaces (green crosses) also appear on each map. Visiting one restores your whole army to full health, once.</p>`},
+  body:()=>`<p>Travel along the paths on the world map. Each new location starts a battle, and winning clears it. Every campaign uses a new random map. Defeat the boss at the top to finish.</p><p>You choose your extra units, modifier, and color once. Your units keep their health between battles. After each win, surviving units recover ${Math.round(CAMP_HEAL*100)}% of their max health, and a unit that falls returns with 1 HP.</p><p>Each victory also earns gold, shown by the coin purse on the world map, and lets you choose one of two or three relics. Relics last for the rest of the campaign: rarer ones are stronger.</p><p>Teal wave spaces are wetlands: battles fought across lakes, ponds and rivers. One or two appear on each map. Dark reed spaces are murky swamps, thick with mud that stops units in their tracks.</p><p>One or two healing spaces (green crosses) also appear on each map. Visiting one restores 70% of each unit's health, once.</p>`},
  {id:"scout",title:"Scouting",art:()=>{const m=[];for(let y=0;y<7;y++){let r="";for(let x=0;x<7;x++){const d=Math.abs(x-3)+Math.abs(y-3);r+=d===0?".":d<=2?"g":d===3?"p":"."}m.push(r)}return hBoard(7,7,m,[["K","f",3,3]],38)},
   body:()=>"<p>Tap any unit to see its details, including its health. Tap an enemy to see where it can move (gray) and hit (red). Tap it again to hide.</p>"}
 ];
@@ -1810,7 +1824,7 @@ const CAMP_SET={
   fore:()=>`<path d="M4 214V202q0-6 6-6t6 6v12zM28 216v-8q0-4 4-4t4 4v8z" fill="#55535a" stroke="#1a181e" stroke-width=".8"/><path d="M8 204h4M10 202v5" stroke="#1a181e" stroke-width=".8"/>
    <g transform="translate(46 210)"><rect x="-1.500" y="-7" width="3" height="7" fill="#d8ccb0"/><path class="flk" d="M0 -7q-2-3 0-6q2 3 0 6z" fill="#ffc24a"/></g>`}};
 CAMP_SET.heal=CAMP_SET.plain;
-function campScene(bk){
+function campScene(bk,meal){
   const P=CAMP_SET[bk]||CAMP_SET.plain;
   const bone=(x1,y1,x2,y2,w)=>`<path d="M${x1} ${y1}L${x2} ${y2}" stroke="#2a241c" stroke-width="${w+1.400}" stroke-linecap="round"/><path d="M${x1} ${y1}L${x2} ${y2}" stroke="#c4b694" stroke-width="${w}" stroke-linecap="round"/>`;
   const steel=(x1,y1,x2,y2,w)=>`<path d="M${x1} ${y1}L${x2} ${y2}" stroke="#121417" stroke-width="${w+1.600}" stroke-linecap="round"/><path d="M${x1} ${y1}L${x2} ${y2}" stroke="#3e444a" stroke-width="${w}" stroke-linecap="round"/><path d="M${x1} ${y1}L${x2} ${y2}" stroke="#22262a" stroke-width="${w*.35}" stroke-linecap="round" transform="translate(${w*.2} ${w*.2})" opacity=".7"/><path d="M${x1} ${y1}L${x2} ${y2}" stroke="#9aa2aa" stroke-width="${w*.18}" stroke-linecap="round" opacity=".4" stroke-dasharray="${w*.9} ${w*.5}" transform="translate(-${w*.2} -${w*.2})"/>`;
@@ -1844,7 +1858,12 @@ ${P.home?"":`<path d="M20 172L62 102L106 172z" fill="#4a3a2a" stroke="#120c06" s
 <path class="flk" d="M126 191q-8-10-2-20q0 6 4 8q-2-12 6-22q-2 10 4 14q2-10 8-14q-2 8 2 14q4-4 4-10q6 12-2 22q-2 6-8 8q-10 2-16 0z" fill="url(#hfl-${bk})" opacity=".92"/>
 <path class="flk flk2" d="M132 191q-5-8 0-15q1 5 4 6q0-8 5-13q-1 8 3 11q4-3 4-7q3 10-3 16q-6 4-13 2z" fill="url(#hfc-${bk})"/>
 ${[[136,150,0],[144,156,-.8],[130,160,-1.600],[140,146,-2.200]].map(([x,y,dl])=>`<circle class="emb" style="animation-delay:${dl}s" cx="${x}" cy="${y}" r="1.200" fill="#ffb83a"/>`).join("")}
-<path d="M140 146q-6-16 2-30q-8-14 0-28" stroke="#6a6e74" stroke-width="3" fill="none" opacity=".16"/>
+<path d="M140 146q-6-16 2-30q-8-14 0-28" stroke="#6a6e74" stroke-width="3" fill="none" opacity=".16"/>${meal?`<path d="M118 196L138 118L158 196" stroke="#3a2618" stroke-width="2.600" fill="none" stroke-linecap="round"/><path d="M138 119v18" stroke="#2a2a2e" stroke-width="1.200"/>
+<path d="M126 138h24l-2 13q-10 6-20 0z" fill="#26282c" stroke="#0e1013" stroke-width="1.200"/><path d="M125 138h26" stroke="#4a4e54" stroke-width="2.400" stroke-linecap="round"/><path d="M128 139q10 3 20 0" fill="#8a5a2a"/><circle cx="133" cy="139.500" r="1.200" fill="#c88a3a"/><circle cx="142" cy="139.800" r="1" fill="#6a8a3a"/>
+<path class="twk" d="M132 134q-3-6 0-11q3-5 0-10M140 134q3-6 0-11M146 134q-2-5 0-9" stroke="#d8d8e0" stroke-width="1.300" fill="none" opacity=".5"/>
+<g transform="translate(176 206)"><ellipse rx="8" ry="2.600" fill="#5a3e24" stroke="#24180c" stroke-width="1"/><ellipse cy="-.6" rx="6" ry="1.600" fill="#8a5a2a"/><path d="M4 -1l8-6" stroke="#b8a888" stroke-width="1.200" stroke-linecap="round"/></g>
+<g transform="translate(160 212)"><ellipse rx="7" ry="2.300" fill="#5a3e24" stroke="#24180c" stroke-width="1"/><ellipse cy="-.5" rx="5" ry="1.400" fill="#8a5a2a"/></g>
+<g transform="translate(40 200)"><rect x="-26" y="-6" width="56" height="11" rx="5.500" fill="#6a2a24" stroke="#2a0e0a" stroke-width="1"/><path d="M-18 -6v11M-8 -6v11M2 -6v11M12 -6v11" stroke="#8a4a2a" stroke-width="1.500" opacity=".7"/><ellipse cx="24" cy="-.5" rx="7" ry="5.500" fill="#8a6a44" stroke="#2a1a0c" stroke-width="1"/></g>`:""}
 <rect x="180" y="168" width="100" height="16" rx="7" fill="#3a2616" stroke="#140c06" stroke-width="1.200"/><circle cx="276" cy="176" r="6" fill="#5a3e24" stroke="#140c06" stroke-width="1"/><circle cx="276" cy="176" r="2.500" fill="none" stroke="#3a2616"/><path d="M188 172h26M236 178h24M200 180h18" stroke="#24180c" stroke-width=".8"/>
 <path d="M212 118q-10 26-9 54l4-2l2 6l5-6l3 7l4-5l5 6l3-6l6 5l2-7l5 5l3-6l4 3q2-30-10-56z" fill="#1e1014" stroke="#0a0408" stroke-width="1"/><path d="M216 140q-2 14 0 26M240 140q4 12 2 26M228 150l2 14" stroke="#2e161c" stroke-width="1" fill="none"/><path d="M219 158l3 6l2-4" stroke="#0a0408" stroke-width=".8" fill="none"/>
 ${steel(222,168,199,171,8)+steel(199,172,197,196,7)+steel(234,168,213,173,8)+steel(213,174,213,197,7)}
@@ -1889,13 +1908,29 @@ ${P.fore()}
 </svg>`;
 }
 let herbertLast=-1,BIOME_KEY="plain",herbertMet=false; // herbertMet: this map's visit already counted toward the graveyard
-function visitCamp(){
-  let i;do i=Math.floor(Math.random()*HERBERT.length);while(i===herbertLast&&HERBERT.length>1);herbertLast=i;
-  $("cscene").innerHTML=campScene(BIOME_KEY);$("cline").innerHTML=`<b>Herbert:</b> “${HERBERT[i]}”`;
-  paused=true;$("campv").hidden=false;$("cleave").focus();say("You visited Herbert's camp.");
+const HERBERT_MEAL=["Come in, come in! Rest your weary bones. There's stew on the fire and plenty to go around!",
+ "You look like you could use a hot meal and a long nap. Lucky for you, I make a mean stew!",
+ "Pull up a log, friends! Supper's nearly ready, and the bedrolls are warm."];
+let campDone=null; // what leaving the camp screen does
+function openCamp(bk,line,btn,meal,done){
+  $("cscene").innerHTML=campScene(bk,meal);$("cline").innerHTML=`<b>Herbert:</b> “${line}”`;$("cleave").textContent=btn;campDone=done;
+  $("campv").hidden=false;$("cleave").focus();
   if(!herbertMet){herbertMet=true;unlocks.hv=(unlocks.hv||0)+1;saveU();if(unlocks.hv>=3)unlock("graveyard")} // visits on three different maps: the way to his home
 }
-$("cleave").onclick=()=>{$("campv").hidden=true;paused=false;say("Move, attack, or pick another unit.");render()};
+function visitCamp(){ // from the Mysterious Camp Site in battle
+  let i;do i=Math.floor(Math.random()*HERBERT.length);while(i===herbertLast&&HERBERT.length>1);herbertLast=i;
+  paused=true;say("You visited Herbert's camp.");
+  openCamp(BIOME_KEY,HERBERT[i],"Thank Herbert and Leave Camp",false,()=>{paused=false;say("Move, attack, or pick another unit.");render()});
+}
+$("cleave").onclick=()=>{$("campv").hidden=true;const f=campDone;campDone=null;if(f)f()};
+// a healing spot where Herbert is camped: a rest and a meal heal the whole army
+$("haleave").onclick=()=>{$("herbask").hidden=true};
+$("haenter").onclick=()=>{
+  $("herbask").hidden=true;herbertMet=false; // a new place: this visit counts toward his home
+  openCamp("heal",HERBERT_MEAL[Math.floor(Math.random()*HERBERT_MEAL.length)],"Rest and Share a Meal",true,()=>{
+    camp.hp=null;saveCamp();renderWorld();$("wprog").textContent="A hot meal and a good rest by Herbert's fire restored your army to full health.";healFx(WORLD[camp.pos]);
+  });
+};
 /* ---------- Gold and relic rewards ---------- */
 const goldFor=n=>(n.type==="boss"?25:10)+2*units.filter(u=>u.team==="y"&&u.ci!=null).length; // more for bringing your army home
 // 2 or 3 relics the army doesn't have yet, drawn by rarity weight
