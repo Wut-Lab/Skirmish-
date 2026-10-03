@@ -528,7 +528,7 @@ const canRetaliate=t=>CAN_RETALIATE.includes(t)&&!CANT_RETALIATE.includes(t);
 const FOREST_EV=.1,FT_FOREST_EV=.05,EV_CAP=.5,RET_SHARE=.5; // forest dodge bonus (less against Forest Tactics), dodge cap, share of damage dealt when retaliating (always at least 1)
 const MUSTER_USES=2,MUSTER_ALIVE=2,BANNER_RANGE=2; // Captain: musters per battle, militia alive at once; Banner Bearer: aura reach
 /* ---------- Relics: campaign rewards, one source for the reward screen, world map and effects ---------- */
-// r: rarity (0 common, 1 uncommon, 2 rare); need: a unit type the army must include for it to be offered; lock: the unlock it waits for
+// r: rarity (0 common, 1 uncommon, 2 rare); need: a unit type the army must include for it to be offered; lock: the unlock it waits for; find: only ever found in battle (see FINDS), never offered
 const RELICS={
  whet:{name:"Whetstones",r:0,desc:"Archers deal +1 damage."},
  shield:{name:"Sturdy Shields",r:0,desc:"Knights get +1 armor."},
@@ -540,7 +540,7 @@ const RELICS={
  drills:{name:"Boots of a Forced March",r:0,lock:"drills",desc:"Well-worn boots that set a brisk pace: your units get +1 movement on your first turn of each battle."},
  salts:{name:"Smelling Salts",r:0,lock:"salts",need:"P",desc:"Apothecaries heal 1 extra HP."},
  pavise:{name:"Pavise",r:0,lock:"pavise",desc:"Archers take 1 less damage from ranged attacks. Pierce can't get past it."},
- font:{name:"Font of the Wise Ones",r:2,lock:"font",desc:"Once per battle, each of your units can spend its action to bless an adjacent ally: the ally gets +5% evasion until the end of your next turn."},
+ font:{name:"Font of the Wise Ones",r:2,lock:"font",find:1,desc:"Once per battle, each of your units can spend its action to bless an adjacent ally: the ally gets +5% evasion until the end of your next turn."},
  mug:{name:"Herbert's Mug",r:2,desc:"Once per battle, the first of your units to fall survives with 1 HP instead."},
  cap:{name:"Herbert's Nightcap",r:2,desc:"Once per battle, the first of your units to drop to half HP or less (without falling) heals 2 HP."}};
 const RARITY=[["Common","#8a8f96"],["Uncommon","#3f9a5a"],["Rare","#c9962a"]],RARITY_W=[60,30,10];
@@ -2069,7 +2069,7 @@ function findRelics(nm){
 const goldFor=n=>(n.type==="boss"?25:10)+2*units.filter(u=>u.team==="y"&&u.ci!=null).length; // more for bringing your army home
 // 2 or 3 relics the army doesn't have yet, drawn by rarity weight
 function relicOffer(){
-  const army=armyTypes(),pool=Object.keys(RELICS).filter(id=>!camp.relics.includes(id)&&(!RELICS[id].lock||unlocks[RELICS[id].lock])&&(!RELICS[id].need||army.includes(RELICS[id].need))),out=[];
+  const army=armyTypes(),pool=Object.keys(RELICS).filter(id=>!camp.relics.includes(id)&&!RELICS[id].find&&(!RELICS[id].lock||unlocks[RELICS[id].lock])&&(!RELICS[id].need||army.includes(RELICS[id].need))),out=[];
   for(let n=2+(Math.random()<.5?1:0);n>0&&pool.length;n--){
     const tot=pool.reduce((t,id)=>t+RARITY_W[RELICS[id].r],0);let roll=Math.random()*tot,i=0;
     while(roll>=RARITY_W[RELICS[pool[i]].r]){roll-=RARITY_W[RELICS[pool[i]].r];i++}
@@ -2292,7 +2292,7 @@ const UNLOCKS=[
  {id:"pavise",relic:"pavise",hint:"Those who stand in the rain of arrows learn to carry a wall."}
 ];
 // name, art and description for an unlock, read from the terrain table or the unit descriptions
-const unlockInfo=o=>o.relic?{name:RELICS[o.relic].name,art:relicIcon(o.relic,44),desc:RELICS[o.relic].desc+` A ${RARITY[RELICS[o.relic].r][0].toLowerCase()} relic that can be offered after campaign victories.`}
+const unlockInfo=o=>o.relic?{name:RELICS[o.relic].name,art:relicIcon(o.relic,44),desc:RELICS[o.relic].desc+` A ${RARITY[RELICS[o.relic].r][0].toLowerCase()} relic `+(RELICS[o.relic].find?"found only in battle, never offered as a reward.":"that can be offered after campaign victories.")}
   :o.biome?{name:BIOME_NAME[o.biome],art:terrainSwatch(o.terrain),desc:BTEXT[o.biome]+" Can appear in campaigns and quick battles."}
   :o.terrain?{name:TERRAIN[o.terrain].name,art:terrainSwatch(o.terrain),desc:TERRAIN[o.terrain].desc}
   :{name:cap(NAME[o.unit]),art:hIcon(o.unit,"y"),desc:`${unitStats(o.unit)}. ${ABILITY[o.unit]} Limit one per army.`};
