@@ -311,6 +311,8 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .rcard .ri{grid-row:span 3;width:52px;height:52px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#fffaf0,#d8c49a);display:grid;place-items:center;box-shadow:0 0 0 2px var(--rc)}
 .rcard b{font-size:1.05rem}.rcard small{font-size:.86rem;line-height:1.3}
 .rcard .rr{font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--rc)}
+.pop.bless{color:#c8f0ff;text-shadow:0 0 6px #4ab8ff,0 0 3px #000,0 1px 4px #000}
+.u.blessed{box-shadow:0 0 0 2px rgba(255,255,255,.9),0 0 10px 3px rgba(120,210,255,.75)}
 .pop.thanks{color:#ffd68a;font-size:.95rem;font-style:italic;animation:thanks 2.3s ease-out forwards}
 @keyframes thanks{0%{opacity:0;transform:translate(-50%,-80%)}15%{opacity:1;transform:translate(-50%,-120%)}75%{opacity:1}100%{opacity:0;transform:translate(-50%,-200%)}}
 @media (prefers-reduced-motion:reduce){.gold .gplus{animation:none;opacity:0}@keyframes thanks{0%,100%{opacity:0;transform:translate(-50%,-120%)}15%,80%{opacity:1;transform:translate(-50%,-120%)}}}
@@ -493,11 +495,15 @@ const RELICS={
  drills:{name:"Boots of a Forced March",r:0,lock:"drills",desc:"Well-worn boots that set a brisk pace: your units get +1 movement on your first turn of each battle."},
  salts:{name:"Smelling Salts",r:0,lock:"salts",need:"P",desc:"Apothecaries heal 1 extra HP."},
  pavise:{name:"Pavise",r:0,lock:"pavise",desc:"Archers take 1 less damage from ranged attacks. Pierce can't get past it."},
+ font:{name:"Font of the Wise Ones",r:2,lock:"font",desc:"Once per battle, each of your units can spend its action to bless an ally within 2 tiles: the ally gets +5% evasion until the end of your next turn."},
  mug:{name:"Herbert's Mug",r:2,desc:"Once per battle, the first of your units to fall survives with 1 HP instead."},
  cap:{name:"Herbert's Nightcap",r:2,desc:"Once per battle, the first of your units to drop to half HP or less (without falling) heals 2 HP."}};
 const RARITY=[["Common","#8a8f96"],["Uncommon","#3f9a5a"],["Rare","#c9962a"]],RARITY_W=[60,30,10];
-let RELIC=new Set(),relicUsed={},firstTurn=true; // relics active in the current battle (campaign only), which once-per-battle ones have fired, and whether it is still your opening turn (Boots of a Forced March)
+let RELIC=new Set(),relicUsed={},firstTurn=true,pturn=1; // relics active in the current battle (campaign only), which once-per-battle ones have fired, and whether it is still your opening turn (Boots of a Forced March); pturn: your turn number (Font of the Wise Ones blessings)
 const rel=(u,id)=>u.team==="y"&&RELIC.has(id);
+const BLESS_RANGE=2,BLESS_EV=.05;
+const blessed=u=>u.team==="y"&&u.blessUntil>=pturn; // Font of the Wise Ones: lasts through the enemy turn and your next one
+const canBless=(a,b)=>rel(a,"font")&&!a.blessUsed&&!a.acted&&b!==a&&b.team==="y"&&d(a,b)<=BLESS_RANGE;
 const healOf=u=>TYPES[u.t].heal+(rel(u,"salts")?1:0); // how much a healer restores, with relics
 const rgOf=u=>TYPES[u.t].rg+(u.t==="A"&&rel(u,"long")?1:0); // a unit's attack range, with relics
 const DEBRIS_DMG=1; // Debris Shot splash: small, so it softens clusters without replacing a second attack
@@ -851,7 +857,7 @@ function combat(a,b,from=a){
   armor.forEach(([l,v])=>add(l,-v));
   add("Pierce",Math.min(A.pi||0,armor.reduce((t,x)=>t+x[1],0)));
   add("Pavise",b.t==="A"&&A.rg>1&&rel(b,"pavise")?-1:0); // a shield wall, not armor: pierce can't get past it
-  const ev=Math.min(EV_CAP,(B.ev||0)+(rel(b,"luck")?.05:0)+(FOREST.has(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0));
+  const ev=Math.min(EV_CAP,(B.ev||0)+(rel(b,"luck")?.05:0)+(blessed(b)?BLESS_EV:0)+(FOREST.has(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0));
   return {dmg:Math.max(1,parts.reduce((t,p)=>t+p[1],0)),hit:1-ev,parts}; // every hit deals at least 1
 }
 // a unit with `ret` retaliates against an attacker within its own range for half damage, at least 1 (the attacker may evade it); null when it can't
@@ -908,7 +914,7 @@ function muster(u){ // 1-2 militia appear beside the captain, nearest the enemy 
   u.musters=(u.musters||0)+1;u.acted=u.moved=1;
   return n;
 }
-const spent=u=>!!u.acted||(u.team!=="w"&&!!u.moved&&!canMuster(u)&&!targets(u).length&&!healTargets(u).length&&(u.team!=="y"||!breakables(u).length)&&!(mods.y==="PUSH"&&u.t==="K"&&units.some(b=>b.team==="y"&&pushable(u,b))));
+const spent=u=>!!u.acted||(u.team!=="w"&&!!u.moved&&!canMuster(u)&&!targets(u).length&&!healTargets(u).length&&!(rel(u,"font")&&units.some(b=>canBless(u,b)))&&(u.team!=="y"||!breakables(u).length)&&!(mods.y==="PUSH"&&u.t==="K"&&units.some(b=>b.team==="y"&&pushable(u,b))));
 const targets=u=>units.filter(e=>e.team!==u.team&&(u.team!=="f"||e.team!=="w")&&d(u,e)<=rgOf(u)&&d(u,e)>=TYPES[u.t].mn);
 
 const spotsOf=(u,rc)=>[[u.x,u.y],...rc.map(k=>pk(k))];
@@ -956,7 +962,7 @@ function render(){
     html+=`<button class="${cls}" data-x="${x}" data-y="${y}"${pd&&pd.k===k?` data-arrow="${pd.a}"`:""} aria-label="${label.replace(/"/g,"&quot;")}">`
       +'<i class="lt"></i>'+tileArt(x,y)+(fr?'<i class="tint"></i>':"")+joins(x,y); // fortress art covers its tile, so highlights go on a see-through layer above it
     if(u){
-      let uc="u "+u.team+(spent(u)?" done":"")+(u.slow?" slow":"")+(inspired(u)?" insp":"")+(u===sel||u===insp?" sel":""),mvs="";
+      let uc="u "+u.team+(spent(u)?" done":"")+(u.slow?" slow":"")+(inspired(u)?" insp":"")+(blessed(u)?" blessed":"")+(u===sel||u===insp?" sel":""),mvs="";
       if(u.spawn){uc+=" tpin";delete u.spawn}
       const pp=prevPos.get(u);prevPos.set(u,[x,y]);
       if(pp&&(pp[0]!==x||pp[1]!==y)){ // slide in from where it was last drawn (a long jump fades in instead)
@@ -1005,6 +1011,8 @@ function renderInfo(){
   if(u.t==="T")notes.push(`Musters left this battle: ${MUSTER_USES-(u.musters||0)}.`);
   if(inspired(u))notes.push("Inspired by a nearby Banner Bearer: deals +1 damage.");
   if(u.slow)notes.push("Slowed: movement reduced to 1 until the end of its next turn.");
+  if(blessed(u))notes.push("Blessed: +5% evasion until the end of your next turn.");
+  if(rel(u,"font")&&!u.blessUsed)notes.push("Font of the Wise Ones: can bless an ally within 2 tiles once this battle.");
   if(fo)notes.push(`In a forest: +${pct(FOREST_EV)} evasion, and leaving costs 1 movement.`);
   if(FORT.has(u.x+","+u.y))notes.push("On a fortress: +1 armor.");
   if(u.t==="A"&&mods[u.team]==="PAD")notes.push("Padded Armor: +1 armor.");
@@ -1017,7 +1025,7 @@ function renderInfo(){
   el.innerHTML=`<div class="lbl">Unit</div><div class="row"><div class="pv">${disc(u.t,c)}</div><div class="ib"><div class="nm"><strong>${cap(NAME[u.t])}</strong><span>${u.team==="y"?"Your unit":u.team==="w"?"Wild":"Enemy"}</span></div><div class="hprow"><span>HP</span><b>${u.hp} / ${T.hp}</b></div><div class="hpb"><i style="width:${100*r}%;background:${r>.5?"#4caf50":r>.25?"#e0b21c":"#d64b3a"}"></i></div><div class="stats">${stats}</div>${notes.map(n=>`<small>${n}</small>`).join("")}</div></div>`;
 }
 function floatText(x,y,t,miss){
-  const p=document.createElement("div");p.className="pop"+(miss===true?" miss":miss==="heal"?" heal":miss==="slow"?" slow":miss==="thanks"?" thanks":"");p.textContent=t;
+  const p=document.createElement("div");p.className="pop"+(miss===true?" miss":miss==="heal"?" heal":miss==="slow"?" slow":miss==="thanks"?" thanks":miss==="bless"?" bless":"");p.textContent=t;
   p.style.left=`calc(2px + (100% - 4px) * ${(x+.5)/W})`;p.style.top=`calc(2px + (100% - 4px) * ${(y+.5)/H})`;
   $("fx").append(p);setTimeout(()=>p.remove(),miss==="thanks"?2300:1100);
 }
@@ -1052,6 +1060,7 @@ function buildMenu(){
     opt(`<b>${!ok?"Can't Push":n?`Push ${n} Tile${n>1?"s":""}`:"Push (Blocked)"}</b><small>${!ok?"Too heavy":t.team==="y"?"Reposition ally":"Instead of attacking"}</small>`,()=>{choice=null;doPush(sel,t)},!ok||!n);
   }
   if(sel.t==="E"&&t.team!==sel.team&&(cm||targets(sel).includes(t)))opt(`<b>${cm?"Move &amp; Slow":"Slow"}</b><small>${t.slow?"Already slowed":"Move 1 next turn"}</small>`,go(a=>doSlow(a,t)),!!t.slow);
+  if(!cm&&canBless(sel,t))opt(`<b>Bless</b><small>${blessed(t)?"Already blessed":"+5% evasion until your next turn ends"}</small>`,()=>{choice=null;doBless(sel,t)},blessed(t));
   if(!cm&&healable(sel,t)){const hn=Math.min(healOf(sel),TYPES[t.t].hp-t.hp);opt(`<b>Heal</b><small>+${hn} HP</small>`,()=>{choice=null;doHeal(sel,t)})}
   opt("<b>Cancel</b>",()=>{choice=null;say("Move, attack, or pick another unit.");render()});
   // keep the push-preview arrow visible: sit beside the target for vertical pushes, above or below it for horizontal ones
@@ -1119,7 +1128,7 @@ function click(x,y){
     say("Teleported. Attack or pick another unit.");return render();
   }
   if(mode==="push"&&u&&pushable(sel,u)){choice=u;say("Choose an action next to the unit.");return render()}
-  if(u&&u.team==="y"&&sel&&sel!==u&&!mode&&!sel.acted&&(healable(sel,u)||(mods.y==="PUSH"&&pushable(sel,u)))){choice=u;say("Choose an action next to the unit.");return render()}
+  if(u&&u.team==="y"&&sel&&sel!==u&&!mode&&!sel.acted&&(healable(sel,u)||canBless(sel,u)||(mods.y==="PUSH"&&pushable(sel,u)))){choice=u;say("Choose an action next to the unit.");return render()}
   if(u&&u.team==="y"){
     if(sel===u){sel=null;mode=null;info=null;say("Select one of your units.");return render()}
     sel=u;mode=null;insp=null;info=u;
@@ -1198,6 +1207,10 @@ function applyHeal(a,b){const n=Math.min(healOf(a),TYPES[b.t].hp-b.hp);b.hp+=n;f
 function doSlow(a,u){
   a.acted=1;a.moved=1;sel=null;insp=null;locked=true;lastMove=null;
   animAttack(a,u,()=>{u.slow=1;floatText(u.x,u.y,"Slow","slow");say("Slowed the "+NAME[u.t]+": movement reduced to 1 on its next turn.");locked=false;info=u;afterAction()});
+}
+function doBless(a,b){
+  a.blessUsed=1;a.acted=a.moved=1;b.blessUntil=pturn+1;sel=null;mode=null;choice=null;info=b;lastMove=null;
+  floatText(b.x,b.y,"Blessed","bless");say("Blessed your "+NAME[b.t]+": +5% evasion until the end of your next turn.");render();
 }
 function doHeal(a,b){
   const n=applyHeal(a,b);a.acted=a.moved=1;sel=null;mode=null;choice=null;info=b;lastMove=null;
@@ -1289,6 +1302,10 @@ function showEnd(win){
   if(nm&&win){ // record campaign progress right away
     if(!camp.cleared.includes(nm.id))camp.cleared.push(nm.id);
     camp.hp=armyTypes().map((t,i)=>{const u=units.find(v=>v.team==="y"&&v.ci===i);return u?Math.min(TYPES[t].hp,u.hp+campHeal(t)+(camp.relics.includes("rations")?1:0)):1}); // survivors patch up; fallen units return at 1 HP
+    if(nm.b==="swamp"&&!unlocks.font){ // a relic surfaces from the dark water: unlocked, and found for this campaign
+      unlock("font");
+      if(!camp.relics.includes("font")){const by=units.filter(u=>u.team==="y"&&u.ci!=null);camp.relics.push("font");camp.found={id:"font",by:by.length?by[Math.floor(Math.random()*by.length)].t:"K"}}
+    }
     const earned=goldFor(nm);camp.gold+=earned;camp.lastGold=earned; // spoils of war
     camp.offer=nm.type==="boss"?null:relicOffer(); // pick a relic back on the map
     camp.pos=nm.id;if(nm.type==="boss")camp.done=true;saveCamp();
@@ -1541,8 +1558,8 @@ const guessBiome=()=>GRAVES.size?"graveyard":SWAMP.size>=10?"swamp":DEEP.size+SH
 const BIOME={forest:{forest:9},plain:{forest:2},fort:{fort:1},wild:{wild:1},boss:{fort:1,boss:1},wetlands:{water:1,forest:3,swamp:1},swamp:{swamp:3,pond:1,forest:6},graveyard:{graves:1,forest:5}};
 const adj=(a,b)=>EDGES.some(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a));
 const SAVE="skirmish-campaign";
-function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,offer:camp.offer,kills:camp.kills,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
-function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],offer:d.offer||null,kills:d.kills||[],region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
+function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,offer:camp.offer,found:camp.found,kills:camp.kills,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
+function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],offer:d.offer||null,found:d.found||null,kills:d.kills||[],region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
 const nest=(str,x,y,w,style="")=>str.replace(/<svg[^>]*>/,`<svg x="${x}" y="${y}" width="${w}" height="${w}" viewBox="0 0 40 40" style="${style}">`);
 function mapArt(){
   let g='<defs><radialGradient id="pg" cx=".5" cy=".4" r=".85"><stop offset="0" stop-color="#eadfb8"/><stop offset="1" stop-color="#cbb78a"/></radialGradient></defs><rect width="400" height="520" fill="url(#pg)"/>';
@@ -1719,7 +1736,7 @@ function start(o={}){
   genMap(o);col={y:pick.c,f:foeColor(),w:"wild"};
   const extra=pick.x.slice();
   const P=poolNow(),rnd=(have=[])=>{let t;do t=P[Math.floor(Math.random()*P.length)];while(LIMIT1.includes(t)&&have.includes(t));return t},mine=["K","A","C",...extra],foe=["K","A","C"];foe.push(rnd(foe));foe.push(rnd(foe));
-  mods.y=pick.m;units=[];herbertMet=false;firstTurn=true;RELIC=new Set(camp.battle?camp.relics:[]);relicUsed={};
+  mods.y=pick.m;units=[];herbertMet=false;firstTurn=true;pturn=1;RELIC=new Set(camp.battle?camp.relics:[]);relicUsed={};
   if(!camp.battle&&mine.filter(t=>t==="K").length===3)unlock("campsite"); // three knights in a quick battle
   [1,3,4,6,8].forEach((x,i)=>{
     units.push({t:mine[i],team:"y",ci:i,x,y:H-1,hp:Math.min(TYPES[mine[i]].hp,camp.battle&&camp.hp&&camp.hp[i]>0?camp.hp[i]:TYPES[mine[i]].hp),moved:0,acted:0});
@@ -2006,13 +2023,23 @@ const RICON={ // small 32-unit relic icons
  mug:'<path d="M8 10h13l-1 16q-5.500 2-11 0z" fill="#c8c0aa" stroke="#1a120c" stroke-width="1.200"/><path d="M15 10h6l-1 16q-2.500 1-5 1z" fill="#000" opacity=".15"/><path d="M8 13.500h13" stroke="#2a3a5a" stroke-width="1.600"/><path d="M21 13q6 0 6 5t-6 5" fill="none" stroke="#1a120c" stroke-width="2.800"/><path d="M21 13q6 0 6 5t-6 5" fill="none" stroke="#c8c0aa" stroke-width="1.300"/><circle cx="11" cy="21" r="1.100" fill="#3a3028"/><path d="M12 7q-2-3 0-5M16 7q2-3 0-5" stroke="#9aa0aa" stroke-width="1.200" fill="none"/>',
  drills:'<path d="M10 6h8v13l6 3q2 1 2 4v2H10z" fill="#6a4a2a" stroke="#2a1a0c" stroke-width="1.200" stroke-linejoin="round"/><path d="M10 25h16" stroke="#2a1a0c" stroke-width="1"/><path d="M12 6v19" stroke="#9a7448" stroke-width="1" opacity=".7"/><path d="M10 10h8M10 13h8" stroke="#c9962a" stroke-width="1.100"/><path d="M2 12h5M3 17h5M2 22h5" stroke="#8a8f96" stroke-width="1.600" stroke-linecap="round"/>',
  salts:'<path d="M13 4h6v4h-6z" fill="#8a5a2a" stroke="#3a2412" stroke-width="1"/><path d="M12 8h8v3q4 3 4 8v6q0 3-3 3H11q-3 0-3-3v-6q0-5 4-8z" fill="#cfe8e0" fill-opacity=".75" stroke="#2a3a36" stroke-width="1.200"/><path d="M9 20q7-2 14 0v5q0 2-2 2H11q-2 0-2-2z" fill="#7ac8a8" opacity=".8"/><path d="M11 12q-1 4 0 9" stroke="#fff" stroke-width="1.100" opacity=".7" fill="none"/><path d="M19 3q2-2 1-4M23 6q3-1 3-4M14 2q-1-2 1-3" stroke="#9ad8c0" stroke-width="1.100" fill="none" opacity=".8"/>',
+ font:'<ellipse cx="16" cy="28" rx="9" ry="2" fill="rgba(0,0,0,.2)"/><path d="M11 28l2-9h6l2 9z" fill="#7a7a74" stroke="#2a2a28" stroke-width="1"/><path d="M4 13q12 5 24 0q-1 7-12 7T4 13z" fill="#8c8c86" stroke="#2a2a28" stroke-width="1.100"/><ellipse cx="16" cy="13" rx="12" ry="3" fill="#5ac8f0" stroke="#2a2a28" stroke-width="1.100"/><ellipse cx="14" cy="12.500" rx="5" ry="1" fill="#d8f6ff" opacity=".8"/><path d="M10 9q-2-3 0-6M16 8q2-4 0-7M22 9q2-3 0-5" stroke="#9ae8ff" stroke-width="1.200" fill="none" opacity=".85"/><path d="M8 18l3 1M21 19l3-1" stroke="#4f6a3a" stroke-width="1.400"/>',
  pavise:'<path d="M24 27l4 3" stroke="#4a3018" stroke-width="2" stroke-linecap="round"/><path d="M8 5q8-2 16 0v18q-8 6-16 6z" fill="#a8743a" stroke="#3a2412" stroke-width="1.200" stroke-linejoin="round"/><path d="M16 4v24" stroke="#6a4420" stroke-width="2"/><path d="M10 7q6-1.500 12 0v15q-6 4.500-12 4.500z" fill="#3a5a8a" opacity=".85"/><path d="M16 8v16M11.500 14h9" stroke="#e8dcc0" stroke-width="2.200"/><path d="M9 6v22" stroke="#d8a868" stroke-width=".9" opacity=".6"/><circle cx="12" cy="10" r=".8" fill="#2a1a0c"/><circle cx="20" cy="10" r=".8" fill="#2a1a0c"/>',
  cap:'<path d="M5 24q1-13 12-15q11-2 11 12l-3 2q-1-8-5-10q-5-1-6 6z" fill="#7a2a24" stroke="#3a1210" stroke-width="1.100"/><path d="M10 14q5 1 7 7M16 10q5 2 6 8" stroke="#c8b08a" stroke-width="1.600" fill="none" opacity=".55"/><path d="M4 23q8-4 16 0l-.5 3.500q-7.500-3.500-15 0z" fill="#b8ac90" stroke="#4a4030" stroke-width="1"/><circle cx="26" cy="24.500" r="3" fill="#e2d6bc" stroke="#6a604c" stroke-width=".9"/>'};
 const relicIcon=(id,sz=32)=>`<svg viewBox="0 0 32 32" width="${sz}" height="${sz}" aria-hidden="true">${RICON[id]}</svg>`;
 function renderGold(){$("wgold").innerHTML=PURSE+`<b aria-label="${camp.gold} gold">${camp.gold}</b>`+(camp.lastGold?`<span class="gplus" aria-hidden="true">+${camp.lastGold}</span>`:"");camp.lastGold=0}
 function renderRelics(){$("wrelics").innerHTML=camp.relics.map(id=>{const R=RELICS[id];return `<span class="rchip" style="--rc:${RARITY[R.r][1]}" title="${R.name}: ${R.desc}">${relicIcon(id,22)}${R.name}</span>`}).join("")}
 function showRelicOffer(){
-  if(!camp.offer)return;
+  if(camp.found){ // a relic picked up during the battle comes first
+    const f=camp.found,R=RELICS[f.id],[rn,rc]=RARITY[R.r];
+    $("rtitle").textContent="A Relic Found!";
+    $("relicv").querySelector(".rsub").textContent=`Deep in the murky swamp, your ${cap(NAME[f.by])} pulled something strange from the dark water. It joins your army for the rest of this campaign.`;
+    $("rchoices").innerHTML=`<button class="rcard" style="--rc:${rc}"><span class="ri">${relicIcon(f.id,38)}</span><span class="rr">${rn} \u00b7 Tap to keep it</span><b>${R.name}</b><small>${R.desc}</small></button>`;
+    $("rchoices").querySelector(".rcard").onclick=()=>{camp.found=null;saveCamp();renderRelics();showRelicOffer()};
+    $("relicv").hidden=false;$("rchoices").querySelector(".rcard").focus();return;
+  }
+  $("rtitle").textContent="Choose a Relic";$("relicv").querySelector(".rsub").textContent="Spoils of victory. It lasts for the rest of this campaign.";
+  if(!camp.offer){$("relicv").hidden=true;return}
   $("rchoices").innerHTML=camp.offer.map(id=>{const R=RELICS[id],[rn,rc]=RARITY[R.r];return `<button class="rcard" data-id="${id}" style="--rc:${rc}"><span class="ri">${relicIcon(id,38)}</span><span class="rr">${rn}</span><b>${R.name}</b><small>${R.desc}</small></button>`}).join("");
   $("rchoices").querySelectorAll(".rcard").forEach(b=>b.onclick=()=>{camp.relics.push(b.dataset.id);camp.offer=null;saveCamp();$("relicv").hidden=true;renderRelics();$("wmap").querySelector(".wn")&&renderWorld()});
   $("relicv").hidden=false;$("rchoices").querySelector(".rcard").focus();
@@ -2048,10 +2075,11 @@ const UNLOCKS=[
  {id:"graveyard",biome:"graveyard",terrain:"grave",hint:"Our encouraging friend's home."},
  {id:"drills",relic:"drills",hint:"Fall back from the long march often enough, and your troops learn to march faster."},
  {id:"salts",relic:"salts",hint:"Walk away from enough quick scraps, and someone starts packing remedies."},
+ {id:"font",relic:"font",hint:"Darker realms can hide wonderful things."},
  {id:"pavise",relic:"pavise",hint:"Those who stand in the rain of arrows learn to carry a wall."}
 ];
 // name, art and description for an unlock, read from the terrain table or the unit descriptions
-const unlockInfo=o=>o.relic?{name:RELICS[o.relic].name,art:relicIcon(o.relic,44),desc:RELICS[o.relic].desc+" A common relic that can be offered after campaign victories."}
+const unlockInfo=o=>o.relic?{name:RELICS[o.relic].name,art:relicIcon(o.relic,44),desc:RELICS[o.relic].desc+` A ${RARITY[RELICS[o.relic].r][0].toLowerCase()} relic that can be offered after campaign victories.`}
   :o.biome?{name:BIOME_NAME[o.biome],art:terrainSwatch(o.terrain),desc:BTEXT[o.biome]+" Can appear in campaigns and quick battles."}
   :o.terrain?{name:TERRAIN[o.terrain].name,art:terrainSwatch(o.terrain),desc:TERRAIN[o.terrain].desc}
   :{name:cap(NAME[o.unit]),art:hIcon(o.unit,"y"),desc:`${unitStats(o.unit)}. ${ABILITY[o.unit]} Limit one per army.`};
@@ -2070,12 +2098,12 @@ $("unl").onclick=()=>{$("mbtns").hidden=true;$("unlockview").hidden=false;unlock
 $("how").onclick=()=>{$("mbtns").hidden=true;$("rulesview").hidden=false;howView(howMain,null)};
 $("back").onclick=()=>show("menu");
 $("go").onclick=()=>{
-  if(campSetup){camp.cfg={x:pick.x.slice(),m:pick.m,c:pick.c};camp.pos=0;camp.cleared=[];camp.done=false;camp.hp=null;camp.gold=0;camp.relics=[];camp.offer=null;camp.lastGold=0;camp.kills=[];camp.region=1;camp.mapsPrior=0;camp.bossUsed={loc:[],name:[]};camp.sel=0;genWorld();saveCamp();openWorld()}
+  if(campSetup){camp.cfg={x:pick.x.slice(),m:pick.m,c:pick.c};camp.pos=0;camp.cleared=[];camp.done=false;camp.hp=null;camp.gold=0;camp.relics=[];camp.offer=null;camp.found=null;camp.lastGold=0;camp.kills=[];camp.region=1;camp.mapsPrior=0;camp.bossUsed={loc:[],name:[]};camp.sel=0;genWorld();saveCamp();openWorld()}
   else start();
 };
 $("end").onclick=()=>{
   if(over||busy||locked||!units.length||turn!=="y")return;
-  firstTurn=false;
+  firstTurn=false;pturn++;
   const n=mods.y==="REST"?rest("y"):0;
   units.forEach(u=>{if(u.team==="y")delete u.slow});
   lastMove=null;notify("You ended your turn");
