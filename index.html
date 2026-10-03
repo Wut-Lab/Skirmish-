@@ -99,7 +99,7 @@ button.b.uc .pv{width:34px;height:34px}
 .pop.miss{color:#ffe08a}
 .pop.heal{color:#8dffb0}
 .pop.slow{color:#8fc2ff}
-@keyframes pop{0%{opacity:0;transform:translate(-50%,-30%) scale(.8)}15%{opacity:1;transform:translate(-50%,-60%) scale(1.1)}100%{opacity:0;transform:translate(-50%,-170%) scale(1)}}
+@keyframes pop{0%{opacity:0;transform:translate(-50%,-30%) scale(.8)}8%{opacity:1;transform:translate(-50%,-60%) scale(1.1)}100%{opacity:0;transform:translate(-50%,-170%) scale(1)}}
 @media (prefers-reduced-motion:reduce){@keyframes pop{0%,100%{opacity:0;transform:translate(-50%,-60%)}15%,80%{opacity:1;transform:translate(-50%,-60%)}}}
 #info.empty{justify-content:center;opacity:.75}
 .nm{display:flex;justify-content:space-between;gap:8px}
@@ -314,6 +314,22 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .pop.thanks{color:#ffd68a;font-size:.95rem;font-style:italic;animation:thanks 2.3s ease-out forwards}
 @keyframes thanks{0%{opacity:0;transform:translate(-50%,-80%)}15%{opacity:1;transform:translate(-50%,-120%)}75%{opacity:1}100%{opacity:0;transform:translate(-50%,-200%)}}
 @media (prefers-reduced-motion:reduce){.gold .gplus{animation:none;opacity:0}@keyframes thanks{0%,100%{opacity:0;transform:translate(-50%,-120%)}15%,80%{opacity:1;transform:translate(-50%,-120%)}}}
+/* ---- campaign triumph ---- */
+.tpan{width:min(440px,100%)}
+.tpan .rsub{text-align:center;font-size:1.05rem}.tpan .rsub b{color:#f3d9a0}
+#tstats{width:100%;background:#f3e6c4;color:#3a2a1a;border:2px solid #1a0f07;border-radius:10px;box-shadow:inset 0 0 14px rgba(120,80,30,.25);padding:8px 12px;box-sizing:border-box}
+#tstats h3{margin:2px 0 6px;font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:#7a5a32;text-align:center}
+.trow{display:grid;grid-template-columns:30px 1fr auto;gap:10px;align-items:center;padding:4px 0;border-bottom:1px dashed rgba(90,60,30,.3)}
+.trow svg{width:30px;height:30px;display:block}.trow b{font-size:1.1rem}.trow small{opacity:.75}
+.ttot{display:flex;justify-content:space-between;gap:10px;padding-top:7px;font-weight:700}
+#therb:empty{display:none}
+#therb{display:flex;align-items:center;gap:12px;width:100%}
+#therb .hport{flex:none;width:100px;height:94px;border-radius:12px;overflow:hidden;box-shadow:0 0 0 3px #1a0f07,0 0 0 5px #7a5532}
+#therb .hport svg{width:100%;height:100%;display:block}
+#therb .cbub{flex:1;margin-top:0}#therb .cbub::before,#therb .cbub::after{display:none}
+#ttravel{justify-self:center;background:linear-gradient(#c9962a,#8a6414);color:#fff8e0;border-color:#1a0f07;box-shadow:0 3px 0 #1a0f07,inset 0 1px 0 rgba(255,255,255,.3)}
+#tnew{justify-self:center;background:#3a2616;color:#f1e4c6;border-color:#1a0f07;box-shadow:0 3px 0 #1a0f07,inset 0 1px 0 rgba(255,255,255,.25)}
+#tmenu{justify-self:center;background:#3a2616;color:#f1e4c6;border-color:#1a0f07}
 /* ---- move & attack, explosions, unlocks ---- */
 .t.mt{outline:3px dashed #fff;outline-offset:-4px}
 .t.mt::after{content:"";position:absolute;inset:30%;border-radius:50%;background:rgba(255,255,255,.8);box-shadow:0 0 0 2px rgba(0,0,0,.35);z-index:2;pointer-events:none}
@@ -340,7 +356,7 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 <div id="unlockview" hidden></div>
 </section>
 <section id="world" hidden>
-<div class="hd"><button class="b" id="wback">Menu</button><h2>World Map</h2><div class="gold" id="wgold" aria-live="polite"></div></div>
+<div class="hd"><button class="b" id="wback">Menu</button><h2 id="wtitle">World Map</h2><div class="gold" id="wgold" aria-live="polite"></div></div>
 <p class="hint" id="wprog"></p>
 <div class="stats" id="warmy" aria-label="Army health"></div>
 <div class="relics" id="wrelics" aria-label="Relics"></div>
@@ -424,6 +440,17 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 </div>
 </section>
 </main>
+<div class="ov" id="triumph" hidden>
+<div class="panel cpan tpan" role="dialog" aria-labelledby="ttitle">
+<h2 id="ttitle">Congratulations!</h2>
+<p class="rsub" id="tsub"></p>
+<div id="tstats"></div>
+<div id="therb"></div>
+<button class="b big pri" id="ttravel">Travel to New Lands</button>
+<button class="b big" id="tnew">Start a New Campaign</button>
+<button class="b big" id="tmenu">Back to Main Menu</button>
+</div>
+</div>
 <div class="ov" id="campv" hidden>
 <div class="panel cpan" role="dialog" aria-labelledby="ctitle">
 <h2 id="ctitle">Herbert's Camp</h2>
@@ -802,7 +829,7 @@ const TAG={P:"Heals",E:"Slows",T:"Musters militia",N:"+1 damage aura"}; // short
 const listAnd=a=>a.length<2?a.join(""):a.slice(0,-1).join(", ")+" and "+a[a.length-1];
 const limitNames=()=>listAnd(poolNow().split("").filter(t=>LIMIT1.includes(t)).map(t=>"the "+cap(NAME[t])));
 
-let camp={cfg:null,pos:0,cleared:[],done:false,battle:null,sel:null,hp:null,gold:0,relics:[],offer:null,lastGold:0},campSetup=false,endMode="quick",worldLock=false,choice=null,locked=false,tile=null,info=null,paused=false,gid=0,seed=0,col={y:"blue",f:"red"},insp=null,units=[],sel=null,turn="y",over=false,busy=false,mode=null,mods={y:null,f:null},tpUsed={y:0,f:0},pick={t:null,m:null};
+let camp={cfg:null,pos:0,cleared:[],done:false,battle:null,sel:null,hp:null,gold:0,relics:[],offer:null,lastGold:0,kills:[],region:1,mapsPrior:0,bossUsed:{loc:[],name:[]}},campSetup=false,endMode="quick",worldLock=false,choice=null,locked=false,tile=null,info=null,paused=false,gid=0,seed=0,col={y:"blue",f:"red"},insp=null,units=[],sel=null,turn="y",over=false,busy=false,mode=null,mods={y:null,f:null},tpUsed={y:0,f:0},pick={t:null,m:null};
 const prevPos=new WeakMap();
 const $=id=>document.getElementById(id),board=$("board");
 const d=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
@@ -892,7 +919,7 @@ function atkZone(u,spots,set,bar){
   });
 }
 function render(){
-  board.innerHTML="";board.classList.toggle("murky",MURKY);board.classList.toggle("haunted",HAUNTED);
+  board.classList.toggle("murky",MURKY);board.classList.toggle("haunted",HAUNTED);
   const mv=new Set(),tg=new Set(),ig=new Set(),ir=new Set(),pr=new Set(),hs=new Set(),bt=new Set();
   if(sel&&turn==="y"&&!over){
     if(mode==="tp")farRow("y").forEach(p=>mv.add(p+""));
@@ -917,32 +944,30 @@ function render(){
     rc.forEach(k=>ig.add(k));
     atkZone(insp,spotsOf(insp,rc),ir);
   }
+  // the whole board is built as one string and parsed once; clicks reach click() through one listener (see below)
+  let html="";
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
-    const k=x+","+y,w=WALLS.has(k),dp=DEEP.has(k),sh=SHALLOW.has(k),f=FOREST.has(k),fr=FORT.has(k),bar=BARRELS.has(k),b=document.createElement("button"),u=at(x,y);
-    b.className="t"+(bar?" brl":"")+(w?" w"+(wallMask(x,y)&1?" jn":"")+(wallMask(x,y)&4?" js":""):"")+(dp?" dp":"")+(sh?" sh":"")+(SWAMP.has(k)?" sw":"")+(f?" fo":"")+(fr?" fr":"")+(tile&&tile.x===x&&tile.y===y?" ts":"")+(ig.has(k)?" ig":"")+(ir.has(k)?" ir":"")+(pr.has(k)?" pr":"")+(mv.has(k)?" m":"")+((u&&tg.has(u))||bt.has(k)?" a":"")+(u&&tg.has(u)&&mods.y==="PUSH"&&sel&&pushable(sel,u)?" pp":"")+(u&&hs.has(u)?" hl":"")+(u&&u===choice?" ch":"")+(pd&&pd.k===k?" pd":"")+(cm&&cm.x===x&&cm.y===y?" mt":"")+(bl.has(k)?" bl":"")+(CAMPS.has(k)?" cmp":"")+(cv.has(k)?" cv":"");
-    if(pd&&pd.k===k)b.dataset.arrow=pd.a;
-    b.innerHTML='<i class="lt"></i>'+tileArt(x,y)+(fr?'<i class="tint"></i>':"")+joins(x,y); // fortress art covers its tile, so highlights go on a see-through layer above it
-    b.setAttribute("aria-label",u?(u.team==="y"?"Your ":u.team==="w"?"Wild ":"Enemy ")+NAME[u.t]+", "+u.hp+" health"+(u.slow?", slowed":""):(mv.has(k)?"Move here, ":"")+TERRAIN[terrainKey(k)].name);
+    const k=x+","+y,w=WALLS.has(k),dp=DEEP.has(k),sh=SHALLOW.has(k),f=FOREST.has(k),fr=FORT.has(k),bar=BARRELS.has(k),u=at(x,y);
+    const cls="t"+(bar?" brl":"")+(w?" w"+(wallMask(x,y)&1?" jn":"")+(wallMask(x,y)&4?" js":""):"")+(dp?" dp":"")+(sh?" sh":"")+(SWAMP.has(k)?" sw":"")+(f?" fo":"")+(fr?" fr":"")+(tile&&tile.x===x&&tile.y===y?" ts":"")+(ig.has(k)?" ig":"")+(ir.has(k)?" ir":"")+(pr.has(k)?" pr":"")+(mv.has(k)?" m":"")+((u&&tg.has(u))||bt.has(k)?" a":"")+(u&&tg.has(u)&&mods.y==="PUSH"&&sel&&pushable(sel,u)?" pp":"")+(u&&hs.has(u)?" hl":"")+(u&&u===choice?" ch":"")+(pd&&pd.k===k?" pd":"")+(cm&&cm.x===x&&cm.y===y?" mt":"")+(bl.has(k)?" bl":"")+(CAMPS.has(k)?" cmp":"")+(cv.has(k)?" cv":"");
+    const label=u?(u.team==="y"?"Your ":u.team==="w"?"Wild ":"Enemy ")+NAME[u.t]+", "+u.hp+" health"+(u.slow?", slowed":""):(mv.has(k)?"Move here, ":"")+TERRAIN[terrainKey(k)].name;
+    html+=`<button class="${cls}" data-x="${x}" data-y="${y}"${pd&&pd.k===k?` data-arrow="${pd.a}"`:""} aria-label="${label.replace(/"/g,"&quot;")}">`
+      +'<i class="lt"></i>'+tileArt(x,y)+(fr?'<i class="tint"></i>':"")+joins(x,y); // fortress art covers its tile, so highlights go on a see-through layer above it
     if(u){
-      const e=document.createElement("div");
-      e.className="u "+u.team+(spent(u)?" done":"")+(u.slow?" slow":"")+(inspired(u)?" insp":"")+(u===sel||u===insp?" sel":"");
-      if(u.spawn){e.className+=" tpin";delete u.spawn}
+      let uc="u "+u.team+(spent(u)?" done":"")+(u.slow?" slow":"")+(inspired(u)?" insp":"")+(u===sel||u===insp?" sel":""),mvs="";
+      if(u.spawn){uc+=" tpin";delete u.spawn}
       const pp=prevPos.get(u);prevPos.set(u,[x,y]);
-      if(pp&&(pp[0]!==x||pp[1]!==y)){
+      if(pp&&(pp[0]!==x||pp[1]!==y)){ // slide in from where it was last drawn (a long jump fades in instead)
         const ddx=pp[0]-x,ddy=pp[1]-y,dist=Math.abs(ddx)+Math.abs(ddy);
-        if(dist>6)e.className+=" tpin";
-        else{e.className+=" mv";e.style.setProperty("--dx",ddx*122+"%");e.style.setProperty("--dy",ddy*122+"%");e.style.setProperty("--dur",(.1+.06*dist)+"s")}
+        if(dist>6)uc+=" tpin";
+        else{uc+=" mv";mvs=`;--dx:${ddx*122}%;--dy:${ddy*122}%;--dur:${.1+.06*dist}s`}
       }
-      e.dataset.t=u.t;e.dataset.team=u.team;e.innerHTML=ICON[u.t];
-      const c=COLORS[col[u.team]];e.style.background=c[1];e.style.setProperty("--tc",c[1]);e.style.setProperty("--ic",c[2]);
-      const h=document.createElement("div");h.className="hp";
-      const hr=u.hp/TYPES[u.t].hp;
-      h.innerHTML="<i style='width:"+(100*hr)+"%;background-color:"+(hr>.5?"#5fd068":hr>.25?"#f0c33a":"#ee5a45")+"'></i>";
-      b.append(e,h);
+      const c=COLORS[col[u.team]],hr=u.hp/TYPES[u.t].hp;
+      html+=`<div class="${uc}" data-t="${u.t}" data-team="${u.team}" style="background:${c[1]};--tc:${c[1]};--ic:${c[2]}${mvs}">${ICON[u.t]}</div>`
+        +`<div class="hp"><i style="width:${100*hr}%;background-color:${hr>.5?"#5fd068":hr>.25?"#f0c33a":"#ee5a45"}"></i></div>`;
     }
-    b.onclick=()=>click(x,y);
-    board.append(b);
+    html+="</button>";
   }
+  board.innerHTML=html;
   $("end").disabled=over||busy||locked||turn!=="y"||!units.length;
   const mine=units.filter(u=>u.team==="y");
   $("end").classList.toggle("ready",!$("end").disabled&&mine.length>0&&mine.every(spent)); // nothing left to do: nudge toward End Turn
@@ -956,6 +981,7 @@ function render(){
   acts();
   buildMenu();
 }
+board.onclick=e=>{const t=e.target.closest(".t");if(t&&board.contains(t))click(+t.dataset.x,+t.dataset.y)}; // every tile, through one listener
 function renderTile(){
   const el=$("tinfo");
   if(!tile){el.className="pb empty";el.innerHTML='<div class="lbl">Terrain</div><div class="ph">Tap a tile to see its terrain.</div>';return}
@@ -992,6 +1018,13 @@ function floatText(x,y,t,miss){
   p.style.left=`calc(2px + (100% - 4px) * ${(x+.5)/W})`;p.style.top=`calc(2px + (100% - 4px) * ${(y+.5)/H})`;
   $("fx").append(p);setTimeout(()=>p.remove(),miss==="thanks"?2300:1100);
 }
+// places an action menu above the tile at t (or below it near the top edge), kept inside the board
+function menuAt(m,t){
+  const above=t.y>=4;
+  m.style.left=`clamp(72px,calc(2px + (100% - 4px) * ${(t.x+.5)/W}),calc(100% - 72px))`;
+  m.style.top=`calc(2px + (100% - 4px) * ${above?t.y/H:(t.y+1)/H})`;
+  m.style.transform=above?"translate(-50%,calc(-100% - 6px))":"translate(-50%,6px)";
+}
 function buildMenu(){
   const old=$("fx").querySelector(".pmenu");if(old)old.remove();
   if(bchoice&&sel&&!over&&turn==="y"){ // barrels: just Break and Cancel; a camp site: Visit and Cancel
@@ -1001,10 +1034,7 @@ function buildMenu(){
     else if(XBAR.has(t.x+","+t.y))opt(`<b>Detonate</b><small>${XB_DMG} damage to all nearby</small>`,()=>{bchoice=null;doBreak(sel,t)});
     else opt("<b>Break</b><small>Uses this unit's action</small>",()=>{bchoice=null;doBreak(sel,t)});
     opt("<b>Cancel</b>",()=>{bchoice=null;say("Move, attack, or pick another unit.");render()});
-    const above=t.y>=4;
-    m.style.left=`clamp(72px,calc(2px + (100% - 4px) * ${(t.x+.5)/W}),calc(100% - 72px))`;
-    m.style.top=`calc(2px + (100% - 4px) * ${above?t.y/H:(t.y+1)/H})`;
-    m.style.transform=above?"translate(-50%,calc(-100% - 6px))":"translate(-50%,6px)";
+    menuAt(m,t);
     $("fx").append(m);return;
   }
   if(!(choice&&sel&&units.includes(choice)&&!over&&turn==="y"))return;
@@ -1028,10 +1058,7 @@ function buildMenu(){
     m.style.top=`clamp(84px,calc(2px + (100% - 4px) * ${(t.y+.5)/H}),calc(100% - 84px))`;
     m.style.transform=right?"translate(0,-50%)":"translate(-100%,-50%)";
   }else{
-    const above=t.y>=4;
-    m.style.left=`clamp(72px,calc(2px + (100% - 4px) * ${(t.x+.5)/W}),calc(100% - 72px))`;
-    m.style.top=`calc(2px + (100% - 4px) * ${above?t.y/H:(t.y+1)/H})`;
-    m.style.transform=above?"translate(-50%,calc(-100% - 6px))":"translate(-50%,6px)";
+    menuAt(m,t);
   }
   $("fx").append(m);
 }
@@ -1130,7 +1157,7 @@ function boom(x,y){
   }catch(e){}
 }
 // breaks the barrel at k; exploding barrels hurt every unit around them and set off barrels in the blast. Returns barrels destroyed.
-function detonate(k0){
+function detonate(k0,by){ // by: the unit that set it off (for kill credit)
   const q=[k0],hit=[];let n=0;
   while(q.length){
     const k=q.shift();if(!BARRELS.has(k))continue;
@@ -1139,7 +1166,7 @@ function detonate(k0){
     boom(x,y);floatText(x,y,"Boom!",true);
     blastOf(k).forEach(([a,b])=>{const kk=a+","+b;if(BARRELS.has(kk))q.push(kk);const u=at(a,b);if(u)hit.push(u)});
   }
-  hit.forEach(u=>{if(units.includes(u))hurt(u,blastDmg(u))});
+  hit.forEach(u=>{if(units.includes(u)&&hurt(u,blastDmg(u)))credit(by,u)});
   return n;
 }
 // AI estimate of setting off the barrel at k: positive when it hurts your units more than the enemy's
@@ -1157,7 +1184,7 @@ function blastValue(k){
 function doBreak(a,t){
   const k=t.x+","+t.y,xb=XBAR.has(k);
   a.acted=1;a.moved=1;sel=null;insp=null;mode=null;lastMove=null;
-  const n=detonate(k);let msg=xb?"The barrel exploded!":"Smashed the barrels.";
+  const n=detonate(k,a);let msg=xb?"The barrel exploded!":"Smashed the barrels.";
   if(a.team==="y"){ // three barrels destroyed unlocks exploding barrels
     unlocks.bk=(unlocks.bk||0)+n;saveU();
     if(unlocks.bk>=3)unlock("xbarrels");
@@ -1188,18 +1215,24 @@ function hurt(u,n){
   if(u.hp>0)return false;
   units=units.filter(v=>v!==u);return true;
 }
+// a campaign kill is credited to the army slot that made it (a Captain's militia count for the Captain)
+function credit(a,v){
+  if(!camp.battle||!a||a.team!=="y"||v.team==="y")return;
+  const src=a.ci!=null?a:a.cap&&a.cap.ci!=null?a.cap:null;
+  if(src)camp.kills[src.ci]=(camp.kills[src.ci]||0)+1;
+}
 function thanks(u){later(()=>{if(units.includes(u))floatText(u.x,u.y,"Thanks Herbert","thanks")},450)} // a small, warm note that fades
 function hitFor(a,b,c,back){ // resolve one blow from a to b: dodge roll, damage, removal; true when it landed
   if(Math.random()<1-c.hit){floatText(b.x,b.y,"Evade",true);say(sent(who(b))+" evaded "+(back?"the retaliation.":"the attack."));return false}
   if(b.team==="y"&&b.t==="A"&&a.team!=="y"&&TYPES[a.t].rg>1){unlocks.ah=(unlocks.ah||0)+1;saveU();if(unlocks.ah>=10)unlock("pavise")} // archers under arrow fire learn to raise a wall
-  if(hurt(b,c.dmg))say(sent(who(a))+(back?" retaliated and destroyed ":" destroyed ")+who(b)+".");
+  if(hurt(b,c.dmg)){credit(a,b);say(sent(who(a))+(back?" retaliated and destroyed ":" destroyed ")+who(b)+".")}
   else say(sent(who(a))+(back?" retaliated against ":" hit ")+who(b)+" for "+c.dmg+" damage.");
   return true;
 }
 function applyAttack(a,b){
   const bx=b.x,by=b.y;
   if(hitFor(a,b,combat(a,b))&&a.t==="R"&&rel(a,"debris")) // Debris Shot: shrapnel hits enemies around the target
-    blastOf(bx+","+by).forEach(([x,y])=>{const v=at(x,y);if(v&&v.team!==a.team)hurt(v,DEBRIS_DMG)});
+    blastOf(bx+","+by).forEach(([x,y])=>{const v=at(x,y);if(v&&v.team!==a.team&&hurt(v,DEBRIS_DMG))credit(a,v)});
 }
 function attack(a,b,done){
   const g=gid,fin=()=>{if(done)done()};
@@ -1232,7 +1265,13 @@ function animAttack(a,b,cb){
       setTimeout(fin,800);
     }else{
       ea.animate([{transform:"translateY(-3px)"},{transform:`translate(${dx*.55}px,${dy*.55-3}px)`,offset:.45},{transform:"translateY(-3px)"}],{duration:300,easing:"ease-in-out"});
-      setTimeout(()=>burst(rb,bw),130);setTimeout(fin,300);
+      setTimeout(()=>{ // impact: the blow lands now, not after the lunge returns
+        burst(rb,bw);fin();
+        if(!ta.isConnected){ // the board was redrawn mid-lunge: let the new piece finish the return instead of snapping back
+          const nt=board.children[a.y*W+a.x],ne=nt&&nt.querySelector(".u");
+          if(ne)ne.animate([{transform:`translate(${dx*.55}px,${dy*.55-3}px)`},{transform:"translateY(-3px)"}],{duration:165,easing:"ease-in-out"});
+        }
+      },135);
     }
   }catch(e){fin()}
 }
@@ -1264,6 +1303,7 @@ function showEnd(win){
   setTimeout(()=>{
     if(g!==gid||!over)return;
     paused=false;$("pause").hidden=true;$("tguide").hidden=true;
+    if(nm&&win&&nm.type==="boss")return showTriumph(nm); // the campaign is won: a screen of its own
     $("defeat").hidden=false;$("dagain").focus();
   },900); // let the final hit play out first
 }
@@ -1278,20 +1318,21 @@ function checkEnd(){
 
 /* ---------- Enemy AI ---------- */
 // path cost from every tile to the nearest target, respecting walls; leaving a forest costs +1
+// (Dijkstra outward from the targets: stepping from tile t onto a tile n that is one closer costs t's forest exit plus n's entry)
 function distMap(srcs){
-  const D=Array.from({length:H},()=>Array(W).fill(99));
-  srcs.forEach(p=>D[p.y][p.x]=0);
-  for(let ch=true;ch;){
-    ch=false;
-    for(let y=0;y<H;y++)for(let x=0;x<W;x++){
-      if(solid(x+","+y))continue;
-      const c0=1+(FOREST.has(x+","+y)?1:0);
-      for(const[dx,dy] of DIRS){
-        const nx=x+dx,ny=y+dy;
-        if(nx<0||ny<0||nx>=W||ny>=H||solid(nx+","+ny))continue;
-        const cc=c0+(SHALLOW.has(nx+","+ny)?1:SWAMP.has(nx+","+ny)?2:0);
-        if(D[ny][nx]+cc<D[y][x]){D[y][x]=D[ny][nx]+cc;ch=true}
-      }
+  const D=Array.from({length:H},()=>Array(W).fill(99)),done=new Set(),open=[];
+  srcs.forEach(p=>{if(D[p.y][p.x]){D[p.y][p.x]=0;open.push([p.x,p.y])}});
+  while(open.length){
+    let bi=0;for(let i=1;i<open.length;i++)if(D[open[i][1]][open[i][0]]<D[open[bi][1]][open[bi][0]])bi=i;
+    const[nx,ny]=open.splice(bi,1)[0],nk=nx+","+ny;
+    if(done.has(nk))continue;done.add(nk);
+    if(solid(nk))continue; // a target standing in a wall never happens, but walls never relay a path
+    const extra=SHALLOW.has(nk)?1:SWAMP.has(nk)?2:0;
+    for(const[dx,dy] of DIRS){
+      const x=nx+dx,y=ny+dy;
+      if(x<0||y<0||x>=W||y>=H||solid(x+","+y))continue;
+      const c=D[ny][nx]+1+(FOREST.has(x+","+y)?1:0)+extra;
+      if(c<D[y][x]){D[y][x]=c;open.push([x,y])}
     }
   }
   return D;
@@ -1353,7 +1394,7 @@ function enemyTurn(note=""){
     const xb=breakables(u).filter(k=>XBAR.has(k)).map(k=>[k,blastValue(k)]).sort((a,b)=>b[1]-a[1])[0];
     if(xb&&xb[1]>=4&&xb[1]>atkV){
       const[bx,by]=pk(xb[0]);u.acted=1;
-      animAttack(u,{x:bx,y:by},()=>{detonate(xb[0]);say("Enemy "+NAME[u.t]+" set off an exploding barrel!");fin()});return;
+      animAttack(u,{x:bx,y:by},()=>{detonate(xb[0],u);say("Enemy "+NAME[u.t]+" set off an exploding barrel!");fin()});return;
     }
     const cs=[...CAMPS].find(k=>{const[x,y]=pk(k);return canBreak(u,x,y)});
     if(cs&&!ts.length&&Math.random()<.5){ // nothing to hit: sometimes wreck a camp site instead
@@ -1434,7 +1475,14 @@ const NAMES={
  swamp:["Blackwater Bog","Gloomfen","Murkmire","Rotting Hollow"],
  wetlands:["Mirewater Fen","Sodden Reach","Heron's Marsh","Drowned Meadow"],
  graveyard:["Mourner's Rest","Ashen Barrow","Lantern Crypts","Hollow Chapel"],
- boss:["Blackspire","Ironcrown Citadel","Skullcrag Fortress"]};
+ boss:["Blackspire","Ironcrown Citadel","Skullcrag Fortress","Duskhold","Ravenmoor Keep","Ashfall Citadel"]}; // boss locations
+const BOSS_NAMES=["Timwell the Troll","Cass, Obsessive Vicar","Anthony the Gold","Gorman, Dragon's Pet","Linda of Tillingsburg","Ted, the Damp Rag"]; // who holds each boss location (not shown yet)
+// draws from a list without repeating within the campaign; once every entry has been used, starts over (never the one just used)
+function fresh(list,used){
+  let pool=list.filter(v=>!used.includes(v));
+  if(!pool.length){const last=used[used.length-1];used.length=0;pool=list.filter(v=>v!==last)}
+  const v=pool[Math.floor(Math.random()*pool.length)];used.push(v);return v;
+}
 // Builds a new random map: camp at the bottom, three rows of battles, a boss at the top.
 function genWorld(){
   const R=n=>Math.floor(Math.random()*n),rr=(a,b)=>a+Math.random()*(b-a),used=new Set();
@@ -1450,7 +1498,8 @@ function genWorld(){
     }
     layers.push(ids);
   });
-  nodes.push({id:nodes.length,name:NAMES.boss[R(3)],x:Math.round(rr(140,260)),y:80,type:"boss",b:"boss",text:"The enemy stronghold. A fortress is guaranteed, and the enemy brings an extra unit."});
+  if(!camp.bossUsed)camp.bossUsed={loc:[],name:[]};
+  nodes.push({id:nodes.length,name:fresh(NAMES.boss,camp.bossUsed.loc),boss:fresh(BOSS_NAMES,camp.bossUsed.name),x:Math.round(rr(140,260)),y:80,type:"boss",b:"boss",text:"The enemy stronghold. A fortress is guaranteed, and the enemy brings an extra unit."});
   layers.push([nodes.length-1]);
   const HN=["Sunspring Glade","Quiet Hollow","Healer's Rest","Mercy Well"].sort(()=>Math.random()-.5),hl=1+R(2),pl=hl===2?[2,3]:[2+R(2)];
   pl.forEach((li,k)=>{const n=nodes[layers[li][R(layers[li].length)]];Object.assign(n,{name:HN[k],type:"heal",b:"heal",text:HEAL_TEXT,herb:!!unlocks.campsite&&Math.random()<HERB_SPOT})}); // herb: Herbert is quietly camped here
@@ -1489,8 +1538,8 @@ const guessBiome=()=>GRAVES.size?"graveyard":SWAMP.size>=10?"swamp":DEEP.size+SH
 const BIOME={forest:{forest:9},plain:{forest:2},fort:{fort:1},wild:{wild:1},boss:{fort:1,boss:1},wetlands:{water:1,forest:3,swamp:1},swamp:{swamp:3,pond:1,forest:6},graveyard:{graves:1,forest:5}};
 const adj=(a,b)=>EDGES.some(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a));
 const SAVE="skirmish-campaign";
-function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,offer:camp.offer,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
-function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],offer:d.offer||null,lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
+function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,offer:camp.offer,kills:camp.kills,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
+function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],offer:d.offer||null,kills:d.kills||[],region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
 const nest=(str,x,y,w,style="")=>str.replace(/<svg[^>]*>/,`<svg x="${x}" y="${y}" width="${w}" height="${w}" viewBox="0 0 40 40" style="${style}">`);
 function mapArt(){
   let g='<defs><radialGradient id="pg" cx=".5" cy=".4" r=".85"><stop offset="0" stop-color="#eadfb8"/><stop offset="1" stop-color="#cbb78a"/></radialGradient></defs><rect width="400" height="520" fill="url(#pg)"/>';
@@ -1544,6 +1593,7 @@ function renderWorld(){
   });
   $("warmy").innerHTML=armyTypes().map((t,i)=>{const mx=TYPES[t].hp,h=camp.hp&&camp.hp[i]!=null?camp.hp[i]:mx;return `<span class="stat">${cap(NAME[t])} <b style="color:${h<=mx*.25?"#d64b3a":"inherit"}">${h}/${mx}</b></span>`}).join("");
   const total=WORLD.filter(n=>n.type!=="camp").length;
+  $("wtitle").textContent=camp.region>1?`World Map \u00b7 Region ${camp.region}`:"World Map";
   $("wprog").textContent=camp.done?"Campaign complete! You cleared every location.":`Locations cleared: ${camp.cleared.length} of ${total}. Tap a glowing location to travel there.`;
   const n=WORLD[camp.sel],st=stOf(n),here=n.id===camp.pos,can=!here&&adj(camp.pos,n.id);
   const btn=can?(st==="cleared"?"Travel Here":n.type==="heal"?"Rest Here":"Travel to Battle"):"";
@@ -1564,7 +1614,6 @@ function travel(id){
   if(worldLock)return;
   const n=WORLD[id];worldLock=true;camp.sel=id;
   $("wm").style.transform=`translate(${n.x}px,${n.y-28}px)`;
-  const g=gid;
   setTimeout(()=>{
     worldLock=false;
     if(n.type==="heal"&&!camp.cleared.includes(id)){
@@ -1626,7 +1675,7 @@ function renderSetup(){
   // unit options
   const pu=$("pu");pu.innerHTML="";
   poolNow().split("").forEach(t=>{
-    const T=TYPES[t],n=x.filter(v=>v===t).length;
+    const n=x.filter(v=>v===t).length;
     // compact card: icon beside the text, with a short ability tag (the full ability is in How to Play and the Unit panel)
     const b=mk(pu,"b uc",`<div class="pv">${disc(t,mc)}</div><div class="uct"><div class="ucn"><strong>${cap(NAME[t])}</strong>${n?`<span class="cnt">${LIMIT1.includes(t)?"Limit 1":"\u00d7"+n}</span>`:""}</div><small>${unitStats(t)}</small>${TAG[t]?`<span class="utag">${TAG[t]}</span>`:""}</div>`,
       ()=>{if(x.length<EXTRAS)x.push(t);else x[EXTRAS-1]=t;renderSetup()},n>0);
@@ -1742,7 +1791,7 @@ const HOWTO=[
         :k==="boss"?nest(FORT_ICON[1],x-14,y-14,28)
         :`<path d="M${x-6} ${y-6}L${x+6} ${y+6}M${x+6} ${y-6}L${x-6} ${y+6}" stroke="#3b2a14" stroke-width="3" stroke-linecap="round"/>`});
     return s+"</svg>"},
-  body:()=>`<p>Travel along the paths on the world map. Each new location starts a battle, and winning clears it. Every campaign uses a new random map. Defeat the boss at the top to finish.</p><p>You choose your extra units, modifier, and color once. Your units keep their health between battles. After each win, surviving units recover ${Math.round(CAMP_HEAL*100)}% of their max health, and a unit that falls returns with 1 HP.</p><p>Each victory also earns gold, shown by the coin purse on the world map, and lets you choose one of two or three relics. Relics last for the rest of the campaign: rarer ones are stronger.</p><p>Teal wave spaces are wetlands: battles fought across lakes, ponds and rivers. One or two appear on each map. Dark reed spaces are murky swamps, thick with mud that stops units in their tracks.</p><p>One or two healing spaces (green crosses) also appear on each map. Visiting one restores 70% of each unit's health, once.</p>`},
+  body:()=>`<p>Travel along the paths on the world map. Each new location starts a battle, and winning clears it. Every campaign uses a new random map. Defeat the boss at the top to finish, or travel on to new lands: a fresh map in a new region, with your army, relics and gold carried over.</p><p>You choose your extra units, modifier, and color once. Your units keep their health between battles. After each win, surviving units recover ${Math.round(CAMP_HEAL*100)}% of their max health, and a unit that falls returns with 1 HP.</p><p>Each victory also earns gold, shown by the coin purse on the world map, and lets you choose one of two or three relics. Relics last for the rest of the campaign: rarer ones are stronger.</p><p>Teal wave spaces are wetlands: battles fought across lakes, ponds and rivers. One or two appear on each map. Dark reed spaces are murky swamps, thick with mud that stops units in their tracks.</p><p>One or two healing spaces (green crosses) also appear on each map. Visiting one restores 70% of each unit's health, once.</p>`},
  {id:"scout",title:"Scouting",art:()=>{const m=[];for(let y=0;y<7;y++){let r="";for(let x=0;x<7;x++){const d=Math.abs(x-3)+Math.abs(y-3);r+=d===0?".":d<=2?"g":d===3?"p":"."}m.push(r)}return hBoard(7,7,m,[["K","f",3,3]],38)},
   body:()=>"<p>Tap any unit to see its details, including its health. Tap an enemy to see where it can move (gray) and hit (red). Tap it again to hide.</p>"}
 ];
@@ -1826,7 +1875,6 @@ const CAMP_SET={
 CAMP_SET.heal=CAMP_SET.plain;
 function campScene(bk,meal){
   const P=CAMP_SET[bk]||CAMP_SET.plain;
-  const bone=(x1,y1,x2,y2,w)=>`<path d="M${x1} ${y1}L${x2} ${y2}" stroke="#2a241c" stroke-width="${w+1.400}" stroke-linecap="round"/><path d="M${x1} ${y1}L${x2} ${y2}" stroke="#c4b694" stroke-width="${w}" stroke-linecap="round"/>`;
   const steel=(x1,y1,x2,y2,w)=>`<path d="M${x1} ${y1}L${x2} ${y2}" stroke="#121417" stroke-width="${w+1.600}" stroke-linecap="round"/><path d="M${x1} ${y1}L${x2} ${y2}" stroke="#3e444a" stroke-width="${w}" stroke-linecap="round"/><path d="M${x1} ${y1}L${x2} ${y2}" stroke="#22262a" stroke-width="${w*.35}" stroke-linecap="round" transform="translate(${w*.2} ${w*.2})" opacity=".7"/><path d="M${x1} ${y1}L${x2} ${y2}" stroke="#9aa2aa" stroke-width="${w*.18}" stroke-linecap="round" opacity=".4" stroke-dasharray="${w*.9} ${w*.5}" transform="translate(-${w*.2} -${w*.2})"/>`;
   const stars=[[22,18],[98,14],[150,30],[214,12],[300,20],[182,52],[40,62],[126,48]].map(([x,y],i)=>`<circle class="twk" style="animation-delay:-${i*.37}s" cx="${x}" cy="${y}" r="${i%3?.8:1.200}" fill="#e8e2c8" opacity=".65"/>`).join("");
   const raven=(x,y,s)=>`<path d="M${x} ${y}q${4*s}-${3*s} ${8*s} 0q${4*s}-${3*s} ${8*s} 0q-${4*s}-${1*s} -${8*s} ${1.500*s}q-${4*s}-${2.500*s} -${8*s} -${1.500*s}z" fill="#0a0a0c"/>`;
@@ -1964,6 +2012,26 @@ function showRelicOffer(){
   $("rchoices").querySelectorAll(".rcard").forEach(b=>b.onclick=()=>{camp.relics.push(b.dataset.id);camp.offer=null;saveCamp();$("relicv").hidden=true;renderRelics();$("wmap").querySelector(".wn")&&renderWorld()});
   $("relicv").hidden=false;$("rchoices").querySelector(".rcard").focus();
 }
+/* ---------- Campaign triumph: after the boss falls ---------- */
+const battlesWon=()=>camp.cleared.filter(i=>WORLD[i]&&(WORLD[i].type==="battle"||WORLD[i].type==="boss")).length; // in this region
+const HERBERT_WIN=["You did it! I knew you would! I'm so proud I could burst... if I had anything left to burst.","A true champion! I'll be telling this story around the fire for centuries!","Conquered! Now come rest those bones. Well, your bones. Mine are always resting."];
+function showTriumph(nm){
+  const army=armyTypes(),kills=army.map((t,i)=>camp.kills[i]||0),total=kills.reduce((a,b)=>a+b,0);
+  const maps=camp.mapsPrior+battlesWon();
+  $("tsub").innerHTML=`You conquered <b>${nm.name}</b>`+(camp.region>1?` and won your ${["","","second","third","fourth","fifth"][camp.region]||camp.region+"th"} region!`:" and won the campaign!");
+  $("tstats").innerHTML='<h3>Enemies defeated</h3>'+army.map((t,i)=>`<div class="trow">${hIcon(t,"y")}<span>${cap(NAME[t])}${t==="T"&&kills[i]?" <small>(with militia)</small>":""}</span><b>${kills[i]}</b></div>`).join("")
+    +`<div class="ttot"><span>Total defeated: ${total}</span><span>Maps cleared: ${maps}</span></div>`;
+  $("therb").innerHTML=unlocks.campsite?`<div class="hport" aria-hidden="true">${campScene("plain").replace('viewBox="0 0 320 220"','viewBox="178 48 90 84" preserveAspectRatio="xMidYMid slice"')}</div><div class="cbub"><b>Herbert:</b> “${HERBERT_WIN[Math.floor(Math.random()*HERBERT_WIN.length)]}”</div>`:"";
+  $("triumph").hidden=false;$("ttravel").focus();
+}
+$("tnew").onclick=()=>{gid++;$("triumph").hidden=true;camp.battle=null;openCampSetup()};
+// keep the army, its health, relics, gold and record, and march on to a freshly rolled map
+$("ttravel").onclick=()=>{
+  gid++;$("triumph").hidden=true;camp.battle=null;
+  camp.mapsPrior+=battlesWon();camp.region+=1;camp.pos=0;camp.cleared=[];camp.done=false;camp.offer=null;camp.sel=0;
+  genWorld();saveCamp();openWorld();
+};
+$("tmenu").onclick=()=>{gid++;$("triumph").hidden=true;camp.battle=null;show("menu")};
 /* ---------- Unlocks ---------- */
 const UNLOCKS=[
  {id:"barrels",terrain:"barrels",hint:"Win two campaign battles."},
@@ -1995,7 +2063,7 @@ $("unl").onclick=()=>{$("mbtns").hidden=true;$("unlockview").hidden=false;unlock
 $("how").onclick=()=>{$("mbtns").hidden=true;$("rulesview").hidden=false;howView(howMain,null)};
 $("back").onclick=()=>show("menu");
 $("go").onclick=()=>{
-  if(campSetup){camp.cfg={x:pick.x.slice(),m:pick.m,c:pick.c};camp.pos=0;camp.cleared=[];camp.done=false;camp.hp=null;camp.gold=0;camp.relics=[];camp.offer=null;camp.lastGold=0;camp.sel=0;genWorld();saveCamp();openWorld()}
+  if(campSetup){camp.cfg={x:pick.x.slice(),m:pick.m,c:pick.c};camp.pos=0;camp.cleared=[];camp.done=false;camp.hp=null;camp.gold=0;camp.relics=[];camp.offer=null;camp.lastGold=0;camp.kills=[];camp.region=1;camp.mapsPrior=0;camp.bossUsed={loc:[],name:[]};camp.sel=0;genWorld();saveCamp();openWorld()}
   else start();
 };
 $("end").onclick=()=>{
