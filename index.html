@@ -335,7 +335,7 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .eteam button[aria-pressed=true]{background:var(--you);color:#fff;border-color:var(--you)}
 #eboard{touch-action:none;user-select:none}
 #eboard .t{cursor:crosshair}
-.estat{font-size:.85rem;margin:8px 0}.estat b.ok{color:#2f8f4e}.estat b.bad{color:var(--foe)}
+.estat{font-size:.85rem;margin:8px 0}.estat .warn{color:#b07a10;font-weight:600}.estat b.ok{color:#2f8f4e}.estat b.bad{color:var(--foe)}
 .ebtns{display:flex;flex-wrap:wrap;gap:6px}
 #ecode{width:100%;box-sizing:border-box;margin-top:8px;font:12px ui-monospace,monospace;border:2px solid var(--ink);border-radius:6px;padding:6px;background:var(--panel);color:var(--ink)}
 /* ---- campaign triumph ---- */
@@ -2140,7 +2140,10 @@ const MAPKEY=Object.fromEntries(Object.entries(MAPCH).map(([c,k])=>[k,c]));
 const CHALLENGES=[
  {id:"ford",name:"The Ford at Greywater",desc:"Enemy knights hold a fortified ford. Cross the river and break their line.",biome:"fort",mods:{y:null,f:null},
   rows:["..f....f..","...w..w...",".f......f.","....FF....","..s....s..","dddds.dddd","dddd.sdddd","..s....s..",".....f....",".f......f.","...w..w...","..f....f.."],
-  units:[["R","f",5,0],["A","f",2,1],["A","f",7,1],["K","f",4,3],["K","f",5,3],["K","y",1,11],["K","y",3,11],["A","y",4,11],["P","y",6,11],["C","y",8,11]]}
+  units:[["R","f",5,0],["A","f",2,1],["A","f",7,1],["K","f",4,3],["K","f",5,3],["K","y",1,11],["K","y",3,11],["A","y",4,11],["P","y",6,11],["C","y",8,11]]},
+ {id:"duel",name:"Dueling Fortresses",desc:"Protect your Archers!",biome:"fort",mods:{y:null,f:null},
+  rows:["FFFFFFFFFF","wwwFFFFFFF","w.w.F.F.F.","www.......","..........","..........","..........","..........",".......www",".F.F.F.w.w","FFFFFFFwww","FFFFFFFFFF"],
+  units:[["R","f",1,2],["R","y",8,9],["A","y",6,10],["A","y",4,10],["A","y",2,10],["C","y",4,11],["A","f",3,2],["K","f",0,0]]}
 ];
 let chal=null; // the fixed map being played: {def, test}
 // lays a fixed map's terrain into the board state
@@ -2150,8 +2153,8 @@ function applyMap(def){
   WALLS=S.wall;FOREST=S.forest;FORT=S.fort;DEEP=S.deep;SHALLOW=S.shallow;SWAMP=S.swamp;GRAVES=S.grave;BARRELS=S.barrels;XBAR=S.xbarrel;CAMPS=S.campsite;
   MURKY=def.biome==="swamp";HAUNTED=def.biome==="graveyard";WALLV=def.wallStyle||0;groupForts(()=>0);
 }
-// what's wrong with a map, if anything (an empty list means it's playable)
-function mapProblems(def){
+// what's wrong with a map, if anything (an empty list means it's playable); notes are warnings that don't block play
+function mapProblems(def,notes=[]){
   const out=[],y=def.units.filter(u=>u[1]==="y").length,f=def.units.filter(u=>u[1]==="f").length;
   if(!y)out.push("Place at least one of your units.");
   if(!f)out.push("Place at least one enemy unit.");
@@ -2161,7 +2164,7 @@ function mapProblems(def){
   if(open.length){
     const seen=new Set([open[0]+""]),q=[open[0]];
     while(q.length){const[x,yy]=q.pop();for(const[dx,dy] of DIRS){const nx=x+dx,ny=yy+dy,k=nx+","+ny;if(nx<0||ny<0||nx>=W||ny>=H||solid(k)||seen.has(k))continue;seen.add(k);q.push([nx,ny])}}
-    if(seen.size<open.length)out.push("Some open ground is cut off from the rest of the map.");
+    if(seen.size<open.length)notes.push("Some ground is walled off (fine for towers, but units there can't move out).");
   }
   return out;
 }
@@ -2231,8 +2234,8 @@ function edRender(){
       +(u?`<div class="u ${u[1]}" style="background:${u[1]==="w"?"#7a5a36":COLORS[col[u[1]]][1]};--tc:${u[1]==="w"?"#7a5a36":COLORS[col[u[1]]][1]};--ic:${u[1]==="w"?"#fff":COLORS[col[u[1]]][2]}">${ICON[u[0]]}</div>`:"")+"</button>";
   }
   const eb=$("eboard");eb.innerHTML=html;eb.classList.toggle("murky",MURKY);eb.classList.toggle("haunted",HAUNTED);
-  const pr=mapProblems(ed),ny=ed.units.filter(u=>u[1]==="y").length,nf=ed.units.filter(u=>u[1]==="f").length,nw=ed.units.filter(u=>u[1]==="w").length;
-  $("estat").innerHTML=`Your army: <b>${ny}</b> · Enemies: <b>${nf}</b>${nw?` · Wild: <b>${nw}</b>`:""} · `+(pr.length?`<b class="bad">${pr.join(" ")}</b>`:`<b class="ok">Ready to play</b>`);
+  const notes=[],pr=mapProblems(ed,notes),ny=ed.units.filter(u=>u[1]==="y").length,nf=ed.units.filter(u=>u[1]==="f").length,nw=ed.units.filter(u=>u[1]==="w").length;
+  $("estat").innerHTML=`Your army: <b>${ny}</b> · Enemies: <b>${nf}</b>${nw?` · Wild: <b>${nw}</b>`:""} · `+(pr.length?`<b class="bad">${pr.join(" ")}</b>`:`<b class="ok">Ready to play</b>`)+(notes.length?` <span class="warn">${notes.join(" ")}</span>`:"");
   $("etest").disabled=pr.length>0;edSave();
 }
 function edApply(x,y,drag){
