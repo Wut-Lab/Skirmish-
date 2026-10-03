@@ -892,7 +892,7 @@ function atkZone(u,spots,set,bar){
   });
 }
 function render(){
-  board.innerHTML="";board.classList.toggle("murky",MURKY);board.classList.toggle("haunted",HAUNTED);
+  board.classList.toggle("murky",MURKY);board.classList.toggle("haunted",HAUNTED);
   const mv=new Set(),tg=new Set(),ig=new Set(),ir=new Set(),pr=new Set(),hs=new Set(),bt=new Set();
   if(sel&&turn==="y"&&!over){
     if(mode==="tp")farRow("y").forEach(p=>mv.add(p+""));
@@ -917,32 +917,30 @@ function render(){
     rc.forEach(k=>ig.add(k));
     atkZone(insp,spotsOf(insp,rc),ir);
   }
+  // the whole board is built as one string and parsed once; clicks reach click() through one listener (see below)
+  let html="";
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
-    const k=x+","+y,w=WALLS.has(k),dp=DEEP.has(k),sh=SHALLOW.has(k),f=FOREST.has(k),fr=FORT.has(k),bar=BARRELS.has(k),b=document.createElement("button"),u=at(x,y);
-    b.className="t"+(bar?" brl":"")+(w?" w"+(wallMask(x,y)&1?" jn":"")+(wallMask(x,y)&4?" js":""):"")+(dp?" dp":"")+(sh?" sh":"")+(SWAMP.has(k)?" sw":"")+(f?" fo":"")+(fr?" fr":"")+(tile&&tile.x===x&&tile.y===y?" ts":"")+(ig.has(k)?" ig":"")+(ir.has(k)?" ir":"")+(pr.has(k)?" pr":"")+(mv.has(k)?" m":"")+((u&&tg.has(u))||bt.has(k)?" a":"")+(u&&tg.has(u)&&mods.y==="PUSH"&&sel&&pushable(sel,u)?" pp":"")+(u&&hs.has(u)?" hl":"")+(u&&u===choice?" ch":"")+(pd&&pd.k===k?" pd":"")+(cm&&cm.x===x&&cm.y===y?" mt":"")+(bl.has(k)?" bl":"")+(CAMPS.has(k)?" cmp":"")+(cv.has(k)?" cv":"");
-    if(pd&&pd.k===k)b.dataset.arrow=pd.a;
-    b.innerHTML='<i class="lt"></i>'+tileArt(x,y)+(fr?'<i class="tint"></i>':"")+joins(x,y); // fortress art covers its tile, so highlights go on a see-through layer above it
-    b.setAttribute("aria-label",u?(u.team==="y"?"Your ":u.team==="w"?"Wild ":"Enemy ")+NAME[u.t]+", "+u.hp+" health"+(u.slow?", slowed":""):(mv.has(k)?"Move here, ":"")+TERRAIN[terrainKey(k)].name);
+    const k=x+","+y,w=WALLS.has(k),dp=DEEP.has(k),sh=SHALLOW.has(k),f=FOREST.has(k),fr=FORT.has(k),bar=BARRELS.has(k),u=at(x,y);
+    const cls="t"+(bar?" brl":"")+(w?" w"+(wallMask(x,y)&1?" jn":"")+(wallMask(x,y)&4?" js":""):"")+(dp?" dp":"")+(sh?" sh":"")+(SWAMP.has(k)?" sw":"")+(f?" fo":"")+(fr?" fr":"")+(tile&&tile.x===x&&tile.y===y?" ts":"")+(ig.has(k)?" ig":"")+(ir.has(k)?" ir":"")+(pr.has(k)?" pr":"")+(mv.has(k)?" m":"")+((u&&tg.has(u))||bt.has(k)?" a":"")+(u&&tg.has(u)&&mods.y==="PUSH"&&sel&&pushable(sel,u)?" pp":"")+(u&&hs.has(u)?" hl":"")+(u&&u===choice?" ch":"")+(pd&&pd.k===k?" pd":"")+(cm&&cm.x===x&&cm.y===y?" mt":"")+(bl.has(k)?" bl":"")+(CAMPS.has(k)?" cmp":"")+(cv.has(k)?" cv":"");
+    const label=u?(u.team==="y"?"Your ":u.team==="w"?"Wild ":"Enemy ")+NAME[u.t]+", "+u.hp+" health"+(u.slow?", slowed":""):(mv.has(k)?"Move here, ":"")+TERRAIN[terrainKey(k)].name;
+    html+=`<button class="${cls}" data-x="${x}" data-y="${y}"${pd&&pd.k===k?` data-arrow="${pd.a}"`:""} aria-label="${label.replace(/"/g,"&quot;")}">`
+      +'<i class="lt"></i>'+tileArt(x,y)+(fr?'<i class="tint"></i>':"")+joins(x,y); // fortress art covers its tile, so highlights go on a see-through layer above it
     if(u){
-      const e=document.createElement("div");
-      e.className="u "+u.team+(spent(u)?" done":"")+(u.slow?" slow":"")+(inspired(u)?" insp":"")+(u===sel||u===insp?" sel":"");
-      if(u.spawn){e.className+=" tpin";delete u.spawn}
+      let uc="u "+u.team+(spent(u)?" done":"")+(u.slow?" slow":"")+(inspired(u)?" insp":"")+(u===sel||u===insp?" sel":""),mvs="";
+      if(u.spawn){uc+=" tpin";delete u.spawn}
       const pp=prevPos.get(u);prevPos.set(u,[x,y]);
-      if(pp&&(pp[0]!==x||pp[1]!==y)){
+      if(pp&&(pp[0]!==x||pp[1]!==y)){ // slide in from where it was last drawn (a long jump fades in instead)
         const ddx=pp[0]-x,ddy=pp[1]-y,dist=Math.abs(ddx)+Math.abs(ddy);
-        if(dist>6)e.className+=" tpin";
-        else{e.className+=" mv";e.style.setProperty("--dx",ddx*122+"%");e.style.setProperty("--dy",ddy*122+"%");e.style.setProperty("--dur",(.1+.06*dist)+"s")}
+        if(dist>6)uc+=" tpin";
+        else{uc+=" mv";mvs=`;--dx:${ddx*122}%;--dy:${ddy*122}%;--dur:${.1+.06*dist}s`}
       }
-      e.dataset.t=u.t;e.dataset.team=u.team;e.innerHTML=ICON[u.t];
-      const c=COLORS[col[u.team]];e.style.background=c[1];e.style.setProperty("--tc",c[1]);e.style.setProperty("--ic",c[2]);
-      const h=document.createElement("div");h.className="hp";
-      const hr=u.hp/TYPES[u.t].hp;
-      h.innerHTML="<i style='width:"+(100*hr)+"%;background-color:"+(hr>.5?"#5fd068":hr>.25?"#f0c33a":"#ee5a45")+"'></i>";
-      b.append(e,h);
+      const c=COLORS[col[u.team]],hr=u.hp/TYPES[u.t].hp;
+      html+=`<div class="${uc}" data-t="${u.t}" data-team="${u.team}" style="background:${c[1]};--tc:${c[1]};--ic:${c[2]}${mvs}">${ICON[u.t]}</div>`
+        +`<div class="hp"><i style="width:${100*hr}%;background-color:${hr>.5?"#5fd068":hr>.25?"#f0c33a":"#ee5a45"}"></i></div>`;
     }
-    b.onclick=()=>click(x,y);
-    board.append(b);
+    html+="</button>";
   }
+  board.innerHTML=html;
   $("end").disabled=over||busy||locked||turn!=="y"||!units.length;
   const mine=units.filter(u=>u.team==="y");
   $("end").classList.toggle("ready",!$("end").disabled&&mine.length>0&&mine.every(spent)); // nothing left to do: nudge toward End Turn
@@ -956,6 +954,7 @@ function render(){
   acts();
   buildMenu();
 }
+board.onclick=e=>{const t=e.target.closest(".t");if(t&&board.contains(t))click(+t.dataset.x,+t.dataset.y)}; // every tile, through one listener
 function renderTile(){
   const el=$("tinfo");
   if(!tile){el.className="pb empty";el.innerHTML='<div class="lbl">Terrain</div><div class="ph">Tap a tile to see its terrain.</div>';return}
@@ -992,6 +991,13 @@ function floatText(x,y,t,miss){
   p.style.left=`calc(2px + (100% - 4px) * ${(x+.5)/W})`;p.style.top=`calc(2px + (100% - 4px) * ${(y+.5)/H})`;
   $("fx").append(p);setTimeout(()=>p.remove(),miss==="thanks"?2300:1100);
 }
+// places an action menu above the tile at t (or below it near the top edge), kept inside the board
+function menuAt(m,t){
+  const above=t.y>=4;
+  m.style.left=`clamp(72px,calc(2px + (100% - 4px) * ${(t.x+.5)/W}),calc(100% - 72px))`;
+  m.style.top=`calc(2px + (100% - 4px) * ${above?t.y/H:(t.y+1)/H})`;
+  m.style.transform=above?"translate(-50%,calc(-100% - 6px))":"translate(-50%,6px)";
+}
 function buildMenu(){
   const old=$("fx").querySelector(".pmenu");if(old)old.remove();
   if(bchoice&&sel&&!over&&turn==="y"){ // barrels: just Break and Cancel; a camp site: Visit and Cancel
@@ -1001,10 +1007,7 @@ function buildMenu(){
     else if(XBAR.has(t.x+","+t.y))opt(`<b>Detonate</b><small>${XB_DMG} damage to all nearby</small>`,()=>{bchoice=null;doBreak(sel,t)});
     else opt("<b>Break</b><small>Uses this unit's action</small>",()=>{bchoice=null;doBreak(sel,t)});
     opt("<b>Cancel</b>",()=>{bchoice=null;say("Move, attack, or pick another unit.");render()});
-    const above=t.y>=4;
-    m.style.left=`clamp(72px,calc(2px + (100% - 4px) * ${(t.x+.5)/W}),calc(100% - 72px))`;
-    m.style.top=`calc(2px + (100% - 4px) * ${above?t.y/H:(t.y+1)/H})`;
-    m.style.transform=above?"translate(-50%,calc(-100% - 6px))":"translate(-50%,6px)";
+    menuAt(m,t);
     $("fx").append(m);return;
   }
   if(!(choice&&sel&&units.includes(choice)&&!over&&turn==="y"))return;
@@ -1028,10 +1031,7 @@ function buildMenu(){
     m.style.top=`clamp(84px,calc(2px + (100% - 4px) * ${(t.y+.5)/H}),calc(100% - 84px))`;
     m.style.transform=right?"translate(0,-50%)":"translate(-100%,-50%)";
   }else{
-    const above=t.y>=4;
-    m.style.left=`clamp(72px,calc(2px + (100% - 4px) * ${(t.x+.5)/W}),calc(100% - 72px))`;
-    m.style.top=`calc(2px + (100% - 4px) * ${above?t.y/H:(t.y+1)/H})`;
-    m.style.transform=above?"translate(-50%,calc(-100% - 6px))":"translate(-50%,6px)";
+    menuAt(m,t);
   }
   $("fx").append(m);
 }
@@ -1278,20 +1278,21 @@ function checkEnd(){
 
 /* ---------- Enemy AI ---------- */
 // path cost from every tile to the nearest target, respecting walls; leaving a forest costs +1
+// (Dijkstra outward from the targets: stepping from tile t onto a tile n that is one closer costs t's forest exit plus n's entry)
 function distMap(srcs){
-  const D=Array.from({length:H},()=>Array(W).fill(99));
-  srcs.forEach(p=>D[p.y][p.x]=0);
-  for(let ch=true;ch;){
-    ch=false;
-    for(let y=0;y<H;y++)for(let x=0;x<W;x++){
-      if(solid(x+","+y))continue;
-      const c0=1+(FOREST.has(x+","+y)?1:0);
-      for(const[dx,dy] of DIRS){
-        const nx=x+dx,ny=y+dy;
-        if(nx<0||ny<0||nx>=W||ny>=H||solid(nx+","+ny))continue;
-        const cc=c0+(SHALLOW.has(nx+","+ny)?1:SWAMP.has(nx+","+ny)?2:0);
-        if(D[ny][nx]+cc<D[y][x]){D[y][x]=D[ny][nx]+cc;ch=true}
-      }
+  const D=Array.from({length:H},()=>Array(W).fill(99)),done=new Set(),open=[];
+  srcs.forEach(p=>{if(D[p.y][p.x]){D[p.y][p.x]=0;open.push([p.x,p.y])}});
+  while(open.length){
+    let bi=0;for(let i=1;i<open.length;i++)if(D[open[i][1]][open[i][0]]<D[open[bi][1]][open[bi][0]])bi=i;
+    const[nx,ny]=open.splice(bi,1)[0],nk=nx+","+ny;
+    if(done.has(nk))continue;done.add(nk);
+    if(solid(nk))continue; // a target standing in a wall never happens, but walls never relay a path
+    const extra=SHALLOW.has(nk)?1:SWAMP.has(nk)?2:0;
+    for(const[dx,dy] of DIRS){
+      const x=nx+dx,y=ny+dy;
+      if(x<0||y<0||x>=W||y>=H||solid(x+","+y))continue;
+      const c=D[ny][nx]+1+(FOREST.has(x+","+y)?1:0)+extra;
+      if(c<D[y][x]){D[y][x]=c;open.push([x,y])}
     }
   }
   return D;
@@ -1564,7 +1565,6 @@ function travel(id){
   if(worldLock)return;
   const n=WORLD[id];worldLock=true;camp.sel=id;
   $("wm").style.transform=`translate(${n.x}px,${n.y-28}px)`;
-  const g=gid;
   setTimeout(()=>{
     worldLock=false;
     if(n.type==="heal"&&!camp.cleared.includes(id)){
@@ -1626,7 +1626,7 @@ function renderSetup(){
   // unit options
   const pu=$("pu");pu.innerHTML="";
   poolNow().split("").forEach(t=>{
-    const T=TYPES[t],n=x.filter(v=>v===t).length;
+    const n=x.filter(v=>v===t).length;
     // compact card: icon beside the text, with a short ability tag (the full ability is in How to Play and the Unit panel)
     const b=mk(pu,"b uc",`<div class="pv">${disc(t,mc)}</div><div class="uct"><div class="ucn"><strong>${cap(NAME[t])}</strong>${n?`<span class="cnt">${LIMIT1.includes(t)?"Limit 1":"\u00d7"+n}</span>`:""}</div><small>${unitStats(t)}</small>${TAG[t]?`<span class="utag">${TAG[t]}</span>`:""}</div>`,
       ()=>{if(x.length<EXTRAS)x.push(t);else x[EXTRAS-1]=t;renderSetup()},n>0);
@@ -1826,7 +1826,6 @@ const CAMP_SET={
 CAMP_SET.heal=CAMP_SET.plain;
 function campScene(bk,meal){
   const P=CAMP_SET[bk]||CAMP_SET.plain;
-  const bone=(x1,y1,x2,y2,w)=>`<path d="M${x1} ${y1}L${x2} ${y2}" stroke="#2a241c" stroke-width="${w+1.400}" stroke-linecap="round"/><path d="M${x1} ${y1}L${x2} ${y2}" stroke="#c4b694" stroke-width="${w}" stroke-linecap="round"/>`;
   const steel=(x1,y1,x2,y2,w)=>`<path d="M${x1} ${y1}L${x2} ${y2}" stroke="#121417" stroke-width="${w+1.600}" stroke-linecap="round"/><path d="M${x1} ${y1}L${x2} ${y2}" stroke="#3e444a" stroke-width="${w}" stroke-linecap="round"/><path d="M${x1} ${y1}L${x2} ${y2}" stroke="#22262a" stroke-width="${w*.35}" stroke-linecap="round" transform="translate(${w*.2} ${w*.2})" opacity=".7"/><path d="M${x1} ${y1}L${x2} ${y2}" stroke="#9aa2aa" stroke-width="${w*.18}" stroke-linecap="round" opacity=".4" stroke-dasharray="${w*.9} ${w*.5}" transform="translate(-${w*.2} -${w*.2})"/>`;
   const stars=[[22,18],[98,14],[150,30],[214,12],[300,20],[182,52],[40,62],[126,48]].map(([x,y],i)=>`<circle class="twk" style="animation-delay:-${i*.37}s" cx="${x}" cy="${y}" r="${i%3?.8:1.200}" fill="#e8e2c8" opacity=".65"/>`).join("");
   const raven=(x,y,s)=>`<path d="M${x} ${y}q${4*s}-${3*s} ${8*s} 0q${4*s}-${3*s} ${8*s} 0q-${4*s}-${1*s} -${8*s} ${1.500*s}q-${4*s}-${2.500*s} -${8*s} -${1.500*s}z" fill="#0a0a0c"/>`;
