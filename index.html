@@ -264,6 +264,24 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 #board{background:#3a2e21;box-shadow:0 0 0 4px #6b5238,0 0 0 5px #2f2418,0 10px 0 rgba(0,0,0,.32),0 18px 30px rgba(0,0,0,.32)}
 .hp{height:5px;background:rgba(0,0,0,.55);border-radius:3px;box-shadow:0 0 0 1px rgba(0,0,0,.25)}
 .hp i{border-radius:3px;background-image:linear-gradient(rgba(255,255,255,.45),rgba(255,255,255,0) 75%)}
+/* ---- Herbert's camp ---- */
+.cpan{width:min(440px,100%);justify-items:center}
+#cscene{width:100%;border-radius:10px;overflow:hidden;box-shadow:0 0 0 2px var(--ink)}
+#cscene svg{display:block;width:100%;height:auto}
+.cbub{position:relative;background:#fff8e6;color:#3a2a1a;border:2px solid #6b4a26;border-radius:14px;padding:10px 14px;font-weight:600;text-align:center;line-height:1.35;margin-top:6px}
+.cbub::before{content:"";position:absolute;top:-10px;left:62%;border:8px solid transparent;border-bottom-color:#6b4a26;border-top:0}
+.cbub::after{content:"";position:absolute;top:-7px;left:calc(62% + 2px);border:6px solid transparent;border-bottom-color:#fff8e6;border-top:0}
+#cleave{justify-self:center}
+.t.cmp{cursor:pointer}
+.t.cv::after{content:"";position:absolute;inset:6%;border:3px solid #ffd76a;border-radius:50%;z-index:2;pointer-events:none;animation:ring 1.2s ease-in-out infinite}
+.flk{transform-box:fill-box;transform-origin:50% 100%;animation:flk .9s ease-in-out infinite alternate}
+.flk2{animation-duration:.7s;animation-delay:-.3s}
+.thumb{transform-box:fill-box;transform-origin:50% 100%;animation:thumb 1.6s ease-in-out infinite}
+.twk{animation:twk 2.4s ease-in-out infinite}
+@keyframes flk{0%{transform:scale(1,1)}100%{transform:scale(.88,1.12) skewX(-3deg)}}
+@keyframes thumb{0%,60%,100%{transform:rotate(0)}70%{transform:rotate(-8deg)}80%{transform:rotate(6deg)}90%{transform:rotate(-3deg)}}
+@keyframes twk{0%,100%{opacity:.9}50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.flk,.thumb,.twk{animation:none}}
 /* ---- move & attack, explosions, unlocks ---- */
 .t.mt{outline:3px dashed #fff;outline-offset:-4px}
 .t.mt::after{content:"";position:absolute;inset:30%;border-radius:50%;background:rgba(255,255,255,.8);box-shadow:0 0 0 2px rgba(0,0,0,.35);z-index:2;pointer-events:none}
@@ -330,6 +348,14 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 <div id="info" class="pb empty"></div>
 <div class="bar" id="acts"></div>
 <div class="foot"><button class="b big" id="tomenu">Menu</button></div>
+<div class="ov" id="campv" hidden>
+<div class="panel cpan" role="dialog" aria-labelledby="ctitle">
+<h2 id="ctitle">Herbert's Camp</h2>
+<div id="cscene"></div>
+<div class="cbub" id="cline" aria-live="polite"></div>
+<button class="b big pri" id="cleave">Thank Herbert and Leave Camp</button>
+</div>
+</div>
 <div class="ov" id="tguide" hidden>
 <div class="panel" role="dialog" aria-label="Terrain guide">
 <h2>Terrain Guide</h2>
@@ -397,9 +423,9 @@ function discover(){ // a short "New Discovery!" banner that fades away on whate
   document.body.append(d);setTimeout(()=>d.remove(),3000);
 }
 const XB_DMG=4; // exploding barrel damage
-let BARRELS=new Set(),XBAR=new Set(),bchoice=null,choiceMv=null,lastMove=null; // XBAR: the barrels that explode
+let BARRELS=new Set(),XBAR=new Set(),CAMPS=new Set(),bchoice=null,choiceMv=null,lastMove=null; // XBAR: the barrels that explode
 let WALLV=0,FORTV=new Map(),FORTK=new Set(); // one wall style per map; each connected fortress group shares one style; FORTK: the tile holding each fortress's keep
-const solid=k=>WALLS.has(k)||DEEP.has(k)||BARRELS.has(k);
+const solid=k=>WALLS.has(k)||DEEP.has(k)||BARRELS.has(k)||CAMPS.has(k);
 // Random terrain, mirrored through the map centre so both sides are fair. Start rows stay clear.
 function genMap(o={}){
   seed=Math.floor(Math.random()*1e5);
@@ -488,17 +514,22 @@ function genMap(o={}){
     }
     const xbars=new Set(); // exploding barrels (unlockable): each barrel has a 25% chance
     if(unlocks.xbarrels)bars.forEach(k=>{if(Math.random()<.25)xbars.add(k)});
+    const camps=new Set(); // mysterious camp site (unlockable): a quarter of maps get one, somewhere in the middle with open ground beside it
+    if(unlocks.campsite&&Math.random()<.25)for(let t=0;t<60&&!camps.size;t++){
+      const x=R(W),y=4+R(H-8),ok=(a,b)=>a>=0&&a<W&&!walls.has(K(a,b))&&!fort.has(K(a,b))&&!swamp.has(K(a,b))&&!bars.has(K(a,b))&&!deep.has(K(a,b));
+      if(ok(x,y)&&!forest.has(K(x,y))&&!shal.has(K(x,y))&&DIRS.filter(([dx,dy])=>ok(x+dx,y+dy)).length>=3)camps.add(K(x,y));
+    }
     const seen=new Set(["0,0"]),q=[[0,0]];
     while(q.length){
       const[x,y]=q.pop();
       for(const[dx,dy] of DIRS){
         const nx=x+dx,ny=y+dy,k=nx+","+ny;
-        if(nx<0||ny<0||nx>=W||ny>=H||walls.has(k)||deep.has(k)||bars.has(k)||seen.has(k))continue;
+        if(nx<0||ny<0||nx>=W||ny>=H||walls.has(k)||deep.has(k)||bars.has(k)||camps.has(k)||seen.has(k))continue;
         seen.add(k);q.push([nx,ny]);
       }
     }
-    if(seen.size===W*H-walls.size-deep.size-bars.size){
-      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;SWAMP=swamp;MURKY=o.swamp>=3;BARRELS=bars;XBAR=xbars;WALLV=R(4);FORTV=new Map();FORTK=new Set();
+    if(seen.size===W*H-walls.size-deep.size-bars.size-camps.size){
+      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;SWAMP=swamp;MURKY=o.swamp>=3;BARRELS=bars;XBAR=xbars;CAMPS=camps;WALLV=R(4);FORTV=new Map();FORTK=new Set();
       for(const k0 of fort){
         if(FORTV.has(k0))continue;
         const v=R(2),st=[k0];FORTV.set(k0,v);FORTK.add(k0);
@@ -545,6 +576,13 @@ const SW_V=[
  svg(mud(24,30,10,10)+muck(9,10,5,3,J1)+muck(31,14,5,3,J2)+muck(14,33,6,3.2,J3)+log(21,22)+sTuft(33,33)+sTuft(5,23)+brokenReed(26,37)+bubbles(30,13)+ripple(14,34,2.4)+mist(16,4,18))];
 const BAR_A='<ellipse cx="20" cy="35" rx="17" ry="3" fill="rgba(0,0,0,.18)"/><path d="M5 17c0-3 3.500-4.500 6.500-4.500S18 14 18 17v13c0 3-3.500 4.500-6.500 4.500S5 33 5 30z" fill="#9a6b3a" stroke="#4a2f14" stroke-width="1.6"/><path d="M5 20.500c3 2 10 2 13 0M5 27c3 2 10 2 13 0" fill="none" stroke="#4a2f14" stroke-width="1.5"/><ellipse cx="11.500" cy="13" rx="6.500" ry="2.600" fill="#c08c52" stroke="#4a2f14" stroke-width="1.5"/><rect x="19" y="21" width="17" height="14" fill="#c9a064" stroke="#4a2f14" stroke-width="1.6"/><path d="M19 21l17 14M36 21L19 35" stroke="#7a5a2c" stroke-width="1.6"/><path d="M21 10c0-2.500 3-3.800 5.500-3.800s5.500 1.300 5.500 3.800v9c0 2.500-3 3.800-5.500 3.800S21 21.500 21 19z" fill="#8a5c30" stroke="#4a2f14" stroke-width="1.6"/><ellipse cx="26.500" cy="10" rx="5.500" ry="2.200" fill="#b98448" stroke="#4a2f14" stroke-width="1.4"/><path d="M21 14c2.500 1.800 8.500 1.800 11 0" fill="none" stroke="#4a2f14" stroke-width="1.4"/>';
 const BAR_V=[svg(BAR_A),svg(`<g transform="translate(40 0) scale(-1 1)">${BAR_A}</g>`)];
+// mysterious camp site: a little tent and a campfire with an eerie green glow
+const CAMP_V=svg('<defs><radialGradient id="cg" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffcf5a" stop-opacity=".55"/><stop offset=".55" stop-color="#7dffb0" stop-opacity=".16"/><stop offset="1" stop-color="#7dffb0" stop-opacity="0"/></radialGradient></defs>'
+ +'<circle cx="26" cy="27" r="15" fill="url(#cg)"/><ellipse cx="14" cy="31" rx="11" ry="2.4" fill="rgba(0,0,0,.22)"/>'
+ +'<path d="M3 31L13 9L24 31z" fill="#c9a46a" stroke="#5a3d24" stroke-width="1.2" stroke-linejoin="round"/><path d="M13 9L24 31H18z" fill="rgba(0,0,0,.16)"/><path d="M13 17L9.500 31H16.500z" fill="#3a2614"/><path d="M13 21L11 31H15z" fill="#ffb347" opacity=".75"/>'
+ +'<path d="M20 34L33 30M20 30L33 34" stroke="#5a3d24" stroke-width="2.6" stroke-linecap="round"/>'
+ +'<path class="flk" d="M26.500 31c-4-1.500-4-6 0-11c1 3 4 4 3 8c-.5 2-1.500 3-3 3z" fill="#ff8a2a"/><path class="flk" d="M26.500 31c-2-1-2-3.500 0-6c.8 2 2.300 2.500 1.700 4.500c-.3 1-.8 1.500-1.700 1.500z" fill="#ffe27a"/>'
+ +'<circle cx="33" cy="12" r="1.600" fill="#9dffc4" opacity=".85"/><circle cx="35.500" cy="17" r="1" fill="#9dffc4" opacity=".6"/><circle cx="30" cy="8" r=".8" fill="#9dffc4" opacity=".5"/>');
 const XBAR_V=svg('<ellipse cx="20" cy="36" rx="13" ry="2.6" fill="rgba(0,0,0,.22)"/><path d="M9 10c0-3 5-4.500 11-4.500S31 7 31 10v22c0 3-5 4.500-11 4.500S9 35 9 32z" fill="#c8372d" stroke="#4a1410" stroke-width="1.6"/><path d="M9 14.500c4 2.400 18 2.400 22 0M9 28.500c4 2.400 18 2.400 22 0" fill="none" stroke="#4a1410" stroke-width="1.5"/><ellipse cx="20" cy="10" rx="11" ry="3.400" fill="#e0574a" stroke="#4a1410" stroke-width="1.5"/><path d="M20 16.500l6.500 10.500h-13z" fill="#f2c230" stroke="#2b2200" stroke-width="1.2" stroke-linejoin="round"/><path d="M20 19.500v3.800" stroke="#2b2200" stroke-width="1.7" stroke-linecap="round"/><circle cx="20" cy="25.200" r="1" fill="#2b2200"/><path d="M14 9.500q2-1.200 4 0" stroke="rgba(255,255,255,.5)" stroke-width="1.3" fill="none"/>');
 const tv=(x,y,n,k=0)=>((((x+k)*73856093)^((y+k*3)*19349663)^(seed*83492791))>>>0)%n;
 const tuft=(a,b)=>`<path d="M${a} ${b}l-2.5-5M${a} ${b}l0-6.5M${a} ${b}l2.5-5"/>`;
@@ -642,14 +680,15 @@ const TERRAIN={
  shallow:{name:"Shallow Water",bg:"background:var(--sh,#86c4dc)",art:()=>SH_V,desc:"Entering it costs 1 extra movement. Often found around deep water, and sometimes as a ford across a river."},
  deep:{name:"Deep Water",bg:"background:var(--dp,#2f6f9c)",art:()=>DP_V,desc:"Impassable. Units can't enter or cross it, but attacks can pass over it. Forms lakes, ponds and rivers."},
  barrels:{name:"Barrels",bg:"",art:()=>BAR_V,unlock:"barrels",desc:"Impassable. A unit in range can spend its action to break them. Found next to fortresses."},
+ campsite:{name:"Mysterious Camp Site",bg:"",art:()=>[CAMP_V],unlock:"campsite",desc:"Impassable. A unit standing next to it can visit the camp. Enemy units may break it."},
  xbarrel:{name:"Exploding Barrel",bg:"",art:()=>[XBAR_V],unlock:"xbarrels",desc:`Impassable. Breaking it deals ${XB_DMG} damage to every unit on the 8 tiles around it and sets off barrels in the blast. Each barrel has a 25% chance to be one.`},
  wall:{name:"Wall",bg:"background:var(--wall)",art:()=>[0,1,2,3].map(v=>wallArt(v,0)),desc:"Impassable. Units can't enter or cross it, but attacks can pass over it."},
  fort:{name:"Fortress",bg:FR,art:()=>[fortArt(0,0,true),fortArt(0,1,true)],desc:"Uncommon. A unit standing on one gets +1 armor."}};
-const terrainKey=k=>BARRELS.has(k)?(XBAR.has(k)?"xbarrel":"barrels"):WALLS.has(k)?"wall":DEEP.has(k)?"deep":SHALLOW.has(k)?"shallow":SWAMP.has(k)?"swamp":FOREST.has(k)?"forest":FORT.has(k)?"fort":"ground";
+const terrainKey=k=>CAMPS.has(k)?"campsite":BARRELS.has(k)?(XBAR.has(k)?"xbarrel":"barrels"):WALLS.has(k)?"wall":DEEP.has(k)?"deep":SHALLOW.has(k)?"shallow":SWAMP.has(k)?"swamp":FOREST.has(k)?"forest":FORT.has(k)?"fort":"ground";
 function tileArt(x,y){ // the art for one board tile, picking a stable variant per tile
   const k=x+","+y;
   switch(terrainKey(k)){
-    case "xbarrel":return XBAR_V;case "barrels":return BAR_V[tv(x,y,2,19)];case "wall":return wallArt(WALLV,wallMask(x,y));
+    case "campsite":return CAMP_V;case "xbarrel":return XBAR_V;case "barrels":return BAR_V[tv(x,y,2,19)];case "wall":return wallArt(WALLV,wallMask(x,y));
     case "deep":return DP_V[tv(x,y,3,13)];case "shallow":return SH_V[tv(x,y,3,15)];case "swamp":return SW_V[tv(x,y,4,21)];case "forest":return FOREST_V[tv(x,y,4,9)];
     case "fort":return fortArt(fortMask(x,y),FORTV.get(k)||0,FORTK.has(k));default:return ground(x,y);
   }
@@ -765,6 +804,8 @@ function render(){
       if(!sel.acted){breakables(sel).forEach(k=>bt.add(k));atkZone(sel,spotsOf(sel,rc),pr,true);targets(sel).forEach(b=>tg.add(b));healTargets(sel).forEach(b=>hs.add(b));if(mods.y==="PUSH")units.filter(b=>b.team==="y"&&pushable(sel,b)).forEach(b=>tg.add(b))}
     }
   }
+  const cv=new Set(); // camp sites the selected unit stands next to
+  if(sel&&turn==="y"&&!over&&!mode)CAMPS.forEach(k=>{const[x,y]=pk(k);if(d(sel,{x,y})===1)cv.add(k)});
   const cm=pendingMove(),bl=new Set();
   if(bchoice&&XBAR.has(bchoice.x+","+bchoice.y))blastOf(bchoice.x+","+bchoice.y).forEach(([a,b])=>bl.add(a+","+b));
   let pd=null;
@@ -779,7 +820,7 @@ function render(){
   }
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     const k=x+","+y,w=WALLS.has(k),dp=DEEP.has(k),sh=SHALLOW.has(k),f=FOREST.has(k),fr=FORT.has(k),bar=BARRELS.has(k),b=document.createElement("button"),u=at(x,y);
-    b.className="t"+(bar?" brl":"")+(w?" w"+(wallMask(x,y)&1?" jn":"")+(wallMask(x,y)&4?" js":""):"")+(dp?" dp":"")+(sh?" sh":"")+(SWAMP.has(k)?" sw":"")+(f?" fo":"")+(fr?" fr":"")+(tile&&tile.x===x&&tile.y===y?" ts":"")+(ig.has(k)?" ig":"")+(ir.has(k)?" ir":"")+(pr.has(k)?" pr":"")+(mv.has(k)?" m":"")+((u&&tg.has(u))||bt.has(k)?" a":"")+(u&&tg.has(u)&&mods.y==="PUSH"&&sel&&pushable(sel,u)?" pp":"")+(u&&hs.has(u)?" hl":"")+(u&&u===choice?" ch":"")+(pd&&pd.k===k?" pd":"")+(cm&&cm.x===x&&cm.y===y?" mt":"")+(bl.has(k)?" bl":"");
+    b.className="t"+(bar?" brl":"")+(w?" w"+(wallMask(x,y)&1?" jn":"")+(wallMask(x,y)&4?" js":""):"")+(dp?" dp":"")+(sh?" sh":"")+(SWAMP.has(k)?" sw":"")+(f?" fo":"")+(fr?" fr":"")+(tile&&tile.x===x&&tile.y===y?" ts":"")+(ig.has(k)?" ig":"")+(ir.has(k)?" ir":"")+(pr.has(k)?" pr":"")+(mv.has(k)?" m":"")+((u&&tg.has(u))||bt.has(k)?" a":"")+(u&&tg.has(u)&&mods.y==="PUSH"&&sel&&pushable(sel,u)?" pp":"")+(u&&hs.has(u)?" hl":"")+(u&&u===choice?" ch":"")+(pd&&pd.k===k?" pd":"")+(cm&&cm.x===x&&cm.y===y?" mt":"")+(bl.has(k)?" bl":"")+(CAMPS.has(k)?" cmp":"")+(cv.has(k)?" cv":"");
     if(pd&&pd.k===k)b.dataset.arrow=pd.a;
     b.innerHTML='<i class="lt"></i>'+tileArt(x,y)+(fr?'<i class="tint"></i>':"")+joins(x,y); // fortress art covers its tile, so highlights go on a see-through layer above it
     b.setAttribute("aria-label",u?(u.team==="y"?"Your ":u.team==="w"?"Wild ":"Enemy ")+NAME[u.t]+", "+u.hp+" health"+(u.slow?", slowed":""):(mv.has(k)?"Move here, ":"")+TERRAIN[terrainKey(k)].name);
@@ -852,10 +893,11 @@ function floatText(x,y,t,miss){
 }
 function buildMenu(){
   const old=$("fx").querySelector(".pmenu");if(old)old.remove();
-  if(bchoice&&sel&&!over&&turn==="y"){ // barrels: just Break and Cancel
+  if(bchoice&&sel&&!over&&turn==="y"){ // barrels: just Break and Cancel; a camp site: Visit and Cancel
     const t=bchoice,m=document.createElement("div");m.className="pmenu";
     const opt=(html,fn)=>{const b=document.createElement("button");b.innerHTML=html;b.onclick=fn;m.append(b)};
-    if(XBAR.has(t.x+","+t.y))opt(`<b>Detonate</b><small>${XB_DMG} damage to all nearby</small>`,()=>{bchoice=null;doBreak(sel,t)});
+    if(t.camp)opt("<b>Visit</b><small>Doesn't use an action</small>",()=>{bchoice=null;render();visitCamp()});
+    else if(XBAR.has(t.x+","+t.y))opt(`<b>Detonate</b><small>${XB_DMG} damage to all nearby</small>`,()=>{bchoice=null;doBreak(sel,t)});
     else opt("<b>Break</b><small>Uses this unit's action</small>",()=>{bchoice=null;doBreak(sel,t)});
     opt("<b>Cancel</b>",()=>{bchoice=null;say("Move, attack, or pick another unit.");render()});
     const above=t.y>=4;
@@ -936,6 +978,7 @@ function click(x,y){
   bchoice=null;choiceMv=null;
   tile={x,y};
   if(over||busy||turn!=="y"||!units.length)return render();
+  if(CAMPS.has(x+","+y)&&sel&&!mode&&d(sel,{x,y})===1){bchoice={x,y,camp:1};say("Choose an action next to the camp site.");return render()}
   if(BARRELS.has(x+","+y)&&sel&&!mode&&!sel.acted&&canBreak(sel,x,y)){bchoice={x,y};say("Choose an action next to the barrels.");return render()}
   if(solid(x+","+y))return render();
   const u=at(x,y);
@@ -1193,6 +1236,11 @@ function enemyTurn(note=""){
     if(xb&&xb[1]>=4&&xb[1]>atkV){
       const[bx,by]=pk(xb[0]);u.acted=1;
       animAttack(u,{x:bx,y:by},()=>{detonate(xb[0]);say("Enemy "+NAME[u.t]+" set off an exploding barrel!");fin()});return;
+    }
+    const cs=[...CAMPS].find(k=>{const[x,y]=pk(k);return canBreak(u,x,y)});
+    if(cs&&!ts.length&&Math.random()<.5){ // nothing to hit: sometimes wreck a camp site instead
+      const[cx,cy]=pk(cs);u.acted=1;
+      animAttack(u,{x:cx,y:cy},()=>{CAMPS.delete(cs);floatText(cx,cy,"Broken");say("Enemy "+NAME[u.t]+" wrecked the camp site.");fin()});return;
     }
     if(u.t==="E"&&ts.length&&!ts.some(p=>dmgTo(u,p)>=p.hp)){
       const sl=ts.filter(p=>!p.slow&&mvOf(p)>1).sort((a,b)=>TYPES[b.t].dmg-TYPES[a.t].dmg||TYPES[b.t].mv-TYPES[a.t].mv)[0];
@@ -1494,6 +1542,7 @@ function start(o={}){
   const extra=pick.x.slice();
   const P=poolNow(),rnd=(have=[])=>{let t;do t=P[Math.floor(Math.random()*P.length)];while(LIMIT1.includes(t)&&have.includes(t));return t},mine=["K","A","C",...extra],foe=["K","A","C"];foe.push(rnd(foe));foe.push(rnd(foe));
   mods.y=pick.m;units=[];
+  if(!camp.battle&&mine.filter(t=>t==="K").length===3)unlock("campsite"); // three knights in a quick battle
   [1,3,4,6,8].forEach((x,i)=>{
     units.push({t:mine[i],team:"y",ci:i,x,y:H-1,hp:Math.min(TYPES[mine[i]].hp,camp.battle&&camp.hp&&camp.hp[i]>0?camp.hp[i]:TYPES[mine[i]].hp),moved:0,acted:0});
     units.push({t:foe[i],team:"f",x:W-1-x,y:0,hp:TYPES[foe[i]].hp,moved:0,acted:0});
@@ -1590,13 +1639,63 @@ function howView(ctx,topic){
   const f=r.querySelector("button");if(f)f.focus({preventScroll:true});
 }
 const howMain={root:$("rulesview"),mainLabel:"Back to Main Menu",exit:()=>{$("rulesview").hidden=true;$("mbtns").hidden=false;$("how").focus()}};
+/* ---------- Herbert's camp: a cheerful skeleton by the fire. Purely for morale (the old-fashioned kind) ---------- */
+const HERBERT=["You're doing great out there! Keep it up!","Every great commander needs a breather. Warm your hands, friend!",
+ "I believe in you! I believe in everybody, really. But especially you!","Rough battle? Chin up! I'd lend you mine, but I'm still using it.",
+ "Remember to drink some water! I don't, but you should.","Those troops of yours? Truly bone-afide heroes!",
+ "Win or lose, there's always a seat by my fire for you.","Don't let the enemy rattle you. Leave the rattling to me!",
+ "I've been sitting here a long, long time. Best company I've had all century!","Go get 'em! I'll keep the fire going."];
+function campScene(){
+  const bone=(x1,y1,x2,y2,w=6)=>`<path d="M${x1} ${y1}L${x2} ${y2}" stroke="#5c5346" stroke-width="${w+2.400}" stroke-linecap="round"/><path d="M${x1} ${y1}L${x2} ${y2}" stroke="#f1ead8" stroke-width="${w}" stroke-linecap="round"/>`;
+  const stars=[[22,18],[64,40],[98,14],[150,30],[214,12],[262,36],[300,20],[182,52],[40,62],[284,64]].map(([x,y],i)=>`<circle class="twk" style="animation-delay:-${i*.37}s" cx="${x}" cy="${y}" r="${i%3?1.100:1.700}" fill="#fff6d0"/>`).join("");
+  const pine=(x,h,c)=>`<path d="M${x} ${150-h}L${x+h*.32} 150H${x-h*.32}z" fill="${c}"/>`;
+  return `<svg viewBox="0 0 320 220" role="img" aria-label="A cozy campsite at night. Herbert, a cheerful skeleton in a red scarf, sits on a log by the fire and gives you a thumbs up.">
+<defs><linearGradient id="hsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b2244"/><stop offset="1" stop-color="#3b3a63"/></linearGradient>
+<radialGradient id="hglow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffb347" stop-opacity=".55"/><stop offset="1" stop-color="#ffb347" stop-opacity="0"/></radialGradient></defs>
+<rect width="320" height="220" fill="url(#hsky)"/>${stars}<circle cx="268" cy="44" r="15" fill="#f6efcf"/><circle cx="262" cy="40" r="15" fill="#2a2f55" opacity=".35"/>
+${pine(18,70,"#1d3326")+pine(52,92,"#18301f")+pine(292,84,"#18301f")+pine(318,64,"#1d3326")+pine(244,58,"#1d3326")}
+<path d="M0 150Q80 140 160 148T320 146V220H0z" fill="#3e4a2c"/><path d="M0 172Q100 162 200 170T320 168V220H0z" fill="#334026"/>
+<ellipse cx="128" cy="176" rx="118" ry="40" fill="url(#hglow)"/>
+<path d="M22 172L62 104L104 172z" fill="#c9a46a" stroke="#5a3d24" stroke-width="2" stroke-linejoin="round"/><path d="M62 104L104 172H84z" fill="rgba(0,0,0,.18)"/>
+<path d="M62 126L50 172H74z" fill="#2c1d10"/><path d="M62 138L56 172H68z" fill="#ffb347" opacity=".55"/><path d="M58 104L62 96L66 104" stroke="#5a3d24" stroke-width="2" fill="none"/>
+<path d="M102 194L148 182M104 182L150 194" stroke="#5a3d24" stroke-width="7" stroke-linecap="round"/>
+<ellipse cx="126" cy="190" rx="24" ry="5" fill="#5f5a52"/>
+<path class="flk" d="M126 188c-15-5-15-22 0-42c4 12 15 15 11 30c-2 8-5 12-11 12z" fill="#ff7a24"/>
+<path class="flk flk2" d="M126 188c-9-4-9-14 0-25c3 8 9 10 6 18c-1 5-3 7-6 7z" fill="#ffd35a"/>
+<circle class="twk" cx="138" cy="132" r="1.600" fill="#ffd35a"/><circle class="twk" style="animation-delay:-1.100s" cx="118" cy="122" r="1.300" fill="#ffb347"/>
+<rect x="180" y="168" width="100" height="16" rx="8" fill="#6b4626" stroke="#3a2614" stroke-width="2"/><circle cx="276" cy="176" r="6" fill="#a87a4a" stroke="#3a2614" stroke-width="1.500"/><circle cx="276" cy="176" r="2.500" fill="none" stroke="#6b4626"/>
+${bone(222,170,198,172,7)+bone(198,172,196,198,6)+bone(234,170,212,174,7)+bone(212,174,212,199,6)}
+<path d="M188 200h12M204 201h13" stroke="#5c5346" stroke-width="7" stroke-linecap="round"/><path d="M188 200h12M204 201h13" stroke="#f1ead8" stroke-width="4.600" stroke-linecap="round"/>
+<path d="M216 166q12 6 24 0l-2-8h-20z" fill="#f1ead8" stroke="#5c5346" stroke-width="2"/>
+${bone(228,160,228,118,5)}
+${[124,132,140,148].map((y,i)=>`<path d="M${216+i} ${y}Q228 ${y+7} ${240-i} ${y}" stroke="#5c5346" stroke-width="5.600" fill="none" stroke-linecap="round"/><path d="M${216+i} ${y}Q228 ${y+7} ${240-i} ${y}" stroke="#f1ead8" stroke-width="3.400" fill="none" stroke-linecap="round"/>`).join("")}
+${bone(240,120,252,146,5)+bone(252,146,236,158,4.500)}<circle cx="234" cy="159" r="4" fill="#f1ead8" stroke="#5c5346" stroke-width="1.600"/>
+${bone(216,120,200,134,5)}
+<g class="thumb">${bone(200,134,192,106,4.500)}<rect x="185" y="96" width="14" height="13" rx="4" fill="#f1ead8" stroke="#5c5346" stroke-width="1.800"/><rect x="186" y="82" width="6" height="16" rx="3" fill="#f1ead8" stroke="#5c5346" stroke-width="1.800"/><path d="M189 101h9M189 105h9" stroke="#5c5346" stroke-width="1"/></g>
+<path d="M210 114q18 9 36 0l-2 9q-16 7-32 0z" fill="#d23b2f" stroke="#7a1a12" stroke-width="1.500"/><path d="M236 118l6 22l-8 0l-3-20z" fill="#d23b2f" stroke="#7a1a12" stroke-width="1.500"/><path d="M234 132h7M235 136h7" stroke="#ffd35a" stroke-width="1.500"/><path d="M216 117v6M224 119v7M232 119v7" stroke="#ffd35a" stroke-width="1.500"/>
+<path d="M210 86c0-15 9-24 19-24s19 9 19 24c0 7-3 11-6 13v8h-26v-8c-3-2-6-6-6-13z" fill="#f1ead8" stroke="#5c5346" stroke-width="2"/>
+<path d="M214 70c4-9 26-9 30 0" fill="#3a6fb5" stroke="#1f3f6b" stroke-width="1.500"/><circle cx="229" cy="58" r="4" fill="#ffd35a" stroke="#a07a20" stroke-width="1"/><path d="M212 72c6-4 28-4 34 0" stroke="#ffd35a" stroke-width="3" fill="none"/>
+<ellipse cx="221" cy="86" rx="5" ry="5.500" fill="#2c2620"/><ellipse cx="237" cy="86" rx="5" ry="5.500" fill="#2c2620"/><circle cx="222.500" cy="84.500" r="1.600" fill="#fff"/><circle cx="238.500" cy="84.500" r="1.600" fill="#fff"/>
+<path d="M227 93l2-4l2 4z" fill="#2c2620"/><path d="M219 98q10 8 20 0" stroke="#2c2620" stroke-width="2" fill="#fff" stroke-linejoin="round"/><path d="M224 99.500v3M229 100.500v3M234 99.500v3" stroke="#2c2620" stroke-width="1.100"/>
+<circle cx="214" cy="94" r="3" fill="#ff9a8a" opacity=".45"/><circle cx="244" cy="94" r="3" fill="#ff9a8a" opacity=".45"/>
+<g transform="translate(262 188)"><rect x="-6" y="-10" width="12" height="13" rx="2" fill="#6a8fc7" stroke="#2b3f63" stroke-width="1.500"/><path d="M6 -7q5 0 5 4t-5 4" fill="none" stroke="#2b3f63" stroke-width="1.500"/><path class="twk" d="M-2 -14q-2 -4 0 -7M2 -14q2 -4 0 -7" stroke="#e8e8f0" stroke-width="1.200" fill="none" opacity=".7"/></g>
+</svg>`;
+}
+let herbertLast=-1;
+function visitCamp(){
+  let i;do i=Math.floor(Math.random()*HERBERT.length);while(i===herbertLast&&HERBERT.length>1);herbertLast=i;
+  $("cscene").innerHTML=campScene();$("cline").innerHTML=`<b>Herbert:</b> “${HERBERT[i]}”`;
+  paused=true;$("campv").hidden=false;$("cleave").focus();say("You visited Herbert's camp.");
+}
+$("cleave").onclick=()=>{$("campv").hidden=true;paused=false;say("Move, attack, or pick another unit.");render()};
 /* ---------- Unlocks ---------- */
 const UNLOCKS=[
  {id:"barrels",terrain:"barrels",hint:"Win two campaign battles."},
  {id:"xbarrels",terrain:"xbarrel",
   hint:()=>unlocks.barrels?"Destroy three barrels.":"Unlock Barrels, then destroy three of them.",prog:()=>unlocks.barrels?[Math.min(3,unlocks.bk||0),3,"barrels destroyed"]:null},
  {id:"captain",unit:"T",hint:"Win four campaign battles.",prog:()=>[Math.min(4,unlocks.cw||0),4,"campaign battles won"]},
- {id:"banner",unit:"N",hint:"Defeat a campaign boss."}
+ {id:"banner",unit:"N",hint:"Defeat a campaign boss."},
+ {id:"campsite",terrain:"campsite",hint:"Some say a trio of polished helmets, out for a quick scrap, draws a curious host."}
 ];
 // name, art and description for an unlock, read from the terrain table or the unit descriptions
 const unlockInfo=o=>o.terrain?{name:TERRAIN[o.terrain].name,art:terrainSwatch(o.terrain),desc:TERRAIN[o.terrain].desc}
