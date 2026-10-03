@@ -44,6 +44,7 @@ h1{font-size:1.4rem;margin:0 0 4px}
 .u[data-t=T]{border-radius:22% 22% 50% 50%}
 .u[data-t=N]{border-radius:14% 50% 14% 50%}
 .u[data-t=M]{inset:19%;border-radius:40%}
+.u[data-t=G]{inset:19%}
 .u.insp::before{content:"+1";position:absolute;top:-6px;right:-6px;min-width:15px;height:15px;padding:0 2px;border-radius:8px;background:#e0b21c;color:#2b2200;font-size:.6rem;font-weight:800;line-height:15px;text-align:center;box-shadow:0 0 0 1.5px #fff;z-index:2}
 .u.slow::after{content:"\2193";position:absolute;top:-5px;left:-5px;width:17px;height:17px;border-radius:50%;background:#4a7fd1;color:#fff;font-size:.8rem;font-weight:800;line-height:17px;text-align:center;box-shadow:0 0 0 1.5px #fff}
 .u svg{width:90%;height:90%}
@@ -312,6 +313,8 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .rcard b{font-size:1.05rem}.rcard small{font-size:.86rem;line-height:1.3}
 .rcard .rr{font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--rc)}
 .pop.bless{color:#c8f0ff;text-shadow:0 0 6px #4ab8ff,0 0 3px #000,0 1px 4px #000}
+.pop.rally{color:#ffe7a0;text-shadow:0 0 6px #d9a02a,0 0 3px #000,0 1px 4px #000}
+.u.rallied:not(.blessed){box-shadow:0 0 0 2px rgba(255,240,200,.9),0 0 10px 3px rgba(230,180,60,.7)}
 .u.blessed{box-shadow:0 0 0 2px rgba(255,255,255,.9),0 0 10px 3px rgba(120,210,255,.75)}
 .pop.thanks{color:#ffd68a;font-size:.95rem;font-style:italic;animation:thanks 2.3s ease-out forwards}
 @keyframes thanks{0%{opacity:0;transform:translate(-50%,-80%)}15%{opacity:1;transform:translate(-50%,-120%)}75%{opacity:1}100%{opacity:0;transform:translate(-50%,-200%)}}
@@ -520,12 +523,12 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 const DIRS=[[1,0],[-1,0],[0,1],[0,-1]],pk=k=>k.split(",").map(Number); // the four neighbour steps; "x,y" tile key -> [x,y]
 const W=10,H=12,
 // hp, mv move, rg/mn range, dmg damage; ar armor, pi pierce, ev evasion (dodge chance); who retaliates: CAN_RETALIATE / CANT_RETALIATE below
-TYPES={K:{hp:12,mv:3,rg:1,mn:1,dmg:5,ar:2},A:{hp:8,mv:3,rg:3,mn:1,dmg:4,pi:1,ev:.1},R:{hp:10,mv:2,rg:4,mn:2,dmg:4,pi:2},W:{hp:8,mv:2,rg:1,mn:1,dmg:4,ev:.15},B:{hp:16,mv:1,rg:1,mn:1,dmg:6,ar:1},H:{hp:5,mv:3,rg:2,mn:1,dmg:3,ev:.25},C:{hp:9,mv:5,rg:1,mn:1,dmg:4,ar:1,ev:.1},P:{hp:7,mv:3,rg:2,mn:1,dmg:1,heal:3,ev:.1},E:{hp:6,mv:3,rg:3,mn:1,dmg:2,slow:1,ev:.15},T:{hp:9,mv:3,rg:1,mn:1,dmg:3,ar:1},N:{hp:8,mv:3,rg:1,mn:1,dmg:2,ev:.05},M:{hp:4,mv:2,rg:1,mn:1,dmg:2}};
+TYPES={K:{hp:12,mv:3,rg:1,mn:1,dmg:5,ar:2},A:{hp:8,mv:3,rg:3,mn:1,dmg:4,pi:1,ev:.1},R:{hp:10,mv:2,rg:4,mn:2,dmg:4,pi:2},W:{hp:8,mv:2,rg:1,mn:1,dmg:4,ev:.15},B:{hp:16,mv:1,rg:1,mn:1,dmg:6,ar:1},H:{hp:5,mv:3,rg:2,mn:1,dmg:3,ev:.25},C:{hp:9,mv:5,rg:1,mn:1,dmg:4,ar:1,ev:.1},P:{hp:7,mv:3,rg:2,mn:1,dmg:1,heal:3,ev:.1},E:{hp:6,mv:3,rg:3,mn:1,dmg:2,slow:1,ev:.15},T:{hp:9,mv:3,rg:1,mn:1,dmg:3,ar:1},N:{hp:8,mv:3,rg:1,mn:1,dmg:2,ev:.05},M:{hp:4,mv:2,rg:1,mn:1,dmg:2},G:{hp:3,mv:4,rg:1,mn:1,dmg:2,ev:.15}}; // G: the Angry Chicken (Chicken Suit relic)
 const LIMIT1="PETN"; // one of each per army
 const UNIT_UNLOCK={T:"captain",N:"banner"}; // unlockable units and the unlock each needs
 const poolNow=()=>"KARCPE"+Object.keys(UNIT_UNLOCK).filter(t=>unlocks[UNIT_UNLOCK[t]]).join(""); // units an army may pick right now
 // Can Retaliate / Can't Retaliate: a unit retaliates when it is in the first list and not in the second (the second wins)
-const CAN_RETALIATE="KARCPETNMWBH",CANT_RETALIATE="R";
+const CAN_RETALIATE="KARCPETNMWBHG",CANT_RETALIATE="R";
 const canRetaliate=t=>CAN_RETALIATE.includes(t)&&!CANT_RETALIATE.includes(t);
 const FOREST_EV=.1,FT_FOREST_EV=.05,EV_CAP=.5,RET_SHARE=.5; // forest dodge bonus (less against Forest Tactics), dodge cap, share of damage dealt when retaliating (always at least 1)
 const MUSTER_USES=2,MUSTER_ALIVE=2,BANNER_RANGE=2; // Captain: musters per battle, militia alive at once; Banner Bearer: aura reach
@@ -542,6 +545,8 @@ const RELICS={
  drills:{name:"Boots of a Forced March",r:0,lock:"drills",desc:"Well-worn boots that set a brisk pace: your units get +1 movement on your first turn of each battle."},
  salts:{name:"Smelling Salts",r:0,lock:"salts",need:"P",desc:"Apothecaries heal 1 extra HP."},
  pennant:{name:"Garrison Pennant",r:0,lock:"pennant",desc:"Your units standing on a fortress tile get +5% evasion."},
+ chicken:{name:"Chicken Suit",r:1,lock:"chicken",desc:"The first time one of your units takes damage in a battle, an Angry Chicken bursts out beside it. It fights for you on its own, charging the nearest enemy at the end of each of your turns."},
+ trumpet:{name:"Trumpet of Encouragement",r:1,lock:"trumpet",desc:"Once per battle, one of your units can spend its action to sound the trumpet: allies within 2 tiles that have already moved can move again this turn, and they get +5% evasion until the end of your next turn."},
  pavise:{name:"Pavise",r:0,lock:"pavise",desc:"Archers take 1 less damage from ranged attacks. Pierce can't get past it."},
  font:{name:"Font of the Wise Ones",r:2,lock:"font",find:1,desc:"Once per battle, each of your units can spend its action to bless an adjacent ally: the ally gets +5% evasion until the end of your next turn."},
  mug:{name:"Herbert's Mug",r:2,desc:"Once per battle, the first of your units to fall survives with 1 HP instead."},
@@ -552,10 +557,13 @@ const rel=(u,id)=>u.team==="y"&&RELIC.has(id);
 const BLESS_EV=.05;
 const blessed=u=>u.team==="y"&&u.blessUntil>=pturn; // Font of the Wise Ones: lasts through the enemy turn and your next one
 const canBless=(a,b)=>rel(a,"font")&&!a.blessUsed&&!a.acted&&b!==a&&b.team==="y"&&d(a,b)===1; // adjacent allies only
+const RALLY_EV=.05,RALLY_RANGE=2;
+const rallied=u=>u.team==="y"&&u.rallyUntil>=pturn; // Trumpet of Encouragement: lasts through the enemy turn and your next one
+const canTrumpet=u=>rel(u,"trumpet")&&!relicUsed.trumpet&&!u.acted&&!u.auto&&units.some(b=>b!==u&&b.team==="y"&&d(u,b)<=RALLY_RANGE);
 const healOf=u=>TYPES[u.t].heal+(rel(u,"salts")?1:0); // how much a healer restores, with relics
 const rgOf=u=>TYPES[u.t].rg+(u.t==="A"&&rel(u,"long")?1:0); // a unit's attack range, with relics
 const DEBRIS_DMG=1; // Debris Shot splash: small, so it softens clusters without replacing a second attack
-const NAME={K:"knight",A:"archer",R:"artillery",W:"wolf",B:"bear",H:"hawk",C:"cavalry",P:"apothecary",E:"enchanter",T:"captain",N:"banner bearer",M:"militia"};
+const NAME={G:"angry chicken",K:"knight",A:"archer",R:"artillery",W:"wolf",B:"bear",H:"hawk",C:"cavalry",P:"apothecary",E:"enchanter",T:"captain",N:"banner bearer",M:"militia"};
 const MODS={
  TP:{name:"Teleport",desc:"Once per battle, one unit may teleport to any open tile on the far edge (replaces its move)."},
  PUSH:{name:"Push",desc:"Knights may push any unit except artillery and cavalry 2 tiles instead of attacking."},
@@ -785,6 +793,7 @@ const ICON={
  R:'<svg viewBox="0 0 40 40"><g stroke="var(--ic)" stroke-width="2.6" stroke-linecap="round" fill="none"><path d="M9 31L19 17l10 14M12 27h14M8 9l17 13M8 9q-2 6 2 9"/></g><rect x="23" y="21" width="7" height="8" rx="1" fill="var(--ic)" transform="rotate(-38 26 25)"/><circle cx="10" cy="19.5" r="2.4" fill="var(--ic)"/><circle cx="12" cy="33" r="2.2" fill="var(--ic)"/><circle cx="27" cy="33" r="2.2" fill="var(--ic)"/></svg>'};
 ICON.W='<svg viewBox="0 0 40 40"><path d="M7 10l8 7h10l8-7-2 15-8 11h-6L9 25z" fill="var(--ic)"/><circle cx="15" cy="23" r="1.8" fill="var(--tc)"/><circle cx="25" cy="23" r="1.8" fill="var(--tc)"/><path d="M17.5 30h5l-2.5 3z" fill="var(--tc)"/></svg>';
 ICON.B='<svg viewBox="0 0 40 40"><circle cx="10.5" cy="11" r="4.5" fill="var(--ic)"/><circle cx="29.5" cy="11" r="4.5" fill="var(--ic)"/><ellipse cx="20" cy="23" rx="13" ry="12" fill="var(--ic)"/><circle cx="15" cy="20" r="1.8" fill="var(--tc)"/><circle cx="25" cy="20" r="1.8" fill="var(--tc)"/><ellipse cx="20" cy="28" rx="5" ry="3.5" fill="var(--tc)"/></svg>';
+ICON.G='<svg viewBox="0 0 40 40"><path d="M10 26q-2-12 9-15q2-6 7-5q4 1 4 6l4 2l-4 2q2 9-7 13q-9 3-13-3z" fill="var(--ic)"/><path d="M24 7l2-4l2 4l2-3l1 4" fill="var(--ic)"/><path d="M14 22q4 2 7-1" stroke="var(--tc)" stroke-width="1.800" fill="none" stroke-linecap="round"/><circle cx="26" cy="11" r="1.500" fill="var(--tc)"/><path d="M23 8.500l5 2" stroke="var(--tc)" stroke-width="1.400" stroke-linecap="round"/><path d="M15 31l-1 5M21 31l1 5M12 36h4M20 36h4" stroke="var(--ic)" stroke-width="1.800" stroke-linecap="round"/></svg>';
 ICON.H='<svg viewBox="0 0 40 40"><path d="M20 7l4 6-4 3-4-3z" fill="var(--ic)"/><path d="M20 14L3 12l7 8-5 4 11-1 4 10 4-10 11 1-5-4 7-8z" fill="var(--ic)"/><circle cx="18.2" cy="12" r="1" fill="var(--tc)"/></svg>';
 ICON.C='<svg viewBox="0 0 40 40"><path d="M26 4l-4 8L8 24l2 5 6-2 2 0-2 8h15V16z" fill="var(--ic)"/><path d="M27 8l6 5M30 13l5 8" stroke="var(--ic)" stroke-width="2.4" stroke-linecap="round"/><circle cx="21" cy="16" r="1.7" fill="var(--tc)"/><circle cx="11" cy="26" r="1" fill="var(--tc)"/></svg>';
 ICON.P='<svg viewBox="0 0 40 40"><path d="M16 5h8M17 6v9L9.5 29.5A4.5 4.5 0 0013.5 36h13a4.5 4.5 0 004-6.5L23 15V6" fill="none" stroke="var(--ic)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><path d="M12.5 26.5h15l3 4.5a2.2 2.2 0 01-1.9 3.5H11.4A2.2 2.2 0 019.5 31z" fill="var(--ic)"/><circle cx="17.5" cy="30.5" r="1.7" fill="var(--tc)"/><circle cx="23.5" cy="32" r="1.2" fill="var(--tc)"/></svg>';
@@ -886,7 +895,8 @@ const pct=v=>Math.round(v*100)+"%";
 const unitStats=t=>{const T=TYPES[t];return `HP ${T.hp}, move ${T.mv}, range ${rangeTxt(T)}, damage ${T.dmg}`+(T.ar?`, armor ${T.ar}`:"")+(T.pi?`, pierce ${T.pi}`:"")+(T.ev?`, evasion ${pct(T.ev)}`:"")};
 const ABILITY={P:`Heals an ally in range for up to ${TYPES.P.heal} HP instead of attacking.`,E:"Can slow an enemy in range instead of attacking: its movement drops to 1 on its next turn.",
  T:`Instead of attacking, can muster 1-2 militia onto open tiles beside it. Twice per battle, with at most ${MUSTER_ALIVE} of its militia at a time.`,
- N:`Allies within ${BANNER_RANGE} tiles deal +1 damage.`,M:"Mustered by a Captain. Weak, but useful for blocking and finishing off foes."};
+ N:`Allies within ${BANNER_RANGE} tiles deal +1 damage.`,M:"Mustered by a Captain. Weak, but useful for blocking and finishing off foes.",
+ G:"Burst out of the Chicken Suit. Fights for you on its own: at the end of each of your turns it charges the nearest enemy. Forests and shallow water don't slow it."};
 const TAG={P:"Heals",E:"Slows",T:"Musters militia",N:"+1 damage aura"}; // short ability labels for the setup cards
 const listAnd=a=>a.length<2?a.join(""):a.slice(0,-1).join(", ")+" and "+a[a.length-1];
 const limitNames=()=>listAnd(poolNow().split("").filter(t=>LIMIT1.includes(t)).map(t=>"the "+cap(NAME[t])));
@@ -910,7 +920,7 @@ function combat(a,b,from=a){
   armor.forEach(([l,v])=>add(l,-v));
   add("Pierce",Math.min(A.pi||0,armor.reduce((t,x)=>t+x[1],0)));
   add("Pavise",b.t==="A"&&A.rg>1&&rel(b,"pavise")?-1:0); // a shield wall, not armor: pierce can't get past it
-  const ev=Math.min(EV_CAP,(B.ev||0)+(rel(b,"luck")?.05:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(blessed(b)?BLESS_EV:0)+(FOREST.has(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0));
+  const ev=Math.min(EV_CAP,(B.ev||0)+(rel(b,"luck")?.05:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(blessed(b)?BLESS_EV:0)+(rallied(b)?RALLY_EV:0)+(FOREST.has(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0));
   return {dmg:Math.max(1,parts.reduce((t,p)=>t+p[1],0)),hit:1-ev,parts}; // every hit deals at least 1
 }
 // a unit with `ret` retaliates against an attacker within its own range for half damage, at least 1 (the attacker may evade it); null when it can't
@@ -937,7 +947,7 @@ const say=s=>$("status").textContent=s;
 function notify(t){const o=$("fx").querySelector(".banner");if(o)o.remove();const n=document.createElement("div");n.className="banner";n.textContent=t;$("fx").append(n);setTimeout(()=>n.remove(),1650)}
 
 function reach(u){ // entering shallow water costs 2; leaving a forest costs 1 extra; entering a swamp ends the move
-  const bud=mvOf(u)-(FOREST.has(u.x+","+u.y)?1:0),k0=u.x+","+u.y; // leaving a forest costs 1 extra
+  const nimble=u.t==="G",bud=mvOf(u)-(!nimble&&FOREST.has(u.x+","+u.y)?1:0),k0=u.x+","+u.y; // leaving a forest costs 1 extra (the Angry Chicken skips both of these costs)
   const cost=new Map([[k0,0]]),q=[[u.x,u.y]];
   while(q.length){
     q.sort((a,b)=>cost.get(a+"")-cost.get(b+""));
@@ -946,7 +956,7 @@ function reach(u){ // entering shallow water costs 2; leaving a forest costs 1 e
     for(const[dx,dy] of DIRS){
       const nx=x+dx,ny=y+dy,k=nx+","+ny;
       const o=at(nx,ny);if(nx<0||ny<0||nx>=W||ny>=H||solid(k)||(o&&o.team!==u.team))continue;
-      const nc=c+1+(SHALLOW.has(k)?1:0);
+      const nc=c+1+(!nimble&&SHALLOW.has(k)?1:0);
       if(nc>bud||(cost.has(k)&&cost.get(k)<=nc))continue;
       cost.set(k,nc);q.push([nx,ny]);
     }
@@ -967,7 +977,7 @@ function muster(u){ // 1-2 militia appear beside the captain, nearest the enemy 
   u.musters=(u.musters||0)+1;u.acted=u.moved=1;
   return n;
 }
-const spent=u=>!!u.acted||(u.team!=="w"&&!!u.moved&&!canMuster(u)&&!targets(u).length&&!healTargets(u).length&&!(rel(u,"font")&&units.some(b=>canBless(u,b)))&&(u.team!=="y"||!breakables(u).length)&&!(mods.y==="PUSH"&&u.t==="K"&&units.some(b=>b.team==="y"&&pushable(u,b))));
+const spent=u=>(!!u.acted&&!!u.moved)||!!u.auto||(u.team!=="w"&&!!u.moved&&!canMuster(u)&&!canTrumpet(u)&&!targets(u).length&&!healTargets(u).length&&!(rel(u,"font")&&units.some(b=>canBless(u,b)))&&(u.team!=="y"||!breakables(u).length)&&!(mods.y==="PUSH"&&u.t==="K"&&units.some(b=>b.team==="y"&&pushable(u,b))));
 const targets=u=>units.filter(e=>e.team!==u.team&&(u.team!=="f"||e.team!=="w")&&d(u,e)<=rgOf(u)&&d(u,e)>=TYPES[u.t].mn);
 
 const spotsOf=(u,rc)=>[[u.x,u.y],...rc.map(k=>pk(k))];
@@ -1015,7 +1025,7 @@ function render(){
     html+=`<button class="${cls}" data-x="${x}" data-y="${y}"${pd&&pd.k===k?` data-arrow="${pd.a}"`:""} aria-label="${label.replace(/"/g,"&quot;")}">`
       +'<i class="lt"></i>'+tileArt(x,y)+(fr?'<i class="tint"></i>':"")+joins(x,y); // fortress art covers its tile, so highlights go on a see-through layer above it
     if(u){
-      let uc="u "+u.team+(spent(u)?" done":"")+(u.slow?" slow":"")+(inspired(u)?" insp":"")+(blessed(u)?" blessed":"")+(u===sel||u===insp?" sel":""),mvs="";
+      let uc="u "+u.team+(spent(u)?" done":"")+(u.slow?" slow":"")+(inspired(u)?" insp":"")+(blessed(u)?" blessed":"")+(rallied(u)?" rallied":"")+(u===sel||u===insp?" sel":""),mvs="";
       if(u.spawn){uc+=" tpin";delete u.spawn}
       const pp=prevPos.get(u);prevPos.set(u,[x,y]);
       if(pp&&(pp[0]!==x||pp[1]!==y)){ // slide in from where it was last drawn (a long jump fades in instead)
@@ -1023,8 +1033,8 @@ function render(){
         if(dist>6)uc+=" tpin";
         else{uc+=" mv";mvs=`;--dx:${ddx*122}%;--dy:${ddy*122}%;--dur:${.1+.06*dist}s`}
       }
-      const c=COLORS[col[u.team]],hr=u.hp/TYPES[u.t].hp;
-      html+=`<div class="${uc}" data-t="${u.t}" data-team="${u.team}" style="background:${c[1]};--tc:${c[1]};--ic:${c[2]}${mvs}">${ICON[u.t]}</div>`
+      const c=COLORS[col[u.team]],hr=u.hp/TYPES[u.t].hp,bg=u.auto?`color-mix(in srgb,${c[1]} 55%,#fff)`:c[1]; // units that act on their own wear a lighter shade
+      html+=`<div class="${uc}" data-t="${u.t}" data-team="${u.team}" style="background:${bg};--tc:${bg};--ic:${c[2]}${mvs}">${ICON[u.t]}</div>`
         +`<div class="hp"><i style="width:${100*hr}%;background-color:${hr>.5?"#5fd068":hr>.25?"#f0c33a":"#ee5a45"}"></i></div>`;
     }
     html+="</button>";
@@ -1065,20 +1075,22 @@ function renderInfo(){
   if(inspired(u))notes.push("Inspired by a nearby Banner Bearer: deals +1 damage.");
   if(u.slow)notes.push("Slowed: movement reduced to 1 until the end of its next turn.");
   if(blessed(u))notes.push("Blessed: +5% evasion until the end of your next turn.");
+  if(rallied(u))notes.push("Rallied: +5% evasion until the end of your next turn.");
+  if(rel(u,"trumpet")&&!relicUsed.trumpet&&!u.auto)notes.push("Trumpet of Encouragement: one of your units can sound it once this battle.");
   if(rel(u,"font")&&!u.blessUsed)notes.push("Font of the Wise Ones: can bless an adjacent ally once this battle.");
   if(fo)notes.push(`In a forest: +${pct(FOREST_EV)} evasion, and leaving costs 1 movement.`);
   if(FORT.has(u.x+","+u.y))notes.push("On a fortress: +1 armor."+(rel(u,"pennant")?" Garrison Pennant: +5% evasion.":""));
   if(u.t==="A"&&mods[u.team]==="PAD")notes.push("Padded Armor: +1 armor.");
   if(u.t==="A"&&rel(u,"pavise"))notes.push("Pavise: takes 1 less damage from ranged attacks.");
   if(mods[u.team]==="FT"&&fo)notes.push("Forest Tactics: +1 armor against ranged attacks here.");
-  if(u.team==="y"&&u.acted)notes.push("Finished for this turn.");else if(u.team==="y"&&u.moved)notes.push("Has moved this turn.");
+  if(u.team==="y"&&u.acted&&!u.moved)notes.push("Rallied: can move again, but has already acted.");else if(u.team==="y"&&u.acted)notes.push("Finished for this turn.");else if(u.team==="y"&&u.moved)notes.push("Has moved this turn.");
   const arm=(T.ar||0)+(u.t==="A"&&mods[u.team]==="PAD"?1:0)+(u.t==="K"&&rel(u,"shield")?1:0)+(u.t==="C"&&rel(u,"bard")?1:0);
   const stats=[["Move",mvOf(u)],["Range",rangeTxt({...T,rg:rgOf(u)})],["Damage",T.dmg+(u.t==="A"&&rel(u,"whet")?1:0)+(inspired(u)?"+1":"")],...(T.heal?[["Heal",healOf(u)]]:[]),...(arm?[["Armor",arm]]:[]),...(T.pi?[["Pierce",T.pi]]:[]),...(T.ev?[["Evasion",pct(T.ev)]]:[])].map(([k,v])=>`<span class="stat">${k} <b>${v}</b></span>`).join("");
   el.className="pb";el.style.borderLeft=`8px solid ${c[1]}`;
   el.innerHTML=`<div class="lbl">Unit</div><div class="row"><div class="pv">${disc(u.t,c)}</div><div class="ib"><div class="nm"><strong>${cap(NAME[u.t])}</strong><span>${u.team==="y"?"Your unit":u.team==="w"?"Wild":"Enemy"}</span></div><div class="hprow"><span>HP</span><b>${u.hp} / ${T.hp}</b></div><div class="hpb"><i style="width:${100*r}%;background:${r>.5?"#4caf50":r>.25?"#e0b21c":"#d64b3a"}"></i></div><div class="stats">${stats}</div>${notes.map(n=>`<small>${n}</small>`).join("")}</div></div>`;
 }
 function floatText(x,y,t,miss){
-  const p=document.createElement("div");p.className="pop"+(miss===true?" miss":miss==="heal"?" heal":miss==="slow"?" slow":miss==="thanks"?" thanks":miss==="bless"?" bless":"");p.textContent=t;
+  const p=document.createElement("div");p.className="pop"+(miss===true?" miss":miss==="heal"?" heal":miss==="slow"?" slow":miss==="thanks"?" thanks":miss==="bless"?" bless":miss==="rally"?" rally":"");p.textContent=t;
   p.style.left=`calc(2px + (100% - 4px) * ${(x+.5)/W})`;p.style.top=`calc(2px + (100% - 4px) * ${(y+.5)/H})`;
   $("fx").append(p);setTimeout(()=>p.remove(),miss==="thanks"?2300:1100);
 }
@@ -1136,6 +1148,7 @@ function acts(){
   if(!sel)return;
   if(mods.y==="TP"&&!tpUsed.y&&!sel.moved)add("Teleport",()=>{mode="tp";say("Choose an open tile on the far edge.");render()});
   if(mods.y==="PUSH"&&sel.t==="K"&&!sel.acted&&units.some(b=>b.team==="y"&&pushable(sel,b)))add("Push Ally",()=>{mode="push";say("Choose an adjacent ally to push.");render()});
+  if(!mode&&canTrumpet(sel))add("Sound Trumpet",()=>doTrumpet(sel));
   if(!mode&&canMuster(sel))add("Muster Militia",()=>{const n=muster(sel);sel=null;insp=null;lastMove=null;say(`Mustered ${n} militia. They can act next turn.`);render()});
   if(mode)add("Cancel",()=>{mode=null;say("Move, attack, or pick another unit.");render()});
 }
@@ -1182,10 +1195,11 @@ function click(x,y){
   }
   if(mode==="push"&&u&&pushable(sel,u)){choice=u;say("Choose an action next to the unit.");return render()}
   if(u&&u.team==="y"&&sel&&sel!==u&&!mode&&!sel.acted&&(healable(sel,u)||canBless(sel,u)||(mods.y==="PUSH"&&pushable(sel,u)))){choice=u;say("Choose an action next to the unit.");return render()}
+  if(u&&u.auto){insp=null;info=u;say("The Angry Chicken answers to no one. It charges at the end of your turn.");return render()}
   if(u&&u.team==="y"){
     if(sel===u){sel=null;mode=null;info=null;say("Select one of your units.");return render()}
     sel=u;mode=null;insp=null;info=u;
-    say(u.acted?"That unit has finished.":"Green: where it can move. Red: what it can hit."+(mods.y==="PUSH"&&u.t==="K"?" Tap an adjacent enemy to attack or push it.":""));return render();
+    say(u.acted&&u.moved?"That unit has finished.":u.acted?"Rallied: green shows where it can move again.":"Green: where it can move. Red: what it can hit."+(mods.y==="PUSH"&&u.t==="K"?" Tap an adjacent enemy to attack or push it.":""));return render();
   }
   if(u&&u.team!=="y"){
     if(sel&&!mode&&!sel.acted&&targets(sel).includes(u)){
@@ -1203,7 +1217,7 @@ function click(x,y){
   if(!u&&!sel.moved&&!mode&&reach(sel).includes(x+","+y)){
     lastMove={u:sel,x:sel.x,y:sel.y};
     sel.x=x;sel.y=y;sel.moved=1;
-    say(targets(sel).length?"Tap a red enemy to attack.":healTargets(sel).length?"Tap a marked ally to heal it.":breakables(sel).length?"Tap the barrels to break them.":"No enemy in range. Pick another unit, undo the move, or end turn.");
+    say(sel.acted?"Moved. This unit has already acted this turn.":targets(sel).length?"Tap a red enemy to attack.":healTargets(sel).length?"Tap a marked ally to heal it.":breakables(sel).length?"Tap the barrels to break them.":"No enemy in range. Pick another unit, undo the move, or end turn.");
     return render();
   }
   if(!u&&!mode){sel=null;info=null;say("Select one of your units.")} // tapping empty ground deselects
@@ -1265,6 +1279,25 @@ function doBless(a,b){
   a.blessUsed=1;a.acted=a.moved=1;b.blessUntil=pturn+1;sel=null;mode=null;choice=null;info=b;lastMove=null;
   floatText(b.x,b.y,"Blessed","bless");say("Blessed your "+NAME[b.t]+": +5% evasion until the end of your next turn.");render();
 }
+function doTrumpet(a){ // Trumpet of Encouragement: nearby allies that have moved get to move again, and all of them get +5% evasion
+  relicUsed.trumpet=1;a.acted=a.moved=1;sel=null;mode=null;choice=null;insp=null;lastMove=null;
+  const near=units.filter(b=>b!==a&&b.team==="y"&&d(a,b)<=RALLY_RANGE);let n=0;
+  for(const b of near){b.rallyUntil=pturn+1;if(b.moved&&!b.auto){b.moved=0;n++}floatText(b.x,b.y,"Rallied","rally")}
+  playTrumpet();info=a;
+  say(`The trumpet sounds! ${near.length} all${near.length>1?"ies":"y"} rallied with +5% evasion until the end of your next turn`+(n?`; ${n} can move again.`:"."));render();
+}
+let actx=null;
+function playTrumpet(){ // a short, quiet brass call made on the fly: two sawtooth voices through a soft low-pass
+  try{
+    actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume();
+    const t0=actx.currentTime+.02,out=actx.createGain(),lp=actx.createBiquadFilter();
+    out.gain.value=.05;lp.type="lowpass";lp.frequency.value=1500;lp.Q.value=.7;lp.connect(out);out.connect(actx.destination);
+    [[392,0,.14],[523.25,.16,.14],[659.25,.32,.38]].forEach(([f,st,len])=>{
+      const g=actx.createGain(),s=t0+st;g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(1,s+.03);g.gain.setValueAtTime(1,s+len-.06);g.gain.linearRampToValueAtTime(0,s+len);g.connect(lp);
+      for(const det of[-6,6]){const o=actx.createOscillator();o.type="sawtooth";o.frequency.value=f;o.detune.value=det;o.connect(g);o.start(s);o.stop(s+len+.02)}
+    });
+  }catch(e){} // no audio available: stay silent
+}
 function doHeal(a,b){
   const n=applyHeal(a,b);a.acted=a.moved=1;sel=null;mode=null;choice=null;info=b;lastMove=null;
   say("Healed your "+NAME[b.t]+" for "+n+" HP.");render();
@@ -1279,6 +1312,7 @@ const who=u=>(u.team==="y"?"your ":u.team==="f"?"the enemy ":"the wild ")+NAME[u
 // every point of damage goes through here, so Herbert's Mug and Nightcap see it all; returns true when u falls
 function hurt(u,n){
   u.hp-=n;floatText(u.x,u.y,"-"+n);
+  if(rel(u,"chicken")&&!relicUsed.chicken&&u.t!=="G")spawnChicken(u);
   if(u.hp<=0&&rel(u,"mug")&&!relicUsed.mug){relicUsed.mug=1;u.hp=1;thanks(u)}
   else if(u.hp>0&&u.hp<=TYPES[u.t].hp/2&&rel(u,"cap")&&!relicUsed.cap){relicUsed.cap=1;const h=Math.min(2,TYPES[u.t].hp-u.hp);u.hp+=h;later(()=>floatText(u.x,u.y,"+"+h,"heal"),250);thanks(u)}
   if(u.hp>0)return false;
@@ -1289,6 +1323,34 @@ function credit(a,v){
   if(!camp.battle||!a||a.team!=="y"||v.team==="y")return;
   const src=a.ci!=null?a:a.cap&&a.cap.ci!=null?a.cap:null;
   if(src)camp.kills[src.ci]=(camp.kills[src.ci]||0)+1;
+}
+// Chicken Suit: an Angry Chicken bursts out next to the first of your units to be hurt each battle
+function spawnChicken(u){
+  const spot=DIRS.map(([dx,dy])=>[u.x+dx,u.y+dy]).find(([x,y])=>open(x,y));
+  if(!spot)return; // no room: it tries again the next time one of your units is hurt
+  relicUsed.chicken=1;
+  const c={t:"G",team:"y",auto:1,x:spot[0],y:spot[1],hp:TYPES.G.hp,moved:1,acted:1,spawn:1};units.push(c);
+  later(()=>{if(units.includes(c))floatText(c.x,c.y,"BAWK!","thanks")},300);
+}
+// at the end of your turn, each Angry Chicken charges: it heads for the nearest enemy and pecks the weakest one it can reach
+function chickensAct(done){
+  const cs=units.filter(u=>u.auto&&u.team==="y"),g=gid;
+  const next=()=>{
+    if(g!==gid||over)return;
+    const c=cs.shift();if(!c)return done();
+    if(!units.includes(c))return next();
+    const foes=units.filter(e=>e.team==="f");if(!foes.length)return done();
+    const D=distMap(foes),score=([x,y])=>{const adj=foes.filter(e=>Math.abs(e.x-x)+Math.abs(e.y-y)===1);return adj.length?-100+Math.min(...adj.map(e=>e.hp)):D[y][x]};
+    const best=[[c.x,c.y],...reach(c).map(pk)].reduce((a,b)=>score(b)<score(a)?b:a);
+    if(best[0]!==c.x||best[1]!==c.y){c.x=best[0];c.y=best[1];render()}
+    later(()=>{
+      if(g!==gid||over)return;
+      const ts=targets(c).filter(e=>e.team==="f").sort((a,b)=>a.hp-b.hp);
+      if(!ts.length)return later(next,150);
+      attack(c,ts[0],()=>{if(!checkEnd()){render();later(next,300)}});
+    },350);
+  };
+  next();
 }
 function thanks(u){later(()=>{if(units.includes(u))floatText(u.x,u.y,"Thanks Herbert","thanks")},450)} // a small, warm note that fades
 function hitFor(a,b,c,back){ // resolve one blow from a to b: dodge roll, damage, removal; true when it landed
@@ -1379,9 +1441,11 @@ function showEnd(win){
   },900); // let the final hit play out first
 }
 function checkEnd(){
-  const y=units.some(u=>u.team==="y"),f=units.some(u=>u.team==="f");
+  const y=units.some(u=>u.team==="y"&&!u.auto),f=units.some(u=>u.team==="f"); // the chicken alone can't hold the field
   if(y&&f)return false;
-  over=true;render();
+  over=true;
+  for(const c of units.filter(u=>u.auto))floatText(c.x,c.y,"poof","thanks"); // summoned units leave when the battle does
+  units=units.filter(u=>!u.auto);render();
   say(y?(camp.battle?"Victory!":"Victory! All enemy units are down."):"Defeat. Your force was wiped out.");
   showEnd(y);
   return true;
@@ -2094,6 +2158,8 @@ const RICON={ // small 32-unit relic icons
  salts:'<path d="M13 4h6v4h-6z" fill="#8a5a2a" stroke="#3a2412" stroke-width="1"/><path d="M12 8h8v3q4 3 4 8v6q0 3-3 3H11q-3 0-3-3v-6q0-5 4-8z" fill="#cfe8e0" fill-opacity=".75" stroke="#2a3a36" stroke-width="1.200"/><path d="M9 20q7-2 14 0v5q0 2-2 2H11q-2 0-2-2z" fill="#7ac8a8" opacity=".8"/><path d="M11 12q-1 4 0 9" stroke="#fff" stroke-width="1.100" opacity=".7" fill="none"/><path d="M19 3q2-2 1-4M23 6q3-1 3-4M14 2q-1-2 1-3" stroke="#9ad8c0" stroke-width="1.100" fill="none" opacity=".8"/>',
  font:'<ellipse cx="16" cy="28" rx="9" ry="2" fill="rgba(0,0,0,.2)"/><path d="M11 28l2-9h6l2 9z" fill="#7a7a74" stroke="#2a2a28" stroke-width="1"/><path d="M4 13q12 5 24 0q-1 7-12 7T4 13z" fill="#8c8c86" stroke="#2a2a28" stroke-width="1.100"/><ellipse cx="16" cy="13" rx="12" ry="3" fill="#5ac8f0" stroke="#2a2a28" stroke-width="1.100"/><ellipse cx="14" cy="12.500" rx="5" ry="1" fill="#d8f6ff" opacity=".8"/><path d="M10 9q-2-3 0-6M16 8q2-4 0-7M22 9q2-3 0-5" stroke="#9ae8ff" stroke-width="1.200" fill="none" opacity=".85"/><path d="M8 18l3 1M21 19l3-1" stroke="#4f6a3a" stroke-width="1.400"/>',
  pennant:'<path d="M8 3v27" stroke="#5a3a1c" stroke-width="2.200" stroke-linecap="round"/><circle cx="8" cy="3" r="1.800" fill="#c9962a"/><path d="M9 5h17l-5 5l5 5H9z" fill="#3a5a8a" stroke="#1d2a44" stroke-width="1.100" stroke-linejoin="round"/><path d="M12 7.500h3v5h-3zM15 7.500h3v2h-3z" fill="#e8dcc0"/><path d="M10 6h14" stroke="#8aa8d0" stroke-width=".8" opacity=".7"/><path d="M4 30h8" stroke="#5a5a52" stroke-width="2" stroke-linecap="round"/>',
+ chicken:'<path d="M8 28q-3-13 8-17q2-7 8-6q5 1 5 7l4 2l-4 2q2 10-8 13q-9 3-13-1z" fill="#f2ead8" stroke="#4a3a28" stroke-width="1.100"/><path d="M21 6l2-4l2 4l2-3l1 4" fill="#c8372d"/><path d="M33 14l3-.5l-3 2.500z" fill="#e8a83a"/><circle cx="24.500" cy="10" r="1.300" fill="#1a140e"/><path d="M21.500 7.500l5 2" stroke="#1a140e" stroke-width="1.200" stroke-linecap="round"/><path d="M11 22q5 3 9-1" stroke="#b8a888" stroke-width="1.400" fill="none"/><path d="M16 6l-2-3M14 7l-3-1" stroke="#c8372d" stroke-width="1.200" stroke-linecap="round"/>',
+ trumpet:'<path d="M5 17h14" stroke="#8a6418" stroke-width="2.600" stroke-linecap="round"/><path d="M19 17q4 0 9-7v14q-5-7-9-7z" fill="#e0b040" stroke="#6a4a10" stroke-width="1.100" stroke-linejoin="round"/><path d="M8 17q0 5 5 5h4q2 0 2-2" fill="none" stroke="#c8962a" stroke-width="1.600"/><path d="M10 14v3M13 14v3M16 14v3" stroke="#6a4a10" stroke-width="1.400" stroke-linecap="round"/><circle cx="4" cy="17" r="1.600" fill="#c8962a" stroke="#6a4a10" stroke-width=".8"/><path d="M27 10.500v13" stroke="#fff3c0" stroke-width=".9" opacity=".7"/><path d="M12 25l-2 5l4-3l4 3l-2-5" fill="#8a2a24" stroke="#3a1210" stroke-width=".8"/>',
  pavise:'<path d="M24 27l4 3" stroke="#4a3018" stroke-width="2" stroke-linecap="round"/><path d="M8 5q8-2 16 0v18q-8 6-16 6z" fill="#a8743a" stroke="#3a2412" stroke-width="1.200" stroke-linejoin="round"/><path d="M16 4v24" stroke="#6a4420" stroke-width="2"/><path d="M10 7q6-1.500 12 0v15q-6 4.500-12 4.500z" fill="#3a5a8a" opacity=".85"/><path d="M16 8v16M11.500 14h9" stroke="#e8dcc0" stroke-width="2.200"/><path d="M9 6v22" stroke="#d8a868" stroke-width=".9" opacity=".6"/><circle cx="12" cy="10" r=".8" fill="#2a1a0c"/><circle cx="20" cy="10" r=".8" fill="#2a1a0c"/>',
  cap:'<path d="M5 24q1-13 12-15q11-2 11 12l-3 2q-1-8-5-10q-5-1-6 6z" fill="#7a2a24" stroke="#3a1210" stroke-width="1.100"/><path d="M10 14q5 1 7 7M16 10q5 2 6 8" stroke="#c8b08a" stroke-width="1.600" fill="none" opacity=".55"/><path d="M4 23q8-4 16 0l-.5 3.500q-7.500-3.500-15 0z" fill="#b8ac90" stroke="#4a4030" stroke-width="1"/><circle cx="26" cy="24.500" r="3" fill="#e2d6bc" stroke="#6a604c" stroke-width=".9"/>'};
 const relicIcon=(id,sz=32)=>`<svg viewBox="0 0 32 32" width="${sz}" height="${sz}" aria-hidden="true">${RICON[id]}</svg>`;
@@ -2142,12 +2208,15 @@ const MAPCH={".":"ground",f:"forest",s:"shallow",d:"deep",m:"swamp",w:"wall",F:"
 const MAPKEY=Object.fromEntries(Object.entries(MAPCH).map(([c,k])=>[k,c]));
 // Challenge maps. diff: 0 easy, 1 moderate, 2 hard (the menu lists them easiest first). reward: an unlock id granted on the first win (add it to UNLOCKS with its hint); hint: how the menu describes that reward
 const CHALLENGES=[
- {id:"ford",diff:1,name:"The Ford at Greywater",desc:"Enemy knights hold a fortified ford. Cross the river and break their line.",biome:"fort",mods:{y:null,f:null},
+ {id:"ford",diff:1,reward:"trumpet",hint:"a relic",name:"The Ford at Greywater",desc:"Enemy knights hold a fortified ford. Cross the river and break their line.",biome:"fort",mods:{y:null,f:null},
   rows:["..f....f..","...w..w...",".f......f.","....FF....","..s....s..","dddds.dddd","dddd.sdddd","..s....s..",".....f....",".f......f.","...w..w...","..f....f.."],
   units:[["R","f",5,0],["A","f",2,1],["A","f",7,1],["K","f",4,3],["K","f",5,3],["K","y",1,11],["K","y",3,11],["A","y",4,11],["P","y",6,11],["C","y",8,11]]},
  {id:"duel",diff:0,reward:"pennant",hint:"a relic",name:"Dueling Fortresses",desc:"Protect your Archers!",biome:"fort",mods:{y:null,f:null},
   rows:["FFFFFFFFFF","wwwFFFFFFF","w.w.F.F.F.","www.......","..........","..........","..........","..........",".......www",".F.F.F.w.w","FFFFFFFwww","FFFFFFFFFF"],
-  units:[["R","f",1,2],["R","y",8,9],["A","y",6,10],["A","y",4,10],["A","y",2,10],["C","y",4,11],["A","f",3,2],["K","f",0,0]]}
+  units:[["R","f",1,2],["R","y",8,9],["A","y",6,10],["A","y",4,10],["A","y",2,10],["C","y",4,11],["A","f",3,2],["K","f",0,0]]},
+ {id:"wharton",diff:1,reward:"chicken",hint:"a relic",name:"Fort Wharton",desc:"A fortress with tight corridors.",biome:"forest",mods:{y:null,f:null},
+  rows:["FwwwwwwwwF","Fw..ff..wF","fw..ww..wf","fw..fw..wf","fw..wf..wf","Fw..ww..wF","Fw..ww..wF","fw..ww..wf","fw..ww..wf","fw..ww..wf","Fw..ww..wF","FwwwwwwwwF"],
+  units:[["K","f",6,10],["C","f",7,10],["A","f",7,9],["P","y",2,9],["C","y",2,10],["C","y",3,10],["A","y",3,9]]}
 ];
 let chal=null; // the fixed map being played: {def, test}
 const DIFF=[["Easy","#3f9a5a"],["Moderate","#c9962a"],["Hard","#c8372d"]];
@@ -2299,10 +2368,12 @@ const UNLOCKS=[
  {id:"salts",relic:"salts",hint:"Walk away from enough quick scraps, and someone starts packing remedies."},
  {id:"font",relic:"font",hint:"Darker realms can hide wonderful things."},
  {id:"pennant",relic:"pennant",hint:"Conquer the Dueling Fortresses challenge."},
+ {id:"trumpet",relic:"trumpet",hint:"Conquer the Ford at Greywater challenge."},
+ {id:"chicken",relic:"chicken",hint:"Conquer the Fort Wharton challenge."},
  {id:"pavise",relic:"pavise",hint:"Those who stand in the rain of arrows learn to carry a wall."}
 ];
 // name, art and description for an unlock, read from the terrain table or the unit descriptions
-const unlockInfo=o=>o.relic?{name:RELICS[o.relic].name,art:relicIcon(o.relic,44),desc:RELICS[o.relic].desc+` A ${RARITY[RELICS[o.relic].r][0].toLowerCase()} relic `+(RELICS[o.relic].find?"found only in battle, never offered as a reward.":"that can be offered after campaign victories.")}
+const unlockInfo=o=>o.relic?{name:RELICS[o.relic].name,art:relicIcon(o.relic,44),desc:RELICS[o.relic].desc+` ${/^[AEIOU]/.test(RARITY[RELICS[o.relic].r][0])?"An":"A"} ${RARITY[RELICS[o.relic].r][0].toLowerCase()} relic `+(RELICS[o.relic].find?"found only in battle, never offered as a reward.":"that can be offered after campaign victories.")}
   :o.biome?{name:BIOME_NAME[o.biome],art:terrainSwatch(o.terrain),desc:BTEXT[o.biome]+" Can appear in campaigns and quick battles."}
   :o.terrain?{name:TERRAIN[o.terrain].name,art:terrainSwatch(o.terrain),desc:TERRAIN[o.terrain].desc}
   :{name:cap(NAME[o.unit]),art:hIcon(o.unit,"y"),desc:`${unitStats(o.unit)}. ${ABILITY[o.unit]} Limit one per army.`};
@@ -2330,7 +2401,8 @@ $("end").onclick=()=>{
   const n=mods.y==="REST"?rest("y"):0;
   units.forEach(u=>{if(u.team==="y")delete u.slow});
   lastMove=null;notify("You ended your turn");
-  enemyTurn(n?"Your resting units recovered HP. ":"");
+  const go=()=>enemyTurn(n?"Your resting units recovered HP. ":"");
+  if(units.some(u=>u.auto&&u.team==="y")){busy=true;render();chickensAct(()=>{if(!over)go()})}else go();
 };
 // The terrain list shared by the in-game Terrain Guide and How to Play. Locked terrain only appears in the Unlocks menu.
 function terrainRows(){
