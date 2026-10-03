@@ -1653,7 +1653,7 @@ function start(o={}){
   genMap(o);col={y:pick.c,f:foeColor(),w:"wild"};
   const extra=pick.x.slice();
   const P=poolNow(),rnd=(have=[])=>{let t;do t=P[Math.floor(Math.random()*P.length)];while(LIMIT1.includes(t)&&have.includes(t));return t},mine=["K","A","C",...extra],foe=["K","A","C"];foe.push(rnd(foe));foe.push(rnd(foe));
-  mods.y=pick.m;units=[];RELIC=new Set(camp.battle?camp.relics:[]);relicUsed={};
+  mods.y=pick.m;units=[];herbertMet=false;RELIC=new Set(camp.battle?camp.relics:[]);relicUsed={};
   if(!camp.battle&&mine.filter(t=>t==="K").length===3)unlock("campsite"); // three knights in a quick battle
   [1,3,4,6,8].forEach((x,i)=>{
     units.push({t:mine[i],team:"y",ci:i,x,y:H-1,hp:Math.min(TYPES[mine[i]].hp,camp.battle&&camp.hp&&camp.hp[i]>0?camp.hp[i]:TYPES[mine[i]].hp),moved:0,acted:0});
@@ -1888,12 +1888,12 @@ ${P.fore()}
 <rect width="320" height="220" fill="url(#hvig-${bk})"/><rect width="320" height="220" filter="url(#hgr-${bk})" opacity=".22"/>
 </svg>`;
 }
-let herbertLast=-1,BIOME_KEY="plain";
+let herbertLast=-1,BIOME_KEY="plain",herbertMet=false; // herbertMet: this map's visit already counted toward the graveyard
 function visitCamp(){
   let i;do i=Math.floor(Math.random()*HERBERT.length);while(i===herbertLast&&HERBERT.length>1);herbertLast=i;
   $("cscene").innerHTML=campScene(BIOME_KEY);$("cline").innerHTML=`<b>Herbert:</b> “${HERBERT[i]}”`;
   paused=true;$("campv").hidden=false;$("cleave").focus();say("You visited Herbert's camp.");
-  unlocks.hv=(unlocks.hv||0)+1;saveU();if(unlocks.hv>=3)unlock("graveyard"); // three visits: the way to his home
+  if(!herbertMet){herbertMet=true;unlocks.hv=(unlocks.hv||0)+1;saveU();if(unlocks.hv>=3)unlock("graveyard")} // visits on three different maps: the way to his home
 }
 $("cleave").onclick=()=>{$("campv").hidden=true;paused=false;say("Move, attack, or pick another unit.");render()};
 /* ---------- Gold and relic rewards ---------- */
