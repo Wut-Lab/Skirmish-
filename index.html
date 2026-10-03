@@ -21,8 +21,12 @@ h1{font-size:1.4rem;margin:0 0 4px}
 .t.brl{cursor:pointer}
 .t.sh{background:var(--sh,#86c4dc)}
 .murky{--dp:#1f2d27;--sh:#4c5d4a} /* Murky Swamp maps: dark, stagnant water (set on the board and the Terrain panel) */
+.haunted{--tile:#a39f92;--tile2:#9b978a;--dp:#26303a;--sh:#5c6a74} /* Haunted Graveyard: ashen ground, still dark water */
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .haunted{--tile:#3c3b38;--tile2:#373633}}
+:root[data-theme="dark"] .haunted{--tile:#3c3b38;--tile2:#373633}
 .t.sw{background:#4b4a33}
 .t.fo{background-image:linear-gradient(rgba(60,140,80,.25),rgba(60,140,80,.25))}
+.haunted .t.fo,.pb.haunted .tsw[style*="140,80"]{background-image:linear-gradient(rgba(70,60,50,.22),rgba(70,60,50,.22))} /* dead woods in graveyards */
 .t.ir{background:var(--atk)}
 .t.ig{background:#8d98a2}
 .t.pr{background:color-mix(in srgb,var(--atk) 42%,var(--tile))}
@@ -419,7 +423,7 @@ const MODS={
  FT:{name:"Forest Tactics",desc:"Your units in a forest get +1 armor against ranged attacks. Enemies in a forest only get +5% evasion against your attacks, instead of +10%."},
  PAD:{name:"Padded Armor",desc:"Archers get +1 armor but have 1 less movement."},
  REST:{name:"Field Rest",desc:"At the end of your turn, each of your units that neither moved nor attacked that turn recovers 2 HP."}};
-let MURKY=false,WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set(),SWAMP=new Set();
+let MURKY=false,HAUNTED=false,GRAVES=new Set(),WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set(),SWAMP=new Set();
 const UKEY="skirmish_unlocks_v1",unlocks=(()=>{try{return JSON.parse(localStorage.getItem(UKEY)||"{}")||{}}catch(e){return{}}})();
 const saveU=()=>{try{localStorage.setItem(UKEY,JSON.stringify(unlocks))}catch(e){}};
 const unlock=id=>{if(unlocks[id])return false;unlocks[id]=1;saveU();discover();return true};
@@ -432,7 +436,7 @@ function discover(){ // a short "New Discovery!" banner that fades away on whate
 const XB_DMG=4; // exploding barrel damage
 let BARRELS=new Set(),XBAR=new Set(),CAMPS=new Set(),bchoice=null,choiceMv=null,lastMove=null; // XBAR: the barrels that explode
 let WALLV=0,FORTV=new Map(),FORTK=new Set(); // one wall style per map; each connected fortress group shares one style; FORTK: the tile holding each fortress's keep
-const solid=k=>WALLS.has(k)||DEEP.has(k)||BARRELS.has(k)||CAMPS.has(k);
+const solid=k=>WALLS.has(k)||DEEP.has(k)||BARRELS.has(k)||CAMPS.has(k)||GRAVES.has(k);
 // Random terrain, mirrored through the map centre so both sides are fair. Start rows stay clear.
 function genMap(o={}){
   seed=Math.floor(Math.random()*1e5);
@@ -479,7 +483,8 @@ function genMap(o={}){
     }
     if(wsz()>cap)continue;
     deep.forEach(k=>shal.delete(k));
-    const free=(a,b)=>a>=0&&a<W&&!walls.has(a+","+b)&&!forest.has(a+","+b)&&!taken(a,b);
+    const graves=new Set(); // gravestones (Haunted Graveyard): single impassable stones
+    const free=(a,b)=>a>=0&&a<W&&!walls.has(a+","+b)&&!forest.has(a+","+b)&&!graves.has(a+","+b)&&!taken(a,b);
     const put=(set,pairs,chunk)=>{
       for(let n=pairs,t=0;n>0&&t++<300;){
         const x=R(W),y=2+R(H-4),tiles=[[x,y]];
@@ -488,7 +493,8 @@ function genMap(o={}){
         tiles.forEach(([a,b])=>{set.add(a+","+b);set.add((W-1-a)+","+(H-1-b))});n--;
       }
     };
-    put(walls,3+R(3),true);put(forest,o.forest||4+R(4),false);
+    if(o.graves)put(graves,5+R(3),false);
+    put(walls,o.graves?2+R(2):3+R(3),true);put(forest,o.forest||4+R(4),false);
     const swamp=new Set(); // swamp patches: entering one ends a unit's move
     const SW=o.swamp>=3?{n:5+R(3),size:3}:o.swamp?{n:Math.random()<.6?1+R(2):0,size:2}:{n:Math.random()<.12?1:0,size:2}; // patches (mirrored) and their size
     for(let n=SW.n,t=0;n>0&&t<200;t++){
@@ -499,7 +505,7 @@ function genMap(o={}){
     if(walls.size<5)continue;
     const fort=new Set();
     if(o.fort||Math.random()<.25){ // fortress groupings of 2 to 4 tiles
-      const cnt=1+R(2),occ=(a,b)=>walls.has(a+","+b)||forest.has(a+","+b)||fort.has(a+","+b)||swamp.has(a+","+b)||taken(a,b);
+      const cnt=1+R(2),occ=(a,b)=>walls.has(a+","+b)||graves.has(a+","+b)||forest.has(a+","+b)||fort.has(a+","+b)||swamp.has(a+","+b)||taken(a,b);
       const blob=(n,x0,y0)=>{
         const t=[[x0,y0]];
         for(let i=0;i<40&&t.length<n;i++){
@@ -517,14 +523,14 @@ function genMap(o={}){
     const bars=new Set(); // barrels (unlockable): 50% of maps with a fortress get 1-2, each beside a fortress tile
     if(unlocks.barrels&&fort.size&&Math.random()<.5){
       const cand=[];
-      fort.forEach(k=>{const[a,b]=pk(k);DIRS.forEach(([dx,dy])=>{const x=a+dx,y=b+dy,kk=K(x,y);if(x>=0&&x<W&&y>=2&&y<=H-3&&!walls.has(kk)&&!forest.has(kk)&&!fort.has(kk)&&!swamp.has(kk)&&!taken(x,y)&&!cand.includes(kk))cand.push(kk)})});
+      fort.forEach(k=>{const[a,b]=pk(k);DIRS.forEach(([dx,dy])=>{const x=a+dx,y=b+dy,kk=K(x,y);if(x>=0&&x<W&&y>=2&&y<=H-3&&!walls.has(kk)&&!graves.has(kk)&&!forest.has(kk)&&!fort.has(kk)&&!swamp.has(kk)&&!taken(x,y)&&!cand.includes(kk))cand.push(kk)})});
       for(let n=1+R(2);n>0&&cand.length;n--)bars.add(cand.splice(R(cand.length),1)[0]);
     }
     const xbars=new Set(); // exploding barrels (unlockable): each barrel has a 25% chance
     if(unlocks.xbarrels)bars.forEach(k=>{if(Math.random()<.25)xbars.add(k)});
     const camps=new Set(); // mysterious camp site (unlockable): a fifth of maps get one, somewhere in the middle with open ground beside it
     if(wantCamp)for(let t=0;t<200&&!camps.size;t++){
-      const x=R(W),y=4+R(H-8),ok=(a,b)=>a>=0&&a<W&&!walls.has(K(a,b))&&!fort.has(K(a,b))&&!swamp.has(K(a,b))&&!bars.has(K(a,b))&&!deep.has(K(a,b));
+      const x=R(W),y=4+R(H-8),ok=(a,b)=>a>=0&&a<W&&!walls.has(K(a,b))&&!graves.has(K(a,b))&&!fort.has(K(a,b))&&!swamp.has(K(a,b))&&!bars.has(K(a,b))&&!deep.has(K(a,b));
       if(ok(x,y)&&!forest.has(K(x,y))&&!shal.has(K(x,y))&&DIRS.filter(([dx,dy])=>ok(x+dx,y+dy)).length>=3)camps.add(K(x,y));
     }
     const seen=new Set(["0,0"]),q=[[0,0]];
@@ -532,12 +538,12 @@ function genMap(o={}){
       const[x,y]=q.pop();
       for(const[dx,dy] of DIRS){
         const nx=x+dx,ny=y+dy,k=nx+","+ny;
-        if(nx<0||ny<0||nx>=W||ny>=H||walls.has(k)||deep.has(k)||bars.has(k)||camps.has(k)||seen.has(k))continue;
+        if(nx<0||ny<0||nx>=W||ny>=H||walls.has(k)||deep.has(k)||bars.has(k)||camps.has(k)||graves.has(k)||seen.has(k))continue;
         seen.add(k);q.push([nx,ny]);
       }
     }
-    if(seen.size===W*H-walls.size-deep.size-bars.size-camps.size){
-      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;SWAMP=swamp;MURKY=o.swamp>=3;BARRELS=bars;XBAR=xbars;CAMPS=camps;WALLV=R(4);FORTV=new Map();FORTK=new Set();
+    if(seen.size===W*H-walls.size-deep.size-bars.size-camps.size-graves.size){
+      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;SWAMP=swamp;MURKY=o.swamp>=3;GRAVES=graves;HAUNTED=!!o.graves;BARRELS=bars;XBAR=xbars;CAMPS=camps;WALLV=R(4);FORTV=new Map();FORTK=new Set();
       for(const k0 of fort){
         if(FORTV.has(k0))continue;
         const v=R(2),st=[k0];FORTV.set(k0,v);FORTK.add(k0);
@@ -550,6 +556,14 @@ function genMap(o={}){
 const svg=b=>'<svg class="dec" viewBox="0 0 40 40">'+b+'</svg>';
 const tree=(x,y,h,w,c)=>`<ellipse cx="${x+1.2}" cy="${y+3.8}" rx="${w*.95}" ry="1.6" fill="rgba(0,0,0,.18)"/><rect x="${x-1}" y="${y}" width="2" height="4" fill="#5a3d24"/><path d="M${x} ${y-h}L${x+w} ${y}H${x-w}z" fill="${c}"/><path d="M${x} ${y-h}L${x+w} ${y}H${x}z" fill="rgba(0,0,0,.16)"/>`; // foliage lit from the upper left
 const oak=(x,y,r,c)=>`<ellipse cx="${x+1}" cy="${y+r*.8}" rx="${r*.9}" ry="1.7" fill="rgba(0,0,0,.18)"/><rect x="${x-1.2}" y="${y}" width="2.4" height="${r*.8}" fill="#5a3d24"/><circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/><path d="M${x+r*.25} ${y-r*.97}A${r} ${r} 0 0 1 ${x-r*.25} ${y+r*.97}A${r*.8} ${r*.9} 0 0 0 ${x+r*.25} ${y-r*.97}z" fill="rgba(0,0,0,.14)"/><circle cx="${x-r*.3}" cy="${y-r*.3}" r="${r*.45}" fill="rgba(255,255,255,.16)"/>`;
+// Haunted Graveyard: gravestones, and dead trees in place of living ones
+const GR_STONE='fill="#8a8a86" stroke="#2e2e2c" stroke-width="1.100"';
+const GRAVE_V=[
+ svg(`<ellipse cx="20" cy="33" rx="12" ry="3" fill="rgba(0,0,0,.25)"/><path d="M9 33q2-3 11-3t11 3" fill="#4a4636"/><path d="M12 32V15q0-8 8-8t8 8v17z" ${GR_STONE}/><path d="M13.500 31V15.500q0-6.500 6.500-6.500" stroke="#b4b4ae" stroke-width="1" fill="none" opacity=".6"/><path d="M16 17h8M20 13.500v9" stroke="#3a3a36" stroke-width="1.400"/><path d="M15 25h10M16 28h8" stroke="#3a3a36" stroke-width=".8" opacity=".7"/><path d="M24 22l2 3l-1 2" stroke="#2e2e2c" stroke-width=".6" fill="none"/><path d="M12 30q2-2 3 0q1-3 2 0" stroke="#3f5a34" stroke-width="1.200" fill="none"/>`),
+ svg(`<ellipse cx="20" cy="34" rx="11" ry="2.600" fill="rgba(0,0,0,.25)"/><path d="M17.500 33V18h-6v-4.500h6V7h5v6.500h6V18h-6v15z" ${GR_STONE}/><path d="M18.500 32V18M12.500 14.500h5" stroke="#b4b4ae" stroke-width=".9" opacity=".6"/><circle cx="20" cy="15.800" r="3" fill="none" stroke="#3a3a36" stroke-width="1"/><path d="M14 33q3-2 4 0M22 33q2-3 4 0" stroke="#3f5a34" stroke-width="1.200" fill="none"/>`),
+ svg(`<ellipse cx="18" cy="33" rx="13" ry="3" fill="rgba(0,0,0,.25)"/><g transform="rotate(-9 16 32)"><path d="M8 32V17q0-6 7-6t7 6v15z" ${GR_STONE}/><path d="M11 21h8M11 24h6" stroke="#3a3a36" stroke-width=".9" opacity=".7"/></g><path d="M25 33V25q0-4 4.500-4t4.500 4v8z" ${GR_STONE}/><path d="M27 27h5" stroke="#3a3a36" stroke-width=".8"/><path d="M6 33q3-3 5 0M30 34q1-2 3 0" stroke="#3f5a34" stroke-width="1.200" fill="none"/>`)];
+const deadTree=(x,y,h,flip)=>`<ellipse cx="${x+1}" cy="${y+1.500}" rx="${h*.3}" ry="1.500" fill="rgba(0,0,0,.2)"/><g transform="translate(${x} ${y}) scale(${flip?-1:1} 1)" stroke="#2e241c" stroke-linecap="round" fill="none"><path d="M0 0V-${h}" stroke-width="2.600"/><path d="M0 -${h*.45}l${h*.3}-${h*.25}l${h*.08}-${h*.15}M0 -${h*.65}l-${h*.28}-${h*.18}l-${h*.05}-${h*.14}M0 -${h}l${h*.12}-${h*.12}M0 -${h*.8}l-${h*.15}-${h*.2}" stroke-width="1.500"/></g>`;
+const DEAD_V=[svg(deadTree(14,34,22,0)+deadTree(28,30,16,1)),svg(deadTree(20,35,26,1)+`<path d="M8 34q3-3 5 0" stroke="#3f5a34" stroke-width="1.200" fill="none"/>`),svg(deadTree(11,30,17,0)+deadTree(25,36,23,0))];
 const FOREST_V=[
  svg(tree(32,16,11,5,"#2f6b3f")+tree(20,20,15,6.5,"#3a7d4a")+tree(11,29,17,7,"#2f6b3f")+tree(29,30,19,8,"#245a34")),
  svg(oak(29,14,6.5,"#3f8a4c")+oak(12,18,7,"#2f7a40")+oak(22,28,8,"#4a9a55")),
@@ -688,16 +702,17 @@ const TERRAIN={
  shallow:{name:"Shallow Water",bg:"background:var(--sh,#86c4dc)",art:()=>SH_V,desc:"Entering it costs 1 extra movement. Often found around deep water, and sometimes as a ford across a river."},
  deep:{name:"Deep Water",bg:"background:var(--dp,#2f6f9c)",art:()=>DP_V,desc:"Impassable. Units can't enter or cross it, but attacks can pass over it. Forms lakes, ponds and rivers."},
  barrels:{name:"Barrels",bg:"",art:()=>BAR_V,unlock:"barrels",desc:"Impassable. A unit in range can spend its action to break them. Found next to fortresses."},
+ grave:{name:"Gravestone",bg:"",art:()=>GRAVE_V,unlock:"graveyard",desc:"Impassable. Units can't enter or cross it, but attacks can pass over it. Found in Haunted Graveyards."},
  campsite:{name:"Mysterious Camp Site",bg:"",art:()=>[CAMP_V],unlock:"campsite",desc:"Impassable. A unit standing next to it can visit the camp. Enemy units may break it."},
  xbarrel:{name:"Exploding Barrel",bg:"",art:()=>[XBAR_V],unlock:"xbarrels",desc:`Impassable. Breaking it deals ${XB_DMG} damage to every unit on the 8 tiles around it and sets off barrels in the blast. Each barrel has a 25% chance to be one.`},
  wall:{name:"Wall",bg:"background:var(--wall)",art:()=>[0,1,2,3].map(v=>wallArt(v,0)),desc:"Impassable. Units can't enter or cross it, but attacks can pass over it."},
  fort:{name:"Fortress",bg:FR,art:()=>[fortArt(0,0,true),fortArt(0,1,true)],desc:"Uncommon. A unit standing on one gets +1 armor."}};
-const terrainKey=k=>CAMPS.has(k)?"campsite":BARRELS.has(k)?(XBAR.has(k)?"xbarrel":"barrels"):WALLS.has(k)?"wall":DEEP.has(k)?"deep":SHALLOW.has(k)?"shallow":SWAMP.has(k)?"swamp":FOREST.has(k)?"forest":FORT.has(k)?"fort":"ground";
+const terrainKey=k=>CAMPS.has(k)?"campsite":GRAVES.has(k)?"grave":BARRELS.has(k)?(XBAR.has(k)?"xbarrel":"barrels"):WALLS.has(k)?"wall":DEEP.has(k)?"deep":SHALLOW.has(k)?"shallow":SWAMP.has(k)?"swamp":FOREST.has(k)?"forest":FORT.has(k)?"fort":"ground";
 function tileArt(x,y){ // the art for one board tile, picking a stable variant per tile
   const k=x+","+y;
   switch(terrainKey(k)){
-    case "campsite":return CAMP_V;case "xbarrel":return XBAR_V;case "barrels":return BAR_V[tv(x,y,2,19)];case "wall":return wallArt(WALLV,wallMask(x,y));
-    case "deep":return DP_V[tv(x,y,3,13)];case "shallow":return SH_V[tv(x,y,3,15)];case "swamp":return SW_V[tv(x,y,4,21)];case "forest":return FOREST_V[tv(x,y,4,9)];
+    case "campsite":return CAMP_V;case "grave":return GRAVE_V[tv(x,y,3,23)];case "xbarrel":return XBAR_V;case "barrels":return BAR_V[tv(x,y,2,19)];case "wall":return wallArt(WALLV,wallMask(x,y));
+    case "deep":return DP_V[tv(x,y,3,13)];case "shallow":return SH_V[tv(x,y,3,15)];case "swamp":return SW_V[tv(x,y,4,21)];case "forest":return HAUNTED?DEAD_V[tv(x,y,3,9)]:FOREST_V[tv(x,y,4,9)];
     case "fort":return fortArt(fortMask(x,y),FORTV.get(k)||0,FORTK.has(k));default:return ground(x,y);
   }
 }
@@ -801,7 +816,7 @@ function atkZone(u,spots,set,bar){
   });
 }
 function render(){
-  board.innerHTML="";board.classList.toggle("murky",MURKY);
+  board.innerHTML="";board.classList.toggle("murky",MURKY);board.classList.toggle("haunted",HAUNTED);
   const mv=new Set(),tg=new Set(),ig=new Set(),ir=new Set(),pr=new Set(),hs=new Set(),bt=new Set();
   if(sel&&turn==="y"&&!over){
     if(mode==="tp")farRow("y").forEach(p=>mv.add(p+""));
@@ -872,7 +887,7 @@ function renderTile(){
   if(f&&mods.y==="FT")lines.push(`Forest Tactics: your units here get +1 armor against ranged attacks, and enemies here only get +${pct(FT_FOREST_EV)} evasion against you.`);
   if(f&&mods.f==="FT")lines.push("The enemy has Forest Tactics: its units here get +1 armor against ranged attacks.");
   if(u)lines.push("Occupied by "+(u.team==="y"?"your ":u.team==="f"?"an enemy ":"a wild ")+NAME[u.t]+".");
-  el.className="pb"+(MURKY?" murky":""); // murky water colours on Murky Swamp maps
+  el.className="pb"+(MURKY?" murky":"")+(HAUNTED?" haunted":""); // murky water on Murky Swamp maps, ashen ground in graveyards
   el.innerHTML=`<div class="lbl">Terrain</div><div class="row">${terrainSwatch(key,tileArt(x,y))}<div class="ib"><div class="nm"><strong>${T.name}</strong><span>Tile ${String.fromCharCode(65+x)}${y+1}</span></div>${lines.map(l=>`<small>${l}</small>`).join("")}</div></div>`;
 }
 function renderInfo(){
@@ -1314,7 +1329,8 @@ const BTEXT={
  forest:"Thick woods. Extra forests on the battlefield.",
  plain:"Open country. Very few forests.",
  fort:"A ruined stronghold. A fortress is guaranteed on the battlefield.",
- wild:"Wild animals prowl here. A roaming animal is guaranteed."};
+ wild:"Wild animals prowl here. A roaming animal is guaranteed.",
+ graveyard:"Haunted graveyard. Rows of gravestones block the way, and dead trees loom in the fog."};
 const NAMES={
  forest:["Whispering Woods","Mossy Ford","Bramble Wood","Thornfield"],
  plain:["Ashen Pass","Iron Bridge","Cinder Fields","Grey Marsh"],
@@ -1322,13 +1338,14 @@ const NAMES={
  wild:["Wolf Hollow","Crow's Rest","Duskwater","Ember Vale"],
  swamp:["Blackwater Bog","Gloomfen","Murkmire","Rotting Hollow"],
  wetlands:["Mirewater Fen","Sodden Reach","Heron's Marsh","Drowned Meadow"],
+ graveyard:["Mourner's Rest","Ashen Barrow","Lantern Crypts","Hollow Chapel"],
  boss:["Blackspire","Ironcrown Citadel","Skullcrag Fortress"]};
 // Builds a new random map: camp at the bottom, three rows of battles, a boss at the top.
 function genWorld(){
   const R=n=>Math.floor(Math.random()*n),rr=(a,b)=>a+Math.random()*(b-a),used=new Set();
   const nodes=[{id:0,name:"Harrow Camp",x:Math.round(rr(50,350)),y:466,type:"camp",text:"Your starting camp. Nothing to fight here."}];
   const layers=[[0]];let bag=[];
-  const nextBiome=()=>{if(!bag.length)bag=["forest","plain","fort","wild","swamp"].sort(()=>Math.random()-.5);return bag.pop()};
+  const nextBiome=()=>{if(!bag.length)bag=["forest","plain","fort","wild","swamp",...(unlocks.graveyard?["graveyard"]:[])].sort(()=>Math.random()-.5);return bag.pop()};
   [378,292,206].forEach(y0=>{
     const c=2+R(2),ids=[];
     for(let i=0;i<c;i++){
@@ -1371,10 +1388,10 @@ function genWorld(){
   WORLD=nodes;EDGES=[...es].map(e=>e.split("-").map(Number));
   DECO={trees:scatter(12),rocks:scatter(5),river:`M-10 ${ry()} C 70 ${ry()} 120 ${ry()} 220 ${ry()} S 340 ${ry()} 420 ${ry()}`};
 }
-const BIOME_NAME={forest:"Forest",plain:"Plains",fort:"Stronghold",wild:"Wilds",wetlands:"Wetlands",swamp:"Murky Swamp",boss:"Enemy Stronghold"};
+const BIOME_NAME={forest:"Forest",plain:"Plains",fort:"Stronghold",wild:"Wilds",wetlands:"Wetlands",swamp:"Murky Swamp",graveyard:"Haunted Graveyard",boss:"Enemy Stronghold"};
 // a Quick Battle map has no biome of its own, so name it from what was generated
-const guessBiome=()=>SWAMP.size>=10?"swamp":DEEP.size+SHALLOW.size>=20?"wetlands":FORT.size?"fort":units.some(u=>u.team==="w")?"wild":FOREST.size>=16?"forest":"plain";
-const BIOME={forest:{forest:9},plain:{forest:2},fort:{fort:1},wild:{wild:1},boss:{fort:1,boss:1},wetlands:{water:1,forest:3,swamp:1},swamp:{swamp:3,pond:1,forest:6}};
+const guessBiome=()=>GRAVES.size?"graveyard":SWAMP.size>=10?"swamp":DEEP.size+SHALLOW.size>=20?"wetlands":FORT.size?"fort":units.some(u=>u.team==="w")?"wild":FOREST.size>=16?"forest":"plain";
+const BIOME={forest:{forest:9},plain:{forest:2},fort:{fort:1},wild:{wild:1},boss:{fort:1,boss:1},wetlands:{water:1,forest:3,swamp:1},swamp:{swamp:3,pond:1,forest:6},graveyard:{graves:1,forest:5}};
 const adj=(a,b)=>EDGES.some(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a));
 const SAVE="skirmish-campaign";
 function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
@@ -1397,7 +1414,7 @@ function renderWorld(){
   const done=new Set(camp.cleared),cur=WORLD[camp.pos],pc=COLORS[camp.cfg.c];
   if(camp.sel==null)camp.sel=camp.pos;
   const stOf=n=>n.type==="camp"||done.has(n.id)?"cleared":adj(camp.pos,n.id)?"open":"locked";
-  const label={cleared:"Cleared",open:"Battle ahead",locked:"Out of reach"},lab=n=>stOf(n)==="open"?(n.type==="heal"?"Healing spot":n.b==="wetlands"?"Wetlands battle":n.b==="swamp"?"Swamp battle":label.open):label[stOf(n)];
+  const label={cleared:"Cleared",open:"Battle ahead",locked:"Out of reach"},lab=n=>stOf(n)==="open"?(n.type==="heal"?"Healing spot":n.b==="wetlands"?"Wetlands battle":n.b==="swamp"?"Swamp battle":n.b==="graveyard"?"Graveyard battle":label.open):label[stOf(n)];
   let s='<svg viewBox="0 0 400 520" role="img" aria-label="World map">'+mapArt();
   EDGES.forEach(([a,b])=>{
     const A=WORLD[a],B=WORLD[b],both=stOf(A)==="cleared"&&stOf(B)==="cleared",hot=a===camp.pos||b===camp.pos;
@@ -1405,11 +1422,12 @@ function renderWorld(){
   });
   WORLD.forEach(n=>{
     const st=stOf(n),cl=st==="cleared"&&n.type!=="camp",r=n.type==="boss"?21:17,S=n.type==="boss"?30:24;
-    const fill=n.type==="camp"?"#8c7752":n.type==="heal"?(st==="locked"?"#a39a88":cl?"#9fc9a8":"#7fd1a0"):cl?"#6aa55a":st==="open"?(n.type==="boss"?"#c4483a":n.b==="wetlands"?"#5fb3c9":n.b==="swamp"?"#6d7a4f":"#e6b73f"):"#a39a88";
+    const fill=n.type==="camp"?"#8c7752":n.type==="heal"?(st==="locked"?"#a39a88":cl?"#9fc9a8":"#7fd1a0"):cl?"#6aa55a":st==="open"?(n.type==="boss"?"#c4483a":n.b==="wetlands"?"#5fb3c9":n.b==="swamp"?"#6d7a4f":n.b==="graveyard"?"#7d7590":"#e6b73f"):"#a39a88";
     const icon=n.type==="heal"?`<path d="M${n.x-3} ${n.y-9}h6v6h6v6h-6v6h-6v-6h-6v-6h6z" fill="#fff" stroke="#2f8f4e" stroke-width="2" stroke-linejoin="round"/>`
       :n.type==="camp"?`<path d="M${n.x-10} ${n.y+8}L${n.x} ${n.y-10}L${n.x+10} ${n.y+8}zM${n.x} ${n.y-10}V${n.y+8}" fill="#f2e6c0" stroke="#3b2a14" stroke-width="2" stroke-linejoin="round"/>`
       :n.b==="swamp"?`<path d="M${n.x-8} ${n.y+7}v-9M${n.x-4} ${n.y+7}v-12M${n.x+1} ${n.y+7}v-8M${n.x+6} ${n.y+7}v-11" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><ellipse cx="${n.x-4}" cy="${n.y-6}" rx="1.8" ry="3.4" fill="#fff"/><ellipse cx="${n.x+6}" cy="${n.y-5}" rx="1.8" ry="3.4" fill="#fff"/><path d="M${n.x-10} ${n.y+8}h20" stroke="#fff" stroke-width="2" stroke-linecap="round"/>`
       :n.b==="wetlands"?`<path d="M${n.x-9} ${n.y-3}q4.5-5 9 0t9 0M${n.x-9} ${n.y+5}q4.5-5 9 0t9 0" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>`
+      :n.b==="graveyard"?`<path d="M${n.x-6} ${n.y+9}V${n.y-3}q0-7 6-7t6 7v12z" fill="#fff" stroke="#3b2a14" stroke-width="1.6"/><path d="M${n.x} ${n.y-5}v8M${n.x-3} ${n.y-2}h6" stroke="#3b2a14" stroke-width="1.6"/><path d="M${n.x-11} ${n.y+9}h22" stroke="#fff" stroke-width="2" stroke-linecap="round"/>`
       :n.b==="forest"?nest(FOREST_V[0],n.x-S/2,n.y-S/2,S)
       :n.b==="fort"?nest(FORT_ICON[0],n.x-S/2,n.y-S/2,S)
       :n.b==="boss"?nest(FORT_ICON[1],n.x-S/2,n.y-S/2,S)
@@ -1546,6 +1564,7 @@ function openCampSetup(){
   renderSetup();show("pick");
 }
 function start(o={}){
+  if(!camp.battle&&unlocks.graveyard&&Math.random()<.12)o={...o,graves:1,forest:5}; // quick battles: an occasional graveyard
   genMap(o);col={y:pick.c,f:foeColor(),w:"wild"};
   const extra=pick.x.slice();
   const P=poolNow(),rnd=(have=[])=>{let t;do t=P[Math.floor(Math.random()*P.length)];while(LIMIT1.includes(t)&&have.includes(t));return t},mine=["K","A","C",...extra],foe=["K","A","C"];foe.push(rnd(foe));foe.push(rnd(foe));
@@ -1692,7 +1711,18 @@ const CAMP_SET={
    <g fill="#0c120a"><path d="M262 150v-10h4v10zM290 150v-10h4v10z"/><path d="M258 140h40v-18h-40z"/><path d="M254 124l24-16l24 16z"/></g><rect x="270" y="126" width="7" height="7" fill="#c8e080" opacity=".55"/>
    <circle class="twk" cx="70" cy="138" r="1.600" fill="#9dffc4"/><circle class="twk" style="animation-delay:-1.300s" cx="236" cy="132" r="1.300" fill="#9dffc4"/>`,
   mid:()=>`<path d="M-4 162q70-8 160-2t170-2v10q-90 6-170 2t-160 2z" fill="#26301c" stroke="#121a0c" stroke-width="1.500"/>`,
-  fore:()=>[[8,214],[18,212]].map(([x,y],i)=>`<path d="M${x} ${y}V${y-28+i*3}" stroke="#222c1a" stroke-width="1.600"/><rect x="${x-2}" y="${y-30+i*3}" width="4" height="9" rx="2" fill="#3a2818"/>`).join("")+`<circle class="twk" style="animation-delay:-.6s" cx="34" cy="186" r="1.400" fill="#9dffc4"/>`}};
+  fore:()=>[[8,214],[18,212]].map(([x,y],i)=>`<path d="M${x} ${y}V${y-28+i*3}" stroke="#222c1a" stroke-width="1.600"/><rect x="${x-2}" y="${y-30+i*3}" width="4" height="9" rx="2" fill="#3a2818"/>`).join("")+`<circle class="twk" style="animation-delay:-.6s" cx="34" cy="186" r="1.400" fill="#9dffc4"/>`},
+ graveyard:{sky:["#06050b","#2c2240"],hz:"#8a6aaa",moon:"#ddd6ec",rune:"#c8a0ff",g:["#262429","#1e1c21"],fog:"#b4aacc",
+  back:()=>`<g stroke="#0c0a10" stroke-linecap="round" fill="none"><path d="M290 150V96q-2-12-14-20M290 112q12-10 22-8M290 126q-10-4-16-12" stroke-width="5"/></g>
+   ${[[8,140,10],[24,143,8],[226,141,9],[312,142,8]].map(([x,y,h])=>`<path d="M${x-h*.5} 150V${y}q0-${h*.5} ${h*.5}-${h*.5}t${h*.5} ${h*.5}V150z" fill="#16141c"/>`).join("")}
+   <g fill="#1a1822" stroke="#0a0810" stroke-width="1"><path d="M118 150V108h60V150z"/><path d="M112 110L148 86L184 110z"/><path d="M116 150V112h6V150zM174 150V112h6V150z"/></g>
+   <path d="M140 150v-22q0-9 8-9t8 9v22z" fill="#ffb84a" opacity=".75"/><path d="M140 150v-22q0-9 8-9t8 9v22z" fill="none" stroke="#0a0810" stroke-width="1.200"/><path d="M148 119v31M140 134h16" stroke="#2a1e10" stroke-width="1"/>
+   <rect x="132" y="111" width="32" height="7" rx="1" fill="#3a3448" stroke="#0a0810" stroke-width=".8"/><text x="148" y="116.600" text-anchor="middle" font-size="5.200" font-family="Georgia,serif" fill="#d8ccae" letter-spacing=".6">HERBERT</text>
+   <circle cx="148" cy="99" r="4.500" fill="none" stroke="#3a5a2e" stroke-width="2"/><circle cx="146" cy="96" r=".9" fill="#a83a3a"/><circle cx="151" cy="100" r=".9" fill="#a83a3a"/>
+   <path d="M138 150h20l2 2h-24z" fill="#5a3a2a"/>
+   <g stroke="#0e0c12" stroke-width="1.600">${[186,194,202,210,218,226,234,242,250,258,266,274].map(x=>`<path d="M${x} 150V128"/><path d="M${x-1.500} 129l1.500-4l1.500 4" fill="#0e0c12"/>`).join("")}<path d="M184 134h92M184 145h92"/></g>`,
+  fore:()=>`<path d="M4 214V202q0-6 6-6t6 6v12zM28 216v-8q0-4 4-4t4 4v8z" fill="#55535a" stroke="#1a181e" stroke-width=".8"/><path d="M8 204h4M10 202v5" stroke="#1a181e" stroke-width=".8"/>
+   <g transform="translate(46 210)"><rect x="-1.500" y="-7" width="3" height="7" fill="#d8ccb0"/><path class="flk" d="M0 -7q-2-3 0-6q2 3 0 6z" fill="#ffc24a"/></g>`}};
 CAMP_SET.heal=CAMP_SET.plain;
 function campScene(bk){
   const P=CAMP_SET[bk]||CAMP_SET.plain;
@@ -1777,6 +1807,7 @@ function visitCamp(){
   let i;do i=Math.floor(Math.random()*HERBERT.length);while(i===herbertLast&&HERBERT.length>1);herbertLast=i;
   $("cscene").innerHTML=campScene(BIOME_KEY);$("cline").innerHTML=`<b>Herbert:</b> “${HERBERT[i]}”`;
   paused=true;$("campv").hidden=false;$("cleave").focus();say("You visited Herbert's camp.");
+  unlocks.hv=(unlocks.hv||0)+1;saveU();if(unlocks.hv>=3)unlock("graveyard"); // three visits: the way to his home
 }
 $("cleave").onclick=()=>{$("campv").hidden=true;paused=false;say("Move, attack, or pick another unit.");render()};
 /* ---------- Unlocks ---------- */
@@ -1786,10 +1817,12 @@ const UNLOCKS=[
   hint:()=>unlocks.barrels?"Destroy three barrels.":"Unlock Barrels, then destroy three of them.",prog:()=>unlocks.barrels?[Math.min(3,unlocks.bk||0),3,"barrels destroyed"]:null},
  {id:"captain",unit:"T",hint:"Win four campaign battles.",prog:()=>[Math.min(4,unlocks.cw||0),4,"campaign battles won"]},
  {id:"banner",unit:"N",hint:"Defeat a campaign boss."},
- {id:"campsite",terrain:"campsite",hint:"Some say a trio of polished helmets, out for a quick scrap, draws a curious host."}
+ {id:"campsite",terrain:"campsite",hint:"Some say a trio of polished helmets, out for a quick scrap, draws a curious host."},
+ {id:"graveyard",biome:"graveyard",terrain:"grave",hint:"Our encouraging friend's home."}
 ];
 // name, art and description for an unlock, read from the terrain table or the unit descriptions
-const unlockInfo=o=>o.terrain?{name:TERRAIN[o.terrain].name,art:terrainSwatch(o.terrain),desc:TERRAIN[o.terrain].desc}
+const unlockInfo=o=>o.biome?{name:BIOME_NAME[o.biome],art:terrainSwatch(o.terrain),desc:BTEXT[o.biome]+" Can appear in campaigns and quick battles."}
+  :o.terrain?{name:TERRAIN[o.terrain].name,art:terrainSwatch(o.terrain),desc:TERRAIN[o.terrain].desc}
   :{name:cap(NAME[o.unit]),art:hIcon(o.unit,"y"),desc:`${unitStats(o.unit)}. ${ABILITY[o.unit]} Limit one per army.`};
 function unlockView(){
   const r=$("unlockview"),got=UNLOCKS.filter(o=>unlocks[o.id]).length;
