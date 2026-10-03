@@ -319,6 +319,7 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 /* ---- challenges and the map editor ---- */
 #chalview .hcard .hrow{align-items:center}
 .cbtn{margin-top:6px}
+.dtag{display:inline-block;padding:0 6px;border-radius:6px;font-weight:800;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:#fff;background:var(--dc)}
 .efields{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin:8px 0}
 .efields label{display:grid;gap:2px;font-size:.78rem;font-weight:700}
 .efields label:nth-child(-n+2){grid-column:1/-1}
@@ -335,7 +336,7 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .eteam button[aria-pressed=true]{background:var(--you);color:#fff;border-color:var(--you)}
 #eboard{touch-action:none;user-select:none}
 #eboard .t{cursor:crosshair}
-.estat{font-size:.85rem;margin:8px 0}.estat b.ok{color:#2f8f4e}.estat b.bad{color:var(--foe)}
+.estat{font-size:.85rem;margin:8px 0}.estat .warn{color:#b07a10;font-weight:600}.estat b.ok{color:#2f8f4e}.estat b.bad{color:var(--foe)}
 .ebtns{display:flex;flex-wrap:wrap;gap:6px}
 #ecode{width:100%;box-sizing:border-box;margin-top:8px;font:12px ui-monospace,monospace;border:2px solid var(--ink);border-radius:6px;padding:6px;background:var(--panel);color:var(--ink)}
 /* ---- campaign triumph ---- */
@@ -385,6 +386,7 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 <div class="efields">
 <label>Name <input id="ename" maxlength="40"></label>
 <label>Description <input id="edesc" maxlength="160"></label>
+<label>Difficulty <select id="ediff"><option value="0">Easy</option><option value="1">Moderate</option><option value="2">Hard</option></select></label>
 <label>Biome <select id="ebiome"></select></label>
 <label>Your modifier <select id="emy"></select></label>
 <label>Enemy modifier <select id="emf"></select></label>
@@ -539,6 +541,7 @@ const RELICS={
  debris:{name:"Debris Shot",r:1,need:"R",desc:"When your Artillery hits, every enemy on the 8 tiles around the target takes 1 damage."},
  drills:{name:"Boots of a Forced March",r:0,lock:"drills",desc:"Well-worn boots that set a brisk pace: your units get +1 movement on your first turn of each battle."},
  salts:{name:"Smelling Salts",r:0,lock:"salts",need:"P",desc:"Apothecaries heal 1 extra HP."},
+ pennant:{name:"Garrison Pennant",r:0,lock:"pennant",desc:"Your units standing on a fortress tile get +5% evasion."},
  pavise:{name:"Pavise",r:0,lock:"pavise",desc:"Archers take 1 less damage from ranged attacks. Pierce can't get past it."},
  font:{name:"Font of the Wise Ones",r:2,lock:"font",find:1,desc:"Once per battle, each of your units can spend its action to bless an adjacent ally: the ally gets +5% evasion until the end of your next turn."},
  mug:{name:"Herbert's Mug",r:2,desc:"Once per battle, the first of your units to fall survives with 1 HP instead."},
@@ -907,7 +910,7 @@ function combat(a,b,from=a){
   armor.forEach(([l,v])=>add(l,-v));
   add("Pierce",Math.min(A.pi||0,armor.reduce((t,x)=>t+x[1],0)));
   add("Pavise",b.t==="A"&&A.rg>1&&rel(b,"pavise")?-1:0); // a shield wall, not armor: pierce can't get past it
-  const ev=Math.min(EV_CAP,(B.ev||0)+(rel(b,"luck")?.05:0)+(blessed(b)?BLESS_EV:0)+(FOREST.has(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0));
+  const ev=Math.min(EV_CAP,(B.ev||0)+(rel(b,"luck")?.05:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(blessed(b)?BLESS_EV:0)+(FOREST.has(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0));
   return {dmg:Math.max(1,parts.reduce((t,p)=>t+p[1],0)),hit:1-ev,parts}; // every hit deals at least 1
 }
 // a unit with `ret` retaliates against an attacker within its own range for half damage, at least 1 (the attacker may evade it); null when it can't
@@ -1064,7 +1067,7 @@ function renderInfo(){
   if(blessed(u))notes.push("Blessed: +5% evasion until the end of your next turn.");
   if(rel(u,"font")&&!u.blessUsed)notes.push("Font of the Wise Ones: can bless an adjacent ally once this battle.");
   if(fo)notes.push(`In a forest: +${pct(FOREST_EV)} evasion, and leaving costs 1 movement.`);
-  if(FORT.has(u.x+","+u.y))notes.push("On a fortress: +1 armor.");
+  if(FORT.has(u.x+","+u.y))notes.push("On a fortress: +1 armor."+(rel(u,"pennant")?" Garrison Pennant: +5% evasion.":""));
   if(u.t==="A"&&mods[u.team]==="PAD")notes.push("Padded Armor: +1 armor.");
   if(u.t==="A"&&rel(u,"pavise"))notes.push("Pavise: takes 1 less damage from ranged attacks.");
   if(mods[u.team]==="FT"&&fo)notes.push("Forest Tactics: +1 armor against ranged attacks here.");
@@ -2090,6 +2093,7 @@ const RICON={ // small 32-unit relic icons
  drills:'<path d="M10 6h8v13l6 3q2 1 2 4v2H10z" fill="#6a4a2a" stroke="#2a1a0c" stroke-width="1.200" stroke-linejoin="round"/><path d="M10 25h16" stroke="#2a1a0c" stroke-width="1"/><path d="M12 6v19" stroke="#9a7448" stroke-width="1" opacity=".7"/><path d="M10 10h8M10 13h8" stroke="#c9962a" stroke-width="1.100"/><path d="M2 12h5M3 17h5M2 22h5" stroke="#8a8f96" stroke-width="1.600" stroke-linecap="round"/>',
  salts:'<path d="M13 4h6v4h-6z" fill="#8a5a2a" stroke="#3a2412" stroke-width="1"/><path d="M12 8h8v3q4 3 4 8v6q0 3-3 3H11q-3 0-3-3v-6q0-5 4-8z" fill="#cfe8e0" fill-opacity=".75" stroke="#2a3a36" stroke-width="1.200"/><path d="M9 20q7-2 14 0v5q0 2-2 2H11q-2 0-2-2z" fill="#7ac8a8" opacity=".8"/><path d="M11 12q-1 4 0 9" stroke="#fff" stroke-width="1.100" opacity=".7" fill="none"/><path d="M19 3q2-2 1-4M23 6q3-1 3-4M14 2q-1-2 1-3" stroke="#9ad8c0" stroke-width="1.100" fill="none" opacity=".8"/>',
  font:'<ellipse cx="16" cy="28" rx="9" ry="2" fill="rgba(0,0,0,.2)"/><path d="M11 28l2-9h6l2 9z" fill="#7a7a74" stroke="#2a2a28" stroke-width="1"/><path d="M4 13q12 5 24 0q-1 7-12 7T4 13z" fill="#8c8c86" stroke="#2a2a28" stroke-width="1.100"/><ellipse cx="16" cy="13" rx="12" ry="3" fill="#5ac8f0" stroke="#2a2a28" stroke-width="1.100"/><ellipse cx="14" cy="12.500" rx="5" ry="1" fill="#d8f6ff" opacity=".8"/><path d="M10 9q-2-3 0-6M16 8q2-4 0-7M22 9q2-3 0-5" stroke="#9ae8ff" stroke-width="1.200" fill="none" opacity=".85"/><path d="M8 18l3 1M21 19l3-1" stroke="#4f6a3a" stroke-width="1.400"/>',
+ pennant:'<path d="M8 3v27" stroke="#5a3a1c" stroke-width="2.200" stroke-linecap="round"/><circle cx="8" cy="3" r="1.800" fill="#c9962a"/><path d="M9 5h17l-5 5l5 5H9z" fill="#3a5a8a" stroke="#1d2a44" stroke-width="1.100" stroke-linejoin="round"/><path d="M12 7.500h3v5h-3zM15 7.500h3v2h-3z" fill="#e8dcc0"/><path d="M10 6h14" stroke="#8aa8d0" stroke-width=".8" opacity=".7"/><path d="M4 30h8" stroke="#5a5a52" stroke-width="2" stroke-linecap="round"/>',
  pavise:'<path d="M24 27l4 3" stroke="#4a3018" stroke-width="2" stroke-linecap="round"/><path d="M8 5q8-2 16 0v18q-8 6-16 6z" fill="#a8743a" stroke="#3a2412" stroke-width="1.200" stroke-linejoin="round"/><path d="M16 4v24" stroke="#6a4420" stroke-width="2"/><path d="M10 7q6-1.500 12 0v15q-6 4.500-12 4.500z" fill="#3a5a8a" opacity=".85"/><path d="M16 8v16M11.500 14h9" stroke="#e8dcc0" stroke-width="2.200"/><path d="M9 6v22" stroke="#d8a868" stroke-width=".9" opacity=".6"/><circle cx="12" cy="10" r=".8" fill="#2a1a0c"/><circle cx="20" cy="10" r=".8" fill="#2a1a0c"/>',
  cap:'<path d="M5 24q1-13 12-15q11-2 11 12l-3 2q-1-8-5-10q-5-1-6 6z" fill="#7a2a24" stroke="#3a1210" stroke-width="1.100"/><path d="M10 14q5 1 7 7M16 10q5 2 6 8" stroke="#c8b08a" stroke-width="1.600" fill="none" opacity=".55"/><path d="M4 23q8-4 16 0l-.5 3.500q-7.500-3.500-15 0z" fill="#b8ac90" stroke="#4a4030" stroke-width="1"/><circle cx="26" cy="24.500" r="3" fill="#e2d6bc" stroke="#6a604c" stroke-width=".9"/>'};
 const relicIcon=(id,sz=32)=>`<svg viewBox="0 0 32 32" width="${sz}" height="${sz}" aria-hidden="true">${RICON[id]}</svg>`;
@@ -2132,17 +2136,21 @@ $("ttravel").onclick=()=>{
 $("tmenu").onclick=()=>{gid++;$("triumph").hidden=true;camp.battle=null;show("menu")};
 /* ---------- Fixed maps: challenges and the map editor ----------
    A map is plain data, so the editor, its map codes and the Challenges menu all share one format:
-   {name, desc, biome, mods:{y,f}, rows: 12 strings of 10 terrain letters, units: [[type, team, x, y], ...], reward?, hint?}
+   {name, desc, diff, biome, mods:{y,f}, rows: 12 strings of 10 terrain letters, units: [[type, team, x, y], ...], reward?, hint?}
    Terrain letters (one source, read by the loader, the editor palette and the map codes): */
 const MAPCH={".":"ground",f:"forest",s:"shallow",d:"deep",m:"swamp",w:"wall",F:"fort",b:"barrels",x:"xbarrel",g:"grave",c:"campsite"};
 const MAPKEY=Object.fromEntries(Object.entries(MAPCH).map(([c,k])=>[k,c]));
-// Challenge maps. reward: an unlock id granted on the first win (add it to UNLOCKS with its hint); none yet
+// Challenge maps. diff: 0 easy, 1 moderate, 2 hard (the menu lists them easiest first). reward: an unlock id granted on the first win (add it to UNLOCKS with its hint); hint: how the menu describes that reward
 const CHALLENGES=[
- {id:"ford",name:"The Ford at Greywater",desc:"Enemy knights hold a fortified ford. Cross the river and break their line.",biome:"fort",mods:{y:null,f:null},
+ {id:"ford",diff:1,name:"The Ford at Greywater",desc:"Enemy knights hold a fortified ford. Cross the river and break their line.",biome:"fort",mods:{y:null,f:null},
   rows:["..f....f..","...w..w...",".f......f.","....FF....","..s....s..","dddds.dddd","dddd.sdddd","..s....s..",".....f....",".f......f.","...w..w...","..f....f.."],
-  units:[["R","f",5,0],["A","f",2,1],["A","f",7,1],["K","f",4,3],["K","f",5,3],["K","y",1,11],["K","y",3,11],["A","y",4,11],["P","y",6,11],["C","y",8,11]]}
+  units:[["R","f",5,0],["A","f",2,1],["A","f",7,1],["K","f",4,3],["K","f",5,3],["K","y",1,11],["K","y",3,11],["A","y",4,11],["P","y",6,11],["C","y",8,11]]},
+ {id:"duel",diff:0,reward:"pennant",hint:"a relic",name:"Dueling Fortresses",desc:"Protect your Archers!",biome:"fort",mods:{y:null,f:null},
+  rows:["FFFFFFFFFF","wwwFFFFFFF","w.w.F.F.F.","www.......","..........","..........","..........","..........",".......www",".F.F.F.w.w","FFFFFFFwww","FFFFFFFFFF"],
+  units:[["R","f",1,2],["R","y",8,9],["A","y",6,10],["A","y",4,10],["A","y",2,10],["C","y",4,11],["A","f",3,2],["K","f",0,0]]}
 ];
 let chal=null; // the fixed map being played: {def, test}
+const DIFF=[["Easy","#3f9a5a"],["Moderate","#c9962a"],["Hard","#c8372d"]];
 // lays a fixed map's terrain into the board state
 function applyMap(def){
   const S={ground:new Set(),forest:new Set(),shallow:new Set(),deep:new Set(),swamp:new Set(),wall:new Set(),fort:new Set(),barrels:new Set(),xbarrel:new Set(),grave:new Set(),campsite:new Set()};
@@ -2150,8 +2158,8 @@ function applyMap(def){
   WALLS=S.wall;FOREST=S.forest;FORT=S.fort;DEEP=S.deep;SHALLOW=S.shallow;SWAMP=S.swamp;GRAVES=S.grave;BARRELS=S.barrels;XBAR=S.xbarrel;CAMPS=S.campsite;
   MURKY=def.biome==="swamp";HAUNTED=def.biome==="graveyard";WALLV=def.wallStyle||0;groupForts(()=>0);
 }
-// what's wrong with a map, if anything (an empty list means it's playable)
-function mapProblems(def){
+// what's wrong with a map, if anything (an empty list means it's playable); notes are warnings that don't block play
+function mapProblems(def,notes=[]){
   const out=[],y=def.units.filter(u=>u[1]==="y").length,f=def.units.filter(u=>u[1]==="f").length;
   if(!y)out.push("Place at least one of your units.");
   if(!f)out.push("Place at least one enemy unit.");
@@ -2161,7 +2169,7 @@ function mapProblems(def){
   if(open.length){
     const seen=new Set([open[0]+""]),q=[open[0]];
     while(q.length){const[x,yy]=q.pop();for(const[dx,dy] of DIRS){const nx=x+dx,ny=yy+dy,k=nx+","+ny;if(nx<0||ny<0||nx>=W||ny>=H||solid(k)||seen.has(k))continue;seen.add(k);q.push([nx,ny])}}
-    if(seen.size<open.length)out.push("Some open ground is cut off from the rest of the map.");
+    if(seen.size<open.length)notes.push("Some ground is walled off (fine for towers, but units there can't move out).");
   }
   return out;
 }
@@ -2190,8 +2198,8 @@ function chalEnd(win){
 function openChallenges(){
   chal=null;show("menu");$("mbtns").hidden=true;const r=$("chalview");r.hidden=false;
   r.innerHTML=`<h2 class="htitle">Challenges</h2><p class="hint" style="text-align:center">Fixed maps with fixed armies. ${CHALLENGES.filter(c=>unlocks["ch_"+c.id]).length} of ${CHALLENGES.length} conquered.</p><div class="ulist">`
-   +CHALLENGES.map((c,i)=>{const done=unlocks["ch_"+c.id],nf=c.units.filter(u=>u[1]==="f").length,ny=c.units.filter(u=>u[1]==="y").length;
-     return `<div class="hcard">`+hRow(`<div class="tsw" style="${TERRAIN.fort.bg}">${FORT_ICON[0]}</div>`,`<b>${c.name}</b><small>${done?"✅ Conquered":"Not yet conquered"} · ${ny} of yours vs ${nf} enemies</small>${c.desc}${c.reward&&!done?`<small>Reward: ${c.hint||"something new"}</small>`:""}<div><button class="b pri cbtn" data-i="${i}">Play</button></div>`)+"</div>"}).join("")+"</div>";
+   +CHALLENGES.map((c,i)=>[c,i]).sort((a,b)=>(a[0].diff||0)-(b[0].diff||0)||a[1]-b[1]).map(([c,i])=>{const done=unlocks["ch_"+c.id],dl=DIFF[c.diff||0],nf=c.units.filter(u=>u[1]==="f").length,ny=c.units.filter(u=>u[1]==="y").length;
+     return `<div class="hcard">`+hRow(`<div class="tsw" style="${TERRAIN.fort.bg}">${FORT_ICON[0]}</div>`,`<b>${c.name}</b><small><span class="dtag" style="--dc:${dl[1]}">${dl[0]}</span> ${done?"✅ Conquered":"Not yet conquered"} · ${ny} of yours vs ${nf} enemies</small>${c.desc}${c.reward&&!done?`<small>Reward: ${c.hint||"something new"}</small>`:""}<div><button class="b pri cbtn" data-i="${i}">Play</button></div>`)+"</div>"}).join("")+"</div>";
   const box=document.createElement("div");box.className="menubtns";mk(box,"b big","Back to Main Menu",()=>{r.hidden=true;$("mbtns").hidden=false;$("chal").focus()});r.append(box);
   r.querySelectorAll(".cbtn").forEach(b=>b.onclick=()=>startChallenge(CHALLENGES[+b.dataset.i],false));
   window.scrollTo(0,0);
@@ -2200,14 +2208,14 @@ $("chal").onclick=openChallenges;
 
 /* ----- the editor ----- */
 const EDKEY="skirmish_editor_draft";
-const blankMap=()=>({name:"My Challenge",desc:"",biome:"plain",mods:{y:null,f:null},rows:Array(H).fill(".".repeat(W)),
+const blankMap=()=>({name:"My Challenge",desc:"",diff:0,biome:"plain",mods:{y:null,f:null},rows:Array(H).fill(".".repeat(W)),
   units:[["K","y",1,11],["A","y",3,11],["C","y",4,11],["R","y",6,11],["P","y",8,11],["K","f",8,0],["A","f",6,0],["C","f",5,0],["R","f",3,0],["P","f",1,0]]});
 let ed=null,edTool={kind:"t",v:"forest"},edTeam="f",edPaint=false;
 const edSave=()=>{try{localStorage.setItem(EDKEY,JSON.stringify(ed))}catch(e){}};
 function openEditor(){
   chal=null;resetBattle();
   if(!ed){try{ed=JSON.parse(localStorage.getItem(EDKEY)||"null")}catch(e){}if(!ed||!ed.rows)ed=blankMap()}
-  $("ename").value=ed.name||"";$("edesc").value=ed.desc||"";
+  $("ename").value=ed.name||"";$("edesc").value=ed.desc||"";$("ediff").value=String(ed.diff||0);
   $("ebiome").innerHTML=Object.keys(BIOME_NAME).filter(b=>b!=="boss").map(b=>`<option value="${b}"${ed.biome===b?" selected":""}>${BIOME_NAME[b]}</option>`).join("");
   const modOpts=v=>`<option value="">None</option>`+Object.keys(MODS).map(k=>`<option value="${k}"${v===k?" selected":""}>${MODS[k].name}</option>`).join("");
   $("emy").innerHTML=modOpts(ed.mods.y);$("emf").innerHTML=modOpts(ed.mods.f);
@@ -2231,8 +2239,8 @@ function edRender(){
       +(u?`<div class="u ${u[1]}" style="background:${u[1]==="w"?"#7a5a36":COLORS[col[u[1]]][1]};--tc:${u[1]==="w"?"#7a5a36":COLORS[col[u[1]]][1]};--ic:${u[1]==="w"?"#fff":COLORS[col[u[1]]][2]}">${ICON[u[0]]}</div>`:"")+"</button>";
   }
   const eb=$("eboard");eb.innerHTML=html;eb.classList.toggle("murky",MURKY);eb.classList.toggle("haunted",HAUNTED);
-  const pr=mapProblems(ed),ny=ed.units.filter(u=>u[1]==="y").length,nf=ed.units.filter(u=>u[1]==="f").length,nw=ed.units.filter(u=>u[1]==="w").length;
-  $("estat").innerHTML=`Your army: <b>${ny}</b> · Enemies: <b>${nf}</b>${nw?` · Wild: <b>${nw}</b>`:""} · `+(pr.length?`<b class="bad">${pr.join(" ")}</b>`:`<b class="ok">Ready to play</b>`);
+  const notes=[],pr=mapProblems(ed,notes),ny=ed.units.filter(u=>u[1]==="y").length,nf=ed.units.filter(u=>u[1]==="f").length,nw=ed.units.filter(u=>u[1]==="w").length;
+  $("estat").innerHTML=`Your army: <b>${ny}</b> · Enemies: <b>${nf}</b>${nw?` · Wild: <b>${nw}</b>`:""} · `+(pr.length?`<b class="bad">${pr.join(" ")}</b>`:`<b class="ok">Ready to play</b>`)+(notes.length?` <span class="warn">${notes.join(" ")}</span>`:"");
   $("etest").disabled=pr.length>0;edSave();
 }
 function edApply(x,y,drag){
@@ -2249,12 +2257,13 @@ $("eboard").addEventListener("pointermove",e=>{if(!edPaint)return;const p=edTile
 window.addEventListener("pointerup",()=>{edPaint=false});
 $("ename").oninput=()=>{ed.name=$("ename").value;edSave()};
 $("edesc").oninput=()=>{ed.desc=$("edesc").value;edSave()};
+$("ediff").onchange=()=>{ed.diff=+$("ediff").value;edSave()};
 $("ebiome").onchange=()=>{ed.biome=$("ebiome").value;edRender()};
 $("emy").onchange=()=>{ed.mods.y=$("emy").value||null;edSave()};
 $("emf").onchange=()=>{ed.mods.f=$("emf").value||null;edSave()};
 $("etest").onclick=()=>{if(!mapProblems(ed).length)startChallenge(JSON.parse(JSON.stringify(ed)),true)};
 $("ecopy").onclick=()=>{
-  const code=JSON.stringify({name:ed.name,desc:ed.desc,biome:ed.biome,mods:ed.mods,rows:ed.rows,units:ed.units});
+  const code=JSON.stringify({name:ed.name,desc:ed.desc,diff:ed.diff||0,biome:ed.biome,mods:ed.mods,rows:ed.rows,units:ed.units});
   const ta=$("ecode");ta.hidden=false;ta.value=code;ta.select();
   try{navigator.clipboard.writeText(code).then(()=>{$("ehint").textContent="Map code copied. Paste it to Claude to turn it into a challenge."},()=>{$("ehint").textContent="Map code selected below: copy it, then paste it to Claude."})}catch(e){$("ehint").textContent="Map code selected below: copy it, then paste it to Claude."}
 };
@@ -2262,7 +2271,7 @@ $("eload").onclick=()=>{
   const ta=$("ecode");
   if(ta.hidden||!ta.value.trim()){ta.hidden=false;ta.value="";ta.focus();$("ehint").textContent="Paste a map code into the box, then press Load Map Code again.";return}
   try{const d=JSON.parse(ta.value);if(!Array.isArray(d.rows)||d.rows.length!==H||!Array.isArray(d.units))throw 0;
-    ed={name:d.name||"Imported Map",desc:d.desc||"",biome:d.biome||"plain",mods:d.mods||{y:null,f:null},rows:d.rows.map(r=>(r+".".repeat(W)).slice(0,W)),units:d.units.filter(u=>TYPES[u[0]]&&u[2]>=0&&u[2]<W&&u[3]>=0&&u[3]<H)};
+    ed={name:d.name||"Imported Map",desc:d.desc||"",diff:d.diff||0,biome:d.biome||"plain",mods:d.mods||{y:null,f:null},rows:d.rows.map(r=>(r+".".repeat(W)).slice(0,W)),units:d.units.filter(u=>TYPES[u[0]]&&u[2]>=0&&u[2]<W&&u[3]>=0&&u[3]<H)};
     ta.hidden=true;openEditor();$("ehint").textContent="Map loaded.";
   }catch(e){$("ehint").textContent="That code couldn't be read. Make sure you pasted the whole thing."}
 };
@@ -2289,6 +2298,7 @@ const UNLOCKS=[
  {id:"drills",relic:"drills",hint:"Fall back from the long march often enough, and your troops learn to march faster."},
  {id:"salts",relic:"salts",hint:"Walk away from enough quick scraps, and someone starts packing remedies."},
  {id:"font",relic:"font",hint:"Darker realms can hide wonderful things."},
+ {id:"pennant",relic:"pennant",hint:"Conquer the Dueling Fortresses challenge."},
  {id:"pavise",relic:"pavise",hint:"Those who stand in the rain of arrows learn to carry a wall."}
 ];
 // name, art and description for an unlock, read from the terrain table or the unit descriptions
