@@ -563,6 +563,7 @@ const RELICS={
  debris:{name:"Debris Shot",r:1,need:"R",desc:"When your Artillery hits, every enemy on the 8 tiles around the target takes 1 damage."},
  drills:{name:"Boots of a Forced March",r:0,lock:"drills",desc:"Well-worn boots that set a brisk pace: your units get +1 movement on your first turn of each battle."},
  salts:{name:"Smelling Salts",r:0,lock:"salts",need:"P",desc:"Apothecaries heal 1 extra HP."},
+ hatchet:{name:"Woodcutter's Hatchet",r:0,lock:"hatchet",desc:"Leaving a forest costs your units no extra movement."},
  pennant:{name:"Garrison Pennant",r:0,lock:"pennant",desc:"Your units standing on a fortress tile get +5% evasion."},
  wolfpack:{name:"Wolfpack Banner",r:1,lock:"wolfpack",desc:"Your units deal +1 damage to an enemy that is next to another of your units."},
  chicken:{name:"Chicken Suit",r:1,lock:"chicken",desc:"The first time one of your units takes damage in a battle, an Angry Chicken bursts out beside it. It fights for you on its own, charging the nearest enemy at the end of each of your turns."},
@@ -1032,7 +1033,7 @@ const say=s=>$("status").textContent=s;
 function notify(t){const o=$("fx").querySelector(".banner");if(o)o.remove();const n=document.createElement("div");n.className="banner";n.textContent=t;$("fx").append(n);setTimeout(()=>n.remove(),1650)}
 
 function reach(u){ // entering shallow water costs 2; leaving a forest costs 1 extra; entering a swamp ends the move
-  const nimble=u.t==="G",bud=mvOf(u)-(!nimble&&FOREST.has(u.x+","+u.y)?1:0),k0=u.x+","+u.y; // leaving a forest costs 1 extra (the Angry Chicken skips both of these costs)
+  const nimble=u.t==="G",bud=mvOf(u)-(!nimble&&!rel(u,"hatchet")&&FOREST.has(u.x+","+u.y)?1:0),k0=u.x+","+u.y; // leaving a forest costs 1 extra (the Angry Chicken skips both of these costs)
   const cost=new Map([[k0,0]]),q=[[u.x,u.y]];
   while(q.length){
     q.sort((a,b)=>cost.get(a+"")-cost.get(b+""));
@@ -2319,6 +2320,7 @@ const RICON={ // small 32-unit relic icons
  drills:'<path d="M10 6h8v13l6 3q2 1 2 4v2H10z" fill="#6a4a2a" stroke="#2a1a0c" stroke-width="1.200" stroke-linejoin="round"/><path d="M10 25h16" stroke="#2a1a0c" stroke-width="1"/><path d="M12 6v19" stroke="#9a7448" stroke-width="1" opacity=".7"/><path d="M10 10h8M10 13h8" stroke="#c9962a" stroke-width="1.100"/><path d="M2 12h5M3 17h5M2 22h5" stroke="#8a8f96" stroke-width="1.600" stroke-linecap="round"/>',
  salts:'<path d="M13 4h6v4h-6z" fill="#8a5a2a" stroke="#3a2412" stroke-width="1"/><path d="M12 8h8v3q4 3 4 8v6q0 3-3 3H11q-3 0-3-3v-6q0-5 4-8z" fill="#cfe8e0" fill-opacity=".75" stroke="#2a3a36" stroke-width="1.200"/><path d="M9 20q7-2 14 0v5q0 2-2 2H11q-2 0-2-2z" fill="#7ac8a8" opacity=".8"/><path d="M11 12q-1 4 0 9" stroke="#fff" stroke-width="1.100" opacity=".7" fill="none"/><path d="M19 3q2-2 1-4M23 6q3-1 3-4M14 2q-1-2 1-3" stroke="#9ad8c0" stroke-width="1.100" fill="none" opacity=".8"/>',
  font:'<ellipse cx="16" cy="28" rx="9" ry="2" fill="rgba(0,0,0,.2)"/><path d="M11 28l2-9h6l2 9z" fill="#7a7a74" stroke="#2a2a28" stroke-width="1"/><path d="M4 13q12 5 24 0q-1 7-12 7T4 13z" fill="#8c8c86" stroke="#2a2a28" stroke-width="1.100"/><ellipse cx="16" cy="13" rx="12" ry="3" fill="#5ac8f0" stroke="#2a2a28" stroke-width="1.100"/><ellipse cx="14" cy="12.500" rx="5" ry="1" fill="#d8f6ff" opacity=".8"/><path d="M10 9q-2-3 0-6M16 8q2-4 0-7M22 9q2-3 0-5" stroke="#9ae8ff" stroke-width="1.200" fill="none" opacity=".85"/><path d="M8 18l3 1M21 19l3-1" stroke="#4f6a3a" stroke-width="1.400"/>',
+ hatchet:'<path d="M9 28L22 9" stroke="#3a2412" stroke-width="4" stroke-linecap="round"/><path d="M9 28L22 9" stroke="#8a5a2a" stroke-width="2.400" stroke-linecap="round"/><path d="M11 25l2-3" stroke="#c08a4a" stroke-width=".8"/><path d="M18 9q-2-6 4-7l7 4q1 6-5 8z" fill="#9aa4ae" stroke="#2e3338" stroke-width="1.100" stroke-linejoin="round"/><path d="M29 6q1 6-5 8" stroke="#e8eef2" stroke-width="1.100" fill="none"/><path d="M5 30q3-4 7-2M24 26l2-6l2 6z" fill="#3f7a3a" stroke="#1e4a1c" stroke-width=".8"/>',
  pennant:'<path d="M8 3v27" stroke="#5a3a1c" stroke-width="2.200" stroke-linecap="round"/><circle cx="8" cy="3" r="1.800" fill="#c9962a"/><path d="M9 5h17l-5 5l5 5H9z" fill="#3a5a8a" stroke="#1d2a44" stroke-width="1.100" stroke-linejoin="round"/><path d="M12 7.500h3v5h-3zM15 7.500h3v2h-3z" fill="#e8dcc0"/><path d="M10 6h14" stroke="#8aa8d0" stroke-width=".8" opacity=".7"/><path d="M4 30h8" stroke="#5a5a52" stroke-width="2" stroke-linecap="round"/>',
  wolfpack:'<path d="M7 3v27" stroke="#5a3a1c" stroke-width="2.200" stroke-linecap="round"/><circle cx="7" cy="3" r="1.800" fill="#c9962a"/><path d="M8 5h19v17l-4.500-3l-5 3l-5-3l-4.500 3z" fill="#8a2a24" stroke="#3a1210" stroke-width="1.100" stroke-linejoin="round"/><path d="M8 7.500h19" stroke="#c9962a" stroke-width="1"/><path d="M11.500 6.500l3 4.500h6l3-4.500l-.3 6.500l-2.700 3l-1.300 4.500h-3.400l-1.300-4.500l-2.700-3z" fill="#d8d0c0" stroke="#2a1a14" stroke-width=".8" stroke-linejoin="round"/><path d="M12.800 9l1.400 2M22.200 9l-1.400 2" stroke="#8a7e6e" stroke-width=".8"/><path d="M14.500 13.300l2 .7M20.500 13.300l-2 .7" stroke="#2a1a14" stroke-width="1.200" stroke-linecap="round"/><path d="M16.300 19.300h2.400l-1.200 1.300z" fill="#2a1a14"/><path d="M17.500 15v4" stroke="#b0a694" stroke-width=".7"/>',
  chicken:'<path d="M8 28q-3-13 8-17q2-7 8-6q5 1 5 7l4 2l-4 2q2 10-8 13q-9 3-13-1z" fill="#f2ead8" stroke="#4a3a28" stroke-width="1.100"/><path d="M21 6l2-4l2 4l2-3l1 4" fill="#c8372d"/><path d="M33 14l3-.5l-3 2.500z" fill="#e8a83a"/><circle cx="24.500" cy="10" r="1.300" fill="#1a140e"/><path d="M21.500 7.500l5 2" stroke="#1a140e" stroke-width="1.200" stroke-linecap="round"/><path d="M11 22q5 3 9-1" stroke="#b8a888" stroke-width="1.400" fill="none"/><path d="M16 6l-2-3M14 7l-3-1" stroke="#c8372d" stroke-width="1.200" stroke-linecap="round"/>',
@@ -2390,6 +2392,9 @@ const CHALLENGES=[
  {id:"duel",diff:0,reward:"pennant",hint:"a relic",name:"Dueling Fortresses",desc:"Protect your Archers!",biome:"fort",mods:{y:null,f:null},
   rows:["FFFFFFFFFF","wwwFFFFFFF","w.w.F.F.F.","www.......","..........","..........","..........","..........",".......www",".F.F.F.w.w","FFFFFFFwww","FFFFFFFFFF"],
   units:[["R","f",1,2],["R","y",8,9],["A","y",6,10],["A","y",4,10],["A","y",2,10],["C","y",4,11],["A","f",3,2],["K","f",0,0]]},
+ {id:"tanglewood",diff:0,reward:"hatchet",hint:"a relic",name:"Tanglewood",desc:"Fight your way through the thickets. Push the enemy into the trees to break their line.",biome:"forest",mods:{y:"PUSH",f:null},
+  rows:["ff......ff","f..ff....f","...fff....","...ffff...","..fwwwwf..",".ffwFFwff.",".ffwFFwff.","..fwwwwf..","...ffff...","....fff...","f....ff..f","ff......ff"],
+  units:[["E","f",4,0],["K","f",3,0],["K","f",6,0],["K","y",4,11],["K","y",5,11],["K","y",6,11]]},
  {id:"wharton",diff:1,reward:"chicken",hint:"a relic",name:"Fort Wharton",desc:"A fortress with tight corridors.",biome:"forest",mods:{y:null,f:null},
   rows:["FwwwwwwwwF","Fw..ff..wF","fw..ww..wf","fw..fw..wf","fw..wf..wf","Fw..ww..wF","Fw..ww..wF","fw..ww..wf","fw..ww..wf","fw..ww..wf","Fw..ww..wF","FwwwwwwwwF"],
   units:[["K","f",6,10],["C","f",7,10],["A","f",7,9],["P","y",2,9],["C","y",2,10],["C","y",3,10],["A","y",3,9]]}
@@ -2547,6 +2552,7 @@ const UNLOCKS=[
  {id:"horn",relic:"horn",hint:"The oldest trees remember the hunt."},
  {id:"bluemagma",relic:"bluemagma",hint:"Even fire has a colder heart."},
  {id:"pennant",relic:"pennant",hint:"Conquer the Dueling Fortresses challenge."},
+ {id:"hatchet",relic:"hatchet",hint:"Conquer the Tanglewood challenge."},
  {id:"trumpet",relic:"trumpet",hint:"Conquer the Ford at Greywater challenge."},
  {id:"wolfpack",relic:"wolfpack",hint:"Wolves never hunt alone."},
  {id:"chicken",relic:"chicken",hint:"Conquer the Fort Wharton challenge."},
