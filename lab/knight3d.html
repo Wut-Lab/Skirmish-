@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Knight 3D</title>
+<style>
+:root{--bg:#e9edf1;--ink:#1c2733;--panel:#fff;--you:#2f6fb5;--foe:#b8432f}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141b22;--ink:#e3e9ee;--panel:#1d2731}}
+:root[data-theme="dark"]{--bg:#141b22;--ink:#e3e9ee;--panel:#1d2731}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,sans-serif}
+#view{position:fixed;inset:0}
+#bar{position:fixed;left:16px;right:16px;bottom:16px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+button{font:inherit;padding:8px 14px;border-radius:8px;border:1px solid color-mix(in srgb,var(--ink) 20%,transparent);background:var(--panel);color:var(--ink);cursor:pointer}
+button[aria-pressed="true"]{outline:2px solid var(--you)}
+h1{position:fixed;top:12px;left:16px;margin:0;font-size:17px;font-weight:600}
+h1 small{display:block;font-weight:400;opacity:.65;font-size:13px}
+</style>
+</head>
+<body>
+<h1>Knight<small>Drag to orbit · scroll or pinch to zoom</small></h1>
+<div id="view"></div>
+<div id="bar">
+ <button id="team">Team: You</button>
+ <button id="attack">Attack</button>
+ <button id="hit">Take hit</button>
+ <button id="spin" aria-pressed="true">Turntable</button>
+</div>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from "three";
+import {OrbitControls} from "three/addons/controls/OrbitControls.js";
+
+/* ---------- Knight factory: returns a THREE.Group, about 1 unit tall, standing on y=0 ----------
+   Built only from primitives with flat shading, so it stays light enough for a 10x12 board.
+   teamColor tints the tabard, shield, plume and helmet band; call setTeam() to recolour. */
+function makeKnight(teamColor){
+  const flat=c=>new THREE.MeshStandardMaterial({color:c,flatShading:true,roughness:.8});
+  const M={
+    steel:new THREE.MeshStandardMaterial({color:0xb9c2cb,flatShading:true,metalness:.55,roughness:.38}),
+    dark:new THREE.MeshStandardMaterial({color:0x5d6873,flatShading:true,metalness:.4,roughness:.5}),
+    team:flat(teamColor),
+    trim:flat(0xe8d9a8),
+    leather:flat(0x6b4a26),
+    blade:new THREE.MeshStandardMaterial({color:0xe4eaef,flatShading:true,metalness:.35,roughness:.3}),
+  };
+  const add=(parent,geo,mat,x=0,y=0,z=0)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m};
+  const root=new THREE.Group(),body=new THREE.Group();root.add(body);
+
+  // legs + boots
+  for(const s of[-1,1]){
+    add(body,new THREE.CylinderGeometry(.055,.05,.26,6),M.steel,s*.075,.17,0);
+    add(body,new THREE.BoxGeometry(.1,.07,.16),M.dark,s*.075,.035,.025);
+  }
+  // torso: steel chest under a team-coloured tabard
+  add(body,new THREE.CylinderGeometry(.15,.12,.3,8),M.steel,0,.44,0);
+  add(body,new THREE.CylinderGeometry(.155,.165,.26,8,1,true),M.team,0,.38,0).material.side=THREE.DoubleSide;
+  add(body,new THREE.CylinderGeometry(.168,.168,.035,8),M.leather,0,.34,0);          // belt
+  add(body,new THREE.BoxGeometry(.04,.03,.02),M.trim,0,.34,.165);                     // buckle
+  // tabard cross, echoing the T on the board icon
+  add(body,new THREE.BoxGeometry(.11,.025,.01),M.trim,0,.48,.152);
+  add(body,new THREE.BoxGeometry(.025,.12,.01),M.trim,0,.44,.152);
+
+  // head: great helm with T-slit visor, team band and plume
+  const head=new THREE.Group();head.position.y=.68;body.add(head);
+  add(head,new THREE.CylinderGeometry(.1,.105,.17,8),M.steel,0,0,0);
+  add(head,new THREE.SphereGeometry(.1,8,4,0,Math.PI*2,0,Math.PI/2),M.steel,0,.085,0);
+  add(head,new THREE.CylinderGeometry(.108,.108,.03,8),M.team,0,-.05,0);
+  add(head,new THREE.BoxGeometry(.13,.018,.03),M.dark,0,.02,.09);                     // eye slit
+  add(head,new THREE.BoxGeometry(.02,.07,.03),M.dark,0,-.015,.095);                   // breath slit
+  // plume: a flattened crest sweeping back over the helm
+  for(let i=0;i<4;i++){const f=add(head,new THREE.SphereGeometry(.07-i*.01,6,4),M.team,0,.2+Math.sin(i*.8)*.035,.01-i*.055);f.scale.set(.4,1.15,1.1)}
+
+  // pauldrons
+  for(const s of[-1,1])add(body,new THREE.SphereGeometry(.075,6,4,0,Math.PI*2,0,Math.PI/2),M.steel,s*.17,.57,0).scale.set(1,.8,1);
+
+  // sword arm (right, -x): pivots at the shoulder so attack() can swing it
+  const swordArm=new THREE.Group();swordArm.position.set(-.18,.55,0);body.add(swordArm);
+  add(swordArm,new THREE.CylinderGeometry(.04,.035,.24,6),M.steel,0,-.12,0);
+  const sword=new THREE.Group();sword.position.set(0,-.25,.03);sword.rotation.x=Math.PI/5;swordArm.add(sword);
+  add(sword,new THREE.CylinderGeometry(.018,.018,.09,6),M.leather,0,0,0);              // grip
+  add(sword,new THREE.SphereGeometry(.025,6,4),M.trim,0,-.055,0);                       // pommel
+  add(sword,new THREE.BoxGeometry(.15,.025,.03),M.trim,0,.055,0);                       // crossguard
+  add(sword,new THREE.BoxGeometry(.045,.36,.012),M.blade,0,.25,0);                      // blade
+  add(sword,new THREE.ConeGeometry(.032,.06,4),M.blade,0,.46,0).rotation.y=Math.PI/4;   // tip
+
+  // shield arm (left, +x) with a heater shield
+  const shieldArm=new THREE.Group();shieldArm.position.set(.18,.55,0);body.add(shieldArm);
+  add(shieldArm,new THREE.CylinderGeometry(.04,.035,.24,6),M.steel,0,-.12,0);
+  const shape=new THREE.Shape();
+  shape.moveTo(-.13,.14);shape.lineTo(.13,.14);shape.lineTo(.13,0);shape.quadraticCurveTo(.12,-.13,0,-.19);shape.quadraticCurveTo(-.12,-.13,-.13,0);shape.closePath();
+  const shieldGeo=new THREE.ExtrudeGeometry(shape,{depth:.03,bevelEnabled:true,bevelSize:.012,bevelThickness:.012,bevelSegments:1,curveSegments:4});
+  const shield=new THREE.Group();shield.position.set(.07,-.17,.07);shield.rotation.y=Math.PI/2.6;shieldArm.add(shield);
+  add(shield,shieldGeo,M.team);
+  add(shield,new THREE.BoxGeometry(.2,.035,.012),M.trim,0,.06,.045);
+  add(shield,new THREE.BoxGeometry(.035,.25,.012),M.trim,0,-.01,.045);
+
+  root.userData={body,head,swordArm,shieldArm,mats:M};
+  root.setTeam=c=>M.team.color.set(c);
+  return root;
+}
+
+/* ---------- Animation state: idle bob always; attack and hit are short one-shot tweens ---------- */
+function animateKnight(k,t){
+  const {body,head,swordArm,shieldArm}=k.userData,a=k.userData.anim;
+  body.position.y=Math.sin(t*2.2)*.008;
+  head.rotation.y=Math.sin(t*.7)*.12;
+  swordArm.rotation.set(0,0,-.08);shieldArm.rotation.set(-.15,0,.12);body.rotation.set(0,0,0);body.position.z=0;
+  if(!a)return;
+  const p=(t-a.start)/a.dur;
+  if(p>=1){k.userData.anim=null;return}
+  if(a.kind==="attack"){
+    // wind up (0-.35), strike (.35-.55), recover
+    const up=p<.35?p/.35:p<.55?1-(p-.35)/.2*1.6:-.6*(1-(p-.55)/.45);
+    swordArm.rotation.x=-up*2.2;
+    body.rotation.y=-up*.25;
+    body.position.z=p>.35&&p<.75?Math.sin((p-.35)/.4*Math.PI)*.08:0;
+  }else{
+    const s=Math.sin(p*Math.PI)*(1-p);
+    body.rotation.x=-s*.5;body.position.z=-s*.12;
+    k.userData.mats.steel.emissive.setRGB(s*1.4,s*.2,s*.1);
+  }
+}
+
+/* ---------- Scene: one board tile in the game's parchment colours ---------- */
+const view=document.getElementById("view");
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+view.appendChild(renderer.domElement);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(35,1,.05,50);camera.position.set(1.3,1.1,1.9);
+const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,.38,0);controls.enableDamping=true;controls.minDistance=.8;controls.maxDistance=6;controls.maxPolarAngle=Math.PI*.49;
+
+scene.add(new THREE.HemisphereLight(0xfff4e0,0x5a5040,1.1));
+const sun=new THREE.DirectionalLight(0xffffff,2.2);sun.position.set(2,4,2.5);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);
+Object.assign(sun.shadow.camera,{left:-1.5,right:1.5,top:1.5,bottom:-1.5});scene.add(sun);
+
+const tileMat=new THREE.MeshStandardMaterial({color:0xdccaa4,flatShading:true,roughness:1});
+for(let x=-1;x<=1;x++)for(let z=-1;z<=1;z++){
+  const tile=new THREE.Mesh(new THREE.BoxGeometry(.96,.08,.96),(x+z)&1?tileMat:new THREE.MeshStandardMaterial({color:0xd5c29b,flatShading:true,roughness:1}));
+  tile.position.set(x,-.04,z);tile.receiveShadow=true;scene.add(tile);
+}
+
+const TEAMS=[["You",0x2f6fb5],["Foe",0xb8432f]];let team=0;
+const knight=makeKnight(TEAMS[0][1]);scene.add(knight);
+
+const $=id=>document.getElementById(id);
+$("team").onclick=()=>{team^=1;knight.setTeam(TEAMS[team][1]);$("team").textContent="Team: "+TEAMS[team][0]};
+$("attack").onclick=()=>knight.userData.anim={kind:"attack",start:clock.elapsedTime,dur:.9};
+$("hit").onclick=()=>knight.userData.anim={kind:"hit",start:clock.elapsedTime,dur:.6};
+let spin=true;$("spin").onclick=()=>{spin=!spin;$("spin").setAttribute("aria-pressed",spin)};
+
+function resize(){const w=view.clientWidth,h=view.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix()}
+addEventListener("resize",resize);resize();
+
+const clock=new THREE.Clock();
+renderer.setAnimationLoop(()=>{
+  const dt=clock.getDelta(),t=clock.elapsedTime;
+  if(spin)knight.rotation.y+=dt*.5;
+  animateKnight(knight,t);
+  controls.update();renderer.render(scene,camera);
+});
+window.__knight=knight; // handle for screenshots / poking in devtools
+</script>
+</body>
+</html>
