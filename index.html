@@ -293,6 +293,19 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .cpan h2{color:#f3d9a0;text-shadow:0 2px 0 #1a0f07,0 0 12px rgba(255,170,80,.35);letter-spacing:.02em;font-family:Georgia,"Times New Roman",serif}
 #cscene{width:100%;border-radius:6px;overflow:hidden;box-shadow:0 0 0 3px #1a0f07,0 0 0 5px #7a5532,0 0 0 7px #1a0f07,0 6px 14px rgba(0,0,0,.5)}
 #cscene svg{display:block;width:100%;height:auto}
+#shopv{overflow-y:auto;place-items:safe center}.shpan{width:min(460px,100%)}
+#shscene{width:100%;border-radius:6px;overflow:hidden;box-shadow:0 0 0 3px #1a0f07,0 0 0 5px #7a5532,0 0 0 7px #1a0f07,0 6px 14px rgba(0,0,0,.5)}#shscene svg{display:block;width:100%;height:auto}
+#shline::before{left:30%}#shline::after{left:calc(30% + 2px)}
+.shgold{display:flex;align-items:center;gap:6px;width:100%;font-weight:700;color:#f3d9a0}.shgold svg{width:24px;height:24px}.shgold b{font-size:1.15rem}.shpack{margin-left:auto;font-weight:600;color:#e8d6b0;font-size:.9rem}
+.shsec{width:100%;font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#d8b878;margin-top:4px}
+#shlist{display:grid;gap:8px;width:100%}.shitem{grid-template-columns:52px 1fr auto;width:100%}.shitem .ri{grid-row:span 3}
+.shprice{grid-column:3;grid-row:1/span 3;align-self:center;font-weight:800;font-size:.85rem;padding:6px 10px;border-radius:8px;background:#7a4c22;color:#fff3da;white-space:nowrap;box-shadow:0 2px 0 #1a0f07}.shprice.off{background:#8a7f70;color:#f1ead8;font-weight:700}
+.shitem[aria-disabled="true"]{opacity:.72;cursor:default}.shitem[aria-disabled="true"]:hover{transform:none}
+#shleave{justify-self:center;background:linear-gradient(#a8733a,#7a4c22);color:#fff3da;border-color:#1a0f07;box-shadow:0 3px 0 #1a0f07,inset 0 1px 0 rgba(255,255,255,.25)}
+.ipack{align-self:center;font-size:.8rem;font-weight:700;opacity:.75}
+.t.it{box-shadow:inset 0 0 0 3px #e0b21c,inset 0 0 14px rgba(224,178,28,.5)}
+.smoke{position:absolute;inset:-6%;pointer-events:none;border-radius:40%;background:radial-gradient(circle at 35% 40%,rgba(225,225,230,.55),rgba(200,200,210,0) 55%),radial-gradient(circle at 68% 62%,rgba(210,210,220,.5),rgba(200,200,210,0) 52%),radial-gradient(circle at 50% 50%,rgba(190,190,200,.35),rgba(190,190,200,0) 70%);animation:smokedrift 4s ease-in-out infinite}
+@keyframes smokedrift{50%{transform:translate(2%,-3%) scale(1.04)}}@media (prefers-reduced-motion:reduce){.smoke{animation:none}}
 .cbub{position:relative;background:#f3e6c4;color:#3a2a1a;border:2px solid #1a0f07;box-shadow:inset 0 0 12px rgba(120,80,30,.25);border-radius:14px;padding:10px 14px;font-weight:600;text-align:center;line-height:1.35;margin-top:6px}
 .cbub::before{content:"";position:absolute;top:-10px;left:68%;border:8px solid transparent;border-bottom-color:#1a0f07;border-top:0}
 .cbub::after{content:"";position:absolute;top:-7px;left:calc(68% + 2px);border:6px solid transparent;border-bottom-color:#f3e6c4;border-top:0}
@@ -433,6 +446,7 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 <p class="hint" id="wprog"></p>
 <div class="stats" id="warmy" aria-label="Army health"></div>
 <div class="relics" id="wrelics" aria-label="Relics"></div>
+<div class="relics" id="witems" aria-label="Items"></div>
 <div class="wmap" id="wmap"></div>
 <div id="winfo"></div>
 <div class="foot"><button class="b sm2" id="wrestart">Restart Campaign</button></div>
@@ -534,6 +548,16 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 <button class="b big pri" id="cleave">Thank Herbert and Leave Camp</button>
 </div>
 </div>
+<div class="ov" id="shopv" hidden>
+<div class="panel cpan shpan" role="dialog" aria-labelledby="shtitle">
+<h2 id="shtitle">Marcus's Wagon</h2>
+<div id="shscene"></div>
+<div class="cbub" id="shline" aria-live="polite"></div>
+<div class="shgold" id="shgold"></div>
+<div id="shlist"></div>
+<button class="b big pri" id="shleave">Thank Marcus and Move On</button>
+</div>
+</div>
 <div class="ov" id="relinfo" hidden>
 <div class="panel cpan" role="dialog" aria-labelledby="rititle">
 <h2 id="rititle">Relic</h2>
@@ -612,7 +636,7 @@ const MODS={
  FT:{name:"Forest Tactics",desc:"Your units in a forest get +1 armor against ranged attacks. Enemies in a forest only get +5% evasion against your attacks, instead of +10%."},
  PAD:{name:"Padded Armor",desc:"Archers get +1 armor but have 1 less movement."},
  REST:{name:"Field Rest",desc:"At the end of your turn, each of your units that neither moved nor attacked that turn recovers 2 HP."}};
-let MURKY=false,HAUNTED=false,VOLCANIC=false,CHERRY=new Set(),LAVA=new Set(),MAGMA=new Set(),VOLC=new Set(),GRAVES=new Set(),WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set(),SWAMP=new Set();
+let MURKY=false,HAUNTED=false,VOLCANIC=false,CHERRY=new Set(),SMOKE=new Set(),LAVA=new Set(),MAGMA=new Set(),VOLC=new Set(),GRAVES=new Set(),WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set(),SWAMP=new Set();
 const UKEY="skirmish_unlocks_v1",unlocks=(()=>{try{return JSON.parse(localStorage.getItem(UKEY)||"{}")||{}}catch(e){return{}}})();
 const saveU=()=>{try{localStorage.setItem(UKEY,JSON.stringify(unlocks))}catch(e){}};
 const unlock=id=>{if(unlocks[id])return false;unlocks[id]=1;saveU();discover();return true};
@@ -1072,7 +1096,7 @@ const TAG={P:"Heals",E:"Slows",T:"Musters militia",N:"+1 damage aura"}; // short
 const listAnd=a=>a.length<2?a.join(""):a.slice(0,-1).join(", ")+" and "+a[a.length-1];
 const limitNames=()=>listAnd(poolNow().split("").filter(t=>LIMIT1.includes(t)).map(t=>"the "+cap(NAME[t])));
 
-let camp={cfg:null,pos:0,cleared:[],done:false,battle:null,sel:null,hp:null,gold:0,relics:[],offer:null,found:[],lastGold:0,kills:[],region:1,mapsPrior:0,bossUsed:{loc:[],name:[]}},campSetup=false,endMode="quick",worldLock=false,choice=null,locked=false,tile=null,info=null,paused=false,gid=0,seed=0,col={y:"blue",f:"red"},insp=null,units=[],sel=null,turn="y",over=false,busy=false,mode=null,mods={y:null,f:null},tpUsed={y:0,f:0},pick={t:null,m:null};
+let camp={cfg:null,pos:0,cleared:[],done:false,battle:null,sel:null,hp:null,gold:0,relics:[],items:[],offer:null,found:[],lastGold:0,kills:[],region:1,mapsPrior:0,bossUsed:{loc:[],name:[]}},campSetup=false,endMode="quick",worldLock=false,choice=null,locked=false,tile=null,info=null,paused=false,gid=0,seed=0,col={y:"blue",f:"red"},insp=null,units=[],sel=null,turn="y",over=false,busy=false,mode=null,mods={y:null,f:null},tpUsed={y:0,f:0},pick={t:null,m:null};
 const prevPos=new WeakMap();
 const $=id=>document.getElementById(id),board=$("board");
 const d=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
@@ -1094,7 +1118,7 @@ function combat(a,b,from=a){
   armor.forEach(([l,v])=>add(l,-v));
   add("Pierce",Math.min((A.pi||0)+(rel(a,"bluemagma")?1:0),armor.reduce((t,x)=>t+x[1],0))); // Blue Magma: +1 pierce
   add("Pavise",b.t==="A"&&A.rg>1&&rel(b,"pavise")?-1:0); // a shield wall, not armor: pierce can't get past it
-  const ev=Math.min(EV_CAP,(B.ev||0)+(rel(b,"luck")?.05:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(blessed(b)?BLESS_EV:0)+(rallied(b)?RALLY_EV:0)+(WOODS(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0));
+  const ev=Math.min(EV_CAP,(B.ev||0)+(rel(b,"luck")?.05:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(blessed(b)?BLESS_EV:0)+(rallied(b)?RALLY_EV:0)+(b.team==="y"&&SMOKE.has(k)?SMOKE_EV:0)+(WOODS(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0));
   return {dmg:Math.max(1,parts.reduce((t,p)=>t+p[1],0)),hit:1-ev,parts}; // every hit deals at least 1
 }
 // a unit with `ret` retaliates against an attacker within its own range for half damage, at least 1 (the attacker may evade it); null when it can't
@@ -1152,7 +1176,7 @@ function muster(u){ // 1-2 militia appear beside the captain, nearest the enemy 
   u.musters=(u.musters||0)+1;u.acted=u.moved=1;
   return n;
 }
-const spent=u=>(!!u.acted&&!!u.moved)||!!u.auto||(u.team!=="w"&&!!u.moved&&!canMuster(u)&&!canTrumpet(u)&&!targets(u).length&&!healTargets(u).length&&!(rel(u,"font")&&units.some(b=>canBless(u,b)))&&(u.team!=="y"||!breakables(u).length)&&!(mods.y==="PUSH"&&u.t==="K"&&units.some(b=>b.team==="y"&&pushable(u,b))));
+const spent=u=>(!!u.acted&&!!u.moved)||!!u.auto||(u.team!=="w"&&!!u.moved&&!canMuster(u)&&!canTrumpet(u)&&!(u.team==="y"&&!u.acted&&camp.battle&&!chal&&camp.items&&camp.items.length)&&!targets(u).length&&!healTargets(u).length&&!(rel(u,"font")&&units.some(b=>canBless(u,b)))&&(u.team!=="y"||!breakables(u).length)&&!(mods.y==="PUSH"&&u.t==="K"&&units.some(b=>b.team==="y"&&pushable(u,b))));
 const targets=u=>units.filter(e=>e.team!==u.team&&(u.team!=="f"||e.team!=="w")&&d(u,e)<=rgOf(u)&&d(u,e)>=TYPES[u.t].mn);
 
 const spotsOf=(u,rc)=>[[u.x,u.y],...rc.map(k=>pk(k))];
@@ -1168,7 +1192,7 @@ function atkZone(u,spots,set,bar){
 function render(){
   units.forEach(u=>{if(u.slow&&calm(u)){delete u.slow;floatText(u.x,u.y,"Calm","bless")}});
   board.classList.toggle("murky",MURKY);board.classList.toggle("haunted",HAUNTED);board.classList.toggle("volcanic",VOLCANIC);
-  const mv=new Set(),tg=new Set(),ig=new Set(),ir=new Set(),pr=new Set(),hs=new Set(),bt=new Set();
+  const mv=new Set(),tg=new Set(),ig=new Set(),ir=new Set(),pr=new Set(),hs=new Set(),bt=new Set(),it=mode&&mode.startsWith("item:")&&sel&&turn==="y"?itemTargets(sel,mode.slice(5)):new Set();
   if(sel&&turn==="y"&&!over){
     if(mode==="tp")farRow("y").forEach(p=>mv.add(p+""));
     else if(mode==="push")units.filter(b=>b.team==="y"&&pushable(sel,b)).forEach(b=>tg.add(b));
@@ -1196,10 +1220,10 @@ function render(){
   let html="",stepped=0;
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     const k=x+","+y,w=WALLS.has(k),dp=DEEP.has(k),sh=SHALLOW.has(k),f=FOREST.has(k),fr=FORT.has(k),bar=BARRELS.has(k),u=at(x,y);
-    const cls="t"+(bar?" brl":"")+(w?" w"+(wallMask(x,y)&1?" jn":"")+(wallMask(x,y)&4?" js":""):"")+(dp?" dp":"")+(sh?" sh":"")+(SWAMP.has(k)?" sw":"")+(LAVA.has(k)?" lv":"")+(MAGMA.has(k)?" mg":"")+(VOLC.has(k)?" vo":"")+(f?" fo":"")+(fr?" fr":"")+(tile&&tile.x===x&&tile.y===y?" ts":"")+(ig.has(k)?" ig":"")+(ir.has(k)?" ir":"")+(pr.has(k)?" pr":"")+(mv.has(k)?" m":"")+((u&&tg.has(u))||bt.has(k)?" a":"")+(u&&tg.has(u)&&mods.y==="PUSH"&&sel&&pushable(sel,u)?" pp":"")+(u&&hs.has(u)?" hl":"")+(u&&u===choice?" ch":"")+(pd&&pd.k===k?" pd":"")+(cm&&cm.x===x&&cm.y===y?" mt":"")+(bl.has(k)?" bl":"")+(CAMPS.has(k)?" cmp":"")+(cv.has(k)?" cv":"");
+    const cls="t"+(bar?" brl":"")+(w?" w"+(wallMask(x,y)&1?" jn":"")+(wallMask(x,y)&4?" js":""):"")+(dp?" dp":"")+(sh?" sh":"")+(SWAMP.has(k)?" sw":"")+(LAVA.has(k)?" lv":"")+(MAGMA.has(k)?" mg":"")+(VOLC.has(k)?" vo":"")+(f?" fo":"")+(fr?" fr":"")+(tile&&tile.x===x&&tile.y===y?" ts":"")+(ig.has(k)?" ig":"")+(ir.has(k)?" ir":"")+(pr.has(k)?" pr":"")+(mv.has(k)?" m":"")+((u&&tg.has(u))||bt.has(k)?" a":"")+(u&&tg.has(u)&&mods.y==="PUSH"&&sel&&pushable(sel,u)?" pp":"")+(u&&hs.has(u)?" hl":"")+(u&&u===choice?" ch":"")+(pd&&pd.k===k?" pd":"")+(cm&&cm.x===x&&cm.y===y?" mt":"")+(bl.has(k)?" bl":"")+(CAMPS.has(k)?" cmp":"")+(cv.has(k)?" cv":"")+(it.has(k)?" it":"");
     const label=u?(u.team==="y"?"Your ":u.team==="w"?"Wild ":"Enemy ")+NAME[u.t]+", "+u.hp+" health"+(u.slow?", slowed":""):(mv.has(k)?"Move here, ":"")+TERRAIN[terrainKey(k)].name;
     html+=`<button class="${cls}" data-x="${x}" data-y="${y}"${pd&&pd.k===k?` data-arrow="${pd.a}"`:""} aria-label="${label.replace(/"/g,"&quot;")}">`
-      +'<i class="lt"></i>'+tileArt(x,y)+(fr?'<i class="tint"></i>':"")+joins(x,y); // fortress art covers its tile, so highlights go on a see-through layer above it
+      +'<i class="lt"></i>'+tileArt(x,y)+(fr?'<i class="tint"></i>':"")+(SMOKE.has(k)?'<i class="smoke"></i>':"")+joins(x,y); // fortress art covers its tile, so highlights go on a see-through layer above it
     if(u){
       let uc="u "+u.team+(spent(u)?" done":"")+(u.slow?" slow":"")+(inspired(u)?" insp":"")+(blessed(u)?" blessed":"")+(rallied(u)?" rallied":"")+(u===sel||u===insp?" sel":""),mvs="";
       if(u.spawn){uc+=" tpin";delete u.spawn}
@@ -1236,6 +1260,7 @@ function renderTile(){
   const{x,y}=tile,k=x+","+y,f=WOODS(k),u=at(x,y),key=terrainKey(k),T=TERRAIN[key],lines=[T.desc];
   if(f&&mods.y==="FT")lines.push(`Forest Tactics: your units here get +1 armor against ranged attacks, and enemies here only get +${pct(FT_FOREST_EV)} evasion against you.`);
   if(f&&mods.f==="FT")lines.push("The enemy has Forest Tactics: its units here get +1 armor against ranged attacks.");
+  if(SMOKE.has(k))lines.push("Smoke: your units here get +20% evasion until your next turn.");
   if(u)lines.push("Occupied by "+(u.team==="y"?"your ":u.team==="f"?"an enemy ":"a wild ")+NAME[u.t]+".");
   el.className="pb"+(MURKY?" murky":"")+(HAUNTED?" haunted":"")+(VOLCANIC?" volcanic":""); // murky water on Murky Swamp maps, ashen ground in graveyards
   el.innerHTML=`<div class="lbl">Terrain</div><div class="row">${terrainSwatch(key,tileArt(x,y))}<div class="ib"><div class="nm"><strong>${T.name}</strong><span>Tile ${String.fromCharCode(65+x)}${y+1}</span></div>${lines.map(l=>`<small>${l}</small>`).join("")}</div></div>`;
@@ -1252,6 +1277,7 @@ function renderInfo(){
   if(u.slow)notes.push("Slowed: movement reduced to 1 until the end of its next turn.");
   if(blessed(u))notes.push("Blessed: +5% evasion until the end of your next turn.");
   if(rallied(u))notes.push("Rallied: +5% evasion until the end of your next turn.");
+  if(u.team==="y"&&SMOKE.has(u.x+","+u.y))notes.push("In smoke: +20% evasion until your next turn.");
   if(calm(u))notes.push("Moment of Calm: in a Cherry Grove, so it can't be slowed, and it neither retaliates nor suffers retaliation.");
   if(rel(u,"trumpet")&&!relicUsed.trumpet&&!u.auto)notes.push("Trumpet of Encouragement: one of your units can sound it once this battle.");
   if(rel(u,"font")&&!u.blessUsed)notes.push("Font of the Wise Ones: can bless an adjacent ally once this battle.");
@@ -1326,6 +1352,8 @@ function acts(){
   if(mods.y==="TP"&&!tpUsed.y&&!sel.moved)add("Teleport",()=>{mode="tp";say("Choose an open tile on the far edge.");render()});
   if(mods.y==="PUSH"&&sel.t==="K"&&!sel.acted&&units.some(b=>b.team==="y"&&pushable(sel,b)))add("Push Ally",()=>{mode="push";say("Choose an adjacent ally to push.");render()});
   if(!mode&&canTrumpet(sel))add("Sound Trumpet",()=>doTrumpet(sel));
+  if(!mode&&camp.battle&&!chal&&camp.items&&camp.items.length&&sel.team==="y"&&!sel.acted&&!sel.auto)add("Use Item",()=>{mode="items";say("Choose an item to use.");render()});
+  if(mode==="items")[...new Set(camp.items)].forEach(id=>{const k=camp.items.filter(i=>i===id).length;add(ITEMS[id].name+(k>1?" \u00d7"+k:""),()=>{mode="item:"+id;say(itemPrompt(id));render()})});
   if(!mode&&canMuster(sel))add("Muster Militia",()=>{const n=muster(sel);sel=null;insp=null;lastMove=null;say(`Mustered ${n} militia. They can act next turn.`);render()});
   if(mode)add("Cancel",()=>{mode=null;say("Move, attack, or pick another unit.");render()});
 }
@@ -1361,6 +1389,7 @@ function click(x,y){
   bchoice=null;choiceMv=null;
   tile={x,y};
   if(over||busy||turn!=="y"||!units.length)return render();
+  if(mode&&mode.startsWith("item:")&&sel){const id=mode.slice(5);if(itemTargets(sel,id).has(x+","+y))return useItem(sel,id,x,y);mode=null;say("Put the item away. Move, attack, or pick another unit.");return render()}
   if(CAMPS.has(x+","+y)&&sel&&!mode&&d(sel,{x,y})===1){bchoice={x,y,camp:1};say("Choose an action next to the camp site.");return render()}
   if(BARRELS.has(x+","+y)&&sel&&!mode&&!sel.acted&&canBreak(sel,x,y)){bchoice={x,y};say("Choose an action next to the barrels.");return render()}
   if(solid(x+","+y))return render();
@@ -1490,6 +1519,7 @@ function sfx(name){
       case "bless":[987.77,1318.5,1567.98].forEach((f,i)=>bell(f,t0+i*.07,.55,.22));break; // a soft shimmer
       case "win":[[523.25,0,.16],[659.25,.13,.16],[783.99,.26,.16],[1046.5,.39,.6]].forEach(([f,st,len])=>{tone("triangle",f,t0+st,len,.6);tone("sine",f/2,t0+st,len,.25)});break;
       case "lose":[[392,0,.28],[349.23,.24,.28],[293.66,.48,.75]].forEach(([f,st,len])=>{tone("triangle",f,t0+st,len,.55);tone("sine",f/2,t0+st,len,.3)});break;
+      case "coin":tone("sine",1318.5,t0,.12,.55);tone("sine",1760,t0+.07,.22,.5);tone("triangle",2637,t0+.07,.12,.12);break; // the clink of coins
       case "erupt":tone("sine",70,t0,.7,1.8,35);noise(t0,.55,"lowpass",320,.8,1.2,120);noise(t0+.05,.3,"bandpass",900,1,.35,300);break; // a deep rumble and hiss
       case "trumpet":{ // a short brass call: two detuned sawtooth voices through a soft low-pass
         const lp=actx.createBiquadFilter();lp.type="lowpass";lp.frequency.value=1500;lp.Q.value=.7;lp.connect(out);
@@ -1544,6 +1574,27 @@ function stopMusic(){
 if(document.addEventListener){
   ["pointerdown","keydown"].forEach(ev=>document.addEventListener(ev,()=>startMusic(),true)); // browsers only allow sound after the player interacts
   document.addEventListener("visibilitychange",()=>document.hidden?stopMusic():startMusic());
+}
+// Items from Marcus's wagon: using one takes the unit's action
+const itemPrompt=id=>id==="draught"?"Choose this unit or a wounded ally beside it.":id==="smoke"?"Choose a tile within 3 to throw the smoke bomb at.":"Choose an enemy within 3 to throw the fire flask at.";
+function itemTargets(u,id){
+  const out=new Set();
+  if(id==="draught")units.forEach(b=>{if(b.team==="y"&&d(u,b)<=1&&b.hp<TYPES[b.t].hp)out.add(b.x+","+b.y)});
+  else if(id==="fire")units.forEach(b=>{if(b.team!=="y"&&d(u,b)<=3)out.add(b.x+","+b.y)});
+  else for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(Math.abs(x-u.x)+Math.abs(y-u.y)<=3)out.add(x+","+y);
+  return out;
+}
+function useItem(a,id,x,y){
+  const i=camp.items.indexOf(id);if(i<0)return;camp.items.splice(i,1);saveCamp();
+  a.acted=a.moved=1;sel=null;mode=null;choice=null;lastMove=null;insp=null;
+  if(id==="draught"){const b=at(x,y),n=Math.min(DRAUGHT_HEAL,TYPES[b.t].hp-b.hp);b.hp+=n;sfx("heal");floatText(b.x,b.y,"+"+n,"heal");info=b;say(`Your ${NAME[a.t]} used a Healing Draught: +${n} HP${b===a?"":" for your "+NAME[b.t]}.`);return render()}
+  if(id==="smoke"){
+    blastOf(x+","+y).concat([[x,y]]).forEach(([cx,cy])=>SMOKE.add(cx+","+cy));sfx("evade");
+    say("Smoke billows across the field: your units in it get +20% evasion until your next turn.");return render();
+  }
+  const b=at(x,y);sfx("hit");eruptFx(x,y);
+  if(hurt(b,FIRE_DMG)){credit(a,b);say(`Your ${NAME[a.t]}'s fire flask destroyed ${who(b)}.`)}else say(`Your ${NAME[a.t]}'s fire flask burned ${who(b)} for ${FIRE_DMG}.`);
+  afterAction();
 }
 function doHeal(a,b){
   const n=applyHeal(a,b);a.acted=a.moved=1;sel=null;mode=null;choice=null;info=b;lastMove=null;
@@ -1704,7 +1755,7 @@ function showEnd(win){
     const earned=goldFor(nm);camp.gold+=earned;camp.lastGold=earned; // spoils of war
     camp.offer=nm.type==="boss"?null:relicOffer(); // pick a relic back on the map
     camp.pos=nm.id;if(nm.type==="boss")camp.done=true;saveCamp();
-    if(camp.cleared.filter(i=>{const n=WORLD[i];return n&&n.type!=="camp"&&n.type!=="heal"}).length>=2)unlock("barrels"); // two real battles won
+    if(camp.cleared.filter(i=>{const n=WORLD[i];return n&&n.type!=="camp"&&n.type!=="heal"&&n.type!=="shop"}).length>=2)unlock("barrels"); // two real battles won
     unlocks.cw=(unlocks.cw||0)+1;saveU(); // campaign battle wins across every campaign
     if(unlocks.cw>=4)unlock("captain");
     if(nm.type==="boss")unlock("banner");
@@ -1872,6 +1923,7 @@ function enemyTurn(note=""){
       return;
     }
     hazards("f",()=>{
+      SMOKE=new Set(); // the smoke drifts away as your turn begins
       const healed=mods.f==="REST"?rest("f"):0;
       units.forEach(u=>{u.moved=u.acted=0;if(u.team!=="y")delete u.slow});
       turn="y";busy=false;say("Your turn. Select one of your units."+(healed?" Resting enemy units recovered HP.":""));render();notify("Enemy turn ended — your move");
@@ -1926,8 +1978,12 @@ function genWorld(){
   if(!camp.bossUsed)camp.bossUsed={loc:[],name:[]};
   nodes.push({id:nodes.length,name:fresh(NAMES.boss,camp.bossUsed.loc),boss:fresh(BOSS_NAMES,camp.bossUsed.name),x:Math.round(rr(140,260)),y:80,type:"boss",b:"boss",text:"The enemy stronghold. A fortress is guaranteed, and the enemy brings an extra unit."});
   layers.push([nodes.length-1]);
-  const HN=["Sunspring Glade","Quiet Hollow","Healer's Rest","Mercy Well"].sort(()=>Math.random()-.5),hl=1+R(2),pl=hl===2?[2,3]:[2+R(2)];
+  const HN=["Sunspring Glade","Quiet Hollow","Healer's Rest","Mercy Well"].sort(()=>Math.random()-.5),pl=[2+R(2)]; // exactly one healing spot per map
   pl.forEach((li,k)=>{const n=nodes[layers[li][R(layers[li].length)]];Object.assign(n,{name:HN[k],type:"heal",b:"heal",text:HEAL_TEXT,herb:!!unlocks.campsite&&Math.random()<HERB_SPOT})}); // herb: Herbert is quietly camped here
+  { // exactly one Merchant per map, in a different row from the healing spot
+    const li=[1,2,3].filter(l=>!pl.includes(l))[R(2)],c=layers[li].map(i=>nodes[i]).filter(n=>n.type==="battle");
+    if(c.length)Object.assign(c[R(c.length)],{name:["Crossroads Market","Pedlar's Rest","Wayside Wagon","Lantern Crossing"][R(4)],type:"shop",b:"shop",text:SHOP_TEXT});
+  }
   const WN=["Mirewater Fen","Sodden Reach","Heron's Marsh","Drowned Meadow"].sort(()=>Math.random()-.5);
   [1,2,3].sort(()=>Math.random()-.5).slice(0,1+(Math.random()<.4?1:0)).forEach((li,k)=>{ // 1 or 2 wetlands, never in the same row
     const c=layers[li].map(i=>nodes[i]).filter(n=>n.type==="battle");
@@ -1963,8 +2019,8 @@ const guessBiome=()=>LAVA.size||VOLC.size?"volcanic":GRAVES.size?"graveyard":SWA
 const BIOME={forest:{forest:9},plain:{forest:2},fort:{fort:1},wild:{wild:1},boss:{fort:1,boss:1},wetlands:{water:1,forest:3,swamp:1},swamp:{swamp:3,pond:1,forest:6},graveyard:{graves:1,forest:5},volcanic:{lava:1,forest:3}};
 const adj=(a,b)=>EDGES.some(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a));
 const SAVE="skirmish-campaign";
-function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,offer:camp.offer,found:camp.found,kills:camp.kills,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
-function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],offer:d.offer||null,found:Array.isArray(d.found)?d.found:d.found?[d.found]:[],kills:d.kills||[],region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
+function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,items:camp.items,offer:camp.offer,found:camp.found,kills:camp.kills,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
+function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],items:d.items||[],offer:d.offer||null,found:Array.isArray(d.found)?d.found:d.found?[d.found]:[],kills:d.kills||[],region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
 const nest=(str,x,y,w,style="")=>str.replace(/<svg[^>]*>/,`<svg x="${x}" y="${y}" width="${w}" height="${w}" viewBox="0 0 40 40" style="${style}">`);
 function mapArt(){
   let g='<defs><radialGradient id="pg" cx=".5" cy=".4" r=".85"><stop offset="0" stop-color="#eadfb8"/><stop offset="1" stop-color="#cbb78a"/></radialGradient><filter id="wsh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="1.200" dy="2.400" stdDeviation="1.600" flood-color="#3a2810" flood-opacity=".45"/></filter><radialGradient id="wnode" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></radialGradient><filter id="wblur"><feGaussianBlur stdDeviation="6"/></filter></defs><rect width="400" height="520" fill="url(#pg)"/>';
@@ -1984,7 +2040,7 @@ function renderWorld(){
   const done=new Set(camp.cleared),cur=WORLD[camp.pos],pc=COLORS[camp.cfg.c];
   if(camp.sel==null)camp.sel=camp.pos;
   const stOf=n=>n.type==="camp"||done.has(n.id)?"cleared":adj(camp.pos,n.id)?"open":"locked";
-  const label={cleared:"Cleared",open:"Battle ahead",locked:"Out of reach"},lab=n=>stOf(n)==="open"?(n.type==="heal"?"Healing spot":n.b==="wetlands"?"Wetlands battle":n.b==="swamp"?"Swamp battle":n.b==="graveyard"?"Graveyard battle":n.b==="volcanic"?"Volcanic battle":label.open):label[stOf(n)];
+  const label={cleared:"Cleared",open:"Battle ahead",locked:"Out of reach"},lab=n=>stOf(n)==="open"?(n.type==="heal"?"Healing spot":n.type==="shop"?"Merchant":n.b==="wetlands"?"Wetlands battle":n.b==="swamp"?"Swamp battle":n.b==="graveyard"?"Graveyard battle":n.b==="volcanic"?"Volcanic battle":label.open):label[stOf(n)];
   let s='<svg viewBox="0 0 400 520" role="img" aria-label="World map">'+mapArt();
   EDGES.forEach(([a,b])=>{
     const A=WORLD[a],B=WORLD[b],both=stOf(A)==="cleared"&&stOf(B)==="cleared",hot=a===camp.pos||b===camp.pos;
@@ -1992,8 +2048,9 @@ function renderWorld(){
   });
   WORLD.forEach(n=>{
     const st=stOf(n),cl=st==="cleared"&&n.type!=="camp",r=n.type==="boss"?21:17,S=n.type==="boss"?30:24;
-    const fill=n.type==="camp"?"#8c7752":n.type==="heal"?(st==="locked"?"#a39a88":cl?"#9fc9a8":"#7fd1a0"):cl?"#6aa55a":st==="open"?(n.type==="boss"?"#c4483a":n.b==="wetlands"?"#5fb3c9":n.b==="swamp"?"#6d7a4f":n.b==="graveyard"?"#7d7590":n.b==="volcanic"?"#b8461f":"#e6b73f"):"#a39a88";
-    const icon=n.type==="heal"?`<path d="M${n.x-3} ${n.y-9}h6v6h6v6h-6v6h-6v-6h-6v-6h6z" fill="#fff" stroke="#2f8f4e" stroke-width="2" stroke-linejoin="round"/>`
+    const fill=n.type==="camp"?"#8c7752":n.type==="heal"?(st==="locked"?"#a39a88":cl?"#9fc9a8":"#7fd1a0"):n.type==="shop"?(st==="locked"?"#a39a88":cl?"#c8b088":"#e0a84a"):cl?"#6aa55a":st==="open"?(n.type==="boss"?"#c4483a":n.b==="wetlands"?"#5fb3c9":n.b==="swamp"?"#6d7a4f":n.b==="graveyard"?"#7d7590":n.b==="volcanic"?"#b8461f":"#e6b73f"):"#a39a88";
+    const icon=n.type==="shop"?`<path d="M${n.x-8} ${n.y-1}q0-8 8-9q8 1 8 9q1 9-8 9q-9 0-8-9z" fill="#fff" stroke="#6a4426" stroke-width="1.600"/><path d="M${n.x-4} ${n.y-10}q4-3 8 0l-2 3h-4z" fill="#fff" stroke="#6a4426" stroke-width="1.400"/><circle cx="${n.x}" cy="${n.y}" r="3.400" fill="#c9962a" stroke="#6a4426" stroke-width="1"/>`
+      :n.type==="heal"?`<path d="M${n.x-3} ${n.y-9}h6v6h6v6h-6v6h-6v-6h-6v-6h6z" fill="#fff" stroke="#2f8f4e" stroke-width="2" stroke-linejoin="round"/>`
       :n.type==="camp"?`<path d="M${n.x-10} ${n.y+8}L${n.x} ${n.y-10}L${n.x+10} ${n.y+8}zM${n.x} ${n.y-10}V${n.y+8}" fill="#f2e6c0" stroke="#3b2a14" stroke-width="2" stroke-linejoin="round"/>`
       :n.b==="swamp"?`<path d="M${n.x-8} ${n.y+7}v-9M${n.x-4} ${n.y+7}v-12M${n.x+1} ${n.y+7}v-8M${n.x+6} ${n.y+7}v-11" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><ellipse cx="${n.x-4}" cy="${n.y-6}" rx="1.8" ry="3.4" fill="#fff"/><ellipse cx="${n.x+6}" cy="${n.y-5}" rx="1.8" ry="3.4" fill="#fff"/><path d="M${n.x-10} ${n.y+8}h20" stroke="#fff" stroke-width="2" stroke-linecap="round"/>`
       :n.b==="wetlands"?`<path d="M${n.x-9} ${n.y-3}q4.5-5 9 0t9 0M${n.x-9} ${n.y+5}q4.5-5 9 0t9 0" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>`
@@ -2023,7 +2080,7 @@ function renderWorld(){
   $("wtitle").textContent=camp.region>1?`World Map \u00b7 Region ${camp.region}`:"World Map";
   $("wprog").textContent=camp.done?"Campaign complete! You cleared every location.":`Locations cleared: ${camp.cleared.length} of ${total}. Tap a glowing location to travel there.`;
   const n=WORLD[camp.sel],st=stOf(n),here=n.id===camp.pos,can=!here&&adj(camp.pos,n.id);
-  const btn=can?(st==="cleared"?"Travel Here":n.type==="heal"?"Rest Here":"Travel to Battle"):"";
+  const btn=can?(st==="cleared"?"Travel Here":n.type==="heal"?"Rest Here":n.type==="shop"?"Visit the Merchant":"Travel to Battle"):"";
   $("winfo").innerHTML=`<div class="lbl">Location</div><div class="ib"><div class="nm"><strong>${n.name}</strong><span>${here?"You are here":lab(n)}</span></div><small>${n.text}</small>${here||can?"":"<small>Not connected to your location. Travel along the paths.</small>"}</div>${btn?`<div class="bar"><button class="b pri" id="wgo">${btn}</button></div>`:""}`;
   if(can)$("wgo").onclick=()=>travel(n.id);
 }
@@ -2036,7 +2093,7 @@ function healFx(n){ // a gentle glow at the healing spot: rings drift outward an
   sv.insertBefore(g,$("wm"));setTimeout(()=>g.remove(),2600);
   $("warmy").querySelectorAll(".stat").forEach(c=>c.classList.add("healed"));
 }
-function openWorld(){camp.battle=null;camp.sel=camp.pos;renderWorld();show("world");renderGold();renderRelics();showRelicOffer()}
+function openWorld(){camp.battle=null;camp.sel=camp.pos;renderWorld();show("world");renderGold();renderRelics();renderItems();showRelicOffer()}
 function travel(id){
   if(worldLock)return;
   const n=WORLD[id];worldLock=true;camp.sel=id;
@@ -2048,6 +2105,7 @@ function travel(id){
       saveCamp();renderWorld();$("wprog").textContent="Your army rested and recovered some health.";healFx(n);
       if(n.herb)setTimeout(()=>{if(!$("world").hidden){$("herbask").hidden=false;$("haenter").focus()}},1400); // a familiar campfire...
     }
+    else if(n.type==="shop"&&!camp.cleared.includes(id)){camp.cleared.push(id);camp.pos=id;if(!n.stock)n.stock=shopStock();saveCamp();renderWorld();openShop(n)} // one visit per Merchant
     else if(n.type==="camp"||camp.cleared.includes(id)){camp.pos=id;saveCamp();renderWorld()}
     else beginBattle(n);
   },850);
@@ -2125,7 +2183,7 @@ $("rand").onclick=()=>{pick.x=[];const P=poolNow();for(let i=0;i<EXTRAS;i++){let
 $("clr").onclick=()=>{pick.x=[];renderSetup()};
 $("randm").onclick=()=>{const k=Object.keys(MODS);pick.m=k[Math.floor(Math.random()*k.length)];renderSetup()};
 function resetBattle(){
-  gid++;$("defeat").hidden=true;tile=null;units=[];sel=null;mode=null;choice=null;choiceMv=null;bchoice=null;lastMove=null;insp=null;info=null;turn="y";over=false;busy=false;locked=false;tpUsed={y:0,f:0};
+  SMOKE=new Set();gid++;$("defeat").hidden=true;tile=null;units=[];sel=null;mode=null;choice=null;choiceMv=null;bchoice=null;lastMove=null;insp=null;info=null;turn="y";over=false;busy=false;locked=false;tpUsed={y:0,f:0};
   const keys=Object.keys(MODS);mods={y:null,f:keys[Math.floor(Math.random()*keys.length)]};
 }
 function init(){
@@ -2219,7 +2277,7 @@ const HOWTO=[
         :k==="boss"?nest(FORT_ICON[1],x-14,y-14,28)
         :`<path d="M${x-6} ${y-6}L${x+6} ${y+6}M${x+6} ${y-6}L${x-6} ${y+6}" stroke="#3b2a14" stroke-width="3" stroke-linecap="round"/>`});
     return s+"</svg>"},
-  body:()=>`<p>Travel along the paths on the world map. Each new location starts a battle, and winning clears it. Every campaign uses a new random map. Defeat the boss at the top to finish, or travel on to new lands: a fresh map in a new region, with your army, relics and gold carried over.</p><p>You choose your extra units, modifier, and color once. Your units keep their health between battles. After each win, surviving units recover ${Math.round(CAMP_HEAL*100)}% of their max health, and a unit that falls returns with 1 HP.</p><p>Each victory also earns gold, shown by the coin purse on the world map, and lets you choose one of two or three relics. Relics last for the rest of the campaign: rarer ones are stronger.</p><p>Teal wave spaces are wetlands: battles fought across lakes, ponds and rivers. One or two appear on each map. Dark reed spaces are murky swamps, thick with mud that stops units in their tracks.</p><p>One or two healing spaces (green crosses) also appear on each map. Visiting one restores 70% of each unit's health, once.</p>`},
+  body:()=>`<p>Travel along the paths on the world map. Each new location starts a battle, and winning clears it. Every campaign uses a new random map. Defeat the boss at the top to finish, or travel on to new lands: a fresh map in a new region, with your army, relics and gold carried over.</p><p>You choose your extra units, modifier, and color once. Your units keep their health between battles. After each win, surviving units recover ${Math.round(CAMP_HEAL*100)}% of their max health, and a unit that falls returns with 1 HP.</p><p>Each victory also earns gold, shown by the coin purse on the world map, and lets you choose one of two or three relics. Relics last for the rest of the campaign: rarer ones are stronger.</p><p>Teal wave spaces are wetlands: battles fought across lakes, ponds and rivers. One or two appear on each map. Dark reed spaces are murky swamps, thick with mud that stops units in their tracks.</p><p>Each map has one healing space (a green cross). Visiting it restores 70% of each unit's health, once.</p><p>Each map also has one Merchant (a gold coin purse), where Marcus sells potions, bombs and relics for gold. You can visit once. Your pack holds up to ${ITEM_CAP} items: in battle, select a unit and tap <b>Use Item</b>. Using an item takes that unit's action.</p>`},
  {id:"scout",title:"Scouting",art:()=>{const m=[];for(let y=0;y<7;y++){let r="";for(let x=0;x<7;x++){const d=Math.abs(x-3)+Math.abs(y-3);r+=d===0?".":d<=2?"g":d===3?"p":"."}m.push(r)}return hBoard(7,7,m,[["K","f",3,3]],38)},
   body:()=>"<p>Tap any unit to see its details, including its health. Tap an enemy to see where it can move (gray) and hit (red). Tap it again to hide.</p>"}
 ];
@@ -2651,6 +2709,61 @@ const RICON={ // small 32-unit relic icons
  cap:'<path d="M5 24q1-13 12-15q11-2 11 12l-3 2q-1-8-5-10q-5-1-6 6z" fill="#7a2a24" stroke="#3a1210" stroke-width="1.100"/><path d="M10 14q5 1 7 7M16 10q5 2 6 8" stroke="#c8b08a" stroke-width="1.600" fill="none" opacity=".55"/><path d="M4 23q8-4 16 0l-.5 3.500q-7.500-3.500-15 0z" fill="#b8ac90" stroke="#4a4030" stroke-width="1"/><circle cx="26" cy="24.500" r="3" fill="#e2d6bc" stroke="#6a604c" stroke-width=".9"/>'};
 const relicIcon=(id,sz=32)=>`<svg viewBox="0 0 32 32" width="${sz}" height="${sz}" aria-hidden="true">${RICON[id]}</svg>`;
 function renderGold(){$("wgold").innerHTML=PURSE+`<b aria-label="${camp.gold} gold">${camp.gold}</b>`+(camp.lastGold?`<span class="gplus" aria-hidden="true">+${camp.lastGold}</span>`:"");camp.lastGold=0}
+/* ---------- The shop: Marcus's wagon ---------- */
+const SHOP_TEXT="Marcus the pedlar and his mule Parsnip have set up shop by the road. Spend your gold on potions, bombs and relics. One visit only.";
+const ITEMS={ // consumables, used in battle (campaign only); using one takes the unit's action
+ draught:{name:"Healing Draught",price:25,desc:"Heal this unit or an adjacent ally for 5 HP."},
+ smoke:{name:"Smoke Bomb",price:30,desc:"Throw at a tile within 3: your units on it and the 8 tiles around it get +20% evasion until your next turn."},
+ fire:{name:"Fire Flask",price:35,desc:"Throw at an enemy within 3 for 3 damage, ignoring armor."}};
+const ITEM_CAP=3,RELIC_PRICE=[40,70,110],SMOKE_EV=.2,DRAUGHT_HEAL=5,FIRE_DMG=3; // RELIC_PRICE by rarity: common, uncommon, rare
+const IICON={
+ draught:'<path d="M14 4h4v4q7 3 7 10q0 7-9 7t-9-7q0-7 7-10z" fill="rgba(200,60,50,.55)" stroke="#2a1410" stroke-width="1.100"/><path d="M8.600 17q0 6 7.400 6.500q7.400-.5 7.400-6.500z" fill="#b8372d"/><rect x="13.400" y="2" width="5.200" height="3.400" rx="1" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M10 13q-1 4 0 7" stroke="#fff" stroke-width="1.100" fill="none" opacity=".6"/><path d="M14 16h4M16 14v4" stroke="#fff4f0" stroke-width="1.300" stroke-linecap="round"/>',
+ smoke:'<circle cx="15" cy="19" r="9" fill="#26262a" stroke="#0a0a0c" stroke-width="1.100"/><circle cx="12" cy="16" r="2.600" fill="#fff" opacity=".25"/><path d="M20 12q3-6 8-5" stroke="#8a6a3a" stroke-width="1.600" fill="none"/><circle cx="28" cy="7" r="2" fill="#ffb347"/><circle cx="28" cy="7" r="4" fill="#ffb347" opacity=".25"/><g fill="#b8b4b0" opacity=".55"><circle cx="6" cy="9" r="3"/><circle cx="9" cy="6" r="2.400"/></g>',
+ fire:'<path d="M10 28v-10q0-7 6-9q6 2 6 9v10z" fill="#e2531a" stroke="#2a1410" stroke-width="1.100"/><path d="M13.500 9h5V5h-5z" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><circle cx="16" cy="20" r="7" fill="#ff8a2a" opacity=".28"/><path d="M16 25q-4-4 0-10q4 6 0 10z" fill="#ffd27a"/><path d="M12 16q-1 5 0 9" stroke="#fff" stroke-width="1" opacity=".45" fill="none"/>'};
+const itemIcon=(id,sz=32)=>`<svg viewBox="0 0 32 32" width="${sz}" height="${sz}" aria-hidden="true">${IICON[id]}</svg>`;
+const MARCUS={
+ greet:["Ah, a customer! Mind Parsnip, he bites. Only on Tuesdays.","Wares for the weary! Every one of them one of a kind. Mostly.","Don't mind the bones, friend. Business has been dead lately. Ha!","Back from the fighting, eh? Gold spends the same whether you're alive or not. Trust me.","Herbert sends his regards. He still owes me for that mug."],
+ buy:["Pleasure doing business!","Sold! No refunds. No exceptions. No questions.","Parsnip approves. I can tell. He's still asleep.","A fine choice for a fine customer."],
+ fire:"Fire Flask? Excellent choice. Point it away from the wagon, please.",
+ coin:"A genuine Copper Coin of Good Fortune! I've only got... well, a few.",
+ poor:"Ah. Your purse is lighter than my conscience. Come back with more coin.",
+ full:"Your pack's full, friend! Use something first. Next time, perhaps.",
+ bye:"Safe roads! And if you see Herbert, tell him I'm still waiting for my mug money."};
+// what a Merchant stocks on your visit: the three consumables, always, and two relics drawn by rarity from the shop list
+function shopStock(){
+  const pool=shopRelics(),rel=[];
+  while(rel.length<2&&pool.length){const tot=pool.reduce((t,id)=>t+RARITY_W[RELICS[id].r],0);let r=Math.random()*tot,i=0;while(r>=RARITY_W[RELICS[pool[i]].r]){r-=RARITY_W[RELICS[pool[i]].r];i++}rel.push(pool.splice(i,1)[0])}
+  return {relics:rel,sold:[]};
+}
+let shopNode=null;
+const marcusSays=t=>{$("shline").textContent=t};
+function openShop(n){shopNode=n;marcusSays(MARCUS.greet[Math.floor(Math.random()*MARCUS.greet.length)]);$("shscene").innerHTML=shopScene();renderShop();$("shopv").hidden=false;$("shopv").scrollTop=0;$("shleave").focus({preventScroll:true})}
+function renderShop(){
+  const n=shopNode,full=camp.items.length>=ITEM_CAP;
+  $("shgold").innerHTML=`${PURSE}<b>${camp.gold}</b> gold<span class="shpack">Pack: ${camp.items.length} of ${ITEM_CAP}</span>`;
+  const row=(kind,id,name,price,label,desc,icon,why,rc)=>`<button class="rcard shitem" data-kind="${kind}" data-id="${id}" style="--rc:${rc}"${why?" aria-disabled=\"true\"":""}><span class="ri">${icon}</span><span class="rr">${label}</span><b>${name}</b><small>${desc}</small><span class="shprice${why?" off":""}">${why||price+" gold"}</span></button>`;
+  const need=p=>camp.gold<p?`Need ${p-camp.gold} more`:"";
+  $("shlist").innerHTML='<div class="shsec">Consumables</div>'+Object.entries(ITEMS).map(([id,I])=>row("item",id,I.name,I.price,"Consumable \u00b7 one use",I.desc,itemIcon(id,38),full?"Pack full":need(I.price),"#a08a64")).join("")
+    +'<div class="shsec">Relics</div>'+(n.stock.relics.length?n.stock.relics.map(id=>{const R=RELICS[id],[rn,rc]=RARITY[R.r],pr=RELIC_PRICE[R.r];return row("relic",id,R.name,pr,rn+" relic",R.desc,relicIcon(id,38),n.stock.sold.includes(id)?"Sold":relicCount(id)>=(R.max||1)?"Owned":need(pr),rc)}).join(""):'<p class="rsub">Marcus has no relics for you today.</p>');
+  $("shlist").querySelectorAll(".shitem").forEach(b=>b.onclick=()=>buy(b.dataset.kind,b.dataset.id));
+}
+function buy(kind,id){
+  const n=shopNode;
+  if(kind==="item"){
+    const I=ITEMS[id];if(camp.items.length>=ITEM_CAP)return marcusSays(MARCUS.full);if(camp.gold<I.price)return marcusSays(MARCUS.poor);
+    camp.gold-=I.price;camp.items.push(id);marcusSays(id==="fire"?MARCUS.fire:MARCUS.buy[Math.floor(Math.random()*MARCUS.buy.length)]);
+  }else{
+    const R=RELICS[id],pr=RELIC_PRICE[R.r];if(n.stock.sold.includes(id)||relicCount(id)>=(R.max||1))return;if(camp.gold<pr)return marcusSays(MARCUS.poor);
+    camp.gold-=pr;camp.relics.push(id);n.stock.sold.push(id);marcusSays(id==="coin"?MARCUS.coin:MARCUS.buy[Math.floor(Math.random()*MARCUS.buy.length)]);renderRelics();
+  }
+  sfx("coin");saveCamp();renderGold();renderItems();renderShop();
+}
+$("shleave").onclick=()=>{marcusSays(MARCUS.bye);$("shopv").hidden=true;shopNode=null;renderWorld()};
+// the pack on the world map: tap an item for its details
+function renderItems(){
+  $("witems").innerHTML=(camp.items||[]).map((id,i)=>`<button class="rchip ichip" data-id="${id}" title="${ITEMS[id].name}" aria-label="${ITEMS[id].name}">${itemIcon(id,26)}</button>`).join("")+((camp.items||[]).length?`<span class="ipack">${camp.items.length}/${ITEM_CAP}</span>`:"");
+  $("witems").querySelectorAll(".ichip").forEach(b=>b.onclick=()=>{const I=ITEMS[b.dataset.id];relinfoFrom=b;$("rititle").textContent=I.name;$("ribody").innerHTML=`<div class="rcard" style="--rc:#a08a64"><span class="ri">${itemIcon(b.dataset.id,38)}</span><span class="rr">Consumable \u00b7 one use</span><small>${I.desc} In battle, select a unit and tap Use Item.</small></div>`;$("relinfo").hidden=false;$("riclose").focus()});
+}
 function renderRelics(){ // just the symbols; tap one for its details
   $("wrelics").innerHTML=camp.relics.map(id=>{const R=RELICS[id];return `<button class="rchip" data-id="${id}" style="--rc:${RARITY[R.r][1]}" title="${R.name}" aria-label="${R.name}">${relicIcon(id,26)}</button>`}).join("");
   $("wrelics").querySelectorAll(".rchip").forEach(b=>b.onclick=()=>showRelicInfo(b.dataset.id,b));
@@ -2901,7 +3014,7 @@ $("unl").onclick=()=>{$("mbtns").hidden=true;$("unlockview").hidden=false;unlock
 $("how").onclick=()=>{$("mbtns").hidden=true;$("rulesview").hidden=false;howView(howMain,null)};
 $("back").onclick=()=>show("menu");
 $("go").onclick=()=>{
-  if(campSetup){camp.cfg={x:pick.x.slice(),m:pick.m,c:pick.c};camp.pos=0;camp.cleared=[];camp.done=false;camp.hp=null;camp.gold=0;camp.relics=[];camp.offer=null;camp.found=[];camp.lastGold=0;camp.kills=[];camp.region=1;camp.mapsPrior=0;camp.bossUsed={loc:[],name:[]};camp.sel=0;genWorld();saveCamp();openWorld()}
+  if(campSetup){camp.cfg={x:pick.x.slice(),m:pick.m,c:pick.c};camp.pos=0;camp.cleared=[];camp.done=false;camp.hp=null;camp.gold=0;camp.relics=[];camp.items=[];camp.offer=null;camp.found=[];camp.lastGold=0;camp.kills=[];camp.region=1;camp.mapsPrior=0;camp.bossUsed={loc:[],name:[]};camp.sel=0;genWorld();saveCamp();openWorld()}
   else start();
 };
 $("end").onclick=()=>{
