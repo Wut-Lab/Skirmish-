@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Skirmish</title>
 <style>
-:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#e9edf1;--ink:#1c2733;--tile:#dccaa4;--tile2:#d5c29b;--wall:#6b7a86;--move:#7fc4a0;--atk:#e2765f;--you:#2f6fb5;--foe:#b8432f;--panel:#fff}
+:root{--grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128'%3E%3Cfilter id='n' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85 .5' numOctaves='3' seed='5' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1.6 1.05'/%3E%3C/filter%3E%3Crect width='128' height='128' filter='url(%23n)'/%3E%3C/svg%3E");--grainl:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128'%3E%3Cfilter id='n' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85 .5' numOctaves='3' seed='5' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -.62 .41'/%3E%3C/filter%3E%3Crect width='128' height='128' filter='url(%23n)'/%3E%3C/svg%3E");box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#e9edf1;--ink:#1c2733;--tile:#dccaa4;--tile2:#d5c29b;--wall:#6b7a86;--move:#7fc4a0;--atk:#e2765f;--you:#2f6fb5;--foe:#b8432f;--panel:#fff}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141b22;--ink:#e3e9ee;--tile:#4a4233;--tile2:#453d2f;--wall:#3d4954;--move:#2d6b4d;--atk:#93392a;--you:#5b9de0;--foe:#e0664f;--panel:#1d2731}}
 :root[data-theme="dark"]{--bg:#141b22;--ink:#e3e9ee;--tile:#4a4233;--tile2:#453d2f;--wall:#3d4954;--move:#2d6b4d;--atk:#93392a;--you:#5b9de0;--foe:#e0664f;--panel:#1d2731}
 main{max-width:520px;margin:0 auto;padding:14px}
@@ -70,6 +70,7 @@ button.b small{display:block;font-size:.78rem;opacity:.85}
 .discs{display:flex;justify-content:center;gap:12px}
 .pv{position:relative;width:48px;height:48px;flex:none}
 .menubtns{display:grid;gap:10px;max-width:280px;margin:22px auto}
+.mtog{display:flex;justify-content:center;gap:8px;margin:-8px auto 18px}.mtog .b{font-size:.85rem;padding:6px 12px}
 button.b.big{text-align:center;font-size:1.05rem;padding:14px}
 #prules h3{margin:12px 0 2px;font-size:.95rem}
 #prules p{margin:0}
@@ -270,15 +271,24 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 @keyframes hchip{0%,100%{background:rgba(128,128,128,.18)}30%{background:rgba(76,195,138,.55);box-shadow:0 0 8px rgba(76,195,138,.7)}}
 @media (prefers-reduced-motion:reduce){.hfx{display:none}#warmy .stat.healed{animation:none}}
 /* ---- graphics polish: soft light on every tile, depth in deep water, earthy board frame ---- */
-.lt{position:absolute;inset:0;pointer-events:none;background:radial-gradient(125% 95% at 24% 16%,rgba(255,255,255,.17),rgba(255,255,255,0) 56%),radial-gradient(110% 100% at 88% 96%,rgba(0,0,0,.11),rgba(0,0,0,0) 60%)}
-.t.dp>.lt{background:radial-gradient(circle at 50% 56%,rgba(0,0,0,.26),rgba(0,0,0,0) 72%),radial-gradient(125% 95% at 24% 16%,rgba(255,255,255,.12),rgba(255,255,255,0) 55%)}
-.t.sh>.lt{background:radial-gradient(125% 95% at 24% 16%,rgba(255,255,255,.24),rgba(255,255,255,0) 58%),radial-gradient(110% 100% at 88% 96%,rgba(0,40,70,.12),rgba(0,0,0,0) 60%)}
+/* Realism pass: one cached grain image gives every tile, piece and panel a painted surface; pieces get a rounded sheen and softer shadows */
+.u{background-image:radial-gradient(circle at 34% 26%,rgba(255,255,255,.34),rgba(255,255,255,0) 48%),radial-gradient(circle at 66% 82%,rgba(0,0,0,.3),rgba(0,0,0,0) 62%),var(--grain)!important;background-size:auto,auto,48px 48px!important;box-shadow:0 2px 0 rgba(0,0,0,.4),0 6px 8px rgba(0,0,0,.32),0 0 0 1.5px rgba(255,255,255,.55),inset 0 -2px 3px rgba(0,0,0,.25),inset 0 2px 2px rgba(255,255,255,.18)}
+.u svg{filter:drop-shadow(0 1px 0 rgba(0,0,0,.35))}
+.rchip svg,.rcard .ri svg,.trow svg,.hcard svg{filter:drop-shadow(0 1px 1.200px rgba(0,0,0,.35))}
+.wmap{position:relative}.wmap::after{content:"";position:absolute;inset:0;pointer-events:none;background:var(--grain) 0 0/96px 96px;opacity:.28;mix-blend-mode:multiply}
+.lt{position:absolute;inset:0;pointer-events:none;--ltb:radial-gradient(125% 95% at 24% 16%,rgba(255,255,255,.17),rgba(255,255,255,0) 56%),radial-gradient(110% 100% at 88% 96%,rgba(0,0,0,.11),rgba(0,0,0,0) 60%);background:var(--grainl) 0 0/64px 64px,var(--ltb)}
+.t.w>.lt{background:var(--grainl) 0 0/64px 64px!important} /* walls carry their own shading, so neighbours join without a step */
+.t:nth-child(5n+1)>.lt{background:var(--grainl) 0 0/64px 64px,radial-gradient(48% 34% at 30% 64%,rgba(110,80,40,.08),rgba(110,80,40,0)),var(--ltb)}
+.t:nth-child(7n+3)>.lt{background:var(--grainl) 0 0/64px 64px,radial-gradient(40% 30% at 70% 36%,rgba(255,250,230,.09),rgba(255,250,230,0)),var(--ltb)}
+.t:nth-child(11n+6)>.lt{background:var(--grainl) 0 0/64px 64px,radial-gradient(52% 38% at 56% 72%,rgba(90,70,40,.07),rgba(90,70,40,0)),var(--ltb)}
+.t.dp>.lt{background:var(--grainl) 0 0/64px 64px,radial-gradient(circle at 50% 56%,rgba(0,0,0,.26),rgba(0,0,0,0) 72%),radial-gradient(125% 95% at 24% 16%,rgba(255,255,255,.12),rgba(255,255,255,0) 55%)}
+.t.sh>.lt{background:var(--grainl) 0 0/64px 64px,radial-gradient(125% 95% at 24% 16%,rgba(255,255,255,.24),rgba(255,255,255,0) 58%),radial-gradient(110% 100% at 88% 96%,rgba(0,40,70,.12),rgba(0,0,0,0) 60%)}
 #board,#eboard{background:#3a2e21;box-shadow:0 0 0 4px #6b5238,0 0 0 5px #2f2418,0 10px 0 rgba(0,0,0,.32),0 18px 30px rgba(0,0,0,.32)}
 .hp{height:5px;background:rgba(0,0,0,.55);border-radius:3px;box-shadow:0 0 0 1px rgba(0,0,0,.25)}
 .hp i{border-radius:3px;background-image:linear-gradient(rgba(255,255,255,.45),rgba(255,255,255,0) 75%)}
 /* ---- Herbert's camp ---- */
 .cpan{width:min(440px,100%);justify-items:center;border:0;border-radius:14px;padding:14px;color:#f1e4c6;
- background:repeating-linear-gradient(92deg,rgba(255,255,255,.035) 0 3px,rgba(0,0,0,.05) 3px 7px,rgba(255,255,255,0) 7px 13px),linear-gradient(#3b2616,#2a1a0e);
+ background:var(--grain) 0 0/80px 80px,repeating-linear-gradient(92deg,rgba(255,255,255,.035) 0 3px,rgba(0,0,0,.05) 3px 7px,rgba(255,255,255,0) 7px 13px),linear-gradient(#3b2616,#2a1a0e);
  box-shadow:inset 0 0 0 3px #1a0f07,inset 0 0 0 5px #6b4a2a,inset 0 0 0 7px #1a0f07,inset 0 0 24px rgba(0,0,0,.6),0 18px 40px rgba(0,0,0,.55)}
 .cpan h2{color:#f3d9a0;text-shadow:0 2px 0 #1a0f07,0 0 12px rgba(255,170,80,.35);letter-spacing:.02em;font-family:Georgia,"Times New Roman",serif}
 #cscene{width:100%;border-radius:6px;overflow:hidden;box-shadow:0 0 0 3px #1a0f07,0 0 0 5px #7a5532,0 0 0 7px #1a0f07,0 6px 14px rgba(0,0,0,.5)}
@@ -313,7 +323,7 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 #relinfo .panel{width:min(360px,100%)}#relinfo #ribody{width:100%}#relinfo .rcard{cursor:default;box-sizing:border-box;width:100%}#relinfo .rcard:hover{transform:none}
 #riclose{justify-self:center;background:#3a2616;color:#f1e4c6;border-color:#1a0f07}
 .rchip svg,.rcard svg{display:block}
-.rpan{width:min(460px,100%)}
+.rpan{width:min(460px,100%)}#relicv{overflow-y:auto;place-items:safe center} /* up to five choices with Copper Coins: let a short screen scroll */
 #herbask .panel{width:min(380px,100%)}#herbask .rsub{text-align:center}#haleave{justify-self:center;background:#3a2616;color:#f1e4c6;border-color:#1a0f07}
 .rsub{color:#e8d6b0;font-size:.9rem;margin-top:-4px}
 #rchoices{display:grid;gap:10px;width:100%}
@@ -390,6 +400,7 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 <section id="menu">
 <div class="hero"><div class="discs" id="hero"></div><h1>Skirmish</h1><p>Turn-based tactics on a small battlefield.</p></div>
 <div class="menubtns" id="mbtns"><button class="b big" id="camp">Campaign</button><button class="b big" id="play">Quick Battle</button><button class="b big" id="chal">Challenges</button><button class="b big" id="unl">Unlocks</button><button class="b big" id="how">How to Play</button><button class="b big" id="edit" hidden>Map Editor</button></div>
+<div class="mtog"><button class="b" id="msound">Sound: On</button><button class="b" id="mmusic">Music: On</button></div>
 <div id="chalview" hidden></div>
 <div id="rulesview" hidden></div>
 <div id="unlockview" hidden></div>
@@ -489,6 +500,7 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 <button class="b big" id="prule">How to Play</button>
 <button class="b big" id="pguide">Terrain Guide</button>
 <button class="b big" id="psound">Sound: On</button>
+<button class="b big" id="pmusic">Music: On</button>
 <button class="b big" id="pconcede">Concede</button>
 </div>
 <div id="prules" hidden></div>
@@ -552,10 +564,14 @@ const FOREST_EV=.1,FT_FOREST_EV=.05,EV_CAP=.5,RET_SHARE=.5; // forest dodge bonu
 const MUSTER_USES=2,MUSTER_ALIVE=2,BANNER_RANGE=2; // Captain: musters per battle, militia alive at once; Banner Bearer: aura reach
 /* ---------- Relics: campaign rewards, one source for the reward screen, world map and effects ---------- */
 // r: rarity (0 common, 1 uncommon, 2 rare); need: a unit type the army must include for it to be offered; lock: the unlock it waits for; find: only ever found in battle (see FINDS), never offered
+// Where a relic comes from — src:"shop" = the shop only; src:"both" = the shop and the pick after battles; no src = after battles only;
+// find:1 = found during a battle (the biome relics), never offered or sold. max: how many can be carried (default 1).
 const RELICS={
+ gauntlets:{name:"Spiked Gauntlets",r:0,src:"both",desc:"Your units deal +1 damage when they retaliate."},
+ coin:{name:"Copper Coin of Good Fortune",r:2,src:"shop",max:2,desc:"Shows one extra relic to choose from after each battle. Carry up to two; each adds a choice."},
  whet:{name:"Whetstones",r:0,desc:"Archers deal +1 damage."},
  shield:{name:"Sturdy Shields",r:0,desc:"Knights get +1 armor."},
- rations:{name:"Trail Rations",r:0,desc:"Your units heal 1 extra HP after each battle."},
+ rations:{name:"Trail Rations",r:0,src:"both",desc:"Your units heal 1 extra HP after each battle."},
  bandages:{name:"Spare Bandages",r:0,desc:"Your units that fall in a battle return for the next one with 3 HP instead of 1."},
  bard:{name:"Barding",r:0,desc:"Cavalry get +1 armor but 1 less movement."},
  luck:{name:"Lucky Charm",r:1,desc:"All your units get +5% evasion."},
@@ -584,6 +600,8 @@ const canBless=(a,b)=>rel(a,"font")&&!a.blessUsed&&!a.acted&&b!==a&&b.team==="y"
 const RALLY_EV=.05,RALLY_RANGE=2;
 const rallied=u=>u.team==="y"&&u.rallyUntil>=pturn; // Trumpet of Encouragement: lasts through the enemy turn and your next one
 const canTrumpet=u=>rel(u,"trumpet")&&!relicUsed.trumpet&&!u.acted&&!u.auto&&units.some(b=>b!==u&&b.team==="y"&&d(u,b)<=RALLY_RANGE);
+// Cherry Grove, Moment of Calm: counts as forest only for movement; no forest combat bonuses, no slowing, no retaliation in or out
+const WOODS=k=>FOREST.has(k)&&!CHERRY.has(k),calm=u=>CHERRY.has(u.x+","+u.y);
 const healOf=u=>TYPES[u.t].heal+(rel(u,"salts")?1:0); // how much a healer restores, with relics
 const rgOf=u=>TYPES[u.t].rg+(u.t==="A"&&rel(u,"long")?1:0); // a unit's attack range, with relics
 const DEBRIS_DMG=1; // Debris Shot splash: small, so it softens clusters without replacing a second attack
@@ -594,7 +612,7 @@ const MODS={
  FT:{name:"Forest Tactics",desc:"Your units in a forest get +1 armor against ranged attacks. Enemies in a forest only get +5% evasion against your attacks, instead of +10%."},
  PAD:{name:"Padded Armor",desc:"Archers get +1 armor but have 1 less movement."},
  REST:{name:"Field Rest",desc:"At the end of your turn, each of your units that neither moved nor attacked that turn recovers 2 HP."}};
-let MURKY=false,HAUNTED=false,VOLCANIC=false,LAVA=new Set(),MAGMA=new Set(),VOLC=new Set(),GRAVES=new Set(),WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set(),SWAMP=new Set();
+let MURKY=false,HAUNTED=false,VOLCANIC=false,CHERRY=new Set(),LAVA=new Set(),MAGMA=new Set(),VOLC=new Set(),GRAVES=new Set(),WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set(),SWAMP=new Set();
 const UKEY="skirmish_unlocks_v1",unlocks=(()=>{try{return JSON.parse(localStorage.getItem(UKEY)||"{}")||{}}catch(e){return{}}})();
 const saveU=()=>{try{localStorage.setItem(UKEY,JSON.stringify(unlocks))}catch(e){}};
 const unlock=id=>{if(unlocks[id])return false;unlocks[id]=1;saveU();discover();return true};
@@ -705,6 +723,12 @@ function genMap(o={}){
     };
     if(o.graves)put(graves,5+R(3),false);
     put(walls,o.graves?2+R(2):3+R(3),true);put(forest,o.forest||4+R(4),false);
+    const cherry=new Set(); // a cherry grove: a little orchard of 2-5 joined tiles (mirrored), which plays exactly like forest
+    if(unlocks.cherry&&!o.graves&&!o.lava&&!(o.swamp>=3)&&Math.random()<(o.cherry===undefined?.3:o.cherry))for(let t=0;t<60;t++){
+      const tl=grow(2+R(4),1+R(W-2),3+R(H-6));
+      if(!tl.every(([a,b])=>free(a,b)&&free(W-1-a,H-1-b))||tl.some(([a,b])=>tl.some(([c,d])=>c===W-1-a&&d===H-1-b)))continue;
+      tl.forEach(([a,b])=>{both(forest,a,b);both(cherry,a,b)});break;
+    }
     const swamp=new Set(); // swamp patches: entering one ends a unit's move
     const SW=o.lava?{n:0,size:2}:o.swamp>=3?{n:5+R(3),size:3}:o.swamp?{n:Math.random()<.6?1+R(2):0,size:2}:{n:Math.random()<.12?1:0,size:2}; // patches (mirrored) and their size
     for(let n=SW.n,t=0;n>0&&t<200;t++){
@@ -753,15 +777,32 @@ function genMap(o={}){
       }
     }
     if(seen.size===W*H-walls.size-deep.size-bars.size-camps.size-graves.size-lava.size-volc.size){ // every open tile connects: lava never cuts anyone off
-      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;SWAMP=swamp;MURKY=o.swamp>=3;GRAVES=graves;HAUNTED=!!o.graves;LAVA=lava;MAGMA=magma;VOLC=volc;VOLCANIC=!!o.lava;BARRELS=bars;XBAR=xbars;CAMPS=camps;WALLV=R(4);
+      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;SWAMP=swamp;MURKY=o.swamp>=3;GRAVES=graves;HAUNTED=!!o.graves;LAVA=lava;MAGMA=magma;VOLC=volc;VOLCANIC=!!o.lava;CHERRY=cherry;BARRELS=bars;XBAR=xbars;CAMPS=camps;WALLV=R(4);
       groupForts(()=>R(2));
       return;
     }
   }
 }
 const svg=b=>'<svg class="dec" viewBox="0 0 40 40">'+b+'</svg>';
-const tree=(x,y,h,w,c)=>`<ellipse cx="${x+1.2}" cy="${y+3.8}" rx="${w*.95}" ry="1.6" fill="rgba(0,0,0,.18)"/><rect x="${x-1}" y="${y}" width="2" height="4" fill="#5a3d24"/><path d="M${x} ${y-h}L${x+w} ${y}H${x-w}z" fill="${c}"/><path d="M${x} ${y-h}L${x+w} ${y}H${x}z" fill="rgba(0,0,0,.16)"/>`; // foliage lit from the upper left
-const oak=(x,y,r,c)=>`<ellipse cx="${x+1}" cy="${y+r*.8}" rx="${r*.9}" ry="1.7" fill="rgba(0,0,0,.18)"/><rect x="${x-1.2}" y="${y}" width="2.4" height="${r*.8}" fill="#5a3d24"/><circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/><path d="M${x+r*.25} ${y-r*.97}A${r} ${r} 0 0 1 ${x-r*.25} ${y+r*.97}A${r*.8} ${r*.9} 0 0 0 ${x+r*.25} ${y-r*.97}z" fill="rgba(0,0,0,.14)"/><circle cx="${x-r*.3}" cy="${y-r*.3}" r="${r*.45}" fill="rgba(255,255,255,.16)"/>`;
+const tree=(x,y,h,w,c)=>{ // a conifer: three tiers of needles with jagged hems, lit from the upper left
+  const f=v=>v.toFixed(1);let g=`<ellipse cx="${f(x+1.2)}" cy="${f(y+3.8)}" rx="${f(w*.95)}" ry="1.6" fill="rgba(0,0,0,.22)"/><rect x="${f(x-1)}" y="${y}" width="2" height="4" fill="#5a3d24"/><rect x="${x}" y="${y}" width="1" height="4" fill="#3a2614"/>`;
+  [[0,.5,.55],[.25,.78,.8],[.48,1,1]].forEach(([t,b,ww])=>{const top=y-h+h*t,bot=y-h+h*b,hw=w*ww,n=4,st=hw*2/n;
+    let hem="";for(let i=0;i<=n;i++){const xx=x+hw-i*st;hem+=`L${f(xx)} ${f(bot+(i%2?-1.2:.6))}`}
+    g+=`<path d="M${f(x)} ${f(top)}${hem}z" fill="${c}"/><path d="M${f(x)} ${f(top)}L${f(x+hw)} ${f(bot+.6)}L${f(x+hw*.15)} ${f(bot)}z" fill="rgba(0,0,0,.2)"/><path d="M${f(x-.4)} ${f(top+1)}L${f(x-hw*.7)} ${f(bot-.6)}" stroke="rgba(255,255,255,.18)" stroke-width=".8"/>`});
+  return g;
+};
+const oak=(x,y,r,c)=>{ // an oak: a stout, flaring trunk with spreading boughs under a broad, lumpy crown; shaded below, lit from the upper left
+  const f=v=>v.toFixed(1),L=[[-1.05,-.12,.46],[-.72,-.55,.5],[-.28,-.85,.52],[.25,-.86,.52],[.7,-.6,.5],[1.05,-.15,.44],[.55,.08,.46],[-.52,.1,.46],[0,-.32,.68],[0,.06,.46]];
+  let g=`<ellipse cx="${f(x+1.5)}" cy="${f(y+r*1.05)}" rx="${f(r*1.25)}" ry="${f(r*.22+1)}" fill="rgba(0,0,0,.22)"/>`
+   +`<path d="M${f(x-r*.22)} ${f(y+r*1.05)}q${f(r*.12)}-${f(r*.4)} ${f(r*.07)}-${f(r*.75)}q-${f(r*.4)}-${f(r*.15)}-${f(r*.65)}-${f(r*.45)}l${f(r*.12)}-${f(r*.06)}q${f(r*.32)} ${f(r*.22)} ${f(r*.6)} ${f(r*.28)}l${f(r*.06)}-${f(r*.3)}l${f(r*.12)} 0l.2 ${f(r*.3)}q${f(r*.3)}-${f(r*.1)} ${f(r*.6)}-${f(r*.34)}l${f(r*.12)} ${f(r*.06)}q-${f(r*.26)} ${f(r*.32)}-${f(r*.62)} ${f(r*.48)}q-${f(r*.05)} ${f(r*.4)} ${f(r*.12)} ${f(r*.76)}z" fill="#5a3d24"/>`
+   +`<path d="M${f(x+r*.02)} ${f(y+r*.3)}q-${f(r*.05)} ${f(r*.4)} ${f(r*.12)} ${f(r*.75)}h${f(r*.08)}q-${f(r*.12)}-${f(r*.4)}-${f(r*.02)}-${f(r*.75)}z" fill="#3a2614"/>`
+   +`<path d="M${f(x-r*.1)} ${f(y+r*.35)}q-${f(r*.3)}-${f(r*.15)}-${f(r*.62)}-${f(r*.42)}M${f(x+r*.1)} ${f(y+r*.3)}q${f(r*.32)}-${f(r*.12)}${f(r*.6)}-${f(r*.4)}M${f(x)} ${f(y+r*.3)}l-${f(r*.05)}-${f(r*.4)}" stroke="#4a3220" stroke-width="${f(r*.12+.4)}" fill="none" stroke-linecap="round"/>`;
+  g+=L.map(([dx,dy,s])=>`<circle cx="${f(x+dx*r)}" cy="${f(y+dy*r)}" r="${f(s*r)}" fill="${c}"/>`).join("");
+  g+=L.filter(l=>l[1]>0).map(([dx,dy,s])=>`<circle cx="${f(x+dx*r+.4)}" cy="${f(y+dy*r+s*r*.35)}" r="${f(s*r*.7)}" fill="rgba(0,0,0,.16)"/>`).join(""); // shade under the crown
+  g+=[[-.72,-.45,.28],[-.3,-.82,.26],[-1,.02,.22],[.2,-.85,.2]].map(([dx,dy,s])=>`<circle cx="${f(x+dx*r)}" cy="${f(y+dy*r)}" r="${f(s*r)}" fill="rgba(255,255,255,.16)"/>`).join(""); // sunlit clumps
+  g+=[[-.4,-.2],[.35,-.3],[.6,.05],[-.75,-.05],[.05,.1],[-.15,-.5],[.45,-.55]].map(([dx,dy])=>`<circle cx="${f(x+dx*r)}" cy="${f(y+dy*r)}" r="${f(r*.07+.25)}" fill="rgba(0,0,0,.18)"/>`).join(""); // leaf texture
+  return g;
+};
 // Haunted Graveyard: gravestones, and dead trees in place of living ones
 // Gravestones: weathered stone with a lit left face, carved details, cracks and moss
 const tomb={ // each draws one stone standing on y=0, about 28 units tall, centred on x=0
@@ -796,7 +837,8 @@ const FOREST_V=[
  svg(oak(30,9,4,"#b0561f")+oak(12,17,7,"#c07a2a")+oak(28,22,7.5,"#d59a3a")+tree(19,35,14,6,"#2f6b3f"))];
 const S1='stroke="rgba(0,0,0,.4)" stroke-width="1.2"';
 const WV=(a,c,o)=>svg(`<g fill="none" stroke="${c}" stroke-width="1.8" stroke-linecap="round" opacity="${o}">`+a.map(([x,y])=>`<path d="M${x} ${y}q4-4 8 0t8 0"/>`).join("")+"</g>");
-const DP_V=[WV([[6,12],[16,26]],"#a9d6ee",.55),WV([[10,9],[4,24],[20,32]],"#a9d6ee",.5),WV([[14,15],[6,30]],"#a9d6ee",.55)];
+const glint=(x,y)=>`<path d="M${x-1.6} ${y}h3.2M${x} ${y-1.2}v2.4" stroke="#fff" stroke-width=".7" opacity=".55"/>`;
+const DP_V=[WV([[6,12],[16,26]],"#a9d6ee",.55).replace("</svg>",glint(30,9)+"</svg>"),WV([[10,9],[4,24],[20,32]],"#a9d6ee",.5).replace("</svg>",glint(31,22)+"</svg>"),WV([[14,15],[6,30]],"#a9d6ee",.55).replace("</svg>",glint(9,8)+glint(33,33)+"</svg>")];
 const SH_V=[WV([[8,13],[18,27]],"#fff",.75),WV([[5,10],[19,20],[9,32]],"#fff",.7),WV([[14,12],[6,26]],"#fff",.75)];
 // gloomy swamp pieces: organic pools with algae rims, cattail clusters, a dead snag, a mossy log, lily pads, soft mist and fireflies
 const blobD=(cx,cy,rx,ry,j)=>{const n=j.length,p=j.map((m,i)=>{const a=i/n*2*Math.PI;return[cx+Math.cos(a)*rx*m,cy+Math.sin(a)*ry*m]}),f=v=>v.toFixed(1),mid=(a,b)=>`${f((a[0]+b[0])/2)} ${f((a[1]+b[1])/2)}`;
@@ -842,6 +884,34 @@ function ashGround(x,y){ // ash-strewn rock in place of grass and flowers
   if(v===2)return svg(`<ellipse cx="${14+p(12,3)}" cy="${18+p(10,4)}" rx="10" ry="5" fill="rgba(30,24,22,.18)"/>`);
   return "";
 }
+// cherry grove (Japanese cherry, sakura): gnarled dark trunks with long, spreading boughs under broad, layered clouds of blossom.
+// Each tile picks one of three pinks; where a neighbour is cherry too, a shared cloud straddles the seam in the upper/left tile's pink, so the joins match.
+const SAKURA=[["#d996ab","#f2c4d2","#fadbe4","#fff6f8"],["#c8708e","#eda9be","#f7cdd9","#fff2f6"],["#b0506f","#e38aa6","#f1b3c6","#ffe8f0"]]; // pale blush, soft pink, deep pink: shade, body, light, highlight
+const sakuraPal=(x,y)=>tv(x,y,3,47);
+const sakuraCloud=(cx,cy,r,P)=>{const f=v=>v.toFixed(1),C=[[0,0,1,.55],[-.7,.14,.62,.4],[.72,.12,.62,.42],[-.36,-.3,.6,.4],[.38,-.3,.58,.38],[0,.3,.72,.34],[-1.02,.3,.4,.27],[1.02,.28,.42,.27]];
+  return C.map(([dx,dy,a,b])=>`<ellipse cx="${f(cx+dx*r+.4)}" cy="${f(cy+dy*r+b*r*.32)}" rx="${f(a*r)}" ry="${f(b*r)}" fill="${P[0]}"/>`).join("")
+   +C.map(([dx,dy,a,b])=>`<ellipse cx="${f(cx+dx*r)}" cy="${f(cy+dy*r)}" rx="${f(a*r)}" ry="${f(b*r)}" fill="${P[1]}"/>`).join("")
+   +C.filter(c=>c[1]<.2).map(([dx,dy,a,b])=>`<ellipse cx="${f(cx+dx*r-a*r*.18)}" cy="${f(cy+dy*r-b*r*.3)}" rx="${f(a*r*.6)}" ry="${f(b*r*.5)}" fill="${P[2]}"/>`).join("")
+   +[[-.5,-.35],[.15,-.45],[.62,-.18],[-.85,.12],[.3,.05],[-.2,.18],[.85,.22],[-.05,-.15],[.48,.32],[-.62,.34]].map(([dx,dy],i)=>`<circle cx="${f(cx+dx*r)}" cy="${f(cy+dy*r)}" r="${f(r*.05+.3)}" fill="${i%3?P[3]:P[0]}" opacity=".9"/>`).join("");};
+const sakuraTrunk=(x,y,h,lean)=>{const f=v=>v.toFixed(1),tx=x+lean,ty=y-h*.62;
+  return `<ellipse cx="${f(x+1.5)}" cy="${f(y+1)}" rx="${f(h*.55)}" ry="1.8" fill="rgba(0,0,0,.22)"/>`
+   +`<path d="M${f(x)} ${f(y)}q${f(lean*.2-1)} -${f(h*.35)} ${f(lean)} -${f(h*.62)}" stroke="#2e1c18" stroke-width="${f(h*.17+.6)}" fill="none" stroke-linecap="round"/>`
+   +`<path d="M${f(tx)} ${f(ty)}q-${f(h*.35)} -${f(h*.02)}-${f(h*.85)} -${f(h*.2)}M${f(tx)} ${f(ty)}q${f(h*.35)} -${f(h*.1)} ${f(h*.8)} -${f(h*.24)}M${f(tx)} ${f(ty)}q${f(h*.05)} -${f(h*.2)} ${f(h*.15)} -${f(h*.38)}M${f(tx-h*.45)} ${f(ty-h*.08)}l-${f(h*.12)} -${f(h*.14)}M${f(tx+h*.42)} ${f(ty-h*.13)}l${f(h*.1)} -${f(h*.16)}" stroke="#3a2420" stroke-width="${f(h*.07+.45)}" fill="none" stroke-linecap="round"/>`
+   +`<path d="M${f(x-.4)} ${f(y-.5)}q${f(lean*.2-1)} -${f(h*.33)} ${f(lean-.3)} -${f(h*.58)}" stroke="#6a4a3c" stroke-width=".6" fill="none" opacity=".7"/><path d="M${f(x+.6)} ${f(y-h*.25)}q.8 1 .3 2" stroke="#1e120e" stroke-width=".6" fill="none"/>`;};
+const drift=(k,P)=>[[5,34,0],[13,37,1],[31,35,0],[36,30,1],[24,38,0],[4,26,1],[17,33,0],[29,38,1],[8,8,1],[33,7,0],[3,16,0],[37,15,1]].filter((_,i)=>(i+k)%3).map(([x,y,c],i)=>`<ellipse cx="${x}" cy="${y}" rx="1.050" ry=".6" fill="${c?P[1]:P[2]}" transform="rotate(${i*37} ${x} ${y})"/>`).join(""); // petals on the grass and on the breeze
+const CHERRY_T=[ // the three versions: trunks [x, y, height, lean] and crowns [x, y, size]
+ {t:[[19,35,17,2]],c:[[20,15,12]]},
+ {t:[[11,35,12,-1],[29,36,13,1]],c:[[11,19,8.6],[29,18,9.2]]},
+ {t:[[13,36,16,6],[34,36,7,0]],c:[[23,15,11.5],[34,29,4.6]]}];
+function cherryArt(v,m,x=0,y=0){
+  const T=CHERRY_T[v],P=SAKURA[sakuraPal(x,y)],n=m&1,e=m&2,s=m&4,w=m&8;
+  let g=drift(v,P)+T.t.map(a=>sakuraTrunk(...a)).join("");
+  if(n)g+=sakuraCloud(20,-1,9,SAKURA[sakuraPal(x,y-1)]);if(w)g+=sakuraCloud(-1,20,9,SAKURA[sakuraPal(x-1,y)]); // shared clouds on joined seams, in the upper/left tile's pink
+  if(e)g+=sakuraCloud(41,20,9,P);if(s)g+=sakuraCloud(20,41,9,P);
+  g+=T.c.map(([cx,cy,r])=>`<ellipse cx="${cx+1}" cy="${cy+r*.75}" rx="${r*1.05}" ry="${r*.22}" fill="rgba(80,20,40,.16)"/>`+sakuraCloud(cx,cy,r,P)).join("");
+  return svg(g);
+}
+const CHERRY_V=()=>[[0,0],[1,1],[2,2]].map(([v,p])=>{for(let x=0;x<40;x++)if(sakuraPal(x,0)===p)return cherryArt(v,0,x,0);return cherryArt(v,0)}); // one of each shape in each pink, for the guide (built on demand) // one of each shape, in different pinks, for the guide
 const BAR_A='<ellipse cx="20" cy="35" rx="17" ry="3" fill="rgba(0,0,0,.18)"/><path d="M5 17c0-3 3.500-4.500 6.500-4.500S18 14 18 17v13c0 3-3.500 4.500-6.500 4.500S5 33 5 30z" fill="#9a6b3a" stroke="#4a2f14" stroke-width="1.6"/><path d="M5 20.500c3 2 10 2 13 0M5 27c3 2 10 2 13 0" fill="none" stroke="#4a2f14" stroke-width="1.5"/><ellipse cx="11.500" cy="13" rx="6.500" ry="2.600" fill="#c08c52" stroke="#4a2f14" stroke-width="1.5"/><rect x="19" y="21" width="17" height="14" fill="#c9a064" stroke="#4a2f14" stroke-width="1.6"/><path d="M19 21l17 14M36 21L19 35" stroke="#7a5a2c" stroke-width="1.6"/><path d="M21 10c0-2.500 3-3.800 5.500-3.800s5.500 1.300 5.500 3.800v9c0 2.500-3 3.800-5.500 3.800S21 21.500 21 19z" fill="#8a5c30" stroke="#4a2f14" stroke-width="1.6"/><ellipse cx="26.500" cy="10" rx="5.500" ry="2.200" fill="#b98448" stroke="#4a2f14" stroke-width="1.4"/><path d="M21 14c2.500 1.800 8.500 1.800 11 0" fill="none" stroke="#4a2f14" stroke-width="1.4"/>';
 const BAR_V=[svg(BAR_A),svg(`<g transform="translate(40 0) scale(-1 1)">${BAR_A}</g>`)];
 // mysterious camp site: a little tent and a campfire with an eerie green glow
@@ -855,9 +925,9 @@ const XBAR_V=svg('<ellipse cx="20" cy="36" rx="13" ry="2.6" fill="rgba(0,0,0,.22
 const tv=(x,y,n,k=0)=>((((x+k)*73856093)^((y+k*3)*19349663)^(seed*83492791))>>>0)%n;
 const tuft=(a,b)=>`<path d="M${a} ${b}l-2.5-5M${a} ${b}l0-6.5M${a} ${b}l2.5-5"/>`;
 function ground(x,y,fv){
-  const v=fv===undefined?tv(x,y,6):fv,p=(n,k)=>tv(x,y,n,k);let g="";
+  const v=fv===undefined?tv(x,y,6):fv,p=(n,k)=>tv(x,y,n,k);let g=""; // soil varies from tile to tile
   if(v===0)g='<g stroke="#6f8f3f" stroke-width="1.7" stroke-linecap="round" fill="none">'+tuft(6+p(28,1),18+p(18,2))+tuft(6+p(28,3),18+p(18,4))+'</g>';
-  else if(v===1)g=[0,1,2].map(i=>`<ellipse cx="${6+p(28,i+5)}" cy="${8+p(26,i+9)}" rx="${1.8+p(3,i+2)*.6}" ry="${1.3+p(2,i+7)*.6}" fill="#a6987d"/>`).join("");
+  else if(v===1)g=[0,1,2].map(i=>{const cx=6+p(28,i+5),cy=8+p(26,i+9),rx=1.8+p(3,i+2)*.6,ry=1.3+p(2,i+7)*.6;return `<ellipse cx="${cx+.5}" cy="${cy+.7}" rx="${rx}" ry="${ry}" fill="rgba(60,45,25,.25)"/><ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#a6987d"/><ellipse cx="${cx-rx*.3}" cy="${cy-ry*.35}" rx="${rx*.45}" ry="${ry*.35}" fill="rgba(255,255,240,.35)"/>`}).join("");
   else if(v===2)g=[0,1,2].map(i=>{const cx=7+p(26,i+11),cy=10+p(22,i+13);return `<path d="M${cx} ${cy+5}v-3" stroke="#6f8f3f" stroke-width="1.3"/><circle cx="${cx}" cy="${cy}" r="2.2" fill="${["#f4f0e8","#f0c94a","#e98fb0"][i]}"/><circle cx="${cx}" cy="${cy}" r=".8" fill="#c88a1a"/>`}).join("");
   else if(v===3)g=`<ellipse cx="${14+p(12,3)}" cy="${18+p(10,4)}" rx="10" ry="6" fill="rgba(120,90,50,.16)"/><path d="M8 20l6-3 5 4 7-2M19 21l-1 6M26 19l4 5" stroke="#a88f63" fill="none" stroke-width="1.2" stroke-linecap="round"/>`;
   return g?svg(g):"";
@@ -889,9 +959,20 @@ function wallArt(v,m){
   if(v===0) // brick: the courses run straight on into a joined wall; open sides get a lit or shaded edge
     return svg('<g><rect width="13" height="13" fill="rgba(255,255,255,.06)"/><rect x="13" width="27" height="13" fill="rgba(0,0,0,.05)"/><rect y="13" width="27" height="14" fill="rgba(0,0,0,.035)"/><rect x="27" y="13" width="13" height="14" fill="rgba(255,255,255,.05)"/><rect y="27" width="13" height="13" fill="rgba(255,255,255,.03)"/><rect x="13" y="27" width="27" height="13" fill="rgba(0,0,0,.06)"/></g><path d="M0 13H40M0 27H40M13 0V13M27 13V27M13 27V40" stroke="rgba(0,0,0,.35)" stroke-width="1.5" fill="none"/><path d="M0 14.4H40M0 28.4H40" stroke="rgba(255,255,255,.1)" stroke-width=".8"/>'+(e?"":'<path d="M39.3 0V40" stroke="rgba(0,0,0,.3)" stroke-width="1.4"/>')+(w?"":'<path d="M.7 0V40" stroke="rgba(255,255,255,.25)" stroke-width="1.4"/>'));
   if(v===1){ // boulders: a shared boulder straddles every joined edge
-    const b=(cx,cy,rx,ry,f)=>`<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${f}" ${S1}/>`;
-    return svg((n?b(20,0,7.5,5.5,"#8d98a1"):"")+(s?b(20,40,7.5,5.5,"#8d98a1"):"")+(e?b(40,20,5.5,7.5,"#98a3ac"):"")+(w?b(0,20,5.5,7.5,"#98a3ac"):"")
-      +b(14,26,8.5,7,"#7f8b95")+b(27,24,8,8.5,"#8d98a1")+b(20,13,7,6,"#98a3ac")+'<path d="M9 23q3-4 7-3M24 19q3-3 6-1M16 11q3-2 6 0" stroke="rgba(255,255,255,.4)" fill="none" stroke-width="1.5"/>');
+    // a faceted stone: an irregular polygon with a lit top-left face, a shaded lower-right face and a crack (k picks its shape, so both halves of a shared stone match)
+    const J=[1,.84,1.08,.9,1.04,.8,.96,1.1,.88],b=(cx,cy,rx,ry,f,k)=>{
+      const P=[...Array(7)].map((_,i)=>{const a=(i/7)*Math.PI*2+k*.6-1.6,m=J[(i+k)%J.length];return[cx+Math.cos(a)*rx*m,cy+Math.sin(a)*ry*m,a]}),pt=p=>p[0].toFixed(1)+" "+p[1].toFixed(1);
+      const c=[cx-rx*.18,cy-ry*.22],lit=P.filter(p=>{const d=Math.atan2(Math.sin(p[2]),Math.cos(p[2]));return d<-.4&&d>-2.9}),dk=P.filter(p=>{const d=Math.atan2(Math.sin(p[2]),Math.cos(p[2]));return d>.2&&d<2.6});
+      return `<path d="M${P.map(pt).join("L")}z" fill="${f}" ${S1} stroke-linejoin="round"/>`
+        +(lit.length>1?`<path d="M${pt(c)}L${lit.map(pt).join("L")}z" fill="rgba(255,255,255,.2)"/>`:"")
+        +(dk.length>1?`<path d="M${pt(c)}L${dk.map(pt).join("L")}z" fill="rgba(0,0,0,.2)"/>`:"")
+        +`<path d="M${pt(c)}L${pt(P[(k+2)%7])}" stroke="rgba(0,0,0,.18)" stroke-width=".7"/><path d="M${(c[0]-rx*.3).toFixed(1)} ${(c[1]+ry*.1).toFixed(1)}l${(rx*.25).toFixed(1)} ${(ry*.3).toFixed(1)}" stroke="rgba(30,30,34,.4)" stroke-width=".7"/>`;
+    };
+    // big stones packed tight, with dark crevices between them; on a joined edge one large stone straddles the seam, drawn the same from both sides
+    const st=[[12.5,14,11,9,"#8d98a1",1],[29,12,9.5,8.5,"#98a3ac",4],[21,29,12.5,9,"#7f8b95",2],[6,32,5,4.5,"#8d98a1",6],[36,32,5,4.5,"#98a3ac",3],[35,3,4,3.4,"#8d98a1",5]];
+    if(n)st.push([20,0,12,7.5,"#8d98a1",3]);if(s)st.push([20,40,12,7.5,"#8d98a1",3]);if(e)st.push([40,20,7.5,12,"#98a3ac",5]);if(w)st.push([0,20,7.5,12,"#98a3ac",5]);
+    const shade=st.map(([cx,cy,rx,ry])=>`<ellipse cx="${cx+.8}" cy="${cy+1.2}" rx="${rx+1.4}" ry="${ry+1.2}" fill="rgba(24,28,34,.55)"/>`).join(""); // crevices and contact shadow
+    return svg('<rect width="40" height="40" fill="rgba(30,34,40,.35)"/>'+shade+st.map(a=>b(...a)).join(""));
   }
   if(v===2){ // dressed stone: joined sides drop their margin so the block courses line up across tiles
     const rows=[[n?0:2,13,[0,19,40]],[15,26,[0,12.5,31.5,40]],[28,s?40:38,[0,19,40]]];let g="";
@@ -925,6 +1006,10 @@ function fortArt(m,v,keep){
 // fills the 2px board gap after a tile when it joins the tile to its right or below, so joined pieces read as one structure
 function joins(x,y){
   const k=x+","+y,isW=WALLS.has(k);
+  if(CHERRY.has(k)){ // the shared blossom clump carries over the gap
+    const P=SAKURA[sakuraPal(x,y)],r=CHERRY.has((x+1)+","+y),b=CHERRY.has(x+","+(y+1)),bar=(st,dir)=>`<i class="jb" style="${st};background:linear-gradient(${dir},transparent 30%,${P[0]} 32%,${P[1]} 40%,${P[1]} 60%,${P[0]} 68%,transparent 70%)"></i>`;
+    return (r?bar("top:0;right:-2px;width:2px;height:100%","180deg"):"")+(b?bar("left:0;bottom:-2px;height:2px;width:100%","90deg"):"");
+  }
   if(LAVA.has(k)){ // lava flows on across the gap into lava beside it
     const r=LAVA.has((x+1)+","+y),b=LAVA.has(x+","+(y+1)),c=r&&b&&LAVA.has((x+1)+","+(y+1)),bar=st=>`<i class="jb" style="${st};background:#e2531a"></i>`;
     return (r?bar(`top:0;right:-2px;width:2px;height:${c?"calc(100% + 2px)":"100%"}`):"")+(b?bar("left:0;bottom:-2px;height:2px;width:100%"):"");
@@ -939,8 +1024,9 @@ function joins(x,y){
   }else if(WALLV===3){right="#3b2b1c";below="repeating-linear-gradient(90deg,#3b2b1c 0 1.500%,#8b6a45 1.500% 18.500%,#3b2b1c 18.500% 20%)"}
   else{
     const lit=m&1?"":"linear-gradient(rgba(255,255,255,.28),rgba(255,255,255,.28)) top/100% 4px no-repeat,",shade=m&4?"":"linear-gradient(rgba(0,0,0,.4),rgba(0,0,0,.4)) bottom/100% 7px no-repeat,";
-    const rock=(dir,c)=>WALLV===1?`linear-gradient(${dir},transparent 31%,${c} 31%,${c} 69%,transparent 69%),`:""; // fill the shared boulder's middle
-    right=lit+shade+rock("180deg","#98a3ac")+"var(--wall)";below=WALLV===0?"linear-gradient(rgba(0,0,0,.3),rgba(0,0,0,.3)) var(--wall)":rock("90deg","#8d98a1")+"var(--wall)"; // brick keeps its mortar line
+    const rock=(dir,c)=>WALLV===1?`linear-gradient(${dir},transparent 22%,${c} 22%,${c} 78%,transparent 78%),`:""; // fill the shared boulder's middle
+    if(WALLV===1){const g=(dir,c)=>`linear-gradient(${dir},#4a545e 20%,${c} 24%,${c} 76%,#4a545e 80%)`;right=g("180deg","#8d969e");below=g("90deg","#86909a")} // the seam stone's middle, with crevice-dark rock either side
+    else right=lit+shade+rock("180deg","#98a3ac")+"var(--wall)";if(WALLV!==1)below=WALLV===0?"linear-gradient(rgba(0,0,0,.3),rgba(0,0,0,.3)) var(--wall)":rock("90deg","#8d98a1")+"var(--wall)"; // brick keeps its mortar line
   }
   return (m&2?bar(`top:0;right:-2px;width:2px;height:${corner?"calc(100% + 2px)":"100%"}`,right):"")+(m&4?bar("left:0;bottom:-2px;height:2px;width:100%",below):"");
 }
@@ -948,6 +1034,7 @@ function joins(x,y){
 // "unlock" names the unlock a terrain needs before it is shown anywhere but the Unlocks menu.
 const TERRAIN={
  ground:{name:"Open Ground",bg:"",art:()=>[0,1,2,3].map(v=>ground(3,4,v)),desc:"No special effect."},
+ cherry:{name:"Cherry Grove",bg:TF,art:CHERRY_V,unlock:"cherry",desc:"A little orchard in bloom. Leaving it costs 1 movement, like a forest, but it gives no evasion. Moment of Calm: a unit here can't be slowed (a slow ends as it enters), and units here neither retaliate nor suffer retaliation."},
  forest:{name:"Forest",bg:TF,art:()=>FOREST_V,desc:"Leaving a forest costs 1 movement. A unit in a forest gets +10% evasion."},
  swamp:{name:"Swamp",bg:"background:#4b4a33",art:()=>SW_V,desc:"Entering a swamp ends a unit's move for the turn. Leaving costs nothing extra."},
  shallow:{name:"Shallow Water",bg:"background:var(--sh,#86c4dc)",art:()=>SH_V,desc:"Entering it costs 1 extra movement. Often found around deep water, and sometimes as a ford across a river."},
@@ -961,12 +1048,13 @@ const TERRAIN={
  volcano:{name:"Volcano",bg:"",art:()=>VOLC_V,unlock:"volcanic",desc:"Impassable. 1 to 3 per map. At the end of each turn it has a small chance to erupt, dealing 2 damage (ignoring armor) to any unit on 3 random tiles around it."},
  wall:{name:"Wall",bg:"background:var(--wall)",art:()=>[0,1,2,3].map(v=>wallArt(v,0)),desc:"Impassable. Units can't enter or cross it, but attacks can pass over it."},
  fort:{name:"Fortress",bg:FR,art:()=>[fortArt(0,0,true),fortArt(0,1,true)],desc:"Uncommon. A unit standing on one gets +1 armor."}};
-const terrainKey=k=>CAMPS.has(k)?"campsite":GRAVES.has(k)?"grave":VOLC.has(k)?"volcano":LAVA.has(k)?"lava":MAGMA.has(k)?"magma":BARRELS.has(k)?(XBAR.has(k)?"xbarrel":"barrels"):WALLS.has(k)?"wall":DEEP.has(k)?"deep":SHALLOW.has(k)?"shallow":SWAMP.has(k)?"swamp":FOREST.has(k)?"forest":FORT.has(k)?"fort":"ground";
+const terrainKey=k=>CAMPS.has(k)?"campsite":GRAVES.has(k)?"grave":VOLC.has(k)?"volcano":LAVA.has(k)?"lava":MAGMA.has(k)?"magma":BARRELS.has(k)?(XBAR.has(k)?"xbarrel":"barrels"):WALLS.has(k)?"wall":DEEP.has(k)?"deep":SHALLOW.has(k)?"shallow":SWAMP.has(k)?"swamp":CHERRY.has(k)?"cherry":FOREST.has(k)?"forest":FORT.has(k)?"fort":"ground";
 function tileArt(x,y){ // the art for one board tile, picking a stable variant per tile
   const k=x+","+y;
   switch(terrainKey(k)){
     case "campsite":return CAMP_V;case "grave":return GRAVE_V[tv(x,y,4,23)];case "xbarrel":return XBAR_V;case "barrels":return BAR_V[tv(x,y,2,19)];case "wall":return wallArt(WALLV,wallMask(x,y));
     case "deep":return DP_V[tv(x,y,3,13)];case "shallow":return SH_V[tv(x,y,3,15)];case "swamp":return SW_V[tv(x,y,4,21)];case "forest":return HAUNTED||VOLCANIC?DEAD_V[tv(x,y,3,9)]:FOREST_V[tv(x,y,4,9)];
+    case "cherry":return cherryArt(tv(x,y,3,43),joinMask(x,y,kk=>CHERRY.has(kk)),x,y);
     case "volcano":return VOLC_V[tv(x,y,2,25)];case "lava":return LAVA_V[tv(x,y,3,27)];case "magma":return MAGMA_V[tv(x,y,3,29)];
     case "fort":return fortArt(fortMask(x,y),FORTV.get(k)||0,FORTK.has(k));default:return VOLCANIC?ashGround(x,y):ground(x,y);
   }
@@ -1001,20 +1089,21 @@ function combat(a,b,from=a){
   add("Whetstones",a.t==="A"&&rel(a,"whet")?1:0);
   add("Wolfpack Banner",rel(a,"wolfpack")&&units.some(v=>v!==a&&v.team===a.team&&d(v,b)===1)?1:0); // ganging up on a pinned enemy
   add("Mercy Blade",rel(a,"mercy")&&b.hp<=B.hp/2?2:0); // finishing the wounded
-  add("Hunter's Horn",rel(a,"horn")&&FOREST.has(from.x+","+from.y)?2:0); // striking from the treeline
-  const armor=[["Armor",B.ar||0],["Padded Armor",b.t==="A"&&mods[b.team]==="PAD"?1:0],["Forest Tactics",mods[b.team]==="FT"&&A.rg>1&&FOREST.has(k)?1:0],["Fortress",FORT.has(k)?1:0],["Sturdy Shields",b.t==="K"&&rel(b,"shield")?1:0],["Barding",b.t==="C"&&rel(b,"bard")?1:0]];
+  add("Hunter's Horn",rel(a,"horn")&&WOODS(from.x+","+from.y)?2:0); // striking from the treeline
+  const armor=[["Armor",B.ar||0],["Padded Armor",b.t==="A"&&mods[b.team]==="PAD"?1:0],["Forest Tactics",mods[b.team]==="FT"&&A.rg>1&&WOODS(k)?1:0],["Fortress",FORT.has(k)?1:0],["Sturdy Shields",b.t==="K"&&rel(b,"shield")?1:0],["Barding",b.t==="C"&&rel(b,"bard")?1:0]];
   armor.forEach(([l,v])=>add(l,-v));
   add("Pierce",Math.min((A.pi||0)+(rel(a,"bluemagma")?1:0),armor.reduce((t,x)=>t+x[1],0))); // Blue Magma: +1 pierce
   add("Pavise",b.t==="A"&&A.rg>1&&rel(b,"pavise")?-1:0); // a shield wall, not armor: pierce can't get past it
-  const ev=Math.min(EV_CAP,(B.ev||0)+(rel(b,"luck")?.05:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(blessed(b)?BLESS_EV:0)+(rallied(b)?RALLY_EV:0)+(FOREST.has(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0));
+  const ev=Math.min(EV_CAP,(B.ev||0)+(rel(b,"luck")?.05:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(blessed(b)?BLESS_EV:0)+(rallied(b)?RALLY_EV:0)+(WOODS(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0));
   return {dmg:Math.max(1,parts.reduce((t,p)=>t+p[1],0)),hit:1-ev,parts}; // every hit deals at least 1
 }
 // a unit with `ret` retaliates against an attacker within its own range for half damage, at least 1 (the attacker may evade it); null when it can't
 function retaliation(att,def,from=att){
   const T=TYPES[def.t],dd=d(def,from);
-  if(!canRetaliate(def.t)||dd<T.mn||dd>rgOf(def))return null; // e.g. Artillery firing from 4 tiles outranges an Archer
+  if(!canRetaliate(def.t)||dd<T.mn||dd>rgOf(def))return null;
+  if(calm(def)||CHERRY.has(from.x+","+from.y))return null; // Moment of Calm: nobody fights back under the blossoms // e.g. Artillery firing from 4 tiles outranges an Archer
   const c=combat(def,{...att,x:from.x,y:from.y});
-  return {dmg:Math.max(1,Math.floor(c.dmg*RET_SHARE)),hit:c.hit};
+  return {dmg:Math.max(1,Math.floor(c.dmg*RET_SHARE))+(rel(def,"gauntlets")?1:0),hit:c.hit}; // Spiked Gauntlets: +1 when hitting back
 }
 const dmgTo=(a,b,from)=>combat(a,b,from).dmg;
 // "4 base +1 Banner −1 Fortress" for the attack menu; empty when nothing modifies the base
@@ -1077,6 +1166,7 @@ function atkZone(u,spots,set,bar){
   });
 }
 function render(){
+  units.forEach(u=>{if(u.slow&&calm(u)){delete u.slow;floatText(u.x,u.y,"Calm","bless")}});
   board.classList.toggle("murky",MURKY);board.classList.toggle("haunted",HAUNTED);board.classList.toggle("volcanic",VOLCANIC);
   const mv=new Set(),tg=new Set(),ig=new Set(),ir=new Set(),pr=new Set(),hs=new Set(),bt=new Set();
   if(sel&&turn==="y"&&!over){
@@ -1143,7 +1233,7 @@ board.onclick=e=>{const t=e.target.closest(".t");if(t&&board.contains(t))click(+
 function renderTile(){
   const el=$("tinfo");
   if(!tile){el.className="pb empty";el.innerHTML='<div class="lbl">Terrain</div><div class="ph">Tap a tile to see its terrain.</div>';return}
-  const{x,y}=tile,k=x+","+y,f=FOREST.has(k),u=at(x,y),key=terrainKey(k),T=TERRAIN[key],lines=[T.desc];
+  const{x,y}=tile,k=x+","+y,f=WOODS(k),u=at(x,y),key=terrainKey(k),T=TERRAIN[key],lines=[T.desc];
   if(f&&mods.y==="FT")lines.push(`Forest Tactics: your units here get +1 armor against ranged attacks, and enemies here only get +${pct(FT_FOREST_EV)} evasion against you.`);
   if(f&&mods.f==="FT")lines.push("The enemy has Forest Tactics: its units here get +1 armor against ranged attacks.");
   if(u)lines.push("Occupied by "+(u.team==="y"?"your ":u.team==="f"?"an enemy ":"a wild ")+NAME[u.t]+".");
@@ -1154,7 +1244,7 @@ function renderInfo(){
   const el=$("info");
   if(info&&!units.includes(info))info=null;
   if(!info){el.className="pb empty";el.style.borderLeft="";el.innerHTML='<div class="lbl">Unit</div><div class="ph">Tap a unit to see its details.</div>';return}
-  const u=info,T=TYPES[u.t],c=COLORS[col[u.team]],fo=FOREST.has(u.x+","+u.y),r=u.hp/T.hp,notes=[];
+  const u=info,T=TYPES[u.t],c=COLORS[col[u.team]],fo=WOODS(u.x+","+u.y),r=u.hp/T.hp,notes=[];
   if(u.team==="w")notes.push("Wild: wanders at random and attacks any unit in range.");
   if(ABILITY[u.t])notes.push(ABILITY[u.t]);
   if(u.t==="T")notes.push(`Musters left this battle: ${MUSTER_USES-(u.musters||0)}.`);
@@ -1162,6 +1252,7 @@ function renderInfo(){
   if(u.slow)notes.push("Slowed: movement reduced to 1 until the end of its next turn.");
   if(blessed(u))notes.push("Blessed: +5% evasion until the end of your next turn.");
   if(rallied(u))notes.push("Rallied: +5% evasion until the end of your next turn.");
+  if(calm(u))notes.push("Moment of Calm: in a Cherry Grove, so it can't be slowed, and it neither retaliates nor suffers retaliation.");
   if(rel(u,"trumpet")&&!relicUsed.trumpet&&!u.auto)notes.push("Trumpet of Encouragement: one of your units can sound it once this battle.");
   if(rel(u,"font")&&!u.blessUsed)notes.push("Font of the Wise Ones: can bless an adjacent ally once this battle.");
   if(fo)notes.push(`In a forest: +${pct(FOREST_EV)} evasion, and leaving costs 1 movement.`);
@@ -1210,7 +1301,7 @@ function buildMenu(){
     const ok=pushable(sel,t);
     opt(`<b>${!ok?"Can't Push":n?`Push ${n} Tile${n>1?"s":""}`:"Push (Blocked)"}</b><small>${!ok?"Too heavy":t.team==="y"?"Reposition ally":"Instead of attacking"}</small>`,()=>{choice=null;doPush(sel,t)},!ok||!n);
   }
-  if(sel.t==="E"&&t.team!==sel.team&&(cm||targets(sel).includes(t)))opt(`<b>${cm?"Move &amp; Slow":"Slow"}</b><small>${t.slow?"Already slowed":"Move 1 next turn"}</small>`,go(a=>doSlow(a,t)),!!t.slow);
+  if(sel.t==="E"&&t.team!==sel.team&&(cm||targets(sel).includes(t)))opt(`<b>${cm?"Move &amp; Slow":"Slow"}</b><small>${calm(t)?"Calm: can't be slowed":t.slow?"Already slowed":"Move 1 next turn"}</small>`,go(a=>doSlow(a,t)),!!t.slow||calm(t));
   if(!cm&&healable(sel,t)){const hn=Math.min(healOf(sel),TYPES[t.t].hp-t.hp);opt(`<b>Heal</b><small>+${hn} HP</small>`,()=>{choice=null;doHeal(sel,t)})}
   if(!cm&&canBless(sel,t))opt(`<b>Bless</b><small>${blessed(t)?"Already blessed":"+5% evasion until your next turn ends"}</small>`,()=>{choice=null;doBless(sel,t)},blessed(t));
   opt("<b>Cancel</b>",()=>{choice=null;say("Move, attack, or pick another unit.");render()});
@@ -1358,6 +1449,7 @@ function doBreak(a,t){
 }
 function applyHeal(a,b){const n=Math.min(healOf(a),TYPES[b.t].hp-b.hp);b.hp+=n;sfx("heal");floatText(b.x,b.y,"+"+n,"heal");return n}
 function doSlow(a,u){
+  if(calm(u))return; // Moment of Calm
   a.acted=1;a.moved=1;sel=null;insp=null;locked=true;lastMove=null;
   animAttack(a,u,()=>{u.slow=1;floatText(u.x,u.y,"Slow","slow");say("Slowed the "+NAME[u.t]+": movement reduced to 1 on its next turn.");locked=false;info=u;afterAction()});
 }
@@ -1373,28 +1465,32 @@ function doTrumpet(a){ // Trumpet of Encouragement: nearby allies that have move
   say(`The trumpet sounds! ${near.length} all${near.length>1?"ies":"y"} rallied with +5% evasion until the end of your next turn`+(n?`; ${n} can move again.`:"."));render();
 }
 /* ---------- Sound ---------- */
-// every effect is synthesized on the fly and kept quiet; the pause menu turns it off (remembered per browser)
-const SKEY="skirmish_sound";let actx=null,sfxOn=(()=>{try{return localStorage.getItem(SKEY)!=="off"}catch(e){return true}})();const sfxLast={};
+// every effect and the music are synthesized on the fly and kept quiet; Sound and Music switch off separately (remembered per browser)
+const SKEY="skirmish_sound",MKEY="skirmish_music",pref=(k)=>{try{return localStorage.getItem(k)!=="off"}catch(e){return true}};
+let actx=null,sfxOn=pref(SKEY),musicOn=pref(MKEY),mus=null;const sfxLast={};
+const SFX_VOL=.07,MUSIC_VOL=.08;
+function audio(){actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume();return actx}
 function sfx(name){
   if(!sfxOn)return;
   try{
     const now=performance.now();if(now-(sfxLast[name]||0)<70)return;sfxLast[name]=now; // a splash of hits plays once
-    actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume();
-    const t0=actx.currentTime+.01,out=actx.createGain();out.gain.value=.05;out.connect(actx.destination);
+    audio();
+    const t0=actx.currentTime+.01,out=actx.createGain(),vr=1+(Math.random()-.5)*.08;out.gain.value=SFX_VOL;out.connect(actx.destination); // vr: a little pitch variety so repeats don't grate
     const env=(s,a,hold,rel,peak=1)=>{const g=actx.createGain();g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(peak,s+a);g.gain.setValueAtTime(peak,s+a+hold);g.gain.exponentialRampToValueAtTime(.001,s+a+hold+rel);return g};
     const tone=(type,f,s,len,peak=1,f2)=>{const o=actx.createOscillator(),g=env(s,.008,0,len,peak);o.type=type;o.frequency.setValueAtTime(f,s);if(f2)o.frequency.exponentialRampToValueAtTime(f2,s+len);o.connect(g);g.connect(out);o.start(s);o.stop(s+len+.05)};
     const noise=(s,len,ftype,f,q,peak=1,f2)=>{const n=actx.createBufferSource(),b=actx.createBuffer(1,Math.ceil(actx.sampleRate*(len+.05)),actx.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
-      const fl=actx.createBiquadFilter(),g=env(s,.005,0,len,peak);fl.type=ftype;fl.frequency.setValueAtTime(f,s);if(f2)fl.frequency.exponentialRampToValueAtTime(f2,s+len);fl.Q.value=q;n.buffer=b;n.connect(fl);fl.connect(g);g.connect(out);n.start(s);n.stop(s+len+.05)};
+      const fl=actx.createBiquadFilter(),g=env(s,.004,0,len,peak);fl.type=ftype;fl.frequency.setValueAtTime(f,s);if(f2)fl.frequency.exponentialRampToValueAtTime(f2,s+len);fl.Q.value=q;n.buffer=b;n.connect(fl);fl.connect(g);g.connect(out);n.start(s);n.stop(s+len+.05)};
+    const bell=(f,s,len,peak)=>{tone("sine",f,s,len,peak);tone("sine",f*2.76,s,len*.35,peak*.18);tone("sine",f*5.4,s,len*.15,peak*.06)}; // a struck bell: fundamental plus quick inharmonic partials
     switch(name){
-      case "step":noise(t0,.07,"lowpass",420,.7,.7);break; // a soft footfall
-      case "hit":tone("sine",150,t0,.14,1.4,55);noise(t0,.06,"lowpass",900,.7,.5);break; // a dull thud
-      case "kill":tone("sine",120,t0,.3,1.6,40);noise(t0,.16,"lowpass",600,.7,.6);tone("triangle",220,t0+.05,.25,.25,110);break;
-      case "evade":noise(t0,.16,"bandpass",500,1.4,.9,2600);break; // a quick whoosh past the target
-      case "heal":tone("sine",660,t0,.22,.5);tone("sine",880,t0+.09,.3,.45);break;
-      case "bless":tone("sine",990,t0,.3,.35);tone("sine",1320,t0+.08,.4,.3);break;
-      case "win":[523.25,659.25,783.99].forEach((f,i)=>tone("triangle",f,t0+i*.12,i<2?.16:.5,.7));break;
+      case "step":noise(t0,.05,"lowpass",700*vr,.8,.55,260);noise(t0+.045,.04,"lowpass",500*vr,.8,.3,200);break; // two soft crunches of a footfall
+      case "hit":tone("sine",160*vr,t0,.16,1.5,55);noise(t0,.05,"lowpass",1200,.7,.55);tone("triangle",410*vr,t0,.11,.22,330);noise(t0,.04,"bandpass",2600*vr,3,.18);break; // a thud with a little steel ring
+      case "kill":tone("sine",130*vr,t0,.36,1.7,38);noise(t0,.2,"lowpass",700,.7,.7,180);tone("triangle",260,t0+.06,.3,.28,120);tone("triangle",380*vr,t0,.14,.18,300);break; // a heavier blow and a falling tone
+      case "evade":noise(t0,.2,"bandpass",420,1.6,.85,2800);noise(t0+.03,.14,"highpass",3000,.7,.12);break; // a quick whoosh past the target
+      case "heal":bell(659.25,t0,.5,.45);bell(880,t0+.1,.65,.38);break;
+      case "bless":[987.77,1318.5,1567.98].forEach((f,i)=>bell(f,t0+i*.07,.55,.22));break; // a soft shimmer
+      case "win":[[523.25,0,.16],[659.25,.13,.16],[783.99,.26,.16],[1046.5,.39,.6]].forEach(([f,st,len])=>{tone("triangle",f,t0+st,len,.6);tone("sine",f/2,t0+st,len,.25)});break;
+      case "lose":[[392,0,.28],[349.23,.24,.28],[293.66,.48,.75]].forEach(([f,st,len])=>{tone("triangle",f,t0+st,len,.55);tone("sine",f/2,t0+st,len,.3)});break;
       case "erupt":tone("sine",70,t0,.7,1.8,35);noise(t0,.55,"lowpass",320,.8,1.2,120);noise(t0+.05,.3,"bandpass",900,1,.35,300);break; // a deep rumble and hiss
-      case "lose":tone("triangle",392,t0,.25,.6);tone("triangle",311.13,t0+.2,.6,.6);break;
       case "trumpet":{ // a short brass call: two detuned sawtooth voices through a soft low-pass
         const lp=actx.createBiquadFilter();lp.type="lowpass";lp.frequency.value=1500;lp.Q.value=.7;lp.connect(out);
         [[392,0,.14],[523.25,.16,.14],[659.25,.32,.38]].forEach(([f,st,len])=>{
@@ -1403,6 +1499,51 @@ function sfx(name){
         });break}
     }
   }catch(e){} // no audio available: stay silent
+}
+/* Ambient music: an endless, gently wandering tune in D dorian — plucked lute-like notes over a low drone, with a soft echo.
+   Notes are chosen as it plays (a random walk that leans on the chord of the moment), so it never loops exactly. */
+const SCALE=[0,2,3,5,7,9,10],CHORDS=[[0,2,4],[6,1,3],[2,4,6],[0,2,4],[4,6,1],[6,1,3],[0,2,4],[0,2,4]]; // scale degrees: i, VII, III, i, v, VII, i, i
+const deg=(n,base=62)=>440*Math.pow(2,(base+12*Math.floor(n/7)+SCALE[((n%7)+7)%7]-69)/12); // scale degree -> Hz (62 = D4)
+function startMusic(){
+  if(!musicOn||mus||document.hidden)return;
+  try{
+    const a=audio(),out=a.createGain(),bus=a.createGain(),dl=a.createDelay(),fb=a.createGain(),lp=a.createBiquadFilter(),wet=a.createGain();
+    out.gain.setValueAtTime(0,a.currentTime);out.gain.linearRampToValueAtTime(MUSIC_VOL,a.currentTime+4);out.connect(a.destination);
+    dl.delayTime.value=.36;fb.gain.value=.3;lp.type="lowpass";lp.frequency.value=1600;wet.gain.value=.4;
+    bus.connect(out);bus.connect(dl);dl.connect(lp);lp.connect(fb);fb.connect(dl);lp.connect(wet);wet.connect(out);
+    const drone=[73.42,110].map((f,i)=>{const o=a.createOscillator(),g=a.createGain(),f2=a.createBiquadFilter(),l=a.createOscillator(),lg=a.createGain();
+      o.type=i?"sine":"triangle";o.frequency.value=f;f2.type="lowpass";f2.frequency.value=380;g.gain.value=.16;l.frequency.value=.05+i*.03;lg.gain.value=.07;
+      l.connect(lg);lg.connect(g.gain);o.connect(f2);f2.connect(g);g.connect(bus);o.start();l.start();return[o,l]}).flat();
+    const pluck=(f,t,len,vol)=>{const o=a.createOscillator(),o2=a.createOscillator(),g=a.createGain(),g2=a.createGain(),f2=a.createBiquadFilter();
+      o.type="triangle";o.frequency.value=f;o2.type="sine";o2.frequency.value=f*2;g2.gain.value=.25;f2.type="lowpass";f2.frequency.setValueAtTime(2600,t);f2.frequency.exponentialRampToValueAtTime(700,t+len);
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.006);g.gain.exponentialRampToValueAtTime(.001,t+len);
+      o.connect(f2);o2.connect(g2);g2.connect(f2);f2.connect(g);g.connect(bus);o.start(t);o2.start(t);o.stop(t+len+.05);o2.stop(t+len+.05)};
+    const st={next:a.currentTime+.3,step:0,mel:7,beat:.4};
+    const tick=()=>{
+      while(st.next<a.currentTime+.5){
+        const t=st.next,s=st.step,bar=Math.floor(s/8)%CHORDS.length,ch=CHORDS[bar],phrase=s%64;
+        if(phrase<60){ // the last few steps of each phrase are left to the drone, to breathe
+          if(s%8===0)pluck(deg(ch[0],38),t,2.6,.5); // the chord's root, low
+          if(s%2===0)pluck(deg(ch[(s/2)%3],50),t,1.1,.22); // a gentle arpeggio
+          if(Math.random()<(s%4===0?.85:.45)){ // the tune: a random walk that leans on chord tones on the strong beats
+            st.mel=Math.max(4,Math.min(13,st.mel+[-2,-1,-1,0,1,1,2][Math.floor(Math.random()*7)]));
+            if(s%4===0&&!ch.includes(((st.mel%7)+7)%7))st.mel+=ch.includes(((st.mel+1)%7+7)%7)?1:-1;
+            pluck(deg(st.mel),t,1.3,.32);
+          }
+        }
+        st.next+=st.beat*(s%2?.92:1.08);st.step++; // a slight lilt
+      }
+    };
+    tick();mus={out,drone,timer:setInterval(tick,120)};
+  }catch(e){mus=null}
+}
+function stopMusic(){
+  if(!mus)return;const m=mus;mus=null;clearInterval(m.timer);
+  try{const t=actx.currentTime;m.out.gain.cancelScheduledValues(t);m.out.gain.setValueAtTime(m.out.gain.value,t);m.out.gain.linearRampToValueAtTime(0,t+1.2);setTimeout(()=>{m.drone.forEach(o=>{try{o.stop()}catch(e){}});m.out.disconnect()},1400)}catch(e){}
+}
+if(document.addEventListener){
+  ["pointerdown","keydown"].forEach(ev=>document.addEventListener(ev,()=>startMusic(),true)); // browsers only allow sound after the player interacts
+  document.addEventListener("visibilitychange",()=>document.hidden?stopMusic():startMusic());
 }
 function doHeal(a,b){
   const n=applyHeal(a,b);a.acted=a.moved=1;sel=null;mode=null;choice=null;info=b;lastMove=null;
@@ -1568,6 +1709,7 @@ function showEnd(win){
     if(unlocks.cw>=4)unlock("captain");
     if(nm.type==="boss")unlock("banner");
     if(nm.type==="boss"&&camp.region>=2)unlock("volcanic"); // a second land conquered in one campaign
+    if(armyTypes().every((t,i)=>units.some(v=>v.team==="y"&&v.ci===i)))unlock("cherry"); // a flawless victory: nobody fell
   }
   $("dtitle").textContent=win?"Victory":"Defeat";
   $("dtitle").style.color=win?"#2f8f4e":"var(--foe)";
@@ -1623,7 +1765,7 @@ function evalTile(u,x,y,D,foes,xv){
   const g={x,y},k=x+","+y,T=TYPES[u.t],rg=T.rg,inR=foes.filter(p=>d(g,p)<=rg&&d(g,p)>=T.mn);
   const gh={...u,x,y},threat=foes.reduce((s,p)=>s+(d(g,p)<=mvOf(p)+rgOf(p)?dmgTo(p,gh):0),0),wt=units.filter(w=>w.team==="w").reduce((n,w)=>n+(d(g,w)<=TYPES[w.t].rg?dmgTo(w,gh)*1.5:d(g,w)<=TYPES[w.t].rg+TYPES[w.t].mv?dmgTo(w,gh)*.5:0),0);
   const care=.5+(1-u.hp/T.hp)*.9; // wounded units value safety more
-  let s=(threat+wt)*care+(FOREST.has(k)?(mods[u.team]==="FT"?-1.5:1.5):0)+(FORT.has(k)?-2:0)+(SHALLOW.has(k)?1.5:0); // forests slow the next move, but Forest Tactics likes them
+  let s=(threat+wt)*care+(WOODS(k)?(mods[u.team]==="FT"?-1.5:1.5):0)+(CHERRY.has(k)?.5-(1-u.hp/T.hp):0)+(FORT.has(k)?-2:0)+(SHALLOW.has(k)?1.5:0); // forests slow the next move, but Forest Tactics likes them
   s+=blastOf(k).filter(([a,b])=>XBAR.has(a+","+b)).length*2; // don't loiter beside exploding barrels
   s+=(MAGMA.has(k)?3:0)+blastOf(k).filter(([a,b])=>VOLC.has(a+","+b)).length*.6; // magma burns at turn end; volcanoes might erupt
   const atk=inR.length?20+Math.max(...inR.map(p=>{const c=combat(u,p,g),kill=c.dmg>=p.hp,r=kill?null:retaliation(u,p,g); // a kill avoids any retaliation
@@ -1681,7 +1823,7 @@ function enemyTurn(note=""){
       animAttack(u,{x:cx,y:cy},()=>{CAMPS.delete(cs);floatText(cx,cy,"Broken");say("Enemy "+NAME[u.t]+" wrecked the camp site.");fin()});return;
     }
     if(u.t==="E"&&ts.length&&!ts.some(p=>dmgTo(u,p)>=p.hp)){
-      const sl=ts.filter(p=>!p.slow&&mvOf(p)>1).sort((a,b)=>TYPES[b.t].dmg-TYPES[a.t].dmg||TYPES[b.t].mv-TYPES[a.t].mv)[0];
+      const sl=ts.filter(p=>!p.slow&&!calm(p)&&mvOf(p)>1).sort((a,b)=>TYPES[b.t].dmg-TYPES[a.t].dmg||TYPES[b.t].mv-TYPES[a.t].mv)[0];
       if(sl){u.acted=1;animAttack(u,sl,()=>{sl.slow=1;floatText(sl.x,sl.y,"Slow","slow");say("Enemy "+NAME[u.t]+" slowed your "+NAME[sl.t]+".");fin()});return}
     }
     if(ts.length){
@@ -1825,14 +1967,15 @@ function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,p
 function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],offer:d.offer||null,found:Array.isArray(d.found)?d.found:d.found?[d.found]:[],kills:d.kills||[],region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
 const nest=(str,x,y,w,style="")=>str.replace(/<svg[^>]*>/,`<svg x="${x}" y="${y}" width="${w}" height="${w}" viewBox="0 0 40 40" style="${style}">`);
 function mapArt(){
-  let g='<defs><radialGradient id="pg" cx=".5" cy=".4" r=".85"><stop offset="0" stop-color="#eadfb8"/><stop offset="1" stop-color="#cbb78a"/></radialGradient></defs><rect width="400" height="520" fill="url(#pg)"/>';
-  g+=`<path d="${DECO.river}" stroke="#8ec0d8" stroke-width="16" fill="none" stroke-linecap="round" opacity=".6"/>`;
+  let g='<defs><radialGradient id="pg" cx=".5" cy=".4" r=".85"><stop offset="0" stop-color="#eadfb8"/><stop offset="1" stop-color="#cbb78a"/></radialGradient><filter id="wsh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="1.200" dy="2.400" stdDeviation="1.600" flood-color="#3a2810" flood-opacity=".45"/></filter><radialGradient id="wnode" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></radialGradient><filter id="wblur"><feGaussianBlur stdDeviation="6"/></filter></defs><rect width="400" height="520" fill="url(#pg)"/>';
+  g+='<g filter="url(#wblur)" fill="#a07a40" opacity=".12"><ellipse cx="318" cy="96" rx="34" ry="22"/><ellipse cx="86" cy="388" rx="28" ry="18"/><ellipse cx="236" cy="470" rx="40" ry="14"/></g>'; // age stains
+  g+=`<path d="${DECO.river}" stroke="#6a8a7a" stroke-width="20" fill="none" stroke-linecap="round" opacity=".35"/><path d="${DECO.river}" stroke="#8ec0d8" stroke-width="15" fill="none" stroke-linecap="round" opacity=".62"/><path d="${DECO.river}" stroke="#d8f0f8" stroke-width="2" fill="none" stroke-dasharray="14 22" opacity=".45" transform="translate(0 -3)"/>`;
   const clear=([x,y])=>Math.hypot(x-44,y-48)>46; // keep scenery off the compass rose
-  DECO.trees.filter(clear).forEach(([x,y],i)=>{g+=`<g transform="translate(${x-20},${y-20})" opacity=".92">${tree(20,32,22,9,i%2?"#2f6b3f":"#3a7d4a")}</g>`});
-  DECO.rocks.filter(clear).forEach(([x,y])=>{g+=`<path d="M${x-14} ${y+8}L${x-2} ${y-14}L${x+4} ${y-4}L${x+8} ${y-10}L${x+18} ${y+8}z" fill="#8f99a3" stroke="#4a5560" stroke-width="1.5"/>`});
+  DECO.trees.filter(clear).forEach(([x,y],i)=>{g+=`<g transform="translate(${x-20},${y-20})" opacity=".92" filter="url(#wsh)">${tree(20,32,22,9,i%2?"#2f6b3f":"#3a7d4a")}</g>`});
+  DECO.rocks.filter(clear).forEach(([x,y])=>{g+=`<path d="M${x-14} ${y+8}L${x-2} ${y-14}L${x+4} ${y-4}L${x+8} ${y-10}L${x+18} ${y+8}z" fill="#8f99a3" stroke="#4a5560" stroke-width="1.5" filter="url(#wsh)"/><path d="M${x-2} ${y-14}L${x+4} ${y-4}L${x+2} ${y+8}L${x+18} ${y+8}L${x+8} ${y-10}L${x+4} ${y-4}" fill="#000" opacity=".14"/><path d="M${x-14} ${y+8}L${x-2} ${y-14}L${x-4} ${y+8}z" fill="#fff" opacity=".12"/><path d="M${x-6.500} ${y-6}L${x-2} ${y-14}L${x+1.500} ${y-7.500}L${x-.5} ${y-9}L${x-2.500} ${y-6.500}L${x-4.500} ${y-8}z" fill="#f4f2ec" opacity=".9"/><path d="M${x+5.400} ${y-6.400}L${x+8} ${y-10}L${x+10.600} ${y-5.400}L${x+8.600} ${y-6.600}z" fill="#f4f2ec" opacity=".85"/>`});
   // parchment fibres, aged edges, a fine border and a compass rose (top left, clear of the locations)
   g+='<g stroke="rgba(120,90,50,.07)" stroke-width="1" fill="none"><path d="M0 120q120-14 240 6t160-8"/><path d="M0 300q90 12 200-4t200 10"/><path d="M0 430q140-10 260 8t140-6"/></g>';
-  g+='<defs><radialGradient id="vg" cx=".5" cy=".5" r=".72"><stop offset=".62" stop-color="#6b4a20" stop-opacity="0"/><stop offset="1" stop-color="#6b4a20" stop-opacity=".32"/></radialGradient></defs><rect width="400" height="520" fill="url(#vg)"/>';
+  g+='<defs><radialGradient id="vg" cx=".5" cy=".5" r=".72"><stop offset=".62" stop-color="#6b4a20" stop-opacity="0"/><stop offset="1" stop-color="#5a3a14" stop-opacity=".48"/></radialGradient></defs><rect width="400" height="520" fill="url(#vg)"/>';
   g+='<rect x="7" y="7" width="386" height="506" rx="4" fill="none" stroke="#7a5c33" stroke-width="1.5" opacity=".55"/><rect x="11" y="11" width="378" height="498" rx="3" fill="none" stroke="#7a5c33" stroke-width=".7" opacity=".4"/>';
   g+='<g transform="translate(44 48)" opacity=".75"><circle r="17" fill="rgba(255,248,225,.45)" stroke="#6b4a26" stroke-width="1.2"/><circle r="12.5" fill="none" stroke="#6b4a26" stroke-width=".6"/><path d="M0 -15L3.2 -3.2L15 0L3.2 3.2L0 15L-3.2 3.2L-15 0L-3.2 -3.2z" fill="#8b6b3e"/><path d="M0 -15L3.2 -3.2L0 0zM15 0L3.2 3.2L0 0zM0 15L-3.2 3.2L0 0zM-15 0L-3.2 -3.2L0 0z" fill="#4a3216"/><text y="-19.5" text-anchor="middle" font-size="8" font-weight="800" fill="#4a3216">N</text></g>';
   return g;
@@ -1865,7 +2008,7 @@ function renderWorld(){
       +`<circle cx="${n.x}" cy="${n.y}" r="28" fill="transparent"/>`
       +(camp.sel===n.id?`<circle cx="${n.x}" cy="${n.y}" r="${r+7}" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="5 4"/>`:"")
       +(st==="open"?`<circle class="wp" cx="${n.x}" cy="${n.y}" r="${r+4}" fill="none" stroke="#fff" stroke-width="2"/>`:"")
-      +`<circle cx="${n.x}" cy="${n.y}" r="${r}" fill="${fill}" stroke="#3b2a14" stroke-width="3"/>${icon}`
+      +`<circle cx="${n.x}" cy="${n.y}" r="${r}" fill="${fill}" stroke="#3b2a14" stroke-width="3" filter="url(#wsh)"/><circle cx="${n.x}" cy="${n.y}" r="${r-1.500}" fill="url(#wnode)"/>${icon}`
       +(cl?`<circle cx="${n.x+r-3}" cy="${n.y-r+3}" r="7" fill="#2f8f4e" stroke="#fff" stroke-width="2"/><path d="M${n.x+r-7} ${n.y-r+3}l3 3 5-6" stroke="#fff" stroke-width="2" fill="none"/>`:"")
       +`<text x="${n.x}" y="${n.y+r+15}" text-anchor="middle" font-size="12" font-weight="700" fill="#2b2115" stroke="rgba(255,244,214,.92)" stroke-width="3" paint-order="stroke" style="pointer-events:none">${n.name}</text></g>`;
   });
@@ -2170,23 +2313,29 @@ function campScene(bk,meal){
   const steel=(x1,y1,x2,y2,w)=>`<path d="M${x1} ${y1}L${x2} ${y2}" stroke="#121417" stroke-width="${w+1.600}" stroke-linecap="round"/><path d="M${x1} ${y1}L${x2} ${y2}" stroke="#3e444a" stroke-width="${w}" stroke-linecap="round"/><path d="M${x1} ${y1}L${x2} ${y2}" stroke="#22262a" stroke-width="${w*.35}" stroke-linecap="round" transform="translate(${w*.2} ${w*.2})" opacity=".7"/><path d="M${x1} ${y1}L${x2} ${y2}" stroke="#9aa2aa" stroke-width="${w*.18}" stroke-linecap="round" opacity=".4" stroke-dasharray="${w*.9} ${w*.5}" transform="translate(-${w*.2} -${w*.2})"/>`;
   const stars=[[22,18],[98,14],[150,30],[214,12],[300,20],[182,52],[40,62],[126,48]].map(([x,y],i)=>`<circle class="twk" style="animation-delay:-${i*.37}s" cx="${x}" cy="${y}" r="${i%3?.8:1.200}" fill="#e8e2c8" opacity=".65"/>`).join("");
   const raven=(x,y,s)=>`<path d="M${x} ${y}q${4*s}-${3*s} ${8*s} 0q${4*s}-${3*s} ${8*s} 0q-${4*s}-${1*s} -${8*s} ${1.500*s}q-${4*s}-${2.500*s} -${8*s} -${1.500*s}z" fill="#0a0a0c"/>`;
-  const G="#8a6a2a",K="#121417",R="#6a3a1c"; // tarnished gold, outline, rust
+  const G="#8a6a2a",K="rgba(18,20,23,.85)",R="#6a3a1c"; // tarnished gold, outline (a touch soft), rust
+  const couter=(x,y)=>`<circle cx="${x}" cy="${y}" r="4.400" fill="#4a5056" stroke="${K}" stroke-width="1"/><path d="M${x-3} ${y-1.500}a3.400 3.400 0 0 1 4-2.600" stroke="#9aa2aa" stroke-width=".8" fill="none" opacity=".6"/><circle cx="${x+.6}" cy="${y+.6}" r=".9" fill="#2a2e32"/>`; // elbow plates cover where the arm pieces meet
   return `<svg viewBox="0 0 320 220" role="img" aria-label="A gritty dark fantasy campsite at night. Herbert, a grinning skeleton in battered, rust-flecked knight's armor and a droopy nightcap, holds a steaming mug, sits on a log by the fire and gives you a thumbs up.">
 <defs><linearGradient id="hsky-${bk}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${P.sky[0]}"/><stop offset="1" stop-color="${P.sky[1]}"/></linearGradient>
 <radialGradient id="hhz-${bk}" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="${P.hz}" stop-opacity=".45"/><stop offset="1" stop-color="${P.hz}" stop-opacity="0"/></radialGradient>
 <radialGradient id="hmn-${bk}" cx=".5" cy=".5" r=".5"><stop offset=".35" stop-color="${P.moon}" stop-opacity=".35"/><stop offset="1" stop-color="${P.moon}" stop-opacity="0"/></radialGradient>
 <radialGradient id="hglow-${bk}" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ff8a2a" stop-opacity=".55"/><stop offset=".6" stop-color="#ff8a2a" stop-opacity=".12"/><stop offset="1" stop-color="#ff8a2a" stop-opacity="0"/></radialGradient>
 <radialGradient id="hvig-${bk}" cx=".45" cy=".62" r=".72"><stop offset=".5" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".72"/></radialGradient>
-<linearGradient id="hpl-${bk}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#767e86"/><stop offset=".4" stop-color="#40464c"/><stop offset="1" stop-color="#1a1d20"/></linearGradient><linearGradient id="hfl-${bk}" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ffb03a"/><stop offset=".5" stop-color="#e2541a"/><stop offset="1" stop-color="#7a1a0a" stop-opacity=".6"/></linearGradient><linearGradient id="hfc-${bk}" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#fff0b0"/><stop offset=".6" stop-color="#ffc040"/><stop offset="1" stop-color="#ff8a2a" stop-opacity=".7"/></linearGradient><radialGradient id="hbn-${bk}" cx=".38" cy=".35" r=".75"><stop offset="0" stop-color="#e2d6b4"/><stop offset=".6" stop-color="#b8a682"/><stop offset="1" stop-color="#7a6a4c"/></radialGradient><filter id="hgr-${bk}" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="7" stitchTiles="stitch"/><feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.400 1"/></filter></defs>
+<linearGradient id="hpl-${bk}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#767e86"/><stop offset=".4" stop-color="#40464c"/><stop offset="1" stop-color="#1a1d20"/></linearGradient><linearGradient id="hfl-${bk}" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ffb03a"/><stop offset=".5" stop-color="#e2541a"/><stop offset="1" stop-color="#7a1a0a" stop-opacity=".6"/></linearGradient><linearGradient id="hfc-${bk}" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#fff0b0"/><stop offset=".6" stop-color="#ffc040"/><stop offset="1" stop-color="#ff8a2a" stop-opacity=".7"/></linearGradient><radialGradient id="hbn-${bk}" cx=".38" cy=".35" r=".75"><stop offset="0" stop-color="#e2d6b4"/><stop offset=".6" stop-color="#b8a682"/><stop offset="1" stop-color="#7a6a4c"/></radialGradient><filter id="hsoft-${bk}" x="-30%" y="-100%" width="160%" height="300%"><feGaussianBlur stdDeviation="2.400"/></filter><filter id="hfar-${bk}" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur stdDeviation=".5"/></filter><filter id="hbl-${bk}" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="6"/></filter>
+<filter id="htx-${bk}" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".9 .4" numOctaves="3" seed="4"/><feComponentTransfer><feFuncR type="linear" slope=".45" intercept=".72"/><feFuncG type="linear" slope=".45" intercept=".72"/><feFuncB type="linear" slope=".45" intercept=".72"/><feFuncA type="linear" slope="0" intercept="1"/></feComponentTransfer></filter>
+<radialGradient id="hwarm-${bk}" gradientUnits="userSpaceOnUse" cx="138" cy="182" r="170"><stop offset="0" stop-color="#ffb056" stop-opacity=".6"/><stop offset=".45" stop-color="#ff9a3a" stop-opacity=".2"/><stop offset="1" stop-color="#ff9a3a" stop-opacity="0"/></radialGradient>
+<radialGradient id="hcool-${bk}" gradientUnits="userSpaceOnUse" cx="266" cy="46" r="220"><stop offset="0" stop-color="${P.moon}" stop-opacity=".22"/><stop offset="1" stop-color="${P.moon}" stop-opacity="0"/></radialGradient>
+<linearGradient id="hmg-${bk}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".3" stop-color="#fff"/></linearGradient><mask id="hmk-${bk}" maskUnits="userSpaceOnUse" x="0" y="146" width="320" height="74"><rect y="146" width="320" height="74" fill="url(#hmg-${bk})"/></mask>
+<filter id="hgr-${bk}" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="7" stitchTiles="stitch"/><feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.400 1"/></filter></defs>
 <rect width="320" height="220" fill="url(#hsky-${bk})"/><ellipse cx="160" cy="150" rx="230" ry="46" fill="url(#hhz-${bk})"/>${stars}
 <circle cx="266" cy="46" r="40" fill="url(#hmn-${bk})"/><circle cx="266" cy="46" r="17" fill="${P.moon}"/><circle cx="260" cy="41" r="3.500" fill="#000" opacity=".12"/><circle cx="272" cy="52" r="2.500" fill="#000" opacity=".12"/><circle cx="270" cy="38" r="1.500" fill="#000" opacity=".1"/>
 <g fill="#1c2028" opacity=".9"><path d="M214 70q6-12 22-9q10-12 28-6q14-8 28 2q16 0 18 13q-48 6-96 0z"/><path d="M24 50q8-12 24-8q12-12 30-5q16-6 28 4q14 2 14 9q-48 6-96 0z"/></g><path d="M236 61q10-12 28-6q14-8 28 2" stroke="${P.moon}" stroke-width="1.200" opacity=".35" fill="none"/><path d="M48 42q12-12 30-5q16-6 28 4" stroke="${P.moon}" stroke-width="1" opacity=".2" fill="none"/>
 ${raven(120,64,1)+raven(146,54,.8)+raven(98,76,.7)}
-${P.back()}
+<g filter="url(#hfar-${bk})">${P.back()}</g>
 <path d="M0 150Q80 142 160 148T320 146V220H0z" fill="${P.g[0]}"/>${P.mid?P.mid():""}<path d="M0 174Q100 164 200 172T320 170V220H0z" fill="${P.g[1]}"/>
 <g class="fog" fill="${P.fog}" opacity=".14"><ellipse cx="60" cy="152" rx="90" ry="8"/><ellipse cx="250" cy="156" rx="100" ry="7"/></g>
 <ellipse cx="138" cy="180" rx="130" ry="46" fill="url(#hglow-${bk})"/>
-<path d="M160 168l2-40q8-6 16 0l2 40z" fill="#2a2c30" stroke="${K}" stroke-width="1.500"/><path d="M165 136l6 4l-5 4l6 4M168 152h6l-3 6" stroke="${P.rune}" stroke-width="1" fill="none" opacity=".7" class="twk" style="animation-duration:4.500s"/><path d="M162 132q4 6 2 14M174 140l2 10" stroke="#1a1c20" stroke-width=".8" fill="none"/><ellipse cx="170" cy="146" rx="9" ry="14" fill="${P.rune}" opacity=".06"/><path d="M162 168l2-40" stroke="rgba(255,150,60,.25)" stroke-width="2"/>
+<ellipse cx="172" cy="169" rx="15" ry="3.400" fill="rgba(0,0,0,.5)" filter="url(#hsoft-${bk})"/><ellipse cx="63" cy="173" rx="48" ry="5" fill="rgba(0,0,0,.45)" filter="url(#hsoft-${bk})"/><path d="M160 168l2-40q8-6 16 0l2 40z" fill="#2a2c30" stroke="${K}" stroke-width="1.500"/><path d="M165 136l6 4l-5 4l6 4M168 152h6l-3 6" stroke="${P.rune}" stroke-width="1" fill="none" opacity=".7" class="twk" style="animation-duration:4.500s"/><path d="M162 132q4 6 2 14M174 140l2 10" stroke="#1a1c20" stroke-width=".8" fill="none"/><ellipse cx="170" cy="146" rx="9" ry="14" fill="${P.rune}" opacity=".06"/><path d="M162 168l2-40" stroke="rgba(255,150,60,.25)" stroke-width="2"/>
 ${P.home?"":`<path d="M20 172L62 102L106 172z" fill="#4a3a2a" stroke="#120c06" stroke-width="1.200" stroke-linejoin="round"/><path d="M62 102L106 172H86z" fill="rgba(0,0,0,.3)"/>
 <path d="M41 136l-12 30M83 136l10 28M48 118q14 2 28 0" stroke="#2a1e12" stroke-width=".7" stroke-dasharray="2 1.500" fill="none"/><path d="M92 160l4 8l-6-2z" fill="#140c06"/><path d="M34 158l10-2l2 10l-10 2z" fill="#3a2c1e" stroke="#120c06" stroke-width="1"/><path d="M36 160l6 4M42 158l-4 8" stroke="#8a6a3a" stroke-width=".8"/><path d="M78 140l8 2l-2 10l-8-2z" fill="#5a4630" stroke="#120c06" stroke-width="1"/>
 <path d="M62 126L48 172H76z" fill="#140c06"/><path d="M62 140L56 172H68z" fill="#ff8a2a" opacity=".45"/><path d="M62 104L56 90M62 104L68 88M56 90l-4-2M56 90l-1-5M68 88l4-3M68 88l1-5" stroke="#d8ccae" stroke-width="1.600" stroke-linecap="round" fill="none"/>
@@ -2196,7 +2345,7 @@ ${P.home?"":`<path d="M20 172L62 102L106 172z" fill="#4a3a2a" stroke="#120c06" s
 <ellipse cx="138" cy="192" rx="24" ry="5" fill="#2e2c2a"/><path d="M116 192a4 3 0 0 1 8 0M128 194a4 3 0 0 1 8 0M142 194a4 3 0 0 1 8 0M152 192a4 3 0 0 1 8 0" fill="#3e3a36"/>
 <path d="M120 192q18 6 36 0" stroke="#ff6a1a" stroke-width="3" opacity=".55" fill="none"/><circle cx="128" cy="191" r="1.300" fill="#ffb03a"/><circle cx="146" cy="192" r="1" fill="#ff8a2a"/>
 <path class="flk" d="M126 191q-8-10-2-20q0 6 4 8q-2-12 6-22q-2 10 4 14q2-10 8-14q-2 8 2 14q4-4 4-10q6 12-2 22q-2 6-8 8q-10 2-16 0z" fill="url(#hfl-${bk})" opacity=".92"/>
-<path class="flk flk2" d="M132 191q-5-8 0-15q1 5 4 6q0-8 5-13q-1 8 3 11q4-3 4-7q3 10-3 16q-6 4-13 2z" fill="url(#hfc-${bk})"/>
+<circle cx="138" cy="180" r="14" fill="#ffb84a" opacity=".45" filter="url(#hbl-${bk})"/><path class="flk flk2" d="M132 191q-5-8 0-15q1 5 4 6q0-8 5-13q-1 8 3 11q4-3 4-7q3 10-3 16q-6 4-13 2z" fill="url(#hfc-${bk})"/>
 ${[[136,150,0],[144,156,-.8],[130,160,-1.600],[140,146,-2.200]].map(([x,y,dl])=>`<circle class="emb" style="animation-delay:${dl}s" cx="${x}" cy="${y}" r="1.200" fill="#ffb83a"/>`).join("")}
 <path d="M140 146q-6-16 2-30q-8-14 0-28" stroke="#6a6e74" stroke-width="3" fill="none" opacity=".16"/>${meal?`<path d="M118 196L138 118L158 196" stroke="#3a2618" stroke-width="2.600" fill="none" stroke-linecap="round"/><path d="M138 119v18" stroke="#2a2a2e" stroke-width="1.200"/>
 <path d="M126 138h24l-2 13q-10 6-20 0z" fill="#26282c" stroke="#0e1013" stroke-width="1.200"/><path d="M125 138h26" stroke="#4a4e54" stroke-width="2.400" stroke-linecap="round"/><path d="M128 139q10 3 20 0" fill="#8a5a2a"/><circle cx="133" cy="139.500" r="1.200" fill="#c88a3a"/><circle cx="142" cy="139.800" r="1" fill="#6a8a3a"/>
@@ -2204,7 +2353,7 @@ ${[[136,150,0],[144,156,-.8],[130,160,-1.600],[140,146,-2.200]].map(([x,y,dl])=>
 <g transform="translate(176 206)"><ellipse rx="8" ry="2.600" fill="#5a3e24" stroke="#24180c" stroke-width="1"/><ellipse cy="-.6" rx="6" ry="1.600" fill="#8a5a2a"/><path d="M4 -1l8-6" stroke="#b8a888" stroke-width="1.200" stroke-linecap="round"/></g>
 <g transform="translate(160 212)"><ellipse rx="7" ry="2.300" fill="#5a3e24" stroke="#24180c" stroke-width="1"/><ellipse cy="-.5" rx="5" ry="1.400" fill="#8a5a2a"/></g>
 <g transform="translate(40 200)"><rect x="-26" y="-6" width="56" height="11" rx="5.500" fill="#6a2a24" stroke="#2a0e0a" stroke-width="1"/><path d="M-18 -6v11M-8 -6v11M2 -6v11M12 -6v11" stroke="#8a4a2a" stroke-width="1.500" opacity=".7"/><ellipse cx="24" cy="-.5" rx="7" ry="5.500" fill="#8a6a44" stroke="#2a1a0c" stroke-width="1"/></g>`:""}
-<rect x="180" y="168" width="100" height="16" rx="7" fill="#3a2616" stroke="#140c06" stroke-width="1.200"/><circle cx="276" cy="176" r="6" fill="#5a3e24" stroke="#140c06" stroke-width="1"/><circle cx="276" cy="176" r="2.500" fill="none" stroke="#3a2616"/><path d="M188 172h26M236 178h24M200 180h18" stroke="#24180c" stroke-width=".8"/>
+<ellipse cx="232" cy="186" rx="58" ry="5" fill="rgba(0,0,0,.5)" filter="url(#hsoft-${bk})"/><ellipse cx="203" cy="204" rx="24" ry="3.400" fill="rgba(0,0,0,.45)" filter="url(#hsoft-${bk})"/><ellipse cx="300" cy="205" rx="7" ry="2" fill="rgba(0,0,0,.4)" filter="url(#hsoft-${bk})"/><rect x="180" y="168" width="100" height="16" rx="7" fill="#3a2616" stroke="#140c06" stroke-width="1.200"/><circle cx="276" cy="176" r="6" fill="#5a3e24" stroke="#140c06" stroke-width="1"/><circle cx="276" cy="176" r="2.500" fill="none" stroke="#3a2616"/><path d="M188 172h26M236 178h24M200 180h18" stroke="#24180c" stroke-width=".8"/>
 <path d="M212 118q-10 26-9 54l4-2l2 6l5-6l3 7l4-5l5 6l3-6l6 5l2-7l5 5l3-6l4 3q2-30-10-56z" fill="#1e1014" stroke="#0a0408" stroke-width="1"/><path d="M216 140q-2 14 0 26M240 140q4 12 2 26M228 150l2 14" stroke="#2e161c" stroke-width="1" fill="none"/><path d="M219 158l3 6l2-4" stroke="#0a0408" stroke-width=".8" fill="none"/>
 ${steel(222,168,199,171,8)+steel(199,172,197,196,7)+steel(234,168,213,173,8)+steel(213,174,213,197,7)}
 <circle cx="199" cy="172" r="4.600" fill="#3e444a" stroke="${K}" stroke-width="1"/><circle cx="213" cy="174" r="4.600" fill="#3e444a" stroke="${K}" stroke-width="1"/><path d="M196 170q3-2 6 0M210 172q3-2 6 0" stroke="#9aa2aa" stroke-width=".7" opacity=".5" fill="none"/><circle cx="200" cy="174" r="1.400" fill="${R}" opacity=".6"/>
@@ -2215,11 +2364,11 @@ ${[104,107,110].map(y=>`<ellipse cx="228" cy="${y}" rx="3.200" ry="1.600" fill="
 <circle cx="216" cy="140" r="2.200" fill="${R}" opacity=".55"/><circle cx="218" cy="143" r="1.200" fill="${R}" opacity=".45"/>
 <path d="M219 130h18l-1 28l-2-2l-2 3l-2-2l-3 3l-2-3l-2 2l-2-3l-2 2z" fill="#3a0e12" stroke="#160406" stroke-width="1"/><path d="M228 136l5 4l-2 6l-3 3l-3-3l-2-6z" fill="${G}" stroke="#3a2808" stroke-width=".7" opacity=".85"/><path d="M222 148q4 4 10 2" stroke="#1e0608" stroke-width="2" opacity=".5" fill="none"/>
 <path d="M212 150q16 7 32 0v6q-16 7-32 0zM213 156q15 7 30 0v6q-15 7-30 0z" fill="#33393f" stroke="${K}" stroke-width="1"/><path d="M212 150q16 7 32 0" stroke="${G}" stroke-width=".8" fill="none" opacity=".6"/><circle cx="240" cy="158" r="1.600" fill="${R}" opacity=".5"/>
-${steel(244,122,252,146,6)+steel(252,146,237,158,5.500)}<g transform="translate(236 150)"><path d="M-6 -10h12l-1 13q-5 2-10 0z" fill="#c8c0aa" stroke="#1a120c" stroke-width="1"/><path d="M1 -10h5l-1 13q-2.500 1-5 .8z" fill="#000" opacity=".18"/><path d="M-6 -7.500h12" stroke="#2a3a5a" stroke-width="1.200"/><circle cx="-3" cy="-2" r="1.200" fill="#3a3028"/><circle cx="2.500" cy="1" r=".9" fill="#3a3028"/><path d="M-5.500 -10q5.500 2 11 0" stroke="#24160c" stroke-width="1.200" fill="none"/><path d="M6 -7q5 0 5 4t-5 4" fill="none" stroke="#1a120c" stroke-width="2.600"/><path d="M6 -7q5 0 5 4t-5 4" fill="none" stroke="#c8c0aa" stroke-width="1.200"/>
+${steel(244,122,252,146,6)+steel(252,146,237,158,5.500)+couter(252,146)}<g transform="translate(236 150)"><path d="M-6 -10h12l-1 13q-5 2-10 0z" fill="#c8c0aa" stroke="#1a120c" stroke-width="1"/><path d="M1 -10h5l-1 13q-2.500 1-5 .8z" fill="#000" opacity=".18"/><path d="M-6 -7.500h12" stroke="#2a3a5a" stroke-width="1.200"/><circle cx="-3" cy="-2" r="1.200" fill="#3a3028"/><circle cx="2.500" cy="1" r=".9" fill="#3a3028"/><path d="M-5.500 -10q5.500 2 11 0" stroke="#24160c" stroke-width="1.200" fill="none"/><path d="M6 -7q5 0 5 4t-5 4" fill="none" stroke="#1a120c" stroke-width="2.600"/><path d="M6 -7q5 0 5 4t-5 4" fill="none" stroke="#c8c0aa" stroke-width="1.200"/>
  <path class="twk" d="M-2 -13q-2-4 0-7q2-3 0-6M2 -13q2-4 0-7" stroke="#d8d8e0" stroke-width="1.100" fill="none" opacity=".55"/></g>
 <path d="M229 152q6-3 12 0v8q-6 3-12 0z" fill="#3e444a" stroke="${K}" stroke-width="1"/><path d="M230 155h10M230 157.500h10" stroke="${K}" stroke-width=".6"/>
 ${steel(214,122,201,134,6)}
-<g class="thumb">${steel(201,134,193,107,5.500)}<path d="M188 113l12-2l2 6l-12 3z" fill="#2e3338" stroke="${K}" stroke-width="1"/><path d="M188 113l12-2" stroke="${G}" stroke-width=".8" opacity=".7"/>
+<g class="thumb">${steel(201,134,193,107,5.500)+couter(201,134)}<path d="M188 113l12-2l2 6l-12 3z" fill="#2e3338" stroke="${K}" stroke-width="1"/><path d="M188 113l12-2" stroke="${G}" stroke-width=".8" opacity=".7"/>
  <path d="M186 99q0-3 3-3h9q3 0 3 3v8q0 3-3 3h-9q-3 0-3-3z" fill="#4a5056" stroke="${K}" stroke-width="1"/>
  ${[97,100.5,104,107.5].map(y=>`<rect x="181.500" y="${y}" width="8" height="3.600" rx="1.800" fill="#5c636a" stroke="${K}" stroke-width=".8"/>`).join("")}<path d="M183 98.200h4M183 101.700h4M183 105.200h4M183 108.700h4" stroke="#a0a8b0" stroke-width=".5" opacity=".5"/>
  <path d="M193.500 98l-.8-9q0-4.500 3.800-4.500t3.800 4.500l-.6 9.500z" fill="#5c636a" stroke="${K}" stroke-width="1"/><path d="M193.200 92.500h6.800" stroke="${K}" stroke-width=".7"/><path d="M194.600 87.500q1.800-1.600 3.600 0" stroke="#a0a8b0" stroke-width=".6" fill="none" opacity=".6"/><path d="M189 97.500q4-2 11 0" stroke="${K}" stroke-width=".8" fill="none"/></g>
@@ -2243,6 +2392,8 @@ ${steel(214,122,201,134,6)}
 <g transform="translate(298 150) rotate(6)"><path d="M-2 2h4l-.5 48l-1.500 4l-1.500-4z" fill="#8a929a" stroke="${K}" stroke-width="1"/><path d="M0 4v44" stroke="#c8d0d8" stroke-width=".8" opacity=".6"/><path d="M-9 0h18v3h-18z" fill="${G}" stroke="#5a4010" stroke-width="1"/><path d="M-1.500 0v-12h3v12z" fill="#2a1a12" stroke="${K}" stroke-width=".8"/><circle cx="0" cy="-13" r="2.500" fill="${G}" stroke="#5a4010" stroke-width=".8"/></g>
 <g transform="translate(98 204)"><path d="M-7 0q0-10 7-10t7 10l-1.500 3h-11z" fill="url(#hbn-${bk})" stroke="#2a241c" stroke-width=".8"/><path d="M-4.500 -4q1-2 2.500-1q.5 2-1 2.500zM4.500 -4q-1-2-2.500-1q-.5 2 1 2.500z" fill="#0a0806"/><path d="M0 -1l-.8 1.500h1.600z" fill="#0a0806"/><path d="M-3 2.500v1M-1 2.700v1M1 2.700v1M3 2.500v1" stroke="#2a241c" stroke-width=".4"/><path d="M-2 -12h4v-6h-4z" fill="#d8ccb0"/><path d="M-2 -12q-1 3 0 5M2 -13q1 2 .5 4M-2 -10q-2 3-3 9" stroke="#c8bca0" stroke-width="1" fill="none"/><path class="flk" d="M0 -18q-3-4 0-9q3 5 0 9z" fill="#ffc24a"/><circle cx="0" cy="-20" r="6" fill="#ffb84a" opacity=".15"/></g>
 ${P.fore()}
+<rect y="146" width="320" height="74" filter="url(#htx-${bk})" mask="url(#hmk-${bk})" style="mix-blend-mode:multiply" opacity=".4"/>
+<rect width="320" height="220" fill="url(#hcool-${bk})" style="mix-blend-mode:soft-light"/><rect width="320" height="220" fill="url(#hwarm-${bk})" style="mix-blend-mode:soft-light"/>
 <g class="fog fog2" fill="${P.fog}" opacity=".12"><ellipse cx="40" cy="206" rx="70" ry="7"/><ellipse cx="300" cy="212" rx="60" ry="6"/></g>
 <rect width="320" height="220" fill="url(#hvig-${bk})"/><rect width="320" height="220" filter="url(#hgr-${bk})" opacity=".22"/>
 </svg>`;
@@ -2294,9 +2445,12 @@ function findRelics(nm){
 /* ---------- Gold and relic rewards ---------- */
 const goldFor=n=>(n.type==="boss"?25:10)+2*units.filter(u=>u.team==="y"&&u.ci!=null).length; // more for bringing your army home
 // 2 or 3 relics the army doesn't have yet, drawn by rarity weight
+const relicCount=id=>camp.relics.filter(r=>r===id).length;
+// relics the shop may stock right now: sold there, unlocked, useful to this army, and not already carried as many times as allowed
+const shopRelics=()=>{const army=armyTypes();return Object.keys(RELICS).filter(id=>{const R=RELICS[id];return (R.src==="shop"||R.src==="both")&&(!R.lock||unlocks[R.lock])&&(!R.need||army.includes(R.need))&&relicCount(id)<(R.max||1)})};
 function relicOffer(){
-  const army=armyTypes(),pool=Object.keys(RELICS).filter(id=>!camp.relics.includes(id)&&!RELICS[id].find&&(!RELICS[id].lock||unlocks[RELICS[id].lock])&&(!RELICS[id].need||army.includes(RELICS[id].need))),out=[];
-  for(let n=2+(Math.random()<.5?1:0);n>0&&pool.length;n--){
+  const army=armyTypes(),pool=Object.keys(RELICS).filter(id=>!camp.relics.includes(id)&&!RELICS[id].find&&RELICS[id].src!=="shop"&&(!RELICS[id].lock||unlocks[RELICS[id].lock])&&(!RELICS[id].need||army.includes(RELICS[id].need))),out=[];
+  for(let n=2+(Math.random()<.5?1:0)+relicCount("coin");n>0&&pool.length;n--){ // each Copper Coin of Good Fortune adds a choice
     const tot=pool.reduce((t,id)=>t+RARITY_W[RELICS[id].r],0);let roll=Math.random()*tot,i=0;
     while(roll>=RARITY_W[RELICS[pool[i]].r]){roll-=RARITY_W[RELICS[pool[i]].r];i++}
     out.push(pool.splice(i,1)[0]);
@@ -2305,6 +2459,8 @@ function relicOffer(){
 }
 const PURSE='<svg viewBox="0 0 32 32" aria-hidden="true"><ellipse cx="16" cy="28" rx="10" ry="2" fill="rgba(0,0,0,.18)"/><path d="M11 9q-3-4 1-5q2 2 4 1q2 1 4-1q4 1 1 5z" fill="#8a5a2a" stroke="#3a2412" stroke-width="1.200" stroke-linejoin="round"/><path d="M10.500 10q-6 5-6 11q0 6 11.500 6t11.500-6q0-6-6-11z" fill="#a8743a" stroke="#3a2412" stroke-width="1.300" stroke-linejoin="round"/><path d="M10 10.500h12" stroke="#d9b84a" stroke-width="2.200" stroke-linecap="round"/><path d="M8 18q1-5 5-7" stroke="#d8a868" stroke-width="1.400" fill="none" opacity=".7"/><circle cx="16" cy="20" r="4.200" fill="#f2c94c" stroke="#8a6410" stroke-width="1.100"/><path d="M16 17.600v4.800M14.600 18.600h2.200q1.200 0 1.200 1t-1.200 1h-1.600" stroke="#8a6410" stroke-width=".9" fill="none"/></svg>';
 const RICON={ // small 32-unit relic icons
+ gauntlets:'<path d="M9 28v-9l-2-6q0-3 3-3l1 4V8q0-2 2-2t2 2v5V6q0-2 2-2t2 2v7V7q0-2 2-2t2 2v8l1-3q3 0 2 3l-2 7v6z" fill="#8a949e" stroke="#2e3338" stroke-width="1.100" stroke-linejoin="round"/><path d="M9 28h14v-4H9z" fill="#5a3a1c" stroke="#2a1a0c" stroke-width="1"/><path d="M13 13v6M17 13v6M21 13v6" stroke="#5c646b" stroke-width=".9"/><g fill="#d8dde2" stroke="#2e3338" stroke-width=".7"><path d="M12 6l1-3l1 3z"/><path d="M16 4l1-3l1 3z"/><path d="M20 5l1-3l1 3z"/><path d="M7 15l-3-1l3-1z"/></g>',
+ coin:'<circle cx="16" cy="16" r="12" fill="#b8693a" stroke="#5a2a10" stroke-width="1.300"/><circle cx="16" cy="16" r="9" fill="none" stroke="#e09a5a" stroke-width="1"/><g fill="#3f7a3a" stroke="#1e4a1c" stroke-width=".7"><circle cx="14" cy="13" r="2.400"/><circle cx="18" cy="13" r="2.400"/><circle cx="14" cy="17" r="2.400"/><circle cx="18" cy="17" r="2.400"/></g><path d="M16 17q1 4 3 6" stroke="#1e4a1c" stroke-width="1" fill="none"/><path d="M8 11q3-5 8-6" stroke="#f0c08a" stroke-width="1.200" fill="none" opacity=".7"/>',
  whet:'<path d="M5 21l17-12q4-2 5 1t-2 5L9 25q-4 2-5-1t1-3z" fill="#8f979e" stroke="#2e3338" stroke-width="1.200"/><path d="M8 21l15-10" stroke="#d2d8dd" stroke-width="1.300" opacity=".7"/><path d="M9 24l14-10" stroke="#5c646b" stroke-width="1" opacity=".6"/>',
  shield:'<path d="M16 4l10 3v8q0 9-10 13q-10-4-10-13V7z" fill="#7f8a95" stroke="#262b31" stroke-width="1.300"/><path d="M16 4v24q10-4 10-13V7z" fill="#000" opacity=".15"/><path d="M16 7l7 2v6q0 6-7 9.500" stroke="#c8d0d8" stroke-width="1" fill="none" opacity=".5"/><circle cx="16" cy="14" r="2.800" fill="#c9962a" stroke="#6a4c10" stroke-width=".9"/>',
  rations:'<path d="M5 20q0-7 11-7t11 7q0 4-11 4T5 20z" fill="#c8924a" stroke="#5a3a18" stroke-width="1.200"/><path d="M10 15l2 3M15 14l2 3M20 14l2 3" stroke="#8a5a22" stroke-width="1.200" stroke-linecap="round"/><path d="M7 25q9 3 18 0l-1 3H8z" fill="#b8a07a" stroke="#5a4a30" stroke-width="1"/><path d="M8 18q3-3 8-3.500" stroke="#f0c888" stroke-width="1" fill="none"/>',
@@ -2382,7 +2538,7 @@ $("tmenu").onclick=()=>{gid++;$("triumph").hidden=true;camp.battle=null;show("me
    A map is plain data, so the editor, its map codes and the Challenges menu all share one format:
    {name, desc, diff, biome, mods:{y,f}, rows: 12 strings of 10 terrain letters, units: [[type, team, x, y], ...], reward?, hint?}
    Terrain letters (one source, read by the loader, the editor palette and the map codes): */
-const MAPCH={".":"ground",f:"forest",s:"shallow",d:"deep",m:"swamp",w:"wall",F:"fort",b:"barrels",x:"xbarrel",g:"grave",c:"campsite",l:"lava",h:"magma",v:"volcano"};
+const MAPCH={".":"ground",f:"forest",s:"shallow",d:"deep",m:"swamp",w:"wall",F:"fort",b:"barrels",x:"xbarrel",g:"grave",c:"campsite",l:"lava",h:"magma",v:"volcano",k:"cherry"};
 const MAPKEY=Object.fromEntries(Object.entries(MAPCH).map(([c,k])=>[k,c]));
 // Challenge maps. diff: 0 easy, 1 moderate, 2 hard (the menu lists them easiest first). reward: an unlock id granted on the first win (add it to UNLOCKS with its hint); hint: how the menu describes that reward
 const CHALLENGES=[
@@ -2403,9 +2559,9 @@ let chal=null; // the fixed map being played: {def, test}
 const DIFF=[["Easy","#3f9a5a"],["Moderate","#c9962a"],["Hard","#c8372d"]];
 // lays a fixed map's terrain into the board state
 function applyMap(def){
-  const S={ground:new Set(),forest:new Set(),shallow:new Set(),deep:new Set(),swamp:new Set(),wall:new Set(),fort:new Set(),barrels:new Set(),xbarrel:new Set(),grave:new Set(),campsite:new Set(),lava:new Set(),magma:new Set(),volcano:new Set()};
+  const S={ground:new Set(),forest:new Set(),shallow:new Set(),deep:new Set(),swamp:new Set(),wall:new Set(),fort:new Set(),barrels:new Set(),xbarrel:new Set(),grave:new Set(),campsite:new Set(),lava:new Set(),magma:new Set(),volcano:new Set(),cherry:new Set()};
   def.rows.forEach((r,y)=>[...r].forEach((c,x)=>{const k=MAPCH[c]||"ground";S[k].add(x+","+y);if(k==="xbarrel")S.barrels.add(x+","+y)}));
-  WALLS=S.wall;FOREST=S.forest;FORT=S.fort;DEEP=S.deep;SHALLOW=S.shallow;SWAMP=S.swamp;GRAVES=S.grave;BARRELS=S.barrels;XBAR=S.xbarrel;CAMPS=S.campsite;LAVA=S.lava;MAGMA=S.magma;VOLC=S.volcano;
+  WALLS=S.wall;FOREST=S.forest;FORT=S.fort;DEEP=S.deep;SHALLOW=S.shallow;SWAMP=S.swamp;GRAVES=S.grave;BARRELS=S.barrels;XBAR=S.xbarrel;CAMPS=S.campsite;LAVA=S.lava;MAGMA=S.magma;VOLC=S.volcano;CHERRY=S.cherry;S.cherry.forEach(k=>FOREST.add(k));
   MURKY=def.biome==="swamp";HAUNTED=def.biome==="graveyard";VOLCANIC=def.biome==="volcanic";WALLV=def.wallStyle||0;groupForts(()=>0);
 }
 // what's wrong with a map, if anything (an empty list means it's playable); notes are warnings that don't block play
@@ -2545,6 +2701,7 @@ const UNLOCKS=[
  {id:"banner",unit:"N",hint:"Defeat a campaign boss."},
  {id:"campsite",terrain:"campsite",hint:"Some say a trio of polished helmets, out for a quick scrap, draws a curious host."},
  {id:"graveyard",biome:"graveyard",terrain:"grave",hint:"Our encouraging friend's home."},
+ {id:"cherry",terrain:"cherry",hint:"Beauty blooms where none of your own fall."},
  {id:"volcanic",biome:"volcanic",terrain:"lava",hint:"March on past your first conquest, and the land itself begins to burn."},
  {id:"drills",relic:"drills",hint:"Fall back from the long march often enough, and your troops learn to march faster."},
  {id:"salts",relic:"salts",hint:"Walk away from enough quick scraps, and someone starts packing remedies."},
@@ -2634,8 +2791,10 @@ $("dmenu").onclick=()=>{
 };
 $("tomenu").onclick=()=>{paused=true;resetPause();panel("pmain");$("pause").hidden=false;$("pback").focus()};
 $("pback").onclick=closePause;
-const soundLabel=()=>{$("psound").textContent="Sound: "+(sfxOn?"On":"Off")};soundLabel();
-$("psound").onclick=()=>{sfxOn=!sfxOn;try{localStorage.setItem(SKEY,sfxOn?"on":"off")}catch(e){}soundLabel();sfx("heal")};
+const soundLabel=()=>{["psound","msound"].forEach(id=>$(id).textContent="Sound: "+(sfxOn?"On":"Off"));["pmusic","mmusic"].forEach(id=>$(id).textContent="Music: "+(musicOn?"On":"Off"))};soundLabel();
+const toggleSound=()=>{sfxOn=!sfxOn;try{localStorage.setItem(SKEY,sfxOn?"on":"off")}catch(e){}soundLabel();sfx("heal")};
+const toggleMusic=()=>{musicOn=!musicOn;try{localStorage.setItem(MKEY,musicOn?"on":"off")}catch(e){}soundLabel();musicOn?startMusic():stopMusic()};
+$("psound").onclick=$("msound").onclick=toggleSound;$("pmusic").onclick=$("mmusic").onclick=toggleMusic;
 const howPause={root:$("prules"),mainLabel:"Back to Pause Menu",pause:true,exit:()=>{resetPause();$("prule").focus()}};
 $("prule").onclick=()=>{$("pbtns").hidden=true;$("prules").hidden=false;$("ptitle").hidden=true;howView(howPause,null)};
 $("pconcede").onclick=()=>{panel("pconfirm");$("pno").focus()};
