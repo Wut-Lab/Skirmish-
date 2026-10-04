@@ -277,6 +277,7 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .rchip svg,.rcard .ri svg,.trow svg,.hcard svg{filter:drop-shadow(0 1px 1.200px rgba(0,0,0,.35))}
 .wmap{position:relative}.wmap::after{content:"";position:absolute;inset:0;pointer-events:none;background:var(--grain) 0 0/96px 96px;opacity:.28;mix-blend-mode:multiply}
 .lt{position:absolute;inset:0;pointer-events:none;--ltb:radial-gradient(125% 95% at 24% 16%,rgba(255,255,255,.17),rgba(255,255,255,0) 56%),radial-gradient(110% 100% at 88% 96%,rgba(0,0,0,.11),rgba(0,0,0,0) 60%);background:var(--grainl) 0 0/64px 64px,var(--ltb)}
+.t.w>.lt{background:var(--grainl) 0 0/64px 64px!important} /* walls carry their own shading, so neighbours join without a step */
 .t:nth-child(5n+1)>.lt{background:var(--grainl) 0 0/64px 64px,radial-gradient(48% 34% at 30% 64%,rgba(110,80,40,.08),rgba(110,80,40,0)),var(--ltb)}
 .t:nth-child(7n+3)>.lt{background:var(--grainl) 0 0/64px 64px,radial-gradient(40% 30% at 70% 36%,rgba(255,250,230,.09),rgba(255,250,230,0)),var(--ltb)}
 .t:nth-child(11n+6)>.lt{background:var(--grainl) 0 0/64px 64px,radial-gradient(52% 38% at 56% 72%,rgba(90,70,40,.07),rgba(90,70,40,0)),var(--ltb)}
@@ -609,7 +610,7 @@ const MODS={
  FT:{name:"Forest Tactics",desc:"Your units in a forest get +1 armor against ranged attacks. Enemies in a forest only get +5% evasion against your attacks, instead of +10%."},
  PAD:{name:"Padded Armor",desc:"Archers get +1 armor but have 1 less movement."},
  REST:{name:"Field Rest",desc:"At the end of your turn, each of your units that neither moved nor attacked that turn recovers 2 HP."}};
-let MURKY=false,HAUNTED=false,VOLCANIC=false,LAVA=new Set(),MAGMA=new Set(),VOLC=new Set(),GRAVES=new Set(),WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set(),SWAMP=new Set();
+let MURKY=false,HAUNTED=false,VOLCANIC=false,CHERRY=new Set(),LAVA=new Set(),MAGMA=new Set(),VOLC=new Set(),GRAVES=new Set(),WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set(),SWAMP=new Set();
 const UKEY="skirmish_unlocks_v1",unlocks=(()=>{try{return JSON.parse(localStorage.getItem(UKEY)||"{}")||{}}catch(e){return{}}})();
 const saveU=()=>{try{localStorage.setItem(UKEY,JSON.stringify(unlocks))}catch(e){}};
 const unlock=id=>{if(unlocks[id])return false;unlocks[id]=1;saveU();discover();return true};
@@ -720,6 +721,12 @@ function genMap(o={}){
     };
     if(o.graves)put(graves,5+R(3),false);
     put(walls,o.graves?2+R(2):3+R(3),true);put(forest,o.forest||4+R(4),false);
+    const cherry=new Set(); // a cherry grove: a little orchard of 2-5 joined tiles (mirrored), which plays exactly like forest
+    if(!o.graves&&!o.lava&&!(o.swamp>=3)&&Math.random()<(o.cherry===undefined?.3:o.cherry))for(let t=0;t<60;t++){
+      const tl=grow(2+R(4),1+R(W-2),3+R(H-6));
+      if(!tl.every(([a,b])=>free(a,b)&&free(W-1-a,H-1-b))||tl.some(([a,b])=>tl.some(([c,d])=>c===W-1-a&&d===H-1-b)))continue;
+      tl.forEach(([a,b])=>{both(forest,a,b);both(cherry,a,b)});break;
+    }
     const swamp=new Set(); // swamp patches: entering one ends a unit's move
     const SW=o.lava?{n:0,size:2}:o.swamp>=3?{n:5+R(3),size:3}:o.swamp?{n:Math.random()<.6?1+R(2):0,size:2}:{n:Math.random()<.12?1:0,size:2}; // patches (mirrored) and their size
     for(let n=SW.n,t=0;n>0&&t<200;t++){
@@ -768,7 +775,7 @@ function genMap(o={}){
       }
     }
     if(seen.size===W*H-walls.size-deep.size-bars.size-camps.size-graves.size-lava.size-volc.size){ // every open tile connects: lava never cuts anyone off
-      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;SWAMP=swamp;MURKY=o.swamp>=3;GRAVES=graves;HAUNTED=!!o.graves;LAVA=lava;MAGMA=magma;VOLC=volc;VOLCANIC=!!o.lava;BARRELS=bars;XBAR=xbars;CAMPS=camps;WALLV=R(4);
+      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;SWAMP=swamp;MURKY=o.swamp>=3;GRAVES=graves;HAUNTED=!!o.graves;LAVA=lava;MAGMA=magma;VOLC=volc;VOLCANIC=!!o.lava;CHERRY=cherry;BARRELS=bars;XBAR=xbars;CAMPS=camps;WALLV=R(4);
       groupForts(()=>R(2));
       return;
     }
@@ -782,7 +789,18 @@ const tree=(x,y,h,w,c)=>{ // a conifer: three tiers of needles with jagged hems,
     g+=`<path d="M${f(x)} ${f(top)}${hem}z" fill="${c}"/><path d="M${f(x)} ${f(top)}L${f(x+hw)} ${f(bot+.6)}L${f(x+hw*.15)} ${f(bot)}z" fill="rgba(0,0,0,.2)"/><path d="M${f(x-.4)} ${f(top+1)}L${f(x-hw*.7)} ${f(bot-.6)}" stroke="rgba(255,255,255,.18)" stroke-width=".8"/>`});
   return g;
 };
-const oak=(x,y,r,c)=>`<ellipse cx="${x+1}" cy="${y+r*.8}" rx="${r*.9}" ry="1.7" fill="rgba(0,0,0,.22)"/><rect x="${x-1.2}" y="${y}" width="2.4" height="${r*.8}" fill="#5a3d24"/><rect x="${x}" y="${y}" width="1.2" height="${r*.8}" fill="#3a2614"/><circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/><circle cx="${x-r*.45}" cy="${y+r*.15}" r="${r*.6}" fill="${c}"/><circle cx="${x+r*.48}" cy="${y+r*.1}" r="${r*.58}" fill="${c}"/><circle cx="${x+r*.05}" cy="${y-r*.5}" r="${r*.6}" fill="${c}"/><circle cx="${x+r*.48}" cy="${y+r*.1}" r="${r*.58}" fill="rgba(0,0,0,.12)"/><circle cx="${x-r*.5}" cy="${y-r*.25}" r="${r*.3}" fill="rgba(255,255,255,.14)"/><circle cx="${x+r*.1}" cy="${y-r*.7}" r="${r*.25}" fill="rgba(255,255,255,.12)"/><path d="M${x+r*.25} ${y-r*.97}A${r} ${r} 0 0 1 ${x-r*.25} ${y+r*.97}A${r*.8} ${r*.9} 0 0 0 ${x+r*.25} ${y-r*.97}z" fill="rgba(0,0,0,.14)"/><circle cx="${x-r*.3}" cy="${y-r*.3}" r="${r*.45}" fill="rgba(255,255,255,.16)"/>`;
+const oak=(x,y,r,c)=>{ // an oak: a stout, flaring trunk with spreading boughs under a broad, lumpy crown; shaded below, lit from the upper left
+  const f=v=>v.toFixed(1),L=[[-1.05,-.12,.46],[-.72,-.55,.5],[-.28,-.85,.52],[.25,-.86,.52],[.7,-.6,.5],[1.05,-.15,.44],[.55,.08,.46],[-.52,.1,.46],[0,-.32,.68],[0,.06,.46]];
+  let g=`<ellipse cx="${f(x+1.5)}" cy="${f(y+r*1.05)}" rx="${f(r*1.25)}" ry="${f(r*.22+1)}" fill="rgba(0,0,0,.22)"/>`
+   +`<path d="M${f(x-r*.22)} ${f(y+r*1.05)}q${f(r*.12)}-${f(r*.4)} ${f(r*.07)}-${f(r*.75)}q-${f(r*.4)}-${f(r*.15)}-${f(r*.65)}-${f(r*.45)}l${f(r*.12)}-${f(r*.06)}q${f(r*.32)} ${f(r*.22)} ${f(r*.6)} ${f(r*.28)}l${f(r*.06)}-${f(r*.3)}l${f(r*.12)} 0l.2 ${f(r*.3)}q${f(r*.3)}-${f(r*.1)} ${f(r*.6)}-${f(r*.34)}l${f(r*.12)} ${f(r*.06)}q-${f(r*.26)} ${f(r*.32)}-${f(r*.62)} ${f(r*.48)}q-${f(r*.05)} ${f(r*.4)} ${f(r*.12)} ${f(r*.76)}z" fill="#5a3d24"/>`
+   +`<path d="M${f(x+r*.02)} ${f(y+r*.3)}q-${f(r*.05)} ${f(r*.4)} ${f(r*.12)} ${f(r*.75)}h${f(r*.08)}q-${f(r*.12)}-${f(r*.4)}-${f(r*.02)}-${f(r*.75)}z" fill="#3a2614"/>`
+   +`<path d="M${f(x-r*.1)} ${f(y+r*.35)}q-${f(r*.3)}-${f(r*.15)}-${f(r*.62)}-${f(r*.42)}M${f(x+r*.1)} ${f(y+r*.3)}q${f(r*.32)}-${f(r*.12)}${f(r*.6)}-${f(r*.4)}M${f(x)} ${f(y+r*.3)}l-${f(r*.05)}-${f(r*.4)}" stroke="#4a3220" stroke-width="${f(r*.12+.4)}" fill="none" stroke-linecap="round"/>`;
+  g+=L.map(([dx,dy,s])=>`<circle cx="${f(x+dx*r)}" cy="${f(y+dy*r)}" r="${f(s*r)}" fill="${c}"/>`).join("");
+  g+=L.filter(l=>l[1]>0).map(([dx,dy,s])=>`<circle cx="${f(x+dx*r+.4)}" cy="${f(y+dy*r+s*r*.35)}" r="${f(s*r*.7)}" fill="rgba(0,0,0,.16)"/>`).join(""); // shade under the crown
+  g+=[[-.72,-.45,.28],[-.3,-.82,.26],[-1,.02,.22],[.2,-.85,.2]].map(([dx,dy,s])=>`<circle cx="${f(x+dx*r)}" cy="${f(y+dy*r)}" r="${f(s*r)}" fill="rgba(255,255,255,.16)"/>`).join(""); // sunlit clumps
+  g+=[[-.4,-.2],[.35,-.3],[.6,.05],[-.75,-.05],[.05,.1],[-.15,-.5],[.45,-.55]].map(([dx,dy])=>`<circle cx="${f(x+dx*r)}" cy="${f(y+dy*r)}" r="${f(r*.07+.25)}" fill="rgba(0,0,0,.18)"/>`).join(""); // leaf texture
+  return g;
+};
 // Haunted Graveyard: gravestones, and dead trees in place of living ones
 // Gravestones: weathered stone with a lit left face, carved details, cracks and moss
 const tomb={ // each draws one stone standing on y=0, about 28 units tall, centred on x=0
@@ -864,6 +882,27 @@ function ashGround(x,y){ // ash-strewn rock in place of grass and flowers
   if(v===2)return svg(`<ellipse cx="${14+p(12,3)}" cy="${18+p(10,4)}" rx="10" ry="5" fill="rgba(30,24,22,.18)"/>`);
   return "";
 }
+// cherry grove: blossoming trees; where a neighbour is cherry too, a shared clump of blossom straddles the seam so the orchard reads as one canopy
+const blossom=(cx,cy,r)=>{const f=v=>v.toFixed(1),C=[[0,0,1],[-.55,.2,.7],[.55,.15,.72],[-.25,-.5,.68],[.32,-.48,.66],[0,.45,.6],[-.75,-.25,.5],[.78,-.2,.48]];
+  return C.map(([dx,dy,s])=>`<circle cx="${f(cx+dx*r)}" cy="${f(cy+dy*r+s*r*.18)}" r="${f(s*r*.62)}" fill="#c8607e"/>`).join("")
+   +C.map(([dx,dy,s])=>`<circle cx="${f(cx+dx*r)}" cy="${f(cy+dy*r)}" r="${f(s*r*.6)}" fill="#ee9db6"/>`).join("")
+   +C.filter(c=>c[1]<=.2).map(([dx,dy,s])=>`<circle cx="${f(cx+dx*r-s*r*.15)}" cy="${f(cy+dy*r-s*r*.18)}" r="${f(s*r*.36)}" fill="#f8c8d6"/>`).join("")
+   +[[-.4,-.55],[.2,-.7],[-.7,-.1],[.5,-.3],[.05,-.2]].map(([dx,dy])=>`<circle cx="${f(cx+dx*r)}" cy="${f(cy+dy*r)}" r="${f(r*.08+.35)}" fill="#fff4f8" opacity=".9"/>`).join("")
+   +[[.3,.3],[-.45,.4],[.7,.15]].map(([dx,dy])=>`<circle cx="${f(cx+dx*r)}" cy="${f(cy+dy*r)}" r="${f(r*.07+.3)}" fill="#7a9a4e" opacity=".8"/>`).join("")};
+const cherryTrunk=(x,y,h)=>`<ellipse cx="${x+1.5}" cy="${y+1.2}" rx="${h*.5}" ry="1.8" fill="rgba(0,0,0,.22)"/><path d="M${x-1.4} ${y}q.6-${h*.45}-.2-${h*.75}l-${h*.35}-${h*.25}l.8-.6l${h*.32} ${h*.18}q.4-${h*.2} 1-${h*.3}l.8 0q0 ${h*.14}.4 ${h*.26}l${h*.3}-${h*.22}l.8.6l-${h*.3} ${h*.3}q-.6 ${h*.4} .2 ${h*.76}z" fill="#4a2a22"/><path d="M${x+.2} ${y}q.4-${h*.4}-.2-${h*.7}" stroke="#2e1a14" stroke-width=".9" fill="none"/>`;
+const petals=k=>[[6,34],[13,37],[31,35],[35,30],[24,38],[4,26],[17,33],[29,38],[37,24],[9,30]].filter((_,i)=>(i+k)%3).map(([x,y],i)=>`<ellipse cx="${x}" cy="${y}" rx="1" ry=".6" fill="${i%2?"#f6c6d2":"#ee9db6"}" transform="rotate(${i*37} ${x} ${y})"/>`).join("");
+const CHERRY_T=[ // the three versions: their trunks and crowns
+ {t:[[20,34,14]],c:[[20,17,11]]},
+ {t:[[12,33,11],[29,35,12]],c:[[12,18,8.5],[29,19,9]]},
+ {t:[[24,34,13],[9,35,7]],c:[[24,16,10],[9,24,5.5]]}];
+function cherryArt(v,m){
+  const T=CHERRY_T[v],n=m&1,e=m&2,s=m&4,w=m&8;
+  let g=petals(v)+T.t.map(a=>cherryTrunk(...a)).join("");
+  if(n)g+=blossom(20,-1,9);if(w)g+=blossom(-1,20,9);if(e)g+=blossom(41,20,9);if(s)g+=blossom(20,41,9); // shared clumps on joined seams
+  g+=T.c.map(([x,y,r])=>`<ellipse cx="${x+1}" cy="${y+r*.9}" rx="${r*.9}" ry="${r*.25}" fill="rgba(80,20,40,.18)"/>`+blossom(x,y,r)).join("");
+  return svg(g);
+}
+const CHERRY_V=[0,1,2].map(v=>cherryArt(v,0));
 const BAR_A='<ellipse cx="20" cy="35" rx="17" ry="3" fill="rgba(0,0,0,.18)"/><path d="M5 17c0-3 3.500-4.500 6.500-4.500S18 14 18 17v13c0 3-3.500 4.500-6.500 4.500S5 33 5 30z" fill="#9a6b3a" stroke="#4a2f14" stroke-width="1.6"/><path d="M5 20.500c3 2 10 2 13 0M5 27c3 2 10 2 13 0" fill="none" stroke="#4a2f14" stroke-width="1.5"/><ellipse cx="11.500" cy="13" rx="6.500" ry="2.600" fill="#c08c52" stroke="#4a2f14" stroke-width="1.5"/><rect x="19" y="21" width="17" height="14" fill="#c9a064" stroke="#4a2f14" stroke-width="1.6"/><path d="M19 21l17 14M36 21L19 35" stroke="#7a5a2c" stroke-width="1.6"/><path d="M21 10c0-2.500 3-3.800 5.500-3.800s5.500 1.300 5.500 3.800v9c0 2.500-3 3.800-5.500 3.800S21 21.500 21 19z" fill="#8a5c30" stroke="#4a2f14" stroke-width="1.6"/><ellipse cx="26.500" cy="10" rx="5.500" ry="2.200" fill="#b98448" stroke="#4a2f14" stroke-width="1.4"/><path d="M21 14c2.500 1.800 8.500 1.800 11 0" fill="none" stroke="#4a2f14" stroke-width="1.4"/>';
 const BAR_V=[svg(BAR_A),svg(`<g transform="translate(40 0) scale(-1 1)">${BAR_A}</g>`)];
 // mysterious camp site: a little tent and a campfire with an eerie green glow
@@ -920,8 +959,11 @@ function wallArt(v,m){
         +(dk.length>1?`<path d="M${pt(c)}L${dk.map(pt).join("L")}z" fill="rgba(0,0,0,.2)"/>`:"")
         +`<path d="M${pt(c)}L${pt(P[(k+2)%7])}" stroke="rgba(0,0,0,.18)" stroke-width=".7"/><path d="M${(c[0]-rx*.3).toFixed(1)} ${(c[1]+ry*.1).toFixed(1)}l${(rx*.25).toFixed(1)} ${(ry*.3).toFixed(1)}" stroke="rgba(30,30,34,.4)" stroke-width=".7"/>`;
     };
-    return svg((n?b(20,0,7.5,5.5,"#8d98a1",3):"")+(s?b(20,40,7.5,5.5,"#8d98a1",3):"")+(e?b(40,20,5.5,7.5,"#98a3ac",5):"")+(w?b(0,20,5.5,7.5,"#98a3ac",5):"")
-      +b(14,26,8.5,7,"#7f8b95",1)+b(27,24,8,8.5,"#8d98a1",4)+b(20,13,7,6,"#98a3ac",2));
+    // big stones packed tight, with dark crevices between them; on a joined edge one large stone straddles the seam, drawn the same from both sides
+    const st=[[12.5,14,11,9,"#8d98a1",1],[29,12,9.5,8.5,"#98a3ac",4],[21,29,12.5,9,"#7f8b95",2],[6,32,5,4.5,"#8d98a1",6],[36,32,5,4.5,"#98a3ac",3],[35,3,4,3.4,"#8d98a1",5]];
+    if(n)st.push([20,0,12,7.5,"#8d98a1",3]);if(s)st.push([20,40,12,7.5,"#8d98a1",3]);if(e)st.push([40,20,7.5,12,"#98a3ac",5]);if(w)st.push([0,20,7.5,12,"#98a3ac",5]);
+    const shade=st.map(([cx,cy,rx,ry])=>`<ellipse cx="${cx+.8}" cy="${cy+1.2}" rx="${rx+1.4}" ry="${ry+1.2}" fill="rgba(24,28,34,.55)"/>`).join(""); // crevices and contact shadow
+    return svg('<rect width="40" height="40" fill="rgba(30,34,40,.35)"/>'+shade+st.map(a=>b(...a)).join(""));
   }
   if(v===2){ // dressed stone: joined sides drop their margin so the block courses line up across tiles
     const rows=[[n?0:2,13,[0,19,40]],[15,26,[0,12.5,31.5,40]],[28,s?40:38,[0,19,40]]];let g="";
@@ -955,6 +997,10 @@ function fortArt(m,v,keep){
 // fills the 2px board gap after a tile when it joins the tile to its right or below, so joined pieces read as one structure
 function joins(x,y){
   const k=x+","+y,isW=WALLS.has(k);
+  if(CHERRY.has(k)){ // the shared blossom clump carries over the gap
+    const r=CHERRY.has((x+1)+","+y),b=CHERRY.has(x+","+(y+1)),bar=(st,dir)=>`<i class="jb" style="${st};background:linear-gradient(${dir},transparent 25%,#d97a97 27%,#e993ad 34%,#ec98b1 50%,#e48ea8 66%,#cf6f8c 73%,transparent 75%)"></i>`;
+    return (r?bar("top:0;right:-2px;width:2px;height:100%","180deg"):"")+(b?bar("left:0;bottom:-2px;height:2px;width:100%","90deg"):"");
+  }
   if(LAVA.has(k)){ // lava flows on across the gap into lava beside it
     const r=LAVA.has((x+1)+","+y),b=LAVA.has(x+","+(y+1)),c=r&&b&&LAVA.has((x+1)+","+(y+1)),bar=st=>`<i class="jb" style="${st};background:#e2531a"></i>`;
     return (r?bar(`top:0;right:-2px;width:2px;height:${c?"calc(100% + 2px)":"100%"}`):"")+(b?bar("left:0;bottom:-2px;height:2px;width:100%"):"");
@@ -969,8 +1015,9 @@ function joins(x,y){
   }else if(WALLV===3){right="#3b2b1c";below="repeating-linear-gradient(90deg,#3b2b1c 0 1.500%,#8b6a45 1.500% 18.500%,#3b2b1c 18.500% 20%)"}
   else{
     const lit=m&1?"":"linear-gradient(rgba(255,255,255,.28),rgba(255,255,255,.28)) top/100% 4px no-repeat,",shade=m&4?"":"linear-gradient(rgba(0,0,0,.4),rgba(0,0,0,.4)) bottom/100% 7px no-repeat,";
-    const rock=(dir,c)=>WALLV===1?`linear-gradient(${dir},transparent 31%,${c} 31%,${c} 69%,transparent 69%),`:""; // fill the shared boulder's middle
-    right=lit+shade+rock("180deg","#98a3ac")+"var(--wall)";below=WALLV===0?"linear-gradient(rgba(0,0,0,.3),rgba(0,0,0,.3)) var(--wall)":rock("90deg","#8d98a1")+"var(--wall)"; // brick keeps its mortar line
+    const rock=(dir,c)=>WALLV===1?`linear-gradient(${dir},transparent 22%,${c} 22%,${c} 78%,transparent 78%),`:""; // fill the shared boulder's middle
+    if(WALLV===1){const g=(dir,c)=>`linear-gradient(${dir},#4a545e 20%,${c} 24%,${c} 76%,#4a545e 80%)`;right=g("180deg","#8d969e");below=g("90deg","#86909a")} // the seam stone's middle, with crevice-dark rock either side
+    else right=lit+shade+rock("180deg","#98a3ac")+"var(--wall)";if(WALLV!==1)below=WALLV===0?"linear-gradient(rgba(0,0,0,.3),rgba(0,0,0,.3)) var(--wall)":rock("90deg","#8d98a1")+"var(--wall)"; // brick keeps its mortar line
   }
   return (m&2?bar(`top:0;right:-2px;width:2px;height:${corner?"calc(100% + 2px)":"100%"}`,right):"")+(m&4?bar("left:0;bottom:-2px;height:2px;width:100%",below):"");
 }
@@ -978,6 +1025,7 @@ function joins(x,y){
 // "unlock" names the unlock a terrain needs before it is shown anywhere but the Unlocks menu.
 const TERRAIN={
  ground:{name:"Open Ground",bg:"",art:()=>[0,1,2,3].map(v=>ground(3,4,v)),desc:"No special effect."},
+ cherry:{name:"Cherry Grove",bg:TF,art:()=>CHERRY_V,desc:"A little orchard in bloom. It works just like a forest: leaving it costs 1 movement, and a unit in it gets +10% evasion."},
  forest:{name:"Forest",bg:TF,art:()=>FOREST_V,desc:"Leaving a forest costs 1 movement. A unit in a forest gets +10% evasion."},
  swamp:{name:"Swamp",bg:"background:#4b4a33",art:()=>SW_V,desc:"Entering a swamp ends a unit's move for the turn. Leaving costs nothing extra."},
  shallow:{name:"Shallow Water",bg:"background:var(--sh,#86c4dc)",art:()=>SH_V,desc:"Entering it costs 1 extra movement. Often found around deep water, and sometimes as a ford across a river."},
@@ -991,12 +1039,13 @@ const TERRAIN={
  volcano:{name:"Volcano",bg:"",art:()=>VOLC_V,unlock:"volcanic",desc:"Impassable. 1 to 3 per map. At the end of each turn it has a small chance to erupt, dealing 2 damage (ignoring armor) to any unit on 3 random tiles around it."},
  wall:{name:"Wall",bg:"background:var(--wall)",art:()=>[0,1,2,3].map(v=>wallArt(v,0)),desc:"Impassable. Units can't enter or cross it, but attacks can pass over it."},
  fort:{name:"Fortress",bg:FR,art:()=>[fortArt(0,0,true),fortArt(0,1,true)],desc:"Uncommon. A unit standing on one gets +1 armor."}};
-const terrainKey=k=>CAMPS.has(k)?"campsite":GRAVES.has(k)?"grave":VOLC.has(k)?"volcano":LAVA.has(k)?"lava":MAGMA.has(k)?"magma":BARRELS.has(k)?(XBAR.has(k)?"xbarrel":"barrels"):WALLS.has(k)?"wall":DEEP.has(k)?"deep":SHALLOW.has(k)?"shallow":SWAMP.has(k)?"swamp":FOREST.has(k)?"forest":FORT.has(k)?"fort":"ground";
+const terrainKey=k=>CAMPS.has(k)?"campsite":GRAVES.has(k)?"grave":VOLC.has(k)?"volcano":LAVA.has(k)?"lava":MAGMA.has(k)?"magma":BARRELS.has(k)?(XBAR.has(k)?"xbarrel":"barrels"):WALLS.has(k)?"wall":DEEP.has(k)?"deep":SHALLOW.has(k)?"shallow":SWAMP.has(k)?"swamp":CHERRY.has(k)?"cherry":FOREST.has(k)?"forest":FORT.has(k)?"fort":"ground";
 function tileArt(x,y){ // the art for one board tile, picking a stable variant per tile
   const k=x+","+y;
   switch(terrainKey(k)){
     case "campsite":return CAMP_V;case "grave":return GRAVE_V[tv(x,y,4,23)];case "xbarrel":return XBAR_V;case "barrels":return BAR_V[tv(x,y,2,19)];case "wall":return wallArt(WALLV,wallMask(x,y));
     case "deep":return DP_V[tv(x,y,3,13)];case "shallow":return SH_V[tv(x,y,3,15)];case "swamp":return SW_V[tv(x,y,4,21)];case "forest":return HAUNTED||VOLCANIC?DEAD_V[tv(x,y,3,9)]:FOREST_V[tv(x,y,4,9)];
+    case "cherry":return cherryArt(tv(x,y,3,43),joinMask(x,y,kk=>CHERRY.has(kk)));
     case "volcano":return VOLC_V[tv(x,y,2,25)];case "lava":return LAVA_V[tv(x,y,3,27)];case "magma":return MAGMA_V[tv(x,y,3,29)];
     case "fort":return fortArt(fortMask(x,y),FORTV.get(k)||0,FORTK.has(k));default:return VOLCANIC?ashGround(x,y):ground(x,y);
   }
@@ -2475,7 +2524,7 @@ $("tmenu").onclick=()=>{gid++;$("triumph").hidden=true;camp.battle=null;show("me
    A map is plain data, so the editor, its map codes and the Challenges menu all share one format:
    {name, desc, diff, biome, mods:{y,f}, rows: 12 strings of 10 terrain letters, units: [[type, team, x, y], ...], reward?, hint?}
    Terrain letters (one source, read by the loader, the editor palette and the map codes): */
-const MAPCH={".":"ground",f:"forest",s:"shallow",d:"deep",m:"swamp",w:"wall",F:"fort",b:"barrels",x:"xbarrel",g:"grave",c:"campsite",l:"lava",h:"magma",v:"volcano"};
+const MAPCH={".":"ground",f:"forest",s:"shallow",d:"deep",m:"swamp",w:"wall",F:"fort",b:"barrels",x:"xbarrel",g:"grave",c:"campsite",l:"lava",h:"magma",v:"volcano",k:"cherry"};
 const MAPKEY=Object.fromEntries(Object.entries(MAPCH).map(([c,k])=>[k,c]));
 // Challenge maps. diff: 0 easy, 1 moderate, 2 hard (the menu lists them easiest first). reward: an unlock id granted on the first win (add it to UNLOCKS with its hint); hint: how the menu describes that reward
 const CHALLENGES=[
@@ -2496,9 +2545,9 @@ let chal=null; // the fixed map being played: {def, test}
 const DIFF=[["Easy","#3f9a5a"],["Moderate","#c9962a"],["Hard","#c8372d"]];
 // lays a fixed map's terrain into the board state
 function applyMap(def){
-  const S={ground:new Set(),forest:new Set(),shallow:new Set(),deep:new Set(),swamp:new Set(),wall:new Set(),fort:new Set(),barrels:new Set(),xbarrel:new Set(),grave:new Set(),campsite:new Set(),lava:new Set(),magma:new Set(),volcano:new Set()};
+  const S={ground:new Set(),forest:new Set(),shallow:new Set(),deep:new Set(),swamp:new Set(),wall:new Set(),fort:new Set(),barrels:new Set(),xbarrel:new Set(),grave:new Set(),campsite:new Set(),lava:new Set(),magma:new Set(),volcano:new Set(),cherry:new Set()};
   def.rows.forEach((r,y)=>[...r].forEach((c,x)=>{const k=MAPCH[c]||"ground";S[k].add(x+","+y);if(k==="xbarrel")S.barrels.add(x+","+y)}));
-  WALLS=S.wall;FOREST=S.forest;FORT=S.fort;DEEP=S.deep;SHALLOW=S.shallow;SWAMP=S.swamp;GRAVES=S.grave;BARRELS=S.barrels;XBAR=S.xbarrel;CAMPS=S.campsite;LAVA=S.lava;MAGMA=S.magma;VOLC=S.volcano;
+  WALLS=S.wall;FOREST=S.forest;FORT=S.fort;DEEP=S.deep;SHALLOW=S.shallow;SWAMP=S.swamp;GRAVES=S.grave;BARRELS=S.barrels;XBAR=S.xbarrel;CAMPS=S.campsite;LAVA=S.lava;MAGMA=S.magma;VOLC=S.volcano;CHERRY=S.cherry;S.cherry.forEach(k=>FOREST.add(k));
   MURKY=def.biome==="swamp";HAUNTED=def.biome==="graveyard";VOLCANIC=def.biome==="volcanic";WALLV=def.wallStyle||0;groupForts(()=>0);
 }
 // what's wrong with a map, if anything (an empty list means it's playable); notes are warnings that don't block play
