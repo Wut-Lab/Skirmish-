@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Skirmish 3D Board</title>
+<style>
+:root{--bg:#c9d6e0;--ink:#1c2733;--panel:#fff;--you:#2f6fb5;--foe:#b8432f}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ink:#e3e9ee;--panel:#1d2731}}
+:root[data-theme="dark"]{--ink:#e3e9ee;--panel:#1d2731}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,sans-serif}
+#view{position:fixed;inset:0;touch-action:none}
+#hud{position:fixed;top:12px;left:16px;right:16px;pointer-events:none}
+#hud h1{margin:0;font-size:17px;font-weight:600;color:#1c2733}
+#status{display:inline-block;margin:6px 0 0;padding:6px 12px;border-radius:8px;background:var(--panel);box-shadow:0 1px 4px rgba(0,0,0,.15)}
+#status b.you{color:var(--you)}#status b.foe{color:var(--foe)}
+#bar{position:fixed;left:16px;right:16px;bottom:16px;display:flex;gap:8px;justify-content:center}
+button{font:inherit;padding:9px 16px;border-radius:8px;border:1px solid color-mix(in srgb,var(--ink) 20%,transparent);background:var(--panel);color:var(--ink);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+button.pri{background:var(--you);color:#fff;border-color:transparent}
+button:disabled{opacity:.5;cursor:default}
+</style>
+</head>
+<body>
+<div id="view"></div>
+<header id="hud"><h1>Skirmish 3D test board</h1><p id="status">Loading…</p></header>
+<div id="bar"><button id="end" class="pri">End turn</button><button id="reset">New game</button></div>
+<script src="units3d.js"></script>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from "three";
+import {OrbitControls} from "three/addons/controls/OrbitControls.js";
+import {RoomEnvironment} from "three/addons/environments/RoomEnvironment.js";
+const U=Units3D;
+
+/* ---------- board layout ----------
+   . grass  p dirt path (both walkable)
+   r rocks  t tree  s stump  c crates  b barrels  f fence  w low stone wall (all block movement) */
+const MAP=[
+ "..t...p.",
+ ".r....p.",
+ "......pp",
+ ".ww..c..",
+ "..s...r.",
+ "pp...f..",
+ ".p.t...b",
+ ".p....r.",
+];
+const COLS=8,ROWS=8,BLOCK="rtscbfw";
+// Knight stats from the game (TYPES.K); damage dealt = dmg - armor, retaliation = that share of it (at least 1)
+const STATS={hp:12,mv:3,dmg:5,ar:2},RET_SHARE=.5;
+const TEAM_COLOR=[0x2f6fb5,0xb8432f],TEAM_NAME=["You","Foe"];
+const START=[[1,1,0],[1,4,0],[1,6,1],[0,1,7],[0,4,7],[0,6,6]]; // [team,x,z]; team 1 starts at the far edge
+
+/* ---------- renderer, light, camera ---------- */
+const view=document.getElementById("view");
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
+view.appendChild(renderer.domElement);
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0xc9d6e0);scene.fog=new THREE.Fog(0xc9d6e0,16,32);
+scene.environment=new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(),.04).texture;
+scene.environmentIntensity=.55;
+scene.add(new THREE.HemisphereLight(0xfff1dc,0x3c4a2a,.7));
+const sun=new THREE.DirectionalLight(0xfff0d8,2.8);sun.position.set(5,9,4);sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);sun.shadow.bias=-.0004;sun.shadow.normalBias=.02;
+Object.assign(sun.shadow.camera,{left:-7,right:7,top:7,bottom:-7,near:1,far:25});scene.add(sun);
+
+const camera=new THREE.PerspectiveCamera(38,1,.1,60);camera.position.set(0,8.4,8.6);
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.target.set(0,0,.7);controls.enableDamping=true;controls.enablePan=false;
+controls.minDistance=5;controls.maxDistance=15;controls.minPolarAngle=.3;controls.maxPolarAngle=1.2;
+
+/* ---------- procedural textures ---------- */
+const tex=(key,draw,opt)=>U.canvasTex(THREE,key,256,draw,opt);
+const blades=(c,w,h,r,cols,n,len)=>{for(let i=0;i<n;i++){c.strokeStyle=cols[(r()*cols.length)|0];c.globalAlpha=.65;c.lineWidth=1+r();const x=r()*w,y=r()*h,a=-Math.PI/2+(r()-.5)*1.3,l=len*(.5+r());c.beginPath();c.moveTo(x,y);c.lineTo(x+Math.cos(a)*l,y+Math.sin(a)*l);c.stroke()}c.globalAlpha=1};
+const blobs=(c,w,h,r,n,size,fill)=>{for(let i=0;i<n;i++){c.fillStyle=fill(r);const x=r()*w,y=r()*h,s=size*(.4+r());c.beginPath();c.ellipse(x,y,s,s*(.6+r()*.4),r()*3,0,Math.PI*2);c.fill()}};
+const grassTex=k=>tex("grass"+k,(c,w,h,r)=>{c.fillStyle="#5b7a37";c.fillRect(0,0,w,h);U.noise(c,w,h,r,24);
+  blobs(c,w,h,r,12,30,r=>`rgba(${r()<.5?40:120},${r()<.5?60:110},20,.12)`);
+  blades(c,w,h,r,["#6e8f40","#4b6a2b","#88a352","#7d8b3f","#3f5a25"],1600,6)});
+const dirtTex=k=>tex("dirt"+k,(c,w,h,r)=>{c.fillStyle="#86684a";c.fillRect(0,0,w,h);U.noise(c,w,h,r,36);
+  blobs(c,w,h,r,10,40,()=>"rgba(60,40,20,.12)");
+  blobs(c,w,h,r,140,3,r=>{const g=110+r()*70|0;return`rgb(${g},${g-12|0},${g-28|0})`});
+  blades(c,w,h,r,["#6e8f40","#55732f"],60,5)});
+const soilTex=tex("soil",(c,w,h,r)=>{c.fillStyle="#4a3826";c.fillRect(0,0,w,h);U.noise(c,w,h,r,30);for(let i=0;i<12;i++){c.fillStyle=`rgba(${r()<.5?20:120},${r()<.5?14:90},10,.18)`;c.fillRect(0,r()*h,w,2+r()*6)}});
+const stoneTex=tex("stone",(c,w,h,r)=>{c.fillStyle="#8e8b85";c.fillRect(0,0,w,h);U.noise(c,w,h,r,44);
+  blobs(c,w,h,r,40,6,r=>`rgba(${150+r()*40|0},${160+r()*40|0},80,.35)`);
+  for(let i=0;i<20;i++){c.strokeStyle="rgba(30,30,30,.4)";let x=r()*w,y=r()*h;c.beginPath();c.moveTo(x,y);for(let k=0;k<4;k++){x+=(r()-.5)*24;y+=(r()-.5)*24;c.lineTo(x,y)}c.stroke()}});
+const barkTex=tex("bark",(c,w,h,r)=>{c.fillStyle="#5b4330";c.fillRect(0,0,w,h);U.noise(c,w,h,r,30);for(let i=0;i<90;i++){c.strokeStyle=`rgba(${r()<.5?20:140},${r()<.5?14:110},10,.4)`;c.lineWidth=1+r()*3;const x=r()*w;c.beginPath();c.moveTo(x,0);c.bezierCurveTo(x+(r()-.5)*20,h*.3,x+(r()-.5)*20,h*.7,x,h);c.stroke()}},{repeat:[2,1]});
+const leafTex=tex("leaf",(c,w,h,r)=>{c.fillStyle="#46702c";c.fillRect(0,0,w,h);U.noise(c,w,h,r,30);blobs(c,w,h,r,500,5,r=>r()<.5?"rgba(30,60,20,.45)":"rgba(140,180,70,.35)")});
+const plankTex=tex("plank",(c,w,h,r)=>{c.fillStyle="#9b7547";c.fillRect(0,0,w,h);U.noise(c,w,h,r,26);
+  for(let i=0;i<70;i++){c.strokeStyle="rgba(60,35,15,.25)";const y=r()*h;c.beginPath();c.moveTo(0,y);c.bezierCurveTo(w*.3,y+(r()-.5)*8,w*.6,y+(r()-.5)*8,w,y);c.stroke()}
+  c.fillStyle="rgba(40,22,8,.8)";for(let i=1;i<4;i++)c.fillRect(0,i*h/4-2,w,4);
+  c.strokeStyle="#5e4022";c.lineWidth=22;c.strokeRect(0,0,w,h);c.lineWidth=18;c.beginPath();c.moveTo(12,h-12);c.lineTo(w-12,12);c.stroke();
+  c.fillStyle="#2a2a2a";for(const[x,y]of[[10,10],[w-10,10],[10,h-10],[w-10,h-10]]){c.beginPath();c.arc(x,y,3,0,7);c.fill()}});
+const staveTex=tex("stave",(c,w,h,r)=>{c.fillStyle="#8a6239";c.fillRect(0,0,w,h);U.noise(c,w,h,r,24);for(let i=0;i<14;i++){c.fillStyle="rgba(35,20,8,.7)";c.fillRect(i*w/14,0,2,h);c.fillStyle=`rgba(${r()<.5?0:255},${r()<.5?0:200},0,.06)`;c.fillRect(i*w/14+2,0,w/14-2,h)}});
+const ringTex=tex("rings",(c,w,h,r)=>{c.fillStyle="#b48c5e";c.fillRect(0,0,w,h);U.noise(c,w,h,r,20);for(let i=4;i<128;i+=5+r()*4){c.strokeStyle=`rgba(90,55,25,${.3+r()*.3})`;c.lineWidth=1+r()*1.5;c.beginPath();c.arc(w/2+(r()-.5)*3,h/2+(r()-.5)*3,i,0,7);c.stroke()}c.strokeStyle="#4d3420";c.lineWidth=14;c.beginPath();c.arc(w/2,h/2,w/2-5,0,7);c.stroke()});
+const hlTex=tex("hl",(c,w,h)=>{c.clearRect(0,0,w,h);c.fillStyle="rgba(255,255,255,.38)";c.strokeStyle="#fff";c.lineWidth=14;c.beginPath();c.roundRect(14,14,w-28,h-28,30);c.fill();c.stroke()},{color:false});
+
+const mat=(o)=>new THREE.MeshStandardMaterial({roughness:.9,...o});
+const MATS={
+  grass:[0,1,2].map(k=>mat({map:grassTex(k)})),dirt:[0,1].map(k=>mat({map:dirtTex(k)})),
+  soil:mat({map:soilTex,roughness:1}),stone:mat({color:0xa29e97,map:stoneTex,flatShading:true}),bark:mat({map:barkTex}),
+  leaf:mat({map:leafTex,flatShading:true,roughness:.8}),plank:mat({map:plankTex,roughness:.8}),
+  stave:mat({map:staveTex,roughness:.75}),iron:mat({color:0x2f3134,metalness:.8,roughness:.5}),
+  ring:mat({map:ringTex}),fence:mat({color:0x9d8a74,map:U.TEX.grain(THREE,[1,1])}),
+};
+
+/* ---------- ground: a diorama slab of individual tiles with grass tufts ---------- */
+const rnd=U.rng(7);
+const TOP=[...Array(ROWS)].map(()=>[...Array(COLS)].map(()=>(rnd()-.5)*.03)); // per-tile height wobble
+const wpos=(x,z)=>new THREE.Vector3(x-(COLS-1)/2,TOP[z][x],z-(ROWS-1)/2);
+const shadowy=o=>{o.traverse(m=>{if(m.isMesh){m.castShadow=m.receiveShadow=true}});return o};
+
+const base=new THREE.Mesh(new THREE.BoxGeometry(COLS+.3,.6,ROWS+.3),MATS.soil);base.position.y=-.42;base.receiveShadow=true;scene.add(base);
+const tiles=[];
+for(let z=0;z<ROWS;z++)for(let x=0;x<COLS;x++){
+  const path=MAP[z][x]==="p",top=path?MATS.dirt[(x+z)%2]:MATS.grass[(x*3+z*5)%3];
+  const t=new THREE.Mesh(new THREE.BoxGeometry(.97,.3,.97),[MATS.soil,MATS.soil,top,MATS.soil,MATS.soil,MATS.soil]);
+  t.position.copy(wpos(x,z)).y-=.15;t.rotation.y=((x*7+z*3)%4)*Math.PI/2;t.receiveShadow=true;t.userData={x,z};
+  scene.add(t);tiles.push(t);
+}
+{ // grass tufts: one instanced mesh for the whole board
+  const geo=new THREE.ConeGeometry(.012,.1,3);geo.translate(0,.05,0);
+  const spots=[];
+  for(let z=0;z<ROWS;z++)for(let x=0;x<COLS;x++){const n=MAP[z][x]==="p"?3:34;for(let i=0;i<n;i++)spots.push([x,z])}
+  const tufts=new THREE.InstancedMesh(geo,mat({color:0xffffff}),spots.length),m=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler(),col=new THREE.Color();
+  spots.forEach(([x,z],i)=>{
+    const p=wpos(x,z).add(new THREE.Vector3((rnd()-.5)*.9,0,(rnd()-.5)*.9));
+    q.setFromEuler(e.set((rnd()-.5)*.6,rnd()*6,(rnd()-.5)*.6));
+    m.compose(p,q,new THREE.Vector3(1,.6+rnd()*.9,1));tufts.setMatrixAt(i,m);
+    tufts.setColorAt(i,col.setHSL(.22+rnd()*.06,.45,.25+rnd()*.15));
+  });
+  tufts.receiveShadow=true;scene.add(tufts);
+}
+
+/* ---------- obstacles ---------- */
+function lumpy(r,seed,detail=2){ // a rock-like blob: an icosphere pushed in and out by smooth noise
+  return U.warp(new THREE.IcosahedronGeometry(r,detail),v=>{
+    const k=1+.16*Math.sin(v.x*9+seed)*Math.sin(v.y*11+seed*2)+.1*Math.sin(v.z*13+seed*3)+.06*Math.sin((v.x+v.z)*21+seed);
+    v.x*=k;v.y*=k;v.z*=k;
+  });
+}
+const PROPS={
+  r(g,R){ // rocks: one boulder and a couple of stones
+    const big=new THREE.Mesh(lumpy(.3,R()*9),MATS.stone);big.scale.set(1,.68,.9);big.position.y=.13;g.add(big);
+    for(let i=0;i<2;i++){const s=new THREE.Mesh(lumpy(.1+R()*.06,R()*9,1),MATS.stone);s.scale.y=.7;s.position.set((R()-.5)*.7,.04,(R()-.5)*.7);g.add(s)}
+  },
+  t(g,R){ // tree: tapered trunk with a few root flares and a clumped canopy
+    const trunk=new THREE.Mesh(U.lathe(THREE,[[.13,0],[.1,.08],[.08,.3],[.065,1.05],[0,1.12]],12,0),MATS.bark);g.add(trunk);
+    for(let i=0;i<4;i++){const root=new THREE.Mesh(new THREE.ConeGeometry(.05,.3,5),MATS.bark),a=i*1.6+R();root.position.set(Math.sin(a)*.12,.04,Math.cos(a)*.12);root.rotation.set(Math.cos(a)*1.25,0,-Math.sin(a)*1.25);g.add(root)}
+    [[0,1.35,0,.5],[.25,1.15,.1,.36],[-.22,1.2,-.08,.38],[.05,1.68,-.05,.36],[-.05,1.1,.25,.3]].forEach(([x,y,z,r])=>{
+      const c=new THREE.Mesh(lumpy(r,R()*9,1),MATS.leaf);c.position.set(x,y,z);g.add(c)});
+  },
+  s(g){ // stump with growth rings on top
+    const st=new THREE.Mesh(new THREE.CylinderGeometry(.17,.21,.2,14),[MATS.bark,MATS.ring,MATS.bark]);st.position.y=.1;g.add(st);
+  },
+  c(g,R){ // stacked crates
+    const box=(s,x,y,z,ry)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(s,s,s),MATS.plank);b.position.set(x,y+s/2,z);b.rotation.y=ry;g.add(b)};
+    box(.42,-.2,0,.05,R()*.2);box(.38,.22,0,-.1,R()*.3);box(.34,-.05,.42,0,.5+R()*.3);
+  },
+  b(g,R){ // two barrels with iron hoops
+    for(const[x,z]of[[-.18,.08],[.2,-.12]]){
+      const bg=new THREE.Group();bg.position.set(x,0,z);bg.rotation.y=R()*6;g.add(bg);
+      bg.add(new THREE.Mesh(U.lathe(THREE,[[.13,0],[.16,.12],[.17,.26],[.16,.4],[.13,.52]],18,0),MATS.stave));
+      const lid=new THREE.Mesh(new THREE.CircleGeometry(.13,18),MATS.ring);lid.rotation.x=-Math.PI/2;lid.position.y=.515;bg.add(lid);
+      for(const[y,r]of[[.06,.145],[.16,.163],[.36,.163],[.46,.145]]){const h=new THREE.Mesh(new THREE.TorusGeometry(r,.008,4,24),MATS.iron);h.rotation.x=Math.PI/2;h.position.y=y;bg.add(h)}
+    }
+  },
+  f(g,R){ // split-rail fence across the tile
+    for(const x of[-.42,0,.42]){const p=new THREE.Mesh(new THREE.BoxGeometry(.07,.5,.07),MATS.fence);p.position.set(x,.25,0);p.rotation.y=R()*.3;g.add(p)}
+    for(const y of[.2,.38]){const r=new THREE.Mesh(new THREE.BoxGeometry(.96,.05,.04),MATS.fence);r.position.set(0,y,0);r.rotation.set((R()-.5)*.1,0,(R()-.5)*.06);g.add(r)}
+  },
+  w(g,R){ // dry-stone wall: rows of rough stones running along x
+    for(let row=0;row<3;row++){let x=-.5+(row%2)*.08;while(x<.48){
+      const w=.14+R()*.1,s=new THREE.Mesh(new THREE.BoxGeometry(Math.min(w,.5-x),.13,.24+R()*.08),MATS.stone);
+      s.position.set(x+Math.min(w,.5-x)/2,.07+row*.13,(R()-.5)*.04);s.rotation.set((R()-.5)*.1,(R()-.5)*.2,(R()-.5)*.1);g.add(s);x+=w+.01}}
+  },
+};
+for(let z=0;z<ROWS;z++)for(let x=0;x<COLS;x++){
+  const k=MAP[z][x];if(!PROPS[k])continue;
+  const R=U.rng(x*31+z*17+3),g=new THREE.Group();PROPS[k](g,R);
+  g.position.copy(wpos(x,z));if(k!=="w"&&k!=="f")g.rotation.y=R()*Math.PI*2;
+  scene.add(shadowy(g));
+}
+
+/* ---------- tile highlights (move range, targets, hover, selection) ---------- */
+const hlGeo=new THREE.PlaneGeometry(.92,.92).rotateX(-Math.PI/2),hlPool=[];let hlUsed=0;
+function mark(x,z,color,opacity=1){
+  let m=hlPool[hlUsed];
+  if(!m){m=new THREE.Mesh(hlGeo,new THREE.MeshBasicMaterial({map:hlTex,transparent:true,depthWrite:false}));m.renderOrder=2;scene.add(m);hlPool.push(m)}
+  m.material.color.set(color);m.material.opacity=opacity;m.position.copy(wpos(x,z)).y+=.012;m.visible=true;hlUsed++;
+}
+const clearMarks=()=>{for(const m of hlPool)m.visible=false;hlUsed=0};
+const hover=new THREE.Mesh(hlGeo,new THREE.MeshBasicMaterial({map:hlTex,transparent:true,depthWrite:false,opacity:.5}));hover.renderOrder=3;hover.visible=false;scene.add(hover);
+const selRing=new THREE.Mesh(new THREE.RingGeometry(.3,.38,40).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xffd34d,transparent:true,depthWrite:false}));selRing.visible=false;selRing.renderOrder=3;scene.add(selRing);
+
+/* ---------- tweens: tiny promise-based animation helper ---------- */
+const tweens=[];
+const tween=(dur,f)=>new Promise(done=>tweens.push({t:0,dur,f,done}));
+const wait=s=>tween(s,()=>{});
+const ease=p=>p<.5?2*p*p:1-(2-2*p)**2/2;
+
+/* ---------- units ---------- */
+let units=[],corpses=[],sel=null,phase="player",busy=false,hitboxes=[];
+const hitGeo=new THREE.CylinderGeometry(.32,.32,1.1,8);hitGeo.translate(0,.55,0);
+function barTexture(u){
+  const c=u.barCanvas||(u.barCanvas=Object.assign(document.createElement("canvas"),{width:128,height:22})),g=c.getContext("2d");
+  g.clearRect(0,0,128,22);g.globalAlpha=u.acted&&u.team===0&&phase==="player"?.5:1;
+  g.fillStyle="rgba(15,20,25,.8)";g.beginPath();g.roundRect(0,0,128,22,8);g.fill();
+  g.fillStyle="#"+new THREE.Color(TEAM_COLOR[u.team]).offsetHSL(0,0,.08).getHexString();
+  g.beginPath();g.roundRect(3,3,122*u.hp/STATS.hp,16,6);g.fill();
+  g.fillStyle="#fff";g.font="bold 15px system-ui,sans-serif";g.textAlign="center";g.textBaseline="middle";g.fillText(u.hp,64,12);
+  if(u.bar)u.bar.material.map.needsUpdate=true;
+}
+function spawn(team,x,z){
+  const u={team,x,z,hp:STATS.hp,moved:false,acted:false};
+  u.obj=U.makeKnight(THREE,{team:TEAM_COLOR[team]});u.obj.position.copy(wpos(x,z));u.obj.rotation.y=team?0:Math.PI;
+  barTexture(u);
+  u.bar=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(u.barCanvas),depthTest:false}));
+  u.bar.scale.set(.55,.095,1);u.bar.position.y=1.12;u.bar.renderOrder=10;u.obj.add(u.bar);
+  u.hit=new THREE.Mesh(hitGeo,new THREE.MeshBasicMaterial({visible:false}));u.hit.userData.unit=u;u.obj.add(u.hit);hitboxes.push(u.hit);
+  scene.add(u.obj);units.push(u);return u;
+}
+function floatText(u,text,color){ // damage numbers drifting up from a unit
+  const c=Object.assign(document.createElement("canvas"),{width:128,height:64}),g=c.getContext("2d");
+  g.font="bold 44px system-ui,sans-serif";g.textAlign="center";g.textBaseline="middle";g.lineWidth=7;g.strokeStyle="rgba(0,0,0,.7)";g.strokeText(text,64,34);g.fillStyle=color;g.fillText(text,64,34);
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false,transparent:true}));
+  s.scale.set(.5,.25,1);s.renderOrder=11;const p=u.obj.position.clone();s.position.copy(p).y+=1.2;scene.add(s);
+  tween(1.1,k=>{s.position.y=p.y+1.2+k*.5;s.material.opacity=1-Math.max(0,k-.5)*2}).then(()=>scene.remove(s));
+}
+const unitAt=(x,z)=>units.find(u=>u.x===x&&u.z===z);
+const inside=(x,z)=>x>=0&&z>=0&&x<COLS&&z<ROWS;
+const open=(x,z)=>inside(x,z)&&!BLOCK.includes(MAP[z][x]);
+const DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
+const adjacent=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.z-b.z)===1;
+const key=(x,z)=>x+","+z;
+
+// tiles a unit can end on within its move, with the path to each; allies can be passed through, enemies cannot
+function reach(u){
+  const seen=new Map([[key(u.x,u.z),{x:u.x,z:u.z,d:0,prev:null}]]),q=[seen.get(key(u.x,u.z))];
+  while(q.length){const n=q.shift();if(n.d===STATS.mv)continue;
+    for(const[dx,dz]of DIRS){const x=n.x+dx,z=n.z+dz,k=key(x,z),o=unitAt(x,z);
+      if(!open(x,z)||seen.has(k)||o&&o.team!==u.team)continue;
+      const m={x,z,d:n.d+1,prev:n};seen.set(k,m);q.push(m)}}
+  return [...seen.values()].filter(n=>n.d>0&&!unitAt(n.x,n.z));
+}
+const pathTo=n=>{const p=[];for(;n.prev;n=n.prev)p.unshift(n);return p};
+const targets=u=>units.filter(o=>o.team!==u.team&&adjacent(u,o));
+
+/* ---------- actions ---------- */
+function turnTo(u,x,z){
+  const want=Math.atan2(x-u.obj.position.x,z-u.obj.position.z),from=u.obj.rotation.y;
+  const diff=Math.atan2(Math.sin(want-from),Math.cos(want-from));
+  return tween(.22,k=>u.obj.rotation.y=from+diff*ease(k));
+}
+async function walk(u,path){
+  u.obj.walking=true;
+  for(const step of path){
+    const a=u.obj.position.clone(),b=wpos(step.x,step.z);
+    await Promise.all([turnTo(u,b.x,b.z),tween(.42,k=>u.obj.position.lerpVectors(a,b,k))]);
+  }
+  u.obj.walking=false;
+  const last=path[path.length-1];u.x=last.x;u.z=last.z;
+}
+async function strike(a,d,dmg){
+  const swing=a.obj.play("attack");
+  await wait(.48);
+  d.hp=Math.max(0,d.hp-dmg);barTexture(d);floatText(d,"-"+dmg,"#ffd9cf");
+  if(d.hp>0)return Promise.all([swing,d.obj.play("hit")]);
+  units=units.filter(o=>o!==d);corpses.push(d.obj);d.bar.visible=false;hitboxes=hitboxes.filter(h=>h!==d.hit);
+  await Promise.all([swing,d.obj.play("die")]);
+  wait(1.2).then(()=>{const y=d.obj.position.y;return tween(1.4,k=>d.obj.position.y=y-k*.45)}).then(()=>{scene.remove(d.obj);corpses=corpses.filter(o=>o!==d.obj)});
+}
+async function attack(a,d){
+  await Promise.all([turnTo(a,d.obj.position.x,d.obj.position.z),turnTo(d,a.obj.position.x,a.obj.position.z)]);
+  const dealt=STATS.dmg-STATS.ar;
+  await strike(a,d,dealt);
+  if(d.hp>0)await strike(d,a,Math.max(1,Math.round(dealt*RET_SHARE))); // retaliation
+  a.moved=a.acted=true;barTexture(a);
+}
+
+/* ---------- player turn: tap a knight, tap a green tile to move, tap a red-marked enemy to attack ---------- */
+const $=id=>document.getElementById(id);
+const status=html=>$("status").innerHTML=html;
+function refresh(){
+  clearMarks();selRing.visible=false;
+  if(phase!=="player"||!sel||busy)return;
+  selRing.position.copy(sel.obj.position).y+=.015;selRing.visible=true;
+  if(!sel.moved)for(const n of reach(sel))mark(n.x,n.z,0x8fe3a8);
+  if(!sel.acted)for(const t of targets(sel))mark(t.x,t.z,0xff7a5c);
+}
+function prompt(){
+  if(phase==="over")return;
+  const left=units.filter(u=>u.team===0&&!u.acted).length;
+  status(sel?(sel.moved?"Attack an adjacent enemy, or pick another knight":"Tap a green tile to move, or a red one to attack")
+    :`<b class="you">Your turn</b> · ${left} knight${left===1?"":"s"} ready · tap one to select`);
+}
+async function act(f){busy=true;refresh();try{await f()}finally{busy=false}if(!checkOver()){if(sel&&sel.acted)sel=null;refresh();prompt()}}
+function tap(x,z){
+  if(busy||phase!=="player")return;
+  const u=unitAt(x,z);
+  if(u&&u.team===0&&!u.acted){sel=u;refresh();return prompt()}
+  if(sel&&u&&u.team===1&&!sel.acted&&adjacent(sel,u))return act(()=>attack(sel,u));
+  const dest=sel&&!sel.moved&&reach(sel).find(n=>n.x===x&&n.z===z);
+  if(dest)return act(async()=>{await walk(sel,pathTo(dest));sel.moved=true;if(!targets(sel).length){sel.acted=true;barTexture(sel)}});
+  sel=null;refresh();prompt();
+}
+
+/* ---------- enemy turn: each foe closes in on the nearest knight and attacks if it can ---------- */
+function distanceField(){ // steps from every tile to the nearest player knight, through open tiles
+  const d=new Map(),q=[];
+  for(const u of units)if(u.team===0){d.set(key(u.x,u.z),0);q.push([u.x,u.z])}
+  while(q.length){const[x,z]=q.shift(),n=d.get(key(x,z));for(const[dx,dz]of DIRS){const X=x+dx,Z=z+dz;if(open(X,Z)&&!d.has(key(X,Z))){d.set(key(X,Z),n+1);q.push([X,Z])}}}
+  return d;
+}
+async function enemyTurn(){
+  phase="enemy";sel=null;refresh();status(`<b class="foe">Enemy turn</b>`);$("end").disabled=true;busy=true;
+  for(const u of units.filter(u=>u.team===1)){
+    if(!units.includes(u))continue;
+    if(!targets(u).length){
+      const field=distanceField(),score=n=>field.get(key(n.x,n.z))??99;
+      const best=reach(u).sort((a,b)=>score(a)-score(b)||a.d-b.d)[0];
+      if(best&&score(best)<(field.get(key(u.x,u.z))??99))await walk(u,pathTo(best));
+    }
+    const t=targets(u).sort((a,b)=>a.hp-b.hp)[0];
+    if(t)await attack(u,t);
+    if(checkOver())return;
+    await wait(.15);
+  }
+  for(const u of units){u.moved=u.acted=false}
+  phase="player";busy=false;$("end").disabled=false;for(const u of units)barTexture(u);prompt();
+}
+function checkOver(){
+  const alive=t=>units.some(u=>u.team===t);
+  if(alive(0)&&alive(1))return false;
+  phase="over";sel=null;refresh();$("end").disabled=true;busy=false;
+  status(alive(0)?`<b class="you">Victory!</b> The field is yours.`:`<b class="foe">Defeat.</b> Try a new game.`);
+  return true;
+}
+
+function newGame(){
+  for(const o of[...units.map(u=>u.obj),...corpses])scene.remove(o);
+  units=[];corpses=[];hitboxes=[];sel=null;phase="player";busy=false;tweens.length=0;
+  for(const[t,x,z]of START)spawn(t,x,z);
+  $("end").disabled=false;refresh();prompt();
+}
+$("end").onclick=()=>{if(phase==="player"&&!busy)enemyTurn()};
+$("reset").onclick=newGame;
+
+/* ---------- picking: a short tap selects; a drag orbits the camera ---------- */
+const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();
+function pick(ev){
+  const r=renderer.domElement.getBoundingClientRect();
+  ndc.set((ev.clientX-r.left)/r.width*2-1,-(ev.clientY-r.top)/r.height*2+1);ray.setFromCamera(ndc,camera);
+  const h=ray.intersectObjects([...hitboxes,...tiles],false)[0];
+  if(!h)return null;
+  const u=h.object.userData.unit;return u?{x:u.x,z:u.z}:h.object.userData;
+}
+let down=null;
+renderer.domElement.addEventListener("pointerdown",e=>down={x:e.clientX,y:e.clientY,t:performance.now()});
+renderer.domElement.addEventListener("pointerup",e=>{
+  if(down&&Math.hypot(e.clientX-down.x,e.clientY-down.y)<8&&performance.now()-down.t<600){const p=pick(e);if(p)tap(p.x,p.z)}
+  down=null;
+});
+renderer.domElement.addEventListener("pointermove",e=>{
+  if(e.pointerType!=="mouse")return;
+  const p=pick(e);hover.visible=!!p&&!down;if(p)hover.position.copy(wpos(p.x,p.z)).y+=.014;
+});
+
+// fit the whole board on screen: back the camera off along its view direction until the board's width fits (narrow phones)
+function resize(){
+  const w=view.clientWidth,h=view.clientHeight,aspect=w/h;
+  renderer.setSize(w,h);camera.aspect=aspect;camera.fov=aspect<1?44:38;camera.updateProjectionMatrix();
+  const fit=Math.max(11.8,(COLS/2+.7)/(Math.tan(camera.fov*Math.PI/360)*aspect));
+  controls.maxDistance=Math.max(15,fit*1.25);
+  // tall screens look down more steeply so the board uses the extra height
+  camera.position.setFromSphericalCoords(fit,aspect<1?.5:.76,0).add(controls.target);
+  scene.fog.near=fit+4;scene.fog.far=fit+20;
+}
+addEventListener("resize",resize);resize();
+
+const clock=new THREE.Clock();
+renderer.setAnimationLoop(()=>{
+  const dt=Math.min(clock.getDelta(),.05),t=clock.elapsedTime;
+  for(let i=tweens.length-1;i>=0;i--){const w=tweens[i];w.t+=dt;const k=Math.min(1,w.t/w.dur);w.f(k);if(k>=1){tweens.splice(i,1);w.done()}}
+  for(const u of units)u.obj.update(t,dt);
+  for(const o of corpses)o.update(t,dt);
+  if(selRing.visible&&sel)selRing.position.set(sel.obj.position.x,sel.obj.position.y+.015,sel.obj.position.z);
+  controls.update();renderer.render(scene,camera);
+});
+
+newGame();
+window.__game={tap,get units(){return units},get busy(){return busy},enemyTurn}; // hooks for automated screenshots
+</script>
+</body>
+</html>

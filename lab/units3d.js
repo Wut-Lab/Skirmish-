@@ -12,7 +12,7 @@ function canvasTex(THREE,key,size,draw,{color=true,repeat=[1,1]}={}){
   const k=key+"|"+repeat;
   if(cache[k])return cache[k];
   let base=cache[key+"|canvas"];
-  if(!base){base=document.createElement("canvas");base.width=base.height=size;draw(base.getContext("2d"),size,size,rng(key.length*977+size));cache[key+"|canvas"]=base}
+  if(!base){base=document.createElement("canvas");base.width=base.height=size;draw(base.getContext("2d"),size,size,rng([...key].reduce((h,ch)=>Math.imul(h^ch.charCodeAt(0),16777619),2166136261)));cache[key+"|canvas"]=base}
   const t=new THREE.CanvasTexture(base);
   t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(repeat[0],repeat[1]);t.anisotropy=8;
   if(color)t.colorSpace=THREE.SRGBColorSpace;
