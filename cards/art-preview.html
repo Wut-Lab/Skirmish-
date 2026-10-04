@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Card Art Sheet</title>
+<style>
+:root{--bg:#2f5d3a;--ink:#f3f1ea}
+body{margin:0;padding:16px;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,sans-serif}
+h1{font-size:18px;margin:0 0 4px}p{margin:0 0 12px;opacity:.8}
+#sheet{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:10px}
+canvas{width:100%;height:auto;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+</style>
+</head>
+<body>
+<h1>Card art sheet</h1>
+<p>Every card image the 3D deck uses, drawn flat. Handy for checking the artwork.</p>
+<div id="sheet"></div>
+<script src="cardArt.js"></script>
+<script>
+const sheet=document.getElementById("sheet");
+sheet.append(CardArt.canvas(null));
+for(const s of CardArt.SUITS)for(const r of CardArt.RANKS)sheet.append(CardArt.canvas(r,s,240));
+</script>
+</body>
+</html>
