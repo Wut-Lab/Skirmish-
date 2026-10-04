@@ -70,6 +70,7 @@ button.b small{display:block;font-size:.78rem;opacity:.85}
 .discs{display:flex;justify-content:center;gap:12px}
 .pv{position:relative;width:48px;height:48px;flex:none}
 .menubtns{display:grid;gap:10px;max-width:280px;margin:22px auto}
+.mtog{display:flex;justify-content:center;gap:8px;margin:-8px auto 18px}.mtog .b{font-size:.85rem;padding:6px 12px}
 button.b.big{text-align:center;font-size:1.05rem;padding:14px}
 #prules h3{margin:12px 0 2px;font-size:.95rem}
 #prules p{margin:0}
@@ -390,6 +391,7 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 <section id="menu">
 <div class="hero"><div class="discs" id="hero"></div><h1>Skirmish</h1><p>Turn-based tactics on a small battlefield.</p></div>
 <div class="menubtns" id="mbtns"><button class="b big" id="camp">Campaign</button><button class="b big" id="play">Quick Battle</button><button class="b big" id="chal">Challenges</button><button class="b big" id="unl">Unlocks</button><button class="b big" id="how">How to Play</button><button class="b big" id="edit" hidden>Map Editor</button></div>
+<div class="mtog"><button class="b" id="msound">Sound: On</button><button class="b" id="mmusic">Music: On</button></div>
 <div id="chalview" hidden></div>
 <div id="rulesview" hidden></div>
 <div id="unlockview" hidden></div>
@@ -489,6 +491,7 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 <button class="b big" id="prule">How to Play</button>
 <button class="b big" id="pguide">Terrain Guide</button>
 <button class="b big" id="psound">Sound: On</button>
+<button class="b big" id="pmusic">Music: On</button>
 <button class="b big" id="pconcede">Concede</button>
 </div>
 <div id="prules" hidden></div>
@@ -1373,28 +1376,32 @@ function doTrumpet(a){ // Trumpet of Encouragement: nearby allies that have move
   say(`The trumpet sounds! ${near.length} all${near.length>1?"ies":"y"} rallied with +5% evasion until the end of your next turn`+(n?`; ${n} can move again.`:"."));render();
 }
 /* ---------- Sound ---------- */
-// every effect is synthesized on the fly and kept quiet; the pause menu turns it off (remembered per browser)
-const SKEY="skirmish_sound";let actx=null,sfxOn=(()=>{try{return localStorage.getItem(SKEY)!=="off"}catch(e){return true}})();const sfxLast={};
+// every effect and the music are synthesized on the fly and kept quiet; Sound and Music switch off separately (remembered per browser)
+const SKEY="skirmish_sound",MKEY="skirmish_music",pref=(k)=>{try{return localStorage.getItem(k)!=="off"}catch(e){return true}};
+let actx=null,sfxOn=pref(SKEY),musicOn=pref(MKEY),mus=null;const sfxLast={};
+const SFX_VOL=.07,MUSIC_VOL=.08;
+function audio(){actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume();return actx}
 function sfx(name){
   if(!sfxOn)return;
   try{
     const now=performance.now();if(now-(sfxLast[name]||0)<70)return;sfxLast[name]=now; // a splash of hits plays once
-    actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume();
-    const t0=actx.currentTime+.01,out=actx.createGain();out.gain.value=.05;out.connect(actx.destination);
+    audio();
+    const t0=actx.currentTime+.01,out=actx.createGain(),vr=1+(Math.random()-.5)*.08;out.gain.value=SFX_VOL;out.connect(actx.destination); // vr: a little pitch variety so repeats don't grate
     const env=(s,a,hold,rel,peak=1)=>{const g=actx.createGain();g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(peak,s+a);g.gain.setValueAtTime(peak,s+a+hold);g.gain.exponentialRampToValueAtTime(.001,s+a+hold+rel);return g};
     const tone=(type,f,s,len,peak=1,f2)=>{const o=actx.createOscillator(),g=env(s,.008,0,len,peak);o.type=type;o.frequency.setValueAtTime(f,s);if(f2)o.frequency.exponentialRampToValueAtTime(f2,s+len);o.connect(g);g.connect(out);o.start(s);o.stop(s+len+.05)};
     const noise=(s,len,ftype,f,q,peak=1,f2)=>{const n=actx.createBufferSource(),b=actx.createBuffer(1,Math.ceil(actx.sampleRate*(len+.05)),actx.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
-      const fl=actx.createBiquadFilter(),g=env(s,.005,0,len,peak);fl.type=ftype;fl.frequency.setValueAtTime(f,s);if(f2)fl.frequency.exponentialRampToValueAtTime(f2,s+len);fl.Q.value=q;n.buffer=b;n.connect(fl);fl.connect(g);g.connect(out);n.start(s);n.stop(s+len+.05)};
+      const fl=actx.createBiquadFilter(),g=env(s,.004,0,len,peak);fl.type=ftype;fl.frequency.setValueAtTime(f,s);if(f2)fl.frequency.exponentialRampToValueAtTime(f2,s+len);fl.Q.value=q;n.buffer=b;n.connect(fl);fl.connect(g);g.connect(out);n.start(s);n.stop(s+len+.05)};
+    const bell=(f,s,len,peak)=>{tone("sine",f,s,len,peak);tone("sine",f*2.76,s,len*.35,peak*.18);tone("sine",f*5.4,s,len*.15,peak*.06)}; // a struck bell: fundamental plus quick inharmonic partials
     switch(name){
-      case "step":noise(t0,.07,"lowpass",420,.7,.7);break; // a soft footfall
-      case "hit":tone("sine",150,t0,.14,1.4,55);noise(t0,.06,"lowpass",900,.7,.5);break; // a dull thud
-      case "kill":tone("sine",120,t0,.3,1.6,40);noise(t0,.16,"lowpass",600,.7,.6);tone("triangle",220,t0+.05,.25,.25,110);break;
-      case "evade":noise(t0,.16,"bandpass",500,1.4,.9,2600);break; // a quick whoosh past the target
-      case "heal":tone("sine",660,t0,.22,.5);tone("sine",880,t0+.09,.3,.45);break;
-      case "bless":tone("sine",990,t0,.3,.35);tone("sine",1320,t0+.08,.4,.3);break;
-      case "win":[523.25,659.25,783.99].forEach((f,i)=>tone("triangle",f,t0+i*.12,i<2?.16:.5,.7));break;
+      case "step":noise(t0,.05,"lowpass",700*vr,.8,.55,260);noise(t0+.045,.04,"lowpass",500*vr,.8,.3,200);break; // two soft crunches of a footfall
+      case "hit":tone("sine",160*vr,t0,.16,1.5,55);noise(t0,.05,"lowpass",1200,.7,.55);tone("triangle",410*vr,t0,.11,.22,330);noise(t0,.04,"bandpass",2600*vr,3,.18);break; // a thud with a little steel ring
+      case "kill":tone("sine",130*vr,t0,.36,1.7,38);noise(t0,.2,"lowpass",700,.7,.7,180);tone("triangle",260,t0+.06,.3,.28,120);tone("triangle",380*vr,t0,.14,.18,300);break; // a heavier blow and a falling tone
+      case "evade":noise(t0,.2,"bandpass",420,1.6,.85,2800);noise(t0+.03,.14,"highpass",3000,.7,.12);break; // a quick whoosh past the target
+      case "heal":bell(659.25,t0,.5,.45);bell(880,t0+.1,.65,.38);break;
+      case "bless":[987.77,1318.5,1567.98].forEach((f,i)=>bell(f,t0+i*.07,.55,.22));break; // a soft shimmer
+      case "win":[[523.25,0,.16],[659.25,.13,.16],[783.99,.26,.16],[1046.5,.39,.6]].forEach(([f,st,len])=>{tone("triangle",f,t0+st,len,.6);tone("sine",f/2,t0+st,len,.25)});break;
+      case "lose":[[392,0,.28],[349.23,.24,.28],[293.66,.48,.75]].forEach(([f,st,len])=>{tone("triangle",f,t0+st,len,.55);tone("sine",f/2,t0+st,len,.3)});break;
       case "erupt":tone("sine",70,t0,.7,1.8,35);noise(t0,.55,"lowpass",320,.8,1.2,120);noise(t0+.05,.3,"bandpass",900,1,.35,300);break; // a deep rumble and hiss
-      case "lose":tone("triangle",392,t0,.25,.6);tone("triangle",311.13,t0+.2,.6,.6);break;
       case "trumpet":{ // a short brass call: two detuned sawtooth voices through a soft low-pass
         const lp=actx.createBiquadFilter();lp.type="lowpass";lp.frequency.value=1500;lp.Q.value=.7;lp.connect(out);
         [[392,0,.14],[523.25,.16,.14],[659.25,.32,.38]].forEach(([f,st,len])=>{
@@ -1403,6 +1410,51 @@ function sfx(name){
         });break}
     }
   }catch(e){} // no audio available: stay silent
+}
+/* Ambient music: an endless, gently wandering tune in D dorian — plucked lute-like notes over a low drone, with a soft echo.
+   Notes are chosen as it plays (a random walk that leans on the chord of the moment), so it never loops exactly. */
+const SCALE=[0,2,3,5,7,9,10],CHORDS=[[0,2,4],[6,1,3],[2,4,6],[0,2,4],[4,6,1],[6,1,3],[0,2,4],[0,2,4]]; // scale degrees: i, VII, III, i, v, VII, i, i
+const deg=(n,base=62)=>440*Math.pow(2,(base+12*Math.floor(n/7)+SCALE[((n%7)+7)%7]-69)/12); // scale degree -> Hz (62 = D4)
+function startMusic(){
+  if(!musicOn||mus||document.hidden)return;
+  try{
+    const a=audio(),out=a.createGain(),bus=a.createGain(),dl=a.createDelay(),fb=a.createGain(),lp=a.createBiquadFilter(),wet=a.createGain();
+    out.gain.setValueAtTime(0,a.currentTime);out.gain.linearRampToValueAtTime(MUSIC_VOL,a.currentTime+4);out.connect(a.destination);
+    dl.delayTime.value=.36;fb.gain.value=.3;lp.type="lowpass";lp.frequency.value=1600;wet.gain.value=.4;
+    bus.connect(out);bus.connect(dl);dl.connect(lp);lp.connect(fb);fb.connect(dl);lp.connect(wet);wet.connect(out);
+    const drone=[73.42,110].map((f,i)=>{const o=a.createOscillator(),g=a.createGain(),f2=a.createBiquadFilter(),l=a.createOscillator(),lg=a.createGain();
+      o.type=i?"sine":"triangle";o.frequency.value=f;f2.type="lowpass";f2.frequency.value=380;g.gain.value=.16;l.frequency.value=.05+i*.03;lg.gain.value=.07;
+      l.connect(lg);lg.connect(g.gain);o.connect(f2);f2.connect(g);g.connect(bus);o.start();l.start();return[o,l]}).flat();
+    const pluck=(f,t,len,vol)=>{const o=a.createOscillator(),o2=a.createOscillator(),g=a.createGain(),g2=a.createGain(),f2=a.createBiquadFilter();
+      o.type="triangle";o.frequency.value=f;o2.type="sine";o2.frequency.value=f*2;g2.gain.value=.25;f2.type="lowpass";f2.frequency.setValueAtTime(2600,t);f2.frequency.exponentialRampToValueAtTime(700,t+len);
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.006);g.gain.exponentialRampToValueAtTime(.001,t+len);
+      o.connect(f2);o2.connect(g2);g2.connect(f2);f2.connect(g);g.connect(bus);o.start(t);o2.start(t);o.stop(t+len+.05);o2.stop(t+len+.05)};
+    const st={next:a.currentTime+.3,step:0,mel:7,beat:.4};
+    const tick=()=>{
+      while(st.next<a.currentTime+.5){
+        const t=st.next,s=st.step,bar=Math.floor(s/8)%CHORDS.length,ch=CHORDS[bar],phrase=s%64;
+        if(phrase<60){ // the last few steps of each phrase are left to the drone, to breathe
+          if(s%8===0)pluck(deg(ch[0],38),t,2.6,.5); // the chord's root, low
+          if(s%2===0)pluck(deg(ch[(s/2)%3],50),t,1.1,.22); // a gentle arpeggio
+          if(Math.random()<(s%4===0?.85:.45)){ // the tune: a random walk that leans on chord tones on the strong beats
+            st.mel=Math.max(4,Math.min(13,st.mel+[-2,-1,-1,0,1,1,2][Math.floor(Math.random()*7)]));
+            if(s%4===0&&!ch.includes(((st.mel%7)+7)%7))st.mel+=ch.includes(((st.mel+1)%7+7)%7)?1:-1;
+            pluck(deg(st.mel),t,1.3,.32);
+          }
+        }
+        st.next+=st.beat*(s%2?.92:1.08);st.step++; // a slight lilt
+      }
+    };
+    tick();mus={out,drone,timer:setInterval(tick,120)};
+  }catch(e){mus=null}
+}
+function stopMusic(){
+  if(!mus)return;const m=mus;mus=null;clearInterval(m.timer);
+  try{const t=actx.currentTime;m.out.gain.cancelScheduledValues(t);m.out.gain.setValueAtTime(m.out.gain.value,t);m.out.gain.linearRampToValueAtTime(0,t+1.2);setTimeout(()=>{m.drone.forEach(o=>{try{o.stop()}catch(e){}});m.out.disconnect()},1400)}catch(e){}
+}
+if(document.addEventListener){
+  ["pointerdown","keydown"].forEach(ev=>document.addEventListener(ev,()=>startMusic(),true)); // browsers only allow sound after the player interacts
+  document.addEventListener("visibilitychange",()=>document.hidden?stopMusic():startMusic());
 }
 function doHeal(a,b){
   const n=applyHeal(a,b);a.acted=a.moved=1;sel=null;mode=null;choice=null;info=b;lastMove=null;
@@ -2634,8 +2686,10 @@ $("dmenu").onclick=()=>{
 };
 $("tomenu").onclick=()=>{paused=true;resetPause();panel("pmain");$("pause").hidden=false;$("pback").focus()};
 $("pback").onclick=closePause;
-const soundLabel=()=>{$("psound").textContent="Sound: "+(sfxOn?"On":"Off")};soundLabel();
-$("psound").onclick=()=>{sfxOn=!sfxOn;try{localStorage.setItem(SKEY,sfxOn?"on":"off")}catch(e){}soundLabel();sfx("heal")};
+const soundLabel=()=>{["psound","msound"].forEach(id=>$(id).textContent="Sound: "+(sfxOn?"On":"Off"));["pmusic","mmusic"].forEach(id=>$(id).textContent="Music: "+(musicOn?"On":"Off"))};soundLabel();
+const toggleSound=()=>{sfxOn=!sfxOn;try{localStorage.setItem(SKEY,sfxOn?"on":"off")}catch(e){}soundLabel();sfx("heal")};
+const toggleMusic=()=>{musicOn=!musicOn;try{localStorage.setItem(MKEY,musicOn?"on":"off")}catch(e){}soundLabel();musicOn?startMusic():stopMusic()};
+$("psound").onclick=$("msound").onclick=toggleSound;$("pmusic").onclick=$("mmusic").onclick=toggleMusic;
 const howPause={root:$("prules"),mainLabel:"Back to Pause Menu",pause:true,exit:()=>{resetPause();$("prule").focus()}};
 $("prule").onclick=()=>{$("pbtns").hidden=true;$("prules").hidden=false;$("ptitle").hidden=true;howView(howPause,null)};
 $("pconcede").onclick=()=>{panel("pconfirm");$("pno").focus()};
