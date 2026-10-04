@@ -478,6 +478,7 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 <button class="b big" id="pback">Back to Game</button>
 <button class="b big" id="prule">How to Play</button>
 <button class="b big" id="pguide">Terrain Guide</button>
+<button class="b big" id="psound">Sound: On</button>
 <button class="b big" id="pconcede">Concede</button>
 </div>
 <div id="prules" hidden></div>
@@ -1017,7 +1018,7 @@ function render(){
     atkZone(insp,spotsOf(insp,rc),ir);
   }
   // the whole board is built as one string and parsed once; clicks reach click() through one listener (see below)
-  let html="";
+  let html="",stepped=0;
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     const k=x+","+y,w=WALLS.has(k),dp=DEEP.has(k),sh=SHALLOW.has(k),f=FOREST.has(k),fr=FORT.has(k),bar=BARRELS.has(k),u=at(x,y);
     const cls="t"+(bar?" brl":"")+(w?" w"+(wallMask(x,y)&1?" jn":"")+(wallMask(x,y)&4?" js":""):"")+(dp?" dp":"")+(sh?" sh":"")+(SWAMP.has(k)?" sw":"")+(f?" fo":"")+(fr?" fr":"")+(tile&&tile.x===x&&tile.y===y?" ts":"")+(ig.has(k)?" ig":"")+(ir.has(k)?" ir":"")+(pr.has(k)?" pr":"")+(mv.has(k)?" m":"")+((u&&tg.has(u))||bt.has(k)?" a":"")+(u&&tg.has(u)&&mods.y==="PUSH"&&sel&&pushable(sel,u)?" pp":"")+(u&&hs.has(u)?" hl":"")+(u&&u===choice?" ch":"")+(pd&&pd.k===k?" pd":"")+(cm&&cm.x===x&&cm.y===y?" mt":"")+(bl.has(k)?" bl":"")+(CAMPS.has(k)?" cmp":"")+(cv.has(k)?" cv":"");
@@ -1031,7 +1032,7 @@ function render(){
       if(pp&&(pp[0]!==x||pp[1]!==y)){ // slide in from where it was last drawn (a long jump fades in instead)
         const ddx=pp[0]-x,ddy=pp[1]-y,dist=Math.abs(ddx)+Math.abs(ddy);
         if(dist>6)uc+=" tpin";
-        else{uc+=" mv";mvs=`;--dx:${ddx*122}%;--dy:${ddy*122}%;--dur:${.1+.06*dist}s`}
+        else{uc+=" mv";stepped=1;mvs=`;--dx:${ddx*122}%;--dy:${ddy*122}%;--dur:${.1+.06*dist}s`}
       }
       const c=COLORS[col[u.team]],hr=u.hp/TYPES[u.t].hp,bg=u.auto?`color-mix(in srgb,${c[1]} 55%,#fff)`:c[1]; // units that act on their own wear a lighter shade
       html+=`<div class="${uc}" data-t="${u.t}" data-team="${u.team}" style="background:${bg};--tc:${bg};--ic:${c[2]}${mvs}">${ICON[u.t]}</div>`
@@ -1039,7 +1040,7 @@ function render(){
     }
     html+="</button>";
   }
-  board.innerHTML=html;
+  board.innerHTML=html;if(stepped)sfx("step");
   $("end").disabled=over||busy||locked||turn!=="y"||!units.length;
   const mine=units.filter(u=>u.team==="y");
   $("end").classList.toggle("ready",!$("end").disabled&&mine.length>0&&mine.every(spent)); // nothing left to do: nudge toward End Turn
@@ -1270,32 +1271,51 @@ function doBreak(a,t){
   }
   say(msg);if(!checkEnd())render();
 }
-function applyHeal(a,b){const n=Math.min(healOf(a),TYPES[b.t].hp-b.hp);b.hp+=n;floatText(b.x,b.y,"+"+n,"heal");return n}
+function applyHeal(a,b){const n=Math.min(healOf(a),TYPES[b.t].hp-b.hp);b.hp+=n;sfx("heal");floatText(b.x,b.y,"+"+n,"heal");return n}
 function doSlow(a,u){
   a.acted=1;a.moved=1;sel=null;insp=null;locked=true;lastMove=null;
   animAttack(a,u,()=>{u.slow=1;floatText(u.x,u.y,"Slow","slow");say("Slowed the "+NAME[u.t]+": movement reduced to 1 on its next turn.");locked=false;info=u;afterAction()});
 }
 function doBless(a,b){
   a.blessUsed=1;a.acted=a.moved=1;b.blessUntil=pturn+1;sel=null;mode=null;choice=null;info=b;lastMove=null;
-  floatText(b.x,b.y,"Blessed","bless");say("Blessed your "+NAME[b.t]+": +5% evasion until the end of your next turn.");render();
+  floatText(b.x,b.y,"Blessed","bless");sfx("bless");say("Blessed your "+NAME[b.t]+": +5% evasion until the end of your next turn.");render();
 }
 function doTrumpet(a){ // Trumpet of Encouragement: nearby allies that have moved get to move again, and all of them get +5% evasion
   relicUsed.trumpet=1;a.acted=a.moved=1;sel=null;mode=null;choice=null;insp=null;lastMove=null;
   const near=units.filter(b=>b!==a&&b.team==="y"&&d(a,b)<=RALLY_RANGE);let n=0;
   for(const b of near){b.rallyUntil=pturn+1;if(b.moved&&!b.auto){b.moved=0;n++}floatText(b.x,b.y,"Rallied","rally")}
-  playTrumpet();info=a;
+  sfx("trumpet");info=a;
   say(`The trumpet sounds! ${near.length} all${near.length>1?"ies":"y"} rallied with +5% evasion until the end of your next turn`+(n?`; ${n} can move again.`:"."));render();
 }
-let actx=null;
-function playTrumpet(){ // a short, quiet brass call made on the fly: two sawtooth voices through a soft low-pass
+/* ---------- Sound ---------- */
+// every effect is synthesized on the fly and kept quiet; the pause menu turns it off (remembered per browser)
+const SKEY="skirmish_sound";let actx=null,sfxOn=(()=>{try{return localStorage.getItem(SKEY)!=="off"}catch(e){return true}})();const sfxLast={};
+function sfx(name){
+  if(!sfxOn)return;
   try{
+    const now=performance.now();if(now-(sfxLast[name]||0)<70)return;sfxLast[name]=now; // a splash of hits plays once
     actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume();
-    const t0=actx.currentTime+.02,out=actx.createGain(),lp=actx.createBiquadFilter();
-    out.gain.value=.05;lp.type="lowpass";lp.frequency.value=1500;lp.Q.value=.7;lp.connect(out);out.connect(actx.destination);
-    [[392,0,.14],[523.25,.16,.14],[659.25,.32,.38]].forEach(([f,st,len])=>{
-      const g=actx.createGain(),s=t0+st;g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(1,s+.03);g.gain.setValueAtTime(1,s+len-.06);g.gain.linearRampToValueAtTime(0,s+len);g.connect(lp);
-      for(const det of[-6,6]){const o=actx.createOscillator();o.type="sawtooth";o.frequency.value=f;o.detune.value=det;o.connect(g);o.start(s);o.stop(s+len+.02)}
-    });
+    const t0=actx.currentTime+.01,out=actx.createGain();out.gain.value=.05;out.connect(actx.destination);
+    const env=(s,a,hold,rel,peak=1)=>{const g=actx.createGain();g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(peak,s+a);g.gain.setValueAtTime(peak,s+a+hold);g.gain.exponentialRampToValueAtTime(.001,s+a+hold+rel);return g};
+    const tone=(type,f,s,len,peak=1,f2)=>{const o=actx.createOscillator(),g=env(s,.008,0,len,peak);o.type=type;o.frequency.setValueAtTime(f,s);if(f2)o.frequency.exponentialRampToValueAtTime(f2,s+len);o.connect(g);g.connect(out);o.start(s);o.stop(s+len+.05)};
+    const noise=(s,len,ftype,f,q,peak=1,f2)=>{const n=actx.createBufferSource(),b=actx.createBuffer(1,Math.ceil(actx.sampleRate*(len+.05)),actx.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+      const fl=actx.createBiquadFilter(),g=env(s,.005,0,len,peak);fl.type=ftype;fl.frequency.setValueAtTime(f,s);if(f2)fl.frequency.exponentialRampToValueAtTime(f2,s+len);fl.Q.value=q;n.buffer=b;n.connect(fl);fl.connect(g);g.connect(out);n.start(s);n.stop(s+len+.05)};
+    switch(name){
+      case "step":noise(t0,.07,"lowpass",420,.7,.7);break; // a soft footfall
+      case "hit":tone("sine",150,t0,.14,1.4,55);noise(t0,.06,"lowpass",900,.7,.5);break; // a dull thud
+      case "kill":tone("sine",120,t0,.3,1.6,40);noise(t0,.16,"lowpass",600,.7,.6);tone("triangle",220,t0+.05,.25,.25,110);break;
+      case "evade":noise(t0,.16,"bandpass",500,1.4,.9,2600);break; // a quick whoosh past the target
+      case "heal":tone("sine",660,t0,.22,.5);tone("sine",880,t0+.09,.3,.45);break;
+      case "bless":tone("sine",990,t0,.3,.35);tone("sine",1320,t0+.08,.4,.3);break;
+      case "win":[523.25,659.25,783.99].forEach((f,i)=>tone("triangle",f,t0+i*.12,i<2?.16:.5,.7));break;
+      case "lose":tone("triangle",392,t0,.25,.6);tone("triangle",311.13,t0+.2,.6,.6);break;
+      case "trumpet":{ // a short brass call: two detuned sawtooth voices through a soft low-pass
+        const lp=actx.createBiquadFilter();lp.type="lowpass";lp.frequency.value=1500;lp.Q.value=.7;lp.connect(out);
+        [[392,0,.14],[523.25,.16,.14],[659.25,.32,.38]].forEach(([f,st,len])=>{
+          const g=actx.createGain(),s=t0+st;g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(1,s+.03);g.gain.setValueAtTime(1,s+len-.06);g.gain.linearRampToValueAtTime(0,s+len);g.connect(lp);
+          for(const det of[-6,6]){const o=actx.createOscillator();o.type="sawtooth";o.frequency.value=f;o.detune.value=det;o.connect(g);o.start(s);o.stop(s+len+.02)}
+        });break}
+    }
   }catch(e){} // no audio available: stay silent
 }
 function doHeal(a,b){
@@ -1315,8 +1335,8 @@ function hurt(u,n){
   if(rel(u,"chicken")&&!relicUsed.chicken&&u.t!=="G")spawnChicken(u);
   if(u.hp<=0&&rel(u,"mug")&&!relicUsed.mug){relicUsed.mug=1;u.hp=1;thanks(u)}
   else if(u.hp>0&&u.hp<=TYPES[u.t].hp/2&&rel(u,"cap")&&!relicUsed.cap){relicUsed.cap=1;const h=Math.min(2,TYPES[u.t].hp-u.hp);u.hp+=h;later(()=>floatText(u.x,u.y,"+"+h,"heal"),250);thanks(u)}
-  if(u.hp>0)return false;
-  units=units.filter(v=>v!==u);return true;
+  if(u.hp>0){sfx("hit");return false}
+  sfx("kill");units=units.filter(v=>v!==u);return true;
 }
 // a campaign kill is credited to the army slot that made it (a Captain's militia count for the Captain)
 function credit(a,v){
@@ -1354,7 +1374,7 @@ function chickensAct(done){
 }
 function thanks(u){later(()=>{if(units.includes(u))floatText(u.x,u.y,"Thanks Herbert","thanks")},450)} // a small, warm note that fades
 function hitFor(a,b,c,back){ // resolve one blow from a to b: dodge roll, damage, removal; true when it landed
-  if(Math.random()<1-c.hit){floatText(b.x,b.y,"Evade",true);say(sent(who(b))+" evaded "+(back?"the retaliation.":"the attack."));return false}
+  if(Math.random()<1-c.hit){floatText(b.x,b.y,"Evade",true);sfx("evade");say(sent(who(b))+" evaded "+(back?"the retaliation.":"the attack."));return false}
   if(b.team==="y"&&b.t==="A"&&a.team!=="y"&&TYPES[a.t].rg>1){unlocks.ah=(unlocks.ah||0)+1;saveU();if(unlocks.ah>=10)unlock("pavise")} // archers under arrow fire learn to raise a wall
   if(hurt(b,c.dmg)){credit(a,b);say(sent(who(a))+(back?" retaliated and destroyed ":" destroyed ")+who(b)+".")}
   else say(sent(who(a))+(back?" retaliated against ":" hit ")+who(b)+" for "+c.dmg+" damage.");
@@ -1446,6 +1466,7 @@ function checkEnd(){
   over=true;
   for(const c of units.filter(u=>u.auto))floatText(c.x,c.y,"poof","thanks"); // summoned units leave when the battle does
   units=units.filter(u=>!u.auto);render();
+  sfx(y?"win":"lose");
   say(y?(camp.battle?"Victory!":"Victory! All enemy units are down."):"Defeat. Your force was wiped out.");
   showEnd(y);
   return true;
@@ -2447,6 +2468,8 @@ $("dmenu").onclick=()=>{
 };
 $("tomenu").onclick=()=>{paused=true;resetPause();panel("pmain");$("pause").hidden=false;$("pback").focus()};
 $("pback").onclick=closePause;
+const soundLabel=()=>{$("psound").textContent="Sound: "+(sfxOn?"On":"Off")};soundLabel();
+$("psound").onclick=()=>{sfxOn=!sfxOn;try{localStorage.setItem(SKEY,sfxOn?"on":"off")}catch(e){}soundLabel();sfx("heal")};
 const howPause={root:$("prules"),mainLabel:"Back to Pause Menu",pause:true,exit:()=>{resetPause();$("prule").focus()}};
 $("prule").onclick=()=>{$("pbtns").hidden=true;$("prules").hidden=false;$("ptitle").hidden=true;howView(howPause,null)};
 $("pconcede").onclick=()=>{panel("pconfirm");$("pno").focus()};
