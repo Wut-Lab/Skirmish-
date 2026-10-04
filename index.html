@@ -515,6 +515,7 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 <button class="b big" id="pguide">Terrain Guide</button>
 <button class="b big" id="psound">Sound: On</button>
 <button class="b big" id="pmusic">Music: On</button>
+<button class="b big" id="phold">Save &amp; Quit</button>
 <button class="b big" id="pconcede">Concede</button>
 </div>
 <div id="prules" hidden></div>
@@ -526,6 +527,7 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 <button class="b big" id="pno">Keep Playing</button>
 </div>
 <div class="panel" id="pover" hidden role="alert"><h2>Game Over</h2><p>You conceded.</p></div>
+<div class="panel" id="pheld" hidden role="alert"><h2>Battle Saved</h2><p>You can pick it up the next time you open this mode.</p></div>
 </div>
 </section>
 </main>
@@ -563,6 +565,14 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 <h2 id="rititle">Relic</h2>
 <div id="ribody"></div>
 <button class="b big" id="riclose">Close</button>
+</div>
+</div>
+<div class="ov" id="holdask" hidden>
+<div class="panel cpan" role="alertdialog" aria-labelledby="hotitle">
+<h2 id="hotitle">Battle in Progress</h2>
+<p class="rsub" id="homsg"></p>
+<button class="b big pri" id="hoyes">Continue Battle</button>
+<button class="b big" id="hono">Abandon It</button>
 </div>
 </div>
 <div class="ov" id="herbask" hidden>
@@ -638,7 +648,7 @@ const MODS={
  REST:{name:"Field Rest",desc:"At the end of your turn, each of your units that neither moved nor attacked that turn recovers 2 HP."}};
 let MURKY=false,HAUNTED=false,VOLCANIC=false,CHERRY=new Set(),SMOKE=new Set(),LAVA=new Set(),MAGMA=new Set(),VOLC=new Set(),GRAVES=new Set(),WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set(),SWAMP=new Set();
 // Bump PROGRESS_EPOCH to wipe unlocks and the campaign save once on next load (editor drafts and sound settings stay).
-const PROGRESS_EPOCH=2;try{if(+localStorage.getItem("skirmish_epoch")!==PROGRESS_EPOCH){localStorage.removeItem("skirmish_unlocks_v1");localStorage.removeItem("skirmish-campaign");localStorage.setItem("skirmish_epoch",PROGRESS_EPOCH)}}catch(e){}
+const PROGRESS_EPOCH=2;try{if(+localStorage.getItem("skirmish_epoch")!==PROGRESS_EPOCH){localStorage.removeItem("skirmish_unlocks_v1");localStorage.removeItem("skirmish-campaign");["quick","camp","chal"].forEach(m=>localStorage.removeItem("skirmish_hold_"+m));localStorage.setItem("skirmish_epoch",PROGRESS_EPOCH)}}catch(e){}
 const UKEY="skirmish_unlocks_v1",unlocks=(()=>{try{return JSON.parse(localStorage.getItem(UKEY)||"{}")||{}}catch(e){return{}}})();
 const saveU=()=>{try{localStorage.setItem(UKEY,JSON.stringify(unlocks))}catch(e){}};
 const unlock=id=>{if(unlocks[id])return false;unlocks[id]=1;saveU();discover();return true};
@@ -2129,13 +2139,23 @@ function travel(id){
     else beginBattle(n);
   },850);
 }
+// runs fn with Math.random replaced by a seeded generator (mulberry32), so the same seed always lays out the same battle
+function seeded(sd,fn){
+  const r=Math.random;let a=sd>>>0;
+  Math.random=()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+  try{return fn()}finally{Math.random=r}
+}
 function beginBattle(n){
-  resetBattle();chal=null;camp.battle={node:n.id};
-  pick={x:camp.cfg.x.slice(),m:camp.cfg.m,c:camp.cfg.c};
-  start(Object.assign({},BIOME[n.b]));
+  if(n.seed==null){n.seed=Math.floor(Math.random()*2147483647);saveCamp()} // each location's battle is fixed for the whole campaign, so losing or conceding can't reroll it
+  seeded(n.seed,()=>{
+    resetBattle();chal=null;camp.battle={node:n.id};
+    pick={x:camp.cfg.x.slice(),m:camp.cfg.m,c:camp.cfg.c};
+    start(Object.assign({},BIOME[n.b]));
+  });
 }
 let rConfirm=0;
-$("camp").onclick=()=>{if(camp.cfg||loadCamp())openWorld();else openCampSetup()};
+const openCampaign=()=>{if(camp.cfg||loadCamp())openWorld();else openCampSetup()};
+$("camp").onclick=()=>askHold("camp",openCampaign);
 $("wback").onclick=()=>show("menu");
 $("wrestart").onclick=()=>{
   if(!rConfirm){rConfirm=1;$("wrestart").textContent="Tap Again to Confirm";setTimeout(()=>{rConfirm=0;$("wrestart").textContent="Restart Campaign"},3000)}
@@ -2241,7 +2261,7 @@ function start(o={}){
   show("game");say(loc+"Your turn. Select one of your units."+(wild?" A wild "+NAME[wild.t]+" roams the map.":""));render();
 }
 $("hero").innerHTML=[["K","blue"],["C","green"],["R","yellow"],["A","red"]].map(([t,c])=>`<div class="pv">${disc(t,COLORS[c])}</div>`).join("");
-$("play").onclick=init;
+$("play").onclick=()=>askHold("quick",init);
 /* ---------- How to Play (shared by main menu and pause menu) ---------- */
 const HCOL={y:"#2f6fb5",f:"#c8372d",w:"#7a5a36"};
 const hDisc=(t,c,cx,cy,r)=>`<circle cx="${cx}" cy="${cy}" r="${r}" fill="${c}" stroke="#fff" stroke-width="2"/>`+nest(ICON[t],cx-r*.78,cy-r*.78,r*1.56,`--ic:#fff;--tc:${c}`);
@@ -2908,7 +2928,7 @@ function openChallenges(){
   r.querySelectorAll(".cbtn").forEach(b=>b.onclick=()=>startChallenge(CHALLENGES[+b.dataset.i],false));
   window.scrollTo(0,0);
 }
-$("chal").onclick=openChallenges;
+$("chal").onclick=()=>askHold("chal",openChallenges);
 
 /* ----- the editor ----- */
 const EDKEY="skirmish_editor_draft";
@@ -3033,7 +3053,7 @@ $("unl").onclick=()=>{$("mbtns").hidden=true;$("unlockview").hidden=false;unlock
 $("how").onclick=()=>{$("mbtns").hidden=true;$("rulesview").hidden=false;howView(howMain,null)};
 $("back").onclick=()=>show("menu");
 $("go").onclick=()=>{
-  if(campSetup){camp.cfg={x:pick.x.slice(),m:pick.m,c:pick.c};camp.pos=0;camp.cleared=[];camp.done=false;camp.hp=null;camp.gold=0;camp.relics=[];camp.items=[];camp.offer=null;camp.found=[];camp.lastGold=0;camp.kills=[];camp.region=1;camp.mapsPrior=0;camp.bossUsed={loc:[],name:[]};camp.sel=0;genWorld();saveCamp();openWorld()}
+  if(campSetup){dropHold("camp");camp.cfg={x:pick.x.slice(),m:pick.m,c:pick.c};camp.pos=0;camp.cleared=[];camp.done=false;camp.hp=null;camp.gold=0;camp.relics=[];camp.items=[];camp.offer=null;camp.found=[];camp.lastGold=0;camp.kills=[];camp.region=1;camp.mapsPrior=0;camp.bossUsed={loc:[],name:[]};camp.sel=0;genWorld();saveCamp();openWorld()}
   else start();
 };
 $("end").onclick=()=>{
@@ -3087,7 +3107,7 @@ $("dmenu").onclick=()=>{
   const toMap=endMode==="close";camp.battle=null;
   if(toMap)openWorld();else show("menu");
 };
-$("tomenu").onclick=()=>{paused=true;resetPause();panel("pmain");$("pause").hidden=false;$("pback").focus()};
+$("tomenu").onclick=()=>{paused=true;resetPause();panel("pmain");$("phold").hidden=!!(chal&&chal.test)||turn!=="y"||busy||over;$("pause").hidden=false;$("pback").focus()};
 $("pback").onclick=closePause;
 const soundLabel=()=>{["psound","msound"].forEach(id=>$(id).textContent="Sound: "+(sfxOn?"On":"Off"));["pmusic","mmusic"].forEach(id=>$(id).textContent="Music: "+(musicOn?"On":"Off"))};soundLabel();
 const toggleSound=()=>{sfxOn=!sfxOn;try{localStorage.setItem(SKEY,sfxOn?"on":"off")}catch(e){}soundLabel();sfx("heal")};
@@ -3103,6 +3123,39 @@ $("pyes").onclick=()=>{
   gid++;over=true;busy=false;panel("pover");
   setTimeout(()=>{closePause();resetPause();if(chal){const t=chal.test;chal=null;t?openEditor():openChallenges()}else if(camp.battle){camp.battle=null;openWorld()}else show("menu")},1800);
 };
+/* ---------- Save & Quit: one held battle per mode, offered back the next time that mode is opened ---------- */
+const HOLD=m=>"skirmish_hold_"+m,dropHold=m=>{try{localStorage.removeItem(HOLD(m))}catch(e){}};
+const getHold=m=>{try{return JSON.parse(localStorage.getItem(HOLD(m))||"null")}catch(e){return null}};
+$("phold").onclick=()=>{
+  if(turn!=="y"||busy||over)return;
+  const A=x=>[...x],m=chal?"chal":camp.battle?"camp":"quick";
+  const h={t:[WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS].map(A),
+    f:{MURKY,HAUNTED,VOLCANIC,WALLV,seed,BIOME_KEY,herbertMet,firstTurn,pturn},fv:A(FORTV),fk:A(FORTK),
+    units,mods,col,tpUsed,relic:A(RELIC),relicUsed,pick,def:chal&&chal.def,node:camp.battle?camp.battle.node:null,biome:$("biome").textContent};
+  try{localStorage.setItem(HOLD(m),JSON.stringify(h))}catch(e){return}
+  if(m==="camp")saveCamp();
+  gid++;over=true;busy=false;panel("pheld");
+  setTimeout(()=>{closePause();resetPause();chal=null;camp.battle=null;show("menu")},1400);
+};
+function resumeHold(h){
+  resetBattle();
+  [WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS]=h.t.map(a=>new Set(a));
+  ({MURKY,HAUNTED,VOLCANIC,WALLV,seed,BIOME_KEY,herbertMet,firstTurn,pturn}=h.f);
+  FORTV=new Map(h.fv);FORTK=new Set(h.fk);units=h.units;mods=h.mods;col=h.col;tpUsed=h.tpUsed;RELIC=new Set(h.relic);relicUsed=h.relicUsed;pick=h.pick;
+  chal=h.def?{def:h.def,test:false}:null;camp.battle=h.node!=null?{node:h.node}:null;
+  $("biome").textContent=h.biome;show("game");say("Battle resumed. Your turn. Select one of your units.");render();
+}
+// opening a mode with a held battle asks first; abandoning it just drops the battle (no concede is counted)
+function askHold(m,open){
+  let h=getHold(m);
+  if(h&&m==="camp"&&!((camp.cfg||loadCamp())&&WORLD[h.node])){dropHold(m);h=null}
+  if(!h)return open();
+  $("homsg").textContent=(m==="camp"?`Your battle at ${WORLD[h.node].name} was saved partway through.`:m==="chal"?`Your attempt at ${h.def.name} was saved partway through.`:"Your Quick Battle was saved partway through.")
+    +" Abandoning it counts as a loss, and you'll start that battle over.";
+  $("holdask").hidden=false;$("hoyes").focus();
+  $("hoyes").onclick=()=>{$("holdask").hidden=true;dropHold(m);resumeHold(h)};
+  $("hono").onclick=()=>{$("holdask").hidden=true;dropHold(m);open()};
+}
 pick={x:[],m:null,c:"blue"};show("menu");
 </script>
 </body>
