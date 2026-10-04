@@ -637,6 +637,8 @@ const MODS={
  PAD:{name:"Padded Armor",desc:"Archers get +1 armor but have 1 less movement."},
  REST:{name:"Field Rest",desc:"At the end of your turn, each of your units that neither moved nor attacked that turn recovers 2 HP."}};
 let MURKY=false,HAUNTED=false,VOLCANIC=false,CHERRY=new Set(),SMOKE=new Set(),LAVA=new Set(),MAGMA=new Set(),VOLC=new Set(),GRAVES=new Set(),WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set(),SWAMP=new Set();
+// Bump PROGRESS_EPOCH to wipe unlocks and the campaign save once on next load (editor drafts and sound settings stay).
+const PROGRESS_EPOCH=2;try{if(+localStorage.getItem("skirmish_epoch")!==PROGRESS_EPOCH){localStorage.removeItem("skirmish_unlocks_v1");localStorage.removeItem("skirmish-campaign");localStorage.setItem("skirmish_epoch",PROGRESS_EPOCH)}}catch(e){}
 const UKEY="skirmish_unlocks_v1",unlocks=(()=>{try{return JSON.parse(localStorage.getItem(UKEY)||"{}")||{}}catch(e){return{}}})();
 const saveU=()=>{try{localStorage.setItem(UKEY,JSON.stringify(unlocks))}catch(e){}};
 const unlock=id=>{if(unlocks[id])return false;unlocks[id]=1;saveU();discover();return true};
@@ -2061,7 +2063,12 @@ function renderWorld(){
   WORLD.forEach(n=>{
     const st=stOf(n),cl=st==="cleared"&&n.type!=="camp",r=n.type==="boss"?21:17,S=n.type==="boss"?30:24;
     const fill=n.type==="camp"?"#8c7752":n.type==="heal"?(st==="locked"?"#a39a88":cl?"#9fc9a8":"#7fd1a0"):n.type==="shop"?(st==="locked"?"#a39a88":cl?"#c8b088":"#e0a84a"):cl?"#6aa55a":st==="open"?(n.type==="boss"?"#c4483a":n.b==="wetlands"?"#5fb3c9":n.b==="swamp"?"#6d7a4f":n.b==="graveyard"?"#7d7590":n.b==="volcanic"?"#b8461f":"#e6b73f"):"#a39a88";
-    const icon=n.type==="shop"?`<path d="M${n.x-8} ${n.y-1}q0-8 8-9q8 1 8 9q1 9-8 9q-9 0-8-9z" fill="#fff" stroke="#6a4426" stroke-width="1.600"/><path d="M${n.x-4} ${n.y-10}q4-3 8 0l-2 3h-4z" fill="#fff" stroke="#6a4426" stroke-width="1.400"/><circle cx="${n.x}" cy="${n.y}" r="3.400" fill="#c9962a" stroke="#6a4426" stroke-width="1"/>`
+    const icon=n.type==="shop"?`<path d="M${n.x-4} ${n.y-3}C${n.x-13} ${n.y-1} ${n.x-13} ${n.y+11} ${n.x} ${n.y+11}C${n.x+13} ${n.y+11} ${n.x+13} ${n.y-1} ${n.x+4} ${n.y-3}z" fill="#fff" stroke="#6a4426" stroke-width="1.600" stroke-linejoin="round"/>`
+      +`<path d="M${n.x-3} ${n.y-1}q-4 4-3.500 9M${n.x+0.500} ${n.y-1}v8M${n.x+3} ${n.y-1}q4 3 3.500 8" stroke="#6a4426" stroke-width=".9" fill="none" stroke-linecap="round" opacity=".55"/>`
+      +`<path d="M${n.x-3.500} ${n.y-4}L${n.x-7.500} ${n.y-10}q2-1.500 3.500.500q1.500-2.200 3.500-2q2.200-.200 3.500 2q1.500-2 3.500-.500L${n.x+3.500} ${n.y-4}z" fill="#fff" stroke="#6a4426" stroke-width="1.400" stroke-linejoin="round"/>`
+      +`<path d="M${n.x-5} ${n.y-3.500}h10" stroke="#6a4426" stroke-width="2.400" stroke-linecap="round"/>`
+      +`<path d="M${n.x+4} ${n.y-3.500}q5 1 4.500 6.500M${n.x+4} ${n.y-3.500}q7.500-.500 7.500 4.500" stroke="#6a4426" stroke-width="1.200" fill="none" stroke-linecap="round"/>`
+      +`<circle cx="${n.x+8.500}" cy="${n.y+3.500}" r="1.400" fill="#c9962a" stroke="#6a4426" stroke-width=".8"/><circle cx="${n.x+11.500}" cy="${n.y+1.500}" r="1.400" fill="#c9962a" stroke="#6a4426" stroke-width=".8"/>`
       :n.type==="heal"?`<path d="M${n.x-3} ${n.y-9}h6v6h6v6h-6v6h-6v-6h-6v-6h6z" fill="#fff" stroke="#2f8f4e" stroke-width="2" stroke-linejoin="round"/>`
       :n.type==="camp"?`<path d="M${n.x-10} ${n.y+8}L${n.x} ${n.y-10}L${n.x+10} ${n.y+8}zM${n.x} ${n.y-10}V${n.y+8}" fill="#f2e6c0" stroke="#3b2a14" stroke-width="2" stroke-linejoin="round"/>`
       :n.b==="swamp"?`<path d="M${n.x-8} ${n.y+7}v-9M${n.x-4} ${n.y+7}v-12M${n.x+1} ${n.y+7}v-8M${n.x+6} ${n.y+7}v-11" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><ellipse cx="${n.x-4}" cy="${n.y-6}" rx="1.8" ry="3.4" fill="#fff"/><ellipse cx="${n.x+6}" cy="${n.y-5}" rx="1.8" ry="3.4" fill="#fff"/><path d="M${n.x-10} ${n.y+8}h20" stroke="#fff" stroke-width="2" stroke-linecap="round"/>`
