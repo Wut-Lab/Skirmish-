@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Skirmish</title>
 <style>
-:root{--grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128'%3E%3Cfilter id='n' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85 .5' numOctaves='3' seed='5' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1.6 1.05'/%3E%3C/filter%3E%3Crect width='128' height='128' filter='url(%23n)'/%3E%3C/svg%3E");--grainl:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128'%3E%3Cfilter id='n' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85 .5' numOctaves='3' seed='5' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -.5 .33'/%3E%3C/filter%3E%3Crect width='128' height='128' filter='url(%23n)'/%3E%3C/svg%3E");box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#e9edf1;--ink:#1c2733;--tile:#dccaa4;--tile2:#d5c29b;--wall:#6b7a86;--move:#7fc4a0;--atk:#e2765f;--you:#2f6fb5;--foe:#b8432f;--panel:#fff}
+:root{--grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128'%3E%3Cfilter id='n' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85 .5' numOctaves='3' seed='5' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1.6 1.05'/%3E%3C/filter%3E%3Crect width='128' height='128' filter='url(%23n)'/%3E%3C/svg%3E");--grainl:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128'%3E%3Cfilter id='n' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85 .5' numOctaves='3' seed='5' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -.62 .41'/%3E%3C/filter%3E%3Crect width='128' height='128' filter='url(%23n)'/%3E%3C/svg%3E");box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#e9edf1;--ink:#1c2733;--tile:#dccaa4;--tile2:#d5c29b;--wall:#6b7a86;--move:#7fc4a0;--atk:#e2765f;--you:#2f6fb5;--foe:#b8432f;--panel:#fff}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141b22;--ink:#e3e9ee;--tile:#4a4233;--tile2:#453d2f;--wall:#3d4954;--move:#2d6b4d;--atk:#93392a;--you:#5b9de0;--foe:#e0664f;--panel:#1d2731}}
 :root[data-theme="dark"]{--bg:#141b22;--ink:#e3e9ee;--tile:#4a4233;--tile2:#453d2f;--wall:#3d4954;--move:#2d6b4d;--atk:#93392a;--you:#5b9de0;--foe:#e0664f;--panel:#1d2731}
 main{max-width:520px;margin:0 auto;padding:14px}
@@ -276,7 +276,10 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .u svg{filter:drop-shadow(0 1px 0 rgba(0,0,0,.35))}
 .rchip svg,.rcard .ri svg,.trow svg,.hcard svg{filter:drop-shadow(0 1px 1.200px rgba(0,0,0,.35))}
 .wmap{position:relative}.wmap::after{content:"";position:absolute;inset:0;pointer-events:none;background:var(--grain) 0 0/96px 96px;opacity:.28;mix-blend-mode:multiply}
-.lt{position:absolute;inset:0;pointer-events:none;background:var(--grainl) 0 0/64px 64px,radial-gradient(125% 95% at 24% 16%,rgba(255,255,255,.17),rgba(255,255,255,0) 56%),radial-gradient(110% 100% at 88% 96%,rgba(0,0,0,.11),rgba(0,0,0,0) 60%)}
+.lt{position:absolute;inset:0;pointer-events:none;--ltb:radial-gradient(125% 95% at 24% 16%,rgba(255,255,255,.17),rgba(255,255,255,0) 56%),radial-gradient(110% 100% at 88% 96%,rgba(0,0,0,.11),rgba(0,0,0,0) 60%);background:var(--grainl) 0 0/64px 64px,var(--ltb)}
+.t:nth-child(5n+1)>.lt{background:var(--grainl) 0 0/64px 64px,radial-gradient(48% 34% at 30% 64%,rgba(110,80,40,.08),rgba(110,80,40,0)),var(--ltb)}
+.t:nth-child(7n+3)>.lt{background:var(--grainl) 0 0/64px 64px,radial-gradient(40% 30% at 70% 36%,rgba(255,250,230,.09),rgba(255,250,230,0)),var(--ltb)}
+.t:nth-child(11n+6)>.lt{background:var(--grainl) 0 0/64px 64px,radial-gradient(52% 38% at 56% 72%,rgba(90,70,40,.07),rgba(90,70,40,0)),var(--ltb)}
 .t.dp>.lt{background:var(--grainl) 0 0/64px 64px,radial-gradient(circle at 50% 56%,rgba(0,0,0,.26),rgba(0,0,0,0) 72%),radial-gradient(125% 95% at 24% 16%,rgba(255,255,255,.12),rgba(255,255,255,0) 55%)}
 .t.sh>.lt{background:var(--grainl) 0 0/64px 64px,radial-gradient(125% 95% at 24% 16%,rgba(255,255,255,.24),rgba(255,255,255,0) 58%),radial-gradient(110% 100% at 88% 96%,rgba(0,40,70,.12),rgba(0,0,0,0) 60%)}
 #board,#eboard{background:#3a2e21;box-shadow:0 0 0 4px #6b5238,0 0 0 5px #2f2418,0 10px 0 rgba(0,0,0,.32),0 18px 30px rgba(0,0,0,.32)}
@@ -772,8 +775,14 @@ function genMap(o={}){
   }
 }
 const svg=b=>'<svg class="dec" viewBox="0 0 40 40">'+b+'</svg>';
-const tree=(x,y,h,w,c)=>`<ellipse cx="${x+1.2}" cy="${y+3.8}" rx="${w*.95}" ry="1.6" fill="rgba(0,0,0,.18)"/><rect x="${x-1}" y="${y}" width="2" height="4" fill="#5a3d24"/><path d="M${x} ${y-h}L${x+w} ${y}H${x-w}z" fill="${c}"/><path d="M${x} ${y-h}L${x+w} ${y}H${x}z" fill="rgba(0,0,0,.16)"/>`; // foliage lit from the upper left
-const oak=(x,y,r,c)=>`<ellipse cx="${x+1}" cy="${y+r*.8}" rx="${r*.9}" ry="1.7" fill="rgba(0,0,0,.18)"/><rect x="${x-1.2}" y="${y}" width="2.4" height="${r*.8}" fill="#5a3d24"/><circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/><path d="M${x+r*.25} ${y-r*.97}A${r} ${r} 0 0 1 ${x-r*.25} ${y+r*.97}A${r*.8} ${r*.9} 0 0 0 ${x+r*.25} ${y-r*.97}z" fill="rgba(0,0,0,.14)"/><circle cx="${x-r*.3}" cy="${y-r*.3}" r="${r*.45}" fill="rgba(255,255,255,.16)"/>`;
+const tree=(x,y,h,w,c)=>{ // a conifer: three tiers of needles with jagged hems, lit from the upper left
+  const f=v=>v.toFixed(1);let g=`<ellipse cx="${f(x+1.2)}" cy="${f(y+3.8)}" rx="${f(w*.95)}" ry="1.6" fill="rgba(0,0,0,.22)"/><rect x="${f(x-1)}" y="${y}" width="2" height="4" fill="#5a3d24"/><rect x="${x}" y="${y}" width="1" height="4" fill="#3a2614"/>`;
+  [[0,.5,.55],[.25,.78,.8],[.48,1,1]].forEach(([t,b,ww])=>{const top=y-h+h*t,bot=y-h+h*b,hw=w*ww,n=4,st=hw*2/n;
+    let hem="";for(let i=0;i<=n;i++){const xx=x+hw-i*st;hem+=`L${f(xx)} ${f(bot+(i%2?-1.2:.6))}`}
+    g+=`<path d="M${f(x)} ${f(top)}${hem}z" fill="${c}"/><path d="M${f(x)} ${f(top)}L${f(x+hw)} ${f(bot+.6)}L${f(x+hw*.15)} ${f(bot)}z" fill="rgba(0,0,0,.2)"/><path d="M${f(x-.4)} ${f(top+1)}L${f(x-hw*.7)} ${f(bot-.6)}" stroke="rgba(255,255,255,.18)" stroke-width=".8"/>`});
+  return g;
+};
+const oak=(x,y,r,c)=>`<ellipse cx="${x+1}" cy="${y+r*.8}" rx="${r*.9}" ry="1.7" fill="rgba(0,0,0,.22)"/><rect x="${x-1.2}" y="${y}" width="2.4" height="${r*.8}" fill="#5a3d24"/><rect x="${x}" y="${y}" width="1.2" height="${r*.8}" fill="#3a2614"/><circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/><circle cx="${x-r*.45}" cy="${y+r*.15}" r="${r*.6}" fill="${c}"/><circle cx="${x+r*.48}" cy="${y+r*.1}" r="${r*.58}" fill="${c}"/><circle cx="${x+r*.05}" cy="${y-r*.5}" r="${r*.6}" fill="${c}"/><circle cx="${x+r*.48}" cy="${y+r*.1}" r="${r*.58}" fill="rgba(0,0,0,.12)"/><circle cx="${x-r*.5}" cy="${y-r*.25}" r="${r*.3}" fill="rgba(255,255,255,.14)"/><circle cx="${x+r*.1}" cy="${y-r*.7}" r="${r*.25}" fill="rgba(255,255,255,.12)"/><path d="M${x+r*.25} ${y-r*.97}A${r} ${r} 0 0 1 ${x-r*.25} ${y+r*.97}A${r*.8} ${r*.9} 0 0 0 ${x+r*.25} ${y-r*.97}z" fill="rgba(0,0,0,.14)"/><circle cx="${x-r*.3}" cy="${y-r*.3}" r="${r*.45}" fill="rgba(255,255,255,.16)"/>`;
 // Haunted Graveyard: gravestones, and dead trees in place of living ones
 // Gravestones: weathered stone with a lit left face, carved details, cracks and moss
 const tomb={ // each draws one stone standing on y=0, about 28 units tall, centred on x=0
@@ -808,7 +817,8 @@ const FOREST_V=[
  svg(oak(30,9,4,"#b0561f")+oak(12,17,7,"#c07a2a")+oak(28,22,7.5,"#d59a3a")+tree(19,35,14,6,"#2f6b3f"))];
 const S1='stroke="rgba(0,0,0,.4)" stroke-width="1.2"';
 const WV=(a,c,o)=>svg(`<g fill="none" stroke="${c}" stroke-width="1.8" stroke-linecap="round" opacity="${o}">`+a.map(([x,y])=>`<path d="M${x} ${y}q4-4 8 0t8 0"/>`).join("")+"</g>");
-const DP_V=[WV([[6,12],[16,26]],"#a9d6ee",.55),WV([[10,9],[4,24],[20,32]],"#a9d6ee",.5),WV([[14,15],[6,30]],"#a9d6ee",.55)];
+const glint=(x,y)=>`<path d="M${x-1.6} ${y}h3.2M${x} ${y-1.2}v2.4" stroke="#fff" stroke-width=".7" opacity=".55"/>`;
+const DP_V=[WV([[6,12],[16,26]],"#a9d6ee",.55).replace("</svg>",glint(30,9)+"</svg>"),WV([[10,9],[4,24],[20,32]],"#a9d6ee",.5).replace("</svg>",glint(31,22)+"</svg>"),WV([[14,15],[6,30]],"#a9d6ee",.55).replace("</svg>",glint(9,8)+glint(33,33)+"</svg>")];
 const SH_V=[WV([[8,13],[18,27]],"#fff",.75),WV([[5,10],[19,20],[9,32]],"#fff",.7),WV([[14,12],[6,26]],"#fff",.75)];
 // gloomy swamp pieces: organic pools with algae rims, cattail clusters, a dead snag, a mossy log, lily pads, soft mist and fireflies
 const blobD=(cx,cy,rx,ry,j)=>{const n=j.length,p=j.map((m,i)=>{const a=i/n*2*Math.PI;return[cx+Math.cos(a)*rx*m,cy+Math.sin(a)*ry*m]}),f=v=>v.toFixed(1),mid=(a,b)=>`${f((a[0]+b[0])/2)} ${f((a[1]+b[1])/2)}`;
@@ -867,9 +877,9 @@ const XBAR_V=svg('<ellipse cx="20" cy="36" rx="13" ry="2.6" fill="rgba(0,0,0,.22
 const tv=(x,y,n,k=0)=>((((x+k)*73856093)^((y+k*3)*19349663)^(seed*83492791))>>>0)%n;
 const tuft=(a,b)=>`<path d="M${a} ${b}l-2.5-5M${a} ${b}l0-6.5M${a} ${b}l2.5-5"/>`;
 function ground(x,y,fv){
-  const v=fv===undefined?tv(x,y,6):fv,p=(n,k)=>tv(x,y,n,k);let g="";
+  const v=fv===undefined?tv(x,y,6):fv,p=(n,k)=>tv(x,y,n,k);let g=""; // soil varies from tile to tile
   if(v===0)g='<g stroke="#6f8f3f" stroke-width="1.7" stroke-linecap="round" fill="none">'+tuft(6+p(28,1),18+p(18,2))+tuft(6+p(28,3),18+p(18,4))+'</g>';
-  else if(v===1)g=[0,1,2].map(i=>`<ellipse cx="${6+p(28,i+5)}" cy="${8+p(26,i+9)}" rx="${1.8+p(3,i+2)*.6}" ry="${1.3+p(2,i+7)*.6}" fill="#a6987d"/>`).join("");
+  else if(v===1)g=[0,1,2].map(i=>{const cx=6+p(28,i+5),cy=8+p(26,i+9),rx=1.8+p(3,i+2)*.6,ry=1.3+p(2,i+7)*.6;return `<ellipse cx="${cx+.5}" cy="${cy+.7}" rx="${rx}" ry="${ry}" fill="rgba(60,45,25,.25)"/><ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#a6987d"/><ellipse cx="${cx-rx*.3}" cy="${cy-ry*.35}" rx="${rx*.45}" ry="${ry*.35}" fill="rgba(255,255,240,.35)"/>`}).join("");
   else if(v===2)g=[0,1,2].map(i=>{const cx=7+p(26,i+11),cy=10+p(22,i+13);return `<path d="M${cx} ${cy+5}v-3" stroke="#6f8f3f" stroke-width="1.3"/><circle cx="${cx}" cy="${cy}" r="2.2" fill="${["#f4f0e8","#f0c94a","#e98fb0"][i]}"/><circle cx="${cx}" cy="${cy}" r=".8" fill="#c88a1a"/>`}).join("");
   else if(v===3)g=`<ellipse cx="${14+p(12,3)}" cy="${18+p(10,4)}" rx="10" ry="6" fill="rgba(120,90,50,.16)"/><path d="M8 20l6-3 5 4 7-2M19 21l-1 6M26 19l4 5" stroke="#a88f63" fill="none" stroke-width="1.2" stroke-linecap="round"/>`;
   return g?svg(g):"";
@@ -901,9 +911,17 @@ function wallArt(v,m){
   if(v===0) // brick: the courses run straight on into a joined wall; open sides get a lit or shaded edge
     return svg('<g><rect width="13" height="13" fill="rgba(255,255,255,.06)"/><rect x="13" width="27" height="13" fill="rgba(0,0,0,.05)"/><rect y="13" width="27" height="14" fill="rgba(0,0,0,.035)"/><rect x="27" y="13" width="13" height="14" fill="rgba(255,255,255,.05)"/><rect y="27" width="13" height="13" fill="rgba(255,255,255,.03)"/><rect x="13" y="27" width="27" height="13" fill="rgba(0,0,0,.06)"/></g><path d="M0 13H40M0 27H40M13 0V13M27 13V27M13 27V40" stroke="rgba(0,0,0,.35)" stroke-width="1.5" fill="none"/><path d="M0 14.4H40M0 28.4H40" stroke="rgba(255,255,255,.1)" stroke-width=".8"/>'+(e?"":'<path d="M39.3 0V40" stroke="rgba(0,0,0,.3)" stroke-width="1.4"/>')+(w?"":'<path d="M.7 0V40" stroke="rgba(255,255,255,.25)" stroke-width="1.4"/>'));
   if(v===1){ // boulders: a shared boulder straddles every joined edge
-    const b=(cx,cy,rx,ry,f)=>`<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${f}" ${S1}/>`;
-    return svg((n?b(20,0,7.5,5.5,"#8d98a1"):"")+(s?b(20,40,7.5,5.5,"#8d98a1"):"")+(e?b(40,20,5.5,7.5,"#98a3ac"):"")+(w?b(0,20,5.5,7.5,"#98a3ac"):"")
-      +b(14,26,8.5,7,"#7f8b95")+b(27,24,8,8.5,"#8d98a1")+b(20,13,7,6,"#98a3ac")+'<path d="M9 23q3-4 7-3M24 19q3-3 6-1M16 11q3-2 6 0" stroke="rgba(255,255,255,.4)" fill="none" stroke-width="1.5"/>');
+    // a faceted stone: an irregular polygon with a lit top-left face, a shaded lower-right face and a crack (k picks its shape, so both halves of a shared stone match)
+    const J=[1,.84,1.08,.9,1.04,.8,.96,1.1,.88],b=(cx,cy,rx,ry,f,k)=>{
+      const P=[...Array(7)].map((_,i)=>{const a=(i/7)*Math.PI*2+k*.6-1.6,m=J[(i+k)%J.length];return[cx+Math.cos(a)*rx*m,cy+Math.sin(a)*ry*m,a]}),pt=p=>p[0].toFixed(1)+" "+p[1].toFixed(1);
+      const c=[cx-rx*.18,cy-ry*.22],lit=P.filter(p=>{const d=Math.atan2(Math.sin(p[2]),Math.cos(p[2]));return d<-.4&&d>-2.9}),dk=P.filter(p=>{const d=Math.atan2(Math.sin(p[2]),Math.cos(p[2]));return d>.2&&d<2.6});
+      return `<path d="M${P.map(pt).join("L")}z" fill="${f}" ${S1} stroke-linejoin="round"/>`
+        +(lit.length>1?`<path d="M${pt(c)}L${lit.map(pt).join("L")}z" fill="rgba(255,255,255,.2)"/>`:"")
+        +(dk.length>1?`<path d="M${pt(c)}L${dk.map(pt).join("L")}z" fill="rgba(0,0,0,.2)"/>`:"")
+        +`<path d="M${pt(c)}L${pt(P[(k+2)%7])}" stroke="rgba(0,0,0,.18)" stroke-width=".7"/><path d="M${(c[0]-rx*.3).toFixed(1)} ${(c[1]+ry*.1).toFixed(1)}l${(rx*.25).toFixed(1)} ${(ry*.3).toFixed(1)}" stroke="rgba(30,30,34,.4)" stroke-width=".7"/>`;
+    };
+    return svg((n?b(20,0,7.5,5.5,"#8d98a1",3):"")+(s?b(20,40,7.5,5.5,"#8d98a1",3):"")+(e?b(40,20,5.5,7.5,"#98a3ac",5):"")+(w?b(0,20,5.5,7.5,"#98a3ac",5):"")
+      +b(14,26,8.5,7,"#7f8b95",1)+b(27,24,8,8.5,"#8d98a1",4)+b(20,13,7,6,"#98a3ac",2));
   }
   if(v===2){ // dressed stone: joined sides drop their margin so the block courses line up across tiles
     const rows=[[n?0:2,13,[0,19,40]],[15,26,[0,12.5,31.5,40]],[28,s?40:38,[0,19,40]]];let g="";
@@ -1891,7 +1909,7 @@ function mapArt(){
   g+=`<path d="${DECO.river}" stroke="#6a8a7a" stroke-width="20" fill="none" stroke-linecap="round" opacity=".35"/><path d="${DECO.river}" stroke="#8ec0d8" stroke-width="15" fill="none" stroke-linecap="round" opacity=".62"/><path d="${DECO.river}" stroke="#d8f0f8" stroke-width="2" fill="none" stroke-dasharray="14 22" opacity=".45" transform="translate(0 -3)"/>`;
   const clear=([x,y])=>Math.hypot(x-44,y-48)>46; // keep scenery off the compass rose
   DECO.trees.filter(clear).forEach(([x,y],i)=>{g+=`<g transform="translate(${x-20},${y-20})" opacity=".92" filter="url(#wsh)">${tree(20,32,22,9,i%2?"#2f6b3f":"#3a7d4a")}</g>`});
-  DECO.rocks.filter(clear).forEach(([x,y])=>{g+=`<path d="M${x-14} ${y+8}L${x-2} ${y-14}L${x+4} ${y-4}L${x+8} ${y-10}L${x+18} ${y+8}z" fill="#8f99a3" stroke="#4a5560" stroke-width="1.5" filter="url(#wsh)"/><path d="M${x-2} ${y-14}L${x+4} ${y-4}L${x+2} ${y+8}L${x+18} ${y+8}L${x+8} ${y-10}L${x+4} ${y-4}" fill="#000" opacity=".14"/>`});
+  DECO.rocks.filter(clear).forEach(([x,y])=>{g+=`<path d="M${x-14} ${y+8}L${x-2} ${y-14}L${x+4} ${y-4}L${x+8} ${y-10}L${x+18} ${y+8}z" fill="#8f99a3" stroke="#4a5560" stroke-width="1.5" filter="url(#wsh)"/><path d="M${x-2} ${y-14}L${x+4} ${y-4}L${x+2} ${y+8}L${x+18} ${y+8}L${x+8} ${y-10}L${x+4} ${y-4}" fill="#000" opacity=".14"/><path d="M${x-14} ${y+8}L${x-2} ${y-14}L${x-4} ${y+8}z" fill="#fff" opacity=".12"/><path d="M${x-6.500} ${y-6}L${x-2} ${y-14}L${x+1.500} ${y-7.500}L${x-.5} ${y-9}L${x-2.500} ${y-6.500}L${x-4.500} ${y-8}z" fill="#f4f2ec" opacity=".9"/><path d="M${x+5.400} ${y-6.400}L${x+8} ${y-10}L${x+10.600} ${y-5.400}L${x+8.600} ${y-6.600}z" fill="#f4f2ec" opacity=".85"/>`});
   // parchment fibres, aged edges, a fine border and a compass rose (top left, clear of the locations)
   g+='<g stroke="rgba(120,90,50,.07)" stroke-width="1" fill="none"><path d="M0 120q120-14 240 6t160-8"/><path d="M0 300q90 12 200-4t200 10"/><path d="M0 430q140-10 260 8t140-6"/></g>';
   g+='<defs><radialGradient id="vg" cx=".5" cy=".5" r=".72"><stop offset=".62" stop-color="#6b4a20" stop-opacity="0"/><stop offset="1" stop-color="#5a3a14" stop-opacity=".48"/></radialGradient></defs><rect width="400" height="520" fill="url(#vg)"/>';
