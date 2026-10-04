@@ -301,7 +301,10 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 @keyframes gplus{0%{opacity:0;transform:translateX(8px)}15%{opacity:1;transform:none}70%{opacity:1}100%{opacity:0;transform:translateY(-8px)}}
 .relics{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}
 .relics:empty{display:none}
-.rchip{display:flex;align-items:center;gap:5px;padding:3px 8px 3px 4px;border-radius:14px;font-size:.78rem;font-weight:700;background:var(--panel);box-shadow:0 0 0 2px var(--rc,#8a8f96)}
+.rchip{display:grid;place-items:center;width:36px;height:36px;padding:0;border:0;border-radius:50%;cursor:pointer;background:radial-gradient(circle at 40% 35%,#fffaf0,#d8c49a);box-shadow:0 0 0 2px var(--rc,#8a8f96),0 2px 0 rgba(0,0,0,.25);transition:transform .12s}
+.rchip:hover,.rchip:focus-visible{transform:translateY(-2px);outline:none;box-shadow:0 0 0 3px var(--rc,#8a8f96),0 3px 0 rgba(0,0,0,.3)}
+#relinfo .panel{width:min(360px,100%)}#relinfo #ribody{width:100%}#relinfo .rcard{cursor:default;box-sizing:border-box;width:100%}#relinfo .rcard:hover{transform:none}
+#riclose{justify-self:center;background:#3a2616;color:#f1e4c6;border-color:#1a0f07}
 .rchip svg,.rcard svg{display:block}
 .rpan{width:min(460px,100%)}
 #herbask .panel{width:min(380px,100%)}#herbask .rsub{text-align:center}#haleave{justify-self:center;background:#3a2616;color:#f1e4c6;border-color:#1a0f07}
@@ -510,6 +513,13 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 <div id="cscene"></div>
 <div class="cbub" id="cline" aria-live="polite"></div>
 <button class="b big pri" id="cleave">Thank Herbert and Leave Camp</button>
+</div>
+</div>
+<div class="ov" id="relinfo" hidden>
+<div class="panel cpan" role="dialog" aria-labelledby="rititle">
+<h2 id="rititle">Relic</h2>
+<div id="ribody"></div>
+<button class="b big" id="riclose">Close</button>
 </div>
 </div>
 <div class="ov" id="herbask" hidden>
@@ -2185,7 +2195,20 @@ const RICON={ // small 32-unit relic icons
  cap:'<path d="M5 24q1-13 12-15q11-2 11 12l-3 2q-1-8-5-10q-5-1-6 6z" fill="#7a2a24" stroke="#3a1210" stroke-width="1.100"/><path d="M10 14q5 1 7 7M16 10q5 2 6 8" stroke="#c8b08a" stroke-width="1.600" fill="none" opacity=".55"/><path d="M4 23q8-4 16 0l-.5 3.500q-7.500-3.500-15 0z" fill="#b8ac90" stroke="#4a4030" stroke-width="1"/><circle cx="26" cy="24.500" r="3" fill="#e2d6bc" stroke="#6a604c" stroke-width=".9"/>'};
 const relicIcon=(id,sz=32)=>`<svg viewBox="0 0 32 32" width="${sz}" height="${sz}" aria-hidden="true">${RICON[id]}</svg>`;
 function renderGold(){$("wgold").innerHTML=PURSE+`<b aria-label="${camp.gold} gold">${camp.gold}</b>`+(camp.lastGold?`<span class="gplus" aria-hidden="true">+${camp.lastGold}</span>`:"");camp.lastGold=0}
-function renderRelics(){$("wrelics").innerHTML=camp.relics.map(id=>{const R=RELICS[id];return `<span class="rchip" style="--rc:${RARITY[R.r][1]}" title="${R.name}: ${R.desc}">${relicIcon(id,22)}${R.name}</span>`}).join("")}
+function renderRelics(){ // just the symbols; tap one for its details
+  $("wrelics").innerHTML=camp.relics.map(id=>{const R=RELICS[id];return `<button class="rchip" data-id="${id}" style="--rc:${RARITY[R.r][1]}" title="${R.name}" aria-label="${R.name}">${relicIcon(id,26)}</button>`}).join("");
+  $("wrelics").querySelectorAll(".rchip").forEach(b=>b.onclick=()=>showRelicInfo(b.dataset.id,b));
+}
+let relinfoFrom=null;
+function showRelicInfo(id,from){
+  const R=RELICS[id],[rn,rc]=RARITY[R.r];relinfoFrom=from;
+  $("rititle").textContent=R.name;
+  $("ribody").innerHTML=`<div class="rcard" style="--rc:${rc}"><span class="ri">${relicIcon(id,38)}</span><span class="rr">${rn} relic</span><small>${R.desc}</small></div>`;
+  $("relinfo").hidden=false;$("riclose").focus();
+}
+function closeRelicInfo(){$("relinfo").hidden=true;if(relinfoFrom&&relinfoFrom.isConnected)relinfoFrom.focus();relinfoFrom=null}
+$("riclose").onclick=closeRelicInfo;
+$("relinfo").onclick=e=>{if(e.target===$("relinfo"))closeRelicInfo()}; // tapping outside the window closes it
 function showRelicOffer(){
   if(camp.found.length){ // relics picked up during the battle come first, one screen each
     const f=camp.found[0],R=RELICS[f.id],[rn,rc]=RARITY[R.r],F=FINDS.find(x=>x.relic===f.id);
@@ -2444,6 +2467,7 @@ $("tclose").onclick=closeGuide;
 if(document.addEventListener)document.addEventListener("keydown",e=>{
   if(e.key!=="Escape")return;
   if(!$("tguide").hidden)return closeGuide();
+  if(!$("relinfo").hidden)return closeRelicInfo();
   if($("game").hidden||paused||locked||busy||over)return;
   if(choice||bchoice||mode){choice=null;choiceMv=null;bchoice=null;mode=null;say("Move, attack, or pick another unit.");render()} // Esc backs out one step
   else if(sel){sel=null;info=null;say("Select one of your units.");render()}
