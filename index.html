@@ -70,7 +70,7 @@ button.b small{display:block;font-size:.78rem;opacity:.85}
 .discs{display:flex;justify-content:center;gap:12px}
 .pv{position:relative;width:48px;height:48px;flex:none}
 .menubtns{display:grid;gap:10px;max-width:280px;margin:22px auto}
-.mtog{display:flex;justify-content:center;gap:8px;margin:-8px auto 18px}.mtog .b{font-size:.85rem;padding:6px 12px}
+#mbtns[hidden]+.mtog{display:none}.mtog{display:flex;justify-content:center;gap:8px;margin:-8px auto 18px}.mtog .b{font-size:.85rem;padding:6px 12px}
 button.b.big{text-align:center;font-size:1.05rem;padding:14px}
 #prules h3{margin:12px 0 2px;font-size:.95rem}
 #prules p{margin:0}
@@ -216,7 +216,7 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .proj.big{width:18px;height:18px;background:#3a3a3a;box-shadow:0 0 8px 3px rgba(255,150,60,.9),0 0 0 2px #fff}
 .burst{position:absolute;width:46px;height:46px;border-radius:50%;border:4px solid #fff;box-shadow:0 0 12px rgba(255,120,80,.9);z-index:4;pointer-events:none}
 @media (prefers-reduced-motion:reduce){.u.mv,.u.sel.mv,.u.tpin{animation:none}}
-#pbtns{display:grid;gap:10px}
+#pbtns,#paud{display:grid;gap:10px}
 #defeat{z-index:14}
 #defeat h2{color:var(--foe)}
 .t.pp::before{content:"\2194";position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;background:#fff;color:#222;font-size:.72rem;font-weight:700;display:grid;place-items:center;z-index:3;pointer-events:none}
@@ -348,6 +348,7 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .pop.bless{color:#c8f0ff;text-shadow:0 0 6px #4ab8ff,0 0 3px #000,0 1px 4px #000}
 .pop.rally{color:#ffe7a0;text-shadow:0 0 6px #d9a02a,0 0 3px #000,0 1px 4px #000}
 .u.rallied:not(.blessed){box-shadow:0 0 0 2px rgba(255,240,200,.9),0 0 10px 3px rgba(230,180,60,.7)}
+.u.mule:not(.blessed):not(.rallied){box-shadow:0 0 0 2px rgba(240,220,190,.9),0 0 9px 3px rgba(150,95,45,.8)}
 .u.blessed{box-shadow:0 0 0 2px rgba(255,255,255,.9),0 0 10px 3px rgba(120,210,255,.75)}
 .pop.thanks{color:#ffd68a;font-size:.95rem;font-style:italic;animation:thanks 2.3s ease-out forwards}
 @keyframes thanks{0%{opacity:0;transform:translate(-50%,-80%)}15%{opacity:1;transform:translate(-50%,-120%)}75%{opacity:1}100%{opacity:0;transform:translate(-50%,-200%)}}
@@ -413,7 +414,8 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 <section id="menu">
 <div class="hero"><div class="discs" id="hero"></div><h1>Skirmish</h1><p>Turn-based tactics on a small battlefield.</p></div>
 <div class="menubtns" id="mbtns"><button class="b big" id="camp">Campaign</button><button class="b big" id="play">Quick Battle</button><button class="b big" id="chal">Challenges</button><button class="b big" id="unl">Unlocks</button><button class="b big" id="how">How to Play</button><button class="b big" id="edit" hidden>Map Editor</button></div>
-<div class="mtog"><button class="b" id="msound">Sound: On</button><button class="b" id="mmusic">Music: On</button></div>
+<div class="mtog"><button class="b" id="maudio">Sound &amp; Music</button></div>
+<div class="menubtns" id="maud" hidden><h2 class="htitle">Sound &amp; Music</h2><button class="b big" id="msound">Sound: On</button><button class="b big" id="mmusic">Music: On</button><button class="b big" id="maback">Back</button></div>
 <div id="chalview" hidden></div>
 <div id="rulesview" hidden></div>
 <div id="unlockview" hidden></div>
@@ -513,12 +515,16 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 <button class="b big" id="pback">Back to Game</button>
 <button class="b big" id="prule">How to Play</button>
 <button class="b big" id="pguide">Terrain Guide</button>
-<button class="b big" id="psound">Sound: On</button>
-<button class="b big" id="pmusic">Music: On</button>
+<button class="b big" id="paudio">Sound &amp; Music</button>
 <button class="b big" id="phold">Save &amp; Quit</button>
 <button class="b big" id="pconcede">Concede</button>
 </div>
 <div id="prules" hidden></div>
+<div id="paud" hidden>
+<button class="b big" id="psound">Sound: On</button>
+<button class="b big" id="pmusic">Music: On</button>
+<button class="b big" id="paback">Back</button>
+</div>
 </div>
 <div class="panel" id="pconfirm" hidden role="alertdialog" aria-label="Confirm concede">
 <h2>Concede?</h2>
@@ -633,6 +639,7 @@ const BLESS_EV=.05;
 const blessed=u=>u.team==="y"&&u.blessUntil>=pturn; // Font of the Wise Ones: lasts through the enemy turn and your next one
 const canBless=(a,b)=>rel(a,"font")&&!a.blessUsed&&!a.acted&&b!==a&&b.team==="y"&&d(a,b)===1; // adjacent allies only
 const RALLY_EV=.05,RALLY_RANGE=2;
+const MULE_AR=2,muled=u=>u.team==="y"&&u.muleUntil>=pturn; // Mule Hair Potion: +2 armor, can't be pushed or slowed, through the enemy turn and your next one
 const DANDELION_CHANCE=.2,DANDELION_RANGE=2; // Immortal Dandelion: the chance to shrug off a lethal blow, and how near a support unit must be
 const dandelionSaves=(u,before)=>rel(u,"dandelion")&&before>=2&&units.some(s=>s!==u&&s.team==="y"&&(s.t==="P"||s.t==="E")&&d(s,u)<=DANDELION_RANGE)&&Math.random()<DANDELION_CHANCE;
 const rallied=u=>u.team==="y"&&u.rallyUntil>=pturn; // Trumpet of Encouragement: lasts through the enemy turn and your next one
@@ -1129,7 +1136,7 @@ function combat(a,b,from=a){
   add("Wolfpack Banner",rel(a,"wolfpack")&&units.some(v=>v!==a&&v.team===a.team&&d(v,b)===1)?1:0); // ganging up on a pinned enemy
   add("Mercy Blade",rel(a,"mercy")&&b.hp<=B.hp/2?2:0); // finishing the wounded
   add("Hunter's Horn",rel(a,"horn")&&WOODS(from.x+","+from.y)?2:0); // striking from the treeline
-  const armor=[["Armor",B.ar||0],["Padded Armor",b.t==="A"&&mods[b.team]==="PAD"?1:0],["Forest Tactics",mods[b.team]==="FT"&&A.rg>1&&WOODS(k)?1:0],["Fortress",FORT.has(k)?1:0],["Sturdy Shields",b.t==="K"&&rel(b,"shield")?1:0],["Barding",b.t==="C"&&rel(b,"bard")?1:0]];
+  const armor=[["Armor",B.ar||0],["Padded Armor",b.t==="A"&&mods[b.team]==="PAD"?1:0],["Forest Tactics",mods[b.team]==="FT"&&A.rg>1&&WOODS(k)?1:0],["Fortress",FORT.has(k)?1:0],["Sturdy Shields",b.t==="K"&&rel(b,"shield")?1:0],["Barding",b.t==="C"&&rel(b,"bard")?1:0],["Stubborn as a Mule",muled(b)?MULE_AR:0]];
   armor.forEach(([l,v])=>add(l,-v));
   add("Pierce",Math.min((A.pi||0)+(rel(a,"bluemagma")?1:0),armor.reduce((t,x)=>t+x[1],0))); // Blue Magma: +1 pierce
   add("Pavise",b.t==="A"&&A.rg>1&&rel(b,"pavise")?-1:0); // a shield wall, not armor: pierce can't get past it
@@ -1149,7 +1156,7 @@ const dmgTo=(a,b,from)=>combat(a,b,from).dmg;
 const combatNote=c=>c.parts.length>1?c.parts.map(([l,v],i)=>i?`${v>0?"+":"\u2212"}${Math.abs(v)} ${l}`:`${v} base`).join(" "):"";
 const open=(x,y)=>x>=0&&y>=0&&x<W&&y<H&&!solid(x+","+y)&&!at(x,y);
 const farRow=t=>{const y=t==="y"?0:H-1,r=[];for(let x=0;x<W;x++)if(open(x,y))r.push([x,y]);return r};
-const pushable=(a,b)=>a.t==="K"&&b!==a&&b.t!=="R"&&b.t!=="C"&&d(a,b)===1;
+const pushable=(a,b)=>a.t==="K"&&b!==a&&!muled(b)&&b.t!=="R"&&b.t!=="C"&&d(a,b)===1;
 function pushDest(a,b){const dx=b.x-a.x,dy=b.y-a.y;let x=b.x,y=b.y;for(let i=0;i<2;i++){if(!open(x+dx,y+dy))break;x+=dx;y+=dy}return[x,y]}
 const later=(fn,ms)=>setTimeout(function w(){if(paused)setTimeout(w,200);else fn()},ms);
 function rest(team){ // Field Rest: idle units recover 2 HP
@@ -1240,7 +1247,7 @@ function render(){
     html+=`<button class="${cls}" data-x="${x}" data-y="${y}"${pd&&pd.k===k?` data-arrow="${pd.a}"`:""} aria-label="${label.replace(/"/g,"&quot;")}">`
       +'<i class="lt"></i>'+tileArt(x,y)+(fr?'<i class="tint"></i>':"")+(SMOKE.has(k)?'<i class="smoke"></i>':"")+joins(x,y); // fortress art covers its tile, so highlights go on a see-through layer above it
     if(u){
-      let uc="u "+u.team+(spent(u)?" done":"")+(u.slow?" slow":"")+(inspired(u)?" insp":"")+(blessed(u)?" blessed":"")+(rallied(u)?" rallied":"")+(u===sel||u===insp?" sel":""),mvs="";
+      let uc="u "+u.team+(spent(u)?" done":"")+(u.slow?" slow":"")+(inspired(u)?" insp":"")+(blessed(u)?" blessed":"")+(rallied(u)?" rallied":"")+(muled(u)?" mule":"")+(u===sel||u===insp?" sel":""),mvs="";
       if(u.spawn){uc+=" tpin";delete u.spawn}
       const pp=prevPos.get(u);prevPos.set(u,[x,y]);
       if(pp&&(pp[0]!==x||pp[1]!==y)){ // slide in from where it was last drawn (a long jump fades in instead)
@@ -1292,6 +1299,7 @@ function renderInfo(){
   if(u.slow)notes.push("Slowed: movement reduced to 1 until the end of its next turn.");
   if(blessed(u))notes.push("Blessed: +5% evasion until the end of your next turn.");
   if(rallied(u))notes.push("Rallied: +5% evasion until the end of your next turn.");
+  if(muled(u))notes.push("Stubborn as a Mule: +2 armor and can't be pushed or slowed until the end of your next turn.");
   if(u.team==="y"&&SMOKE.has(u.x+","+u.y))notes.push("In smoke: +20% evasion until your next turn.");
   if(calm(u))notes.push("Moment of Calm: in a Cherry Grove, so it can't be slowed, and it neither retaliates nor suffers retaliation.");
   if(rel(u,"trumpet")&&!relicUsed.trumpet&&!u.auto)notes.push("Trumpet of Encouragement: one of your units can sound it once this battle.");
@@ -1552,6 +1560,8 @@ function sfx(name){
       case "drum":[0,.09,.18,.27,.4].forEach((st,i)=>{tone("sine",i===4?95:120,t0+st,.14,i===4?1.2:.7,60);noise(t0+st,.05,"bandpass",1800,1.5,i===4?.4:.25)});break; // a muster call on the war drum
       case "crack":noise(t0,.05,"bandpass",1500*vr,2,.9);tone("triangle",210*vr,t0,.1,.35,140);noise(t0+.05,.12,"lowpass",900,1,.35,300);break; // splintering wood
       case "boom":tone("sine",62,t0,.6,2,30);noise(t0,.5,"lowpass",900,.7,1.3,140);noise(t0,.1,"bandpass",2400,1,.4);break; // a barrel going up
+      case "bray":{const lp=actx.createBiquadFilter();lp.type="lowpass";lp.frequency.value=1400;lp.connect(out); // a small, indignant hee-haw
+        [[620,0,.22,520],[300,.26,.34,230]].forEach(([f,st,len,f2])=>{const o=actx.createOscillator(),g=env(t0+st,.03,len*.4,len*.6,.5);o.type="sawtooth";o.frequency.setValueAtTime(f*vr,t0+st);o.frequency.linearRampToValueAtTime(f2*vr,t0+st+len);o.connect(g);g.connect(lp);o.start(t0+st);o.stop(t0+st+len+.05)});break}
       case "whisk":noise(t0,.16,"bandpass",1400*vr,2.5,.8,5200);noise(t0+.12,.14,"bandpass",4800*vr,2.5,.45,1600);noise(t0,.3,"highpass",6000,.7,.12);break; // a quick, airy whisk there and back
       case "smoke":noise(t0,.7,"highpass",1800,.6,.45,5200);noise(t0+.05,.6,"bandpass",600,.8,.3,300);break; // a hissing cloud
       case "flame":noise(t0,.45,"bandpass",350,1,.9,1400);[.08,.17,.29].forEach(st=>noise(t0+st,.02,"highpass",3500,1,.3));break; // a whoomp of fire and a crackle
@@ -1650,10 +1660,11 @@ if(document.addEventListener){
   document.addEventListener("visibilitychange",()=>document.hidden?stopMusic():startMusic());
 }
 // Items from Marcus's wagon: using one takes the unit's action
-const itemPrompt=id=>id==="feather"?"Choose an ally within 2 tiles to swap places with.":id==="draught"?"Choose this unit or a wounded ally beside it.":id==="smoke"?"Choose a tile within 3 to throw the smoke bomb at.":"Choose an enemy within 3 to throw the fire flask at.";
+const itemPrompt=id=>id==="mule"?"Tap this unit to drink the potion.":id==="feather"?"Choose an ally within 2 tiles to swap places with.":id==="draught"?"Choose this unit or a wounded ally beside it.":id==="smoke"?"Choose a tile within 3 to throw the smoke bomb at.":"Choose an enemy within 3 to throw the fire flask at.";
 function itemTargets(u,id){
   const out=new Set();
   if(id==="draught")units.forEach(b=>{if(b.team==="y"&&d(u,b)<=1&&b.hp<TYPES[b.t].hp)out.add(b.x+","+b.y)});
+  else if(id==="mule")out.add(u.x+","+u.y);
   else if(id==="feather")units.forEach(b=>{if(b.team==="y"&&b!==u&&d(u,b)<=2)out.add(b.x+","+b.y)});
   else if(id==="fire")units.forEach(b=>{if(b.team!=="y"&&d(u,b)<=3)out.add(b.x+","+b.y)});
   else for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(Math.abs(x-u.x)+Math.abs(y-u.y)<=3)out.add(x+","+y);
@@ -1666,6 +1677,7 @@ function useItem(a,id,x,y){
     say(`A gust of wind! Your ${NAME[a.t]} and ${NAME[b.t]} swapped places.`);return render();
   }
   a.acted=a.moved=1;sel=null;mode=null;choice=null;lastMove=null;insp=null;
+  if(id==="mule"){a.muleUntil=pturn+1;a.slow=0;sfx("bray");floatText(a.x,a.y,"Stubborn!","slow");info=a;say(`Your ${NAME[a.t]} drank the Mule Hair Potion: +2 armor, and it can't be pushed or slowed until the end of your next turn.`);return render()}
   if(id==="draught"){const b=at(x,y),n=Math.min(DRAUGHT_HEAL,TYPES[b.t].hp-b.hp);b.hp+=n;sfx("heal");floatText(b.x,b.y,"+"+n,"heal");info=b;say(`Your ${NAME[a.t]} used a Healing Draught: +${n} HP${b===a?"":" for your "+NAME[b.t]}.`);return render()}
   if(id==="smoke"){
     blastOf(x+","+y).concat([[x,y]]).forEach(([cx,cy])=>SMOKE.add(cx+","+cy));sfx("smoke");
@@ -1955,7 +1967,7 @@ function enemyTurn(note=""){
       animAttack(u,{x:cx,y:cy},()=>{CAMPS.delete(cs);floatText(cx,cy,"Broken");say("Enemy "+NAME[u.t]+" wrecked the camp site.");fin()});return;
     }
     if(u.t==="E"&&ts.length&&!ts.some(p=>dmgTo(u,p)>=p.hp)){
-      const sl=ts.filter(p=>!p.slow&&!calm(p)&&mvOf(p)>1).sort((a,b)=>TYPES[b.t].dmg-TYPES[a.t].dmg||TYPES[b.t].mv-TYPES[a.t].mv)[0];
+      const sl=ts.filter(p=>!p.slow&&!calm(p)&&!muled(p)&&mvOf(p)>1).sort((a,b)=>TYPES[b.t].dmg-TYPES[a.t].dmg||TYPES[b.t].mv-TYPES[a.t].mv)[0];
       if(sl){u.acted=1;animAttack(u,sl,()=>{sl.slow=1;sfx("slow");floatText(sl.x,sl.y,"Slow","slow");say("Enemy "+NAME[u.t]+" slowed your "+NAME[sl.t]+".");fin()});return}
     }
     if(ts.length){
@@ -2234,7 +2246,7 @@ $("wrestart").onclick=()=>{
 /* ---------- Screens & setup ---------- */
 const COLORS={red:["Red","#c8372d","#fff"],yellow:["Yellow","#e6b820","#2b2200"],blue:["Blue","#2f6fb5","#fff"],orange:["Orange","#e2812a","#fff"],green:["Green","#3b9a4e","#fff"],purple:["Purple","#7b4bb0","#fff"],black:["Black","#232a31","#fff"],wild:["Wild","#7a5a36","#fff"]};
 const CHOICES=["red","yellow","blue","orange","green","purple"];
-const show=n=>{["menu","pick","game","world","editor"].forEach(i=>$(i).hidden=i!==n);syncMusic();if(n==="menu"){$("rulesview").hidden=true;$("unlockview").hidden=true;$("chalview").hidden=true;$("mbtns").hidden=false}};
+const show=n=>{["menu","pick","game","world","editor"].forEach(i=>$(i).hidden=i!==n);syncMusic();if(n==="menu"){$("maud").hidden=true;$("rulesview").hidden=true;$("unlockview").hidden=true;$("chalview").hidden=true;$("mbtns").hidden=false}};
 const disc=(t,c)=>`<div class="u" data-t="${t}" style="background:${c[1]};--tc:${c[1]};--ic:${c[2]}">${ICON[t]}</div>`;
 const foeColor=()=>pick.c==="red"?"black":"red";
 const cap=w=>w.replace(/\b\w/g,c=>c.toUpperCase()); // "banner bearer" -> "Banner Bearer"
@@ -2389,21 +2401,29 @@ const HOWTO=[
  {id:"scout",title:"Scouting",art:()=>{const m=[];for(let y=0;y<7;y++){let r="";for(let x=0;x<7;x++){const d=Math.abs(x-3)+Math.abs(y-3);r+=d===0?".":d<=2?"g":d===3?"p":"."}m.push(r)}return hBoard(7,7,m,[["K","f",3,3]],38)},
   body:()=>"<p>Tap any unit to see its details, including its health. Tap an enemy to see where it can move (gray) and hit (red). Tap it again to hide.</p>"}
 ];
-// ctx: {root, exit, mainLabel, pause}. topic null shows the topic list.
-function howView(ctx,topic){
+// topics are grouped so the list stays short; a group of one opens its topic directly
+const HOW_GROUPS=[{title:"Basics",ids:["goal","turn","scout"]},{title:"Your Army",ids:["armies","units","mods"]},{title:"The Battlefield",ids:["combat","terrain","wild"]},{ids:["camp"]}];
+const howTopic=id=>HOWTO.find(t=>t.id===id);
+// ctx: {root, exit, mainLabel, pause}. Neither topic nor group shows the group list.
+function howView(ctx,topic,group){
   const r=ctx.root;r.innerHTML="";
   const el=(h)=>{const d=document.createElement("div");d.innerHTML=h;return d.firstElementChild};
-  r.append(el(`<h2 class="htitle">${topic?topic.title:"How to Play"}</h2>`));
-  if(!topic){
-    const box=el('<div class="menubtns"></div>');
-    HOWTO.forEach(t=>mk(box,"b big",t.title,()=>howView(ctx,t)));
-    mk(box,"b big","Back",ctx.exit);r.append(box);
+  const up=()=>group&&group.title?howView(ctx,null,group):howView(ctx,null,null);
+  r.append(el(`<h2 class="htitle">${topic?topic.title:group?group.title:"How to Play"}</h2>`));
+  const box=el('<div class="menubtns"></div>');
+  if(!topic&&!group){
+    HOW_GROUPS.forEach(g=>g.title?mk(box,"b big",g.title,()=>howView(ctx,null,g)):mk(box,"b big",howTopic(g.ids[0]).title,()=>howView(ctx,howTopic(g.ids[0]),g)));
+    mk(box,"b big","Back",ctx.exit);
+  }else if(!topic){
+    group.ids.forEach(id=>mk(box,"b big",howTopic(id).title,()=>howView(ctx,howTopic(id),group)));
+    mk(box,"b big","Back",()=>howView(ctx,null,null));
+    mk(box,"b big",ctx.mainLabel,ctx.exit);
   }else{
     r.append(el(`<div class="hcard">${topic.art()}${topic.body()}</div>`));
-    const box=el('<div class="menubtns"></div>');
-    mk(box,"b big","Back",()=>howView(ctx,null));
-    mk(box,"b big",ctx.mainLabel,ctx.exit);r.append(box);
+    mk(box,"b big","Back",up);
+    mk(box,"b big",ctx.mainLabel,ctx.exit);
   }
+  r.append(box);
   if(ctx.pause)$("pmain").scrollTop=0;else window.scrollTo(0,0);
   const f=r.querySelector("button");if(f)f.focus({preventScroll:true});
 }
@@ -2825,18 +2845,21 @@ const ITEMS={ // consumables, used in battle (campaign only); using one takes th
  draught:{name:"Healing Draught",price:25,desc:"Heal this unit or an adjacent ally for 5 HP."},
  smoke:{name:"Smoke Bomb",price:30,desc:"Throw at a tile within 3: your units on it and the 8 tiles around it get +20% evasion until your next turn."},
  fire:{name:"Fire Flask",price:35,desc:"Throw at an enemy within 3 for 3 damage, ignoring armor."},
- feather:{name:"Wind Elemental's Feather",price:40,r:1,free:1,desc:"Swap this unit with an ally within 2 tiles. Neither unit uses its move or action."}};
-// r: rarity (commons are always stocked; an uncommon turns up on about half of visits); free: using it costs the unit nothing
-const ITEM_CAP=3,ITEM_STOCK=[1,.5],RELIC_PRICE=[40,70,110],SMOKE_EV=.2,DRAUGHT_HEAL=5,FIRE_DMG=3; // RELIC_PRICE by rarity: common, uncommon, rare
+ feather:{name:"Wind Elemental's Feather",price:40,r:1,free:1,desc:"Swap this unit with an ally within 2 tiles. Neither unit uses its move or action."},
+ mule:{name:"Mule Hair Potion",price:40,r:1,lock:"mule",desc:"The drinker turns stubborn as a mule: +2 armor, and it can't be pushed or slowed, until the end of your next turn. Brewed from genuine mule hair. Marcus swears Parsnip had nothing to do with it."}};
+// r: rarity (commons are always stocked; an uncommon turns up on about half of visits); free: using it costs the unit nothing; lock: the unlock it waits for
+const ITEM_CAP=3,ITEM_STOCK=[1,.5],MULE_BUYS=5,RELIC_PRICE=[40,70,110],SMOKE_EV=.2,DRAUGHT_HEAL=5,FIRE_DMG=3; // RELIC_PRICE by rarity: common, uncommon, rare
 const IICON={
  draught:'<path d="M14 4h4v4q7 3 7 10q0 7-9 7t-9-7q0-7 7-10z" fill="rgba(200,60,50,.55)" stroke="#2a1410" stroke-width="1.100"/><path d="M8.600 17q0 6 7.400 6.500q7.400-.5 7.400-6.500z" fill="#b8372d"/><rect x="13.400" y="2" width="5.200" height="3.400" rx="1" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M10 13q-1 4 0 7" stroke="#fff" stroke-width="1.100" fill="none" opacity=".6"/><path d="M14 16h4M16 14v4" stroke="#fff4f0" stroke-width="1.300" stroke-linecap="round"/>',
  smoke:'<circle cx="15" cy="19" r="9" fill="#26262a" stroke="#0a0a0c" stroke-width="1.100"/><circle cx="12" cy="16" r="2.600" fill="#fff" opacity=".25"/><path d="M20 12q3-6 8-5" stroke="#8a6a3a" stroke-width="1.600" fill="none"/><circle cx="28" cy="7" r="2" fill="#ffb347"/><circle cx="28" cy="7" r="4" fill="#ffb347" opacity=".25"/><g fill="#b8b4b0" opacity=".55"><circle cx="6" cy="9" r="3"/><circle cx="9" cy="6" r="2.400"/></g>',
+ mule:'<path d="M13 3h6v4h-6z" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M12 7h8v3q6 3 6 10q0 8-10 8T6 20q0-7 6-10z" fill="rgba(170,120,70,.5)" stroke="#2a1410" stroke-width="1.100"/><path d="M6.600 19q0 8 9.400 8.500q9.400-.5 9.400-8.500z" fill="#8a5a2e"/><path d="M11 14q-2 4-1 8" stroke="#fff" stroke-width="1" fill="none" opacity=".55"/><path d="M18 15q3 1 2 4M21 14q2 2 1 4M16 17q2 2 1 4" stroke="#3a2412" stroke-width=".9" fill="none" stroke-linecap="round"/><path d="M19 2q4-2 6 1" stroke="#6a4a2a" stroke-width="1.200" fill="none" stroke-linecap="round"/>',
  feather:'<path d="M6 27q3-12 13-19q5-4 9-4q0 4-4 9q-7 10-18 14z" fill="#eef6fb" stroke="#3a5a6a" stroke-width="1.100" stroke-linejoin="round"/><path d="M6 27L24 8" stroke="#5a7a8a" stroke-width="1.100"/><path d="M12 20l-2-5M15 17l-1-6M18 14l0-5M13 19l5 1M16 16l6 0M19 13l5-1" stroke="#9ab8c8" stroke-width=".8"/><path d="M3 12q4-3 8 0t8 0M1 18q3-2 6 0" stroke="#6ab0d8" stroke-width="1.300" fill="none" stroke-linecap="round" opacity=".8"/>',
  fire:'<path d="M10 28v-10q0-7 6-9q6 2 6 9v10z" fill="#e2531a" stroke="#2a1410" stroke-width="1.100"/><path d="M13.500 9h5V5h-5z" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><circle cx="16" cy="20" r="7" fill="#ff8a2a" opacity=".28"/><path d="M16 25q-4-4 0-10q4 6 0 10z" fill="#ffd27a"/><path d="M12 16q-1 5 0 9" stroke="#fff" stroke-width="1" opacity=".45" fill="none"/>'};
 const itemIcon=(id,sz=32)=>`<svg viewBox="0 0 32 32" width="${sz}" height="${sz}" aria-hidden="true">${IICON[id]}</svg>`;
 const MARCUS={
  greet:["Ah, a customer! Mind Parsnip, he bites. Only on Tuesdays.","Wares for the weary! Every one of them one of a kind. Mostly.","Don't mind the bones, friend. Business has been dead lately. Ha!","Back from the fighting, eh? Gold spends the same whether you're alive or not. Trust me.","Herbert sends his regards. He still owes me for that mug."],
  buy:["Pleasure doing business!","Sold! No refunds. No exceptions. No questions.","Parsnip approves. I can tell. He's still asleep.","A fine choice for a fine customer."],
+ mule:"Genuine mule hair. Sourced from a very distant mule. Not Parsnip. Don't look at Parsnip.",
  fire:"Fire Flask? Excellent choice. Point it away from the wagon, please.",
  coin:"A genuine Copper Coin of Good Fortune! I've only got... well, a few.",
  poor:"Ah. Your purse is lighter than my conscience. Come back with more coin.",
@@ -2846,7 +2869,7 @@ const MARCUS={
 function shopStock(){
   const pool=shopRelics(),rel=[];
   while(rel.length<2&&pool.length){const tot=pool.reduce((t,id)=>t+RARITY_W[RELICS[id].r],0);let r=Math.random()*tot,i=0;while(r>=RARITY_W[RELICS[pool[i]].r]){r-=RARITY_W[RELICS[pool[i]].r];i++}rel.push(pool.splice(i,1)[0])}
-  return {relics:rel,sold:[],items:Object.keys(ITEMS).filter(id=>Math.random()<ITEM_STOCK[ITEMS[id].r||0])};
+  return {relics:rel,sold:[],items:Object.keys(ITEMS).filter(id=>(!ITEMS[id].lock||unlocks[ITEMS[id].lock])&&Math.random()<ITEM_STOCK[ITEMS[id].r||0])};
 }
 let shopNode=null;
 const marcusSays=t=>{$("shline").textContent=t};
@@ -2860,14 +2883,15 @@ function renderShop(){
     +'<div class="shsec">Relics</div>'+(n.stock.relics.length?n.stock.relics.map(id=>{const R=RELICS[id],[rn,rc]=RARITY[R.r],pr=RELIC_PRICE[R.r];return row("relic",id,R.name,pr,rn+" relic",R.desc,relicIcon(id,38),n.stock.sold.includes(id)?"Sold":relicCount(id)>=(R.max||1)?"Owned":need(pr),rc)}).join(""):'<p class="rsub">Marcus has no relics for you today.</p>');
   $("shlist").querySelectorAll(".shitem").forEach(b=>b.onclick=()=>buy(b.dataset.kind,b.dataset.id));
 }
+const boughtFromMarcus=()=>{unlocks.buys=(unlocks.buys||0)+1;saveU();if(unlocks.buys>=MULE_BUYS)unlock("mule")}; // every purchase counts toward the Mule Hair Potion
 function buy(kind,id){
   const n=shopNode;
   if(kind==="item"){
     const I=ITEMS[id];if(camp.items.length>=ITEM_CAP)return marcusSays(MARCUS.full);if(camp.gold<I.price)return marcusSays(MARCUS.poor);
-    camp.gold-=I.price;camp.items.push(id);marcusSays(id==="fire"?MARCUS.fire:MARCUS.buy[Math.floor(Math.random()*MARCUS.buy.length)]);
+    camp.gold-=I.price;camp.items.push(id);boughtFromMarcus();marcusSays(id==="mule"?MARCUS.mule:id==="fire"?MARCUS.fire:MARCUS.buy[Math.floor(Math.random()*MARCUS.buy.length)]);
   }else{
     const R=RELICS[id],pr=RELIC_PRICE[R.r];if(n.stock.sold.includes(id)||relicCount(id)>=(R.max||1))return;if(camp.gold<pr)return marcusSays(MARCUS.poor);
-    camp.gold-=pr;camp.relics.push(id);n.stock.sold.push(id);marcusSays(id==="coin"?MARCUS.coin:MARCUS.buy[Math.floor(Math.random()*MARCUS.buy.length)]);renderRelics();
+    camp.gold-=pr;camp.relics.push(id);boughtFromMarcus();n.stock.sold.push(id);marcusSays(id==="coin"?MARCUS.coin:MARCUS.buy[Math.floor(Math.random()*MARCUS.buy.length)]);renderRelics();
   }
   sfx("coin");saveCamp();renderGold();renderItems();renderShop();
 }
@@ -3106,10 +3130,12 @@ const UNLOCKS=[
  {id:"trumpet",relic:"trumpet",hint:"Conquer the Ford at Greywater challenge."},
  {id:"wolfpack",relic:"wolfpack",hint:"Wolves never hunt alone."},
  {id:"chicken",relic:"chicken",hint:"Conquer the Fort Wharton challenge."},
- {id:"pavise",relic:"pavise",hint:"Those who stand in the rain of arrows learn to carry a wall."}
+ {id:"pavise",relic:"pavise",hint:"Those who stand in the rain of arrows learn to carry a wall."},
+ {id:"mule",item:"mule",hint:"Marcus saves his strangest stock for his best customers."}
 ];
 // name, art and description for an unlock, read from the terrain table or the unit descriptions
-const unlockInfo=o=>o.relic?{name:RELICS[o.relic].name,art:relicIcon(o.relic,44),desc:RELICS[o.relic].desc+` ${/^[AEIOU]/.test(RARITY[RELICS[o.relic].r][0])?"An":"A"} ${RARITY[RELICS[o.relic].r][0].toLowerCase()} relic `+(RELICS[o.relic].find?"found only in battle, never offered as a reward.":"that can be offered after campaign victories.")}
+const unlockInfo=o=>o.item?{name:ITEMS[o.item].name,art:itemIcon(o.item,44),desc:ITEMS[o.item].desc+` ${RARITY[ITEMS[o.item].r||0][0]} consumable, sold by Marcus.`}
+  :o.relic?{name:RELICS[o.relic].name,art:relicIcon(o.relic,44),desc:RELICS[o.relic].desc+` ${/^[AEIOU]/.test(RARITY[RELICS[o.relic].r][0])?"An":"A"} ${RARITY[RELICS[o.relic].r][0].toLowerCase()} relic `+(RELICS[o.relic].find?"found only in battle, never offered as a reward.":"that can be offered after campaign victories.")}
   :o.biome?{name:BIOME_NAME[o.biome],art:terrainSwatch(o.terrain),desc:BTEXT[o.biome]+" Can appear in campaigns and quick battles."}
   :o.terrain?{name:TERRAIN[o.terrain].name,art:terrainSwatch(o.terrain),desc:TERRAIN[o.terrain].desc}
   :{name:cap(NAME[o.unit]),art:hIcon(o.unit,"y"),desc:`${unitStats(o.unit)}. ${ABILITY[o.unit]} Limit one per army.`};
@@ -3165,8 +3191,8 @@ if(document.addEventListener)document.addEventListener("keydown",e=>{
   else if(sel){sel=null;info=null;say("Select one of your units.");render()}
 });
 const closePause=()=>{paused=false;$("pause").hidden=true};
-const panel=n=>["pmain","pconfirm","pover"].forEach(p=>$(p).hidden=p!==n);
-const resetPause=()=>{$("pbtns").hidden=false;$("prules").hidden=true;$("ptitle").hidden=false;$("ptitle").textContent="Paused"};
+const panel=n=>["pmain","pconfirm","pover","pheld"].forEach(p=>$(p).hidden=p!==n);
+const resetPause=()=>{$("pbtns").hidden=false;$("prules").hidden=true;$("paud").hidden=true;$("ptitle").hidden=false;$("ptitle").textContent="Paused"};
 $("dagain").onclick=()=>{
   $("defeat").hidden=true;
   if(endMode==="chal")return chal.test?openEditor():(endMode=null,openChallenges());
@@ -3187,7 +3213,11 @@ $("pback").onclick=closePause;
 const soundLabel=()=>{["psound","msound"].forEach(id=>$(id).textContent="Sound: "+(sfxOn?"On":"Off"));["pmusic","mmusic"].forEach(id=>$(id).textContent="Music: "+(musicOn?"On":"Off"))};soundLabel();
 const toggleSound=()=>{sfxOn=!sfxOn;try{localStorage.setItem(SKEY,sfxOn?"on":"off")}catch(e){}soundLabel();sfx("heal")};
 const toggleMusic=()=>{musicOn=!musicOn;try{localStorage.setItem(MKEY,musicOn?"on":"off")}catch(e){}soundLabel();musicOn?startMusic():stopMusic()};
-$("psound").onclick=$("msound").onclick=toggleSound;$("pmusic").onclick=$("mmusic").onclick=toggleMusic;
+$("psound").onclick=$("msound").onclick=toggleSound;
+$("paudio").onclick=()=>{$("pbtns").hidden=true;$("paud").hidden=false;$("ptitle").textContent="Sound & Music";$("psound").focus()};
+$("maudio").onclick=()=>{$("mbtns").hidden=true;$("maud").hidden=false;$("msound").focus()};
+$("maback").onclick=()=>{$("maud").hidden=true;$("mbtns").hidden=false;$("maudio").focus()};
+$("paback").onclick=()=>{resetPause();$("paudio").focus()};$("pmusic").onclick=$("mmusic").onclick=toggleMusic;
 const howPause={root:$("prules"),mainLabel:"Back to Pause Menu",pause:true,exit:()=>{resetPause();$("prule").focus()}};
 $("prule").onclick=()=>{$("pbtns").hidden=true;$("prules").hidden=false;$("ptitle").hidden=true;howView(howPause,null)};
 $("pconcede").onclick=()=>{panel("pconfirm");$("pno").focus()};
