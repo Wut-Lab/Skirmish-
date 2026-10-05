@@ -2159,7 +2159,7 @@ function genWorld(){
 const BIOME_NAME={forest:"Forest",plain:"Plains",fort:"Stronghold",wild:"Wilds",wetlands:"Wetlands",swamp:"Murky Swamp",graveyard:"Haunted Graveyard",volcanic:"Molten Wastes",boss:"Enemy Stronghold"};
 // a Quick Battle map has no biome of its own, so name it from what was generated
 const guessBiome=()=>LAVA.size||VOLC.size?"volcanic":GRAVES.size?"graveyard":SWAMP.size>=10?"swamp":DEEP.size+SHALLOW.size>=20?"wetlands":FORT.size?"fort":units.some(u=>u.team==="w")?"wild":FOREST.size>=16?"forest":"plain";
-const BIOME={forest:{forest:9},plain:{forest:2},fort:{fort:1},wild:{wild:1},boss:{fort:1,boss:1},wetlands:{water:1,forest:3,swamp:1},swamp:{swamp:3,pond:1,forest:6},graveyard:{graves:1,forest:5},volcanic:{lava:1,forest:3}};
+const BIOME={mixed:{},forest:{forest:9},plain:{forest:2},fort:{fort:1},wild:{wild:1},boss:{fort:1,boss:1},wetlands:{water:1,forest:3,swamp:1},swamp:{swamp:3,pond:1,forest:6},graveyard:{graves:1,forest:5},volcanic:{lava:1,forest:3}};
 const adj=(a,b)=>EDGES.some(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a));
 const SAVE="skirmish-campaign";
 function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,items:camp.items,offer:camp.offer,found:camp.found,kills:camp.kills,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
@@ -2366,10 +2366,10 @@ function openCampSetup(){
   pick={x:(pick.x||[]).slice(),m:null,c:pick.c||"blue"};
   renderSetup();show("pick");
 }
+// a Quick Battle's land: the classic mixed field or any biome, the locked ones only once unlocked
+const quickBiome=()=>{const pool=["mixed","forest","plain","fort","wild","wetlands","swamp",...(unlocks.graveyard?["graveyard"]:[]),...(unlocks.volcanic?["volcanic"]:[])];return pool[Math.floor(Math.random()*pool.length)]};
 function start(o={}){
-  if(!camp.battle&&unlocks.graveyard&&Math.random()<.12)o={...o,graves:1,forest:5}; // quick battles: an occasional graveyard
-  else if(!camp.battle&&unlocks.volcanic&&Math.random()<.1)o={...o,lava:1,forest:3}; // ...or molten wastes
-  else if(!camp.battle&&unlocks.wisp&&Math.random()<.1)o={...o,...BIOME.swamp}; // ...or a murky swamp, where the wisps drift
+  if(!camp.battle&&!Object.keys(o).length)o={...BIOME[quickBiome()]}; // quick battles roll a biome; unlocked tiles turn up wherever they belong
   genMap(o);col={y:pick.c,f:foeColor(),w:"wild"};
   const extra=pick.x.slice();
   const P=poolNow(),rnd=(have=[])=>{let t;do t=P[Math.floor(Math.random()*P.length)];while(LIMIT1.includes(t)&&have.includes(t));return t},mine=["K","A","C",...extra],foe=["K","A","C"];foe.push(rnd(foe));foe.push(rnd(foe));
