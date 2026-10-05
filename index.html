@@ -1730,11 +1730,22 @@ if(document.addEventListener){
   document.addEventListener("visibilitychange",()=>document.hidden?stopMusic():startMusic());
 }
 // Items from Marcus's wagon: using one takes the unit's action
-const itemPrompt=id=>id==="medkit"?"Choose this unit or a wounded ally beside it to mend.":id==="mule"?"Tap this unit to drink the potion.":id==="feather"?"Choose an ally within 2 tiles to swap places with.":id==="draught"?"Choose this unit or a wounded ally beside it.":id==="smoke"?"Choose a tile within 3 to throw the smoke bomb at.":"Choose an enemy within 3 to throw the fire flask at.";
+const itemPrompt=id=>id==="koijar"?"Choose an empty tile next to this unit for the koi pond.":id==="medkit"?"Choose this unit or a wounded ally beside it to mend.":id==="mule"?"Tap this unit to drink the potion.":id==="feather"?"Choose an ally within 2 tiles to swap places with.":id==="draught"?"Choose this unit or a wounded ally beside it.":id==="smoke"?"Choose a tile within 3 to throw the smoke bomb at.":"Choose an enemy within 3 to throw the fire flask at.";
+// would blocking tile k cut a stretch of open ground off from the rest? (fields that are already split stay allowed)
+function areas(skip){
+  const seen=new Set();let n=0;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const k0=x+","+y;if(k0===skip||seen.has(k0)||solid(k0))continue;n++;seen.add(k0);const q=[k0];
+    while(q.length){const[cx,cy]=pk(q.pop());for(const[dx,dy] of DIRS){const nx=cx+dx,ny=cy+dy,nk=nx+","+ny;if(nx<0||ny<0||nx>=W||ny>=H||nk===skip||seen.has(nk)||solid(nk))continue;seen.add(nk);q.push(nk)}}
+  }
+  return n;
+}
+const splits=k=>areas(k)>areas(null);
 function itemTargets(u,id){
   const out=new Set();
   if(id==="draught")units.forEach(b=>{if(b.team==="y"&&d(u,b)<=1&&b.hp<maxHp(b))out.add(b.x+","+b.y)});
   else if(id==="mule")out.add(u.x+","+u.y);
+  else if(id==="koijar")DIRS.forEach(([dx,dy])=>{const x=u.x+dx,y=u.y+dy,k=x+","+y;if(x>=0&&y>=0&&x<W&&y<H&&!solid(k)&&!at(x,y)&&!splits(k))out.add(k)});
   else if(id==="medkit")units.forEach(b=>{if(b.team==="y"&&d(u,b)<=1&&b.wounds)out.add(b.x+","+b.y)});
   else if(id==="feather")units.forEach(b=>{if(b.team==="y"&&b!==u&&d(u,b)<=2)out.add(b.x+","+b.y)});
   else if(id==="fire")units.forEach(b=>{if(b.team!=="y"&&d(u,b)<=3)out.add(b.x+","+b.y)});
@@ -1756,6 +1767,10 @@ function useItem(a,id,x,y,rub){
     say(`A gust of wind! Your ${NAME[a.t]} and ${NAME[b.t]} swapped places.`);return render();
   }
   if(!rub)a.acted=a.moved=1;sel=rub?a:null;mode=null;choice=null;lastMove=null;insp=null;
+  if(id==="koijar"){ // a koi pond where the jar is poured; whatever grew there is washed away
+    const k=x+","+y;[FOREST,CHERRY,SWAMP,SHALLOW,MAGMA,FLOWERS,WISP,FORT,FORTK,SMOKE].forEach(st=>st.delete(k));FORTV.delete(k);KOI.add(k);
+    sfx("whisk");sfx("heal");info=null;say(`Your ${NAME[a.t]} poured out the Jar of Koi: a new koi pond ripples beside it.`);return render();
+  }
   if(id==="medkit"){ // mends campaign wounds: max HP comes back now and stays back
     const b=at(x,y),n=Math.min(b.wounds,a.t==="P"&&Math.random()<MEDKIT_DOUBLE?2:1);b.wounds-=n;if(!b.wounds)delete b.wounds;
     if(b.ci!=null&&camp.wounds)camp.wounds[b.ci]=Math.max(0,woundsOf(b.ci)-n);saveCamp();
@@ -3016,6 +3031,7 @@ const ITEMS={ // consumables, used in battle (campaign only); using one takes th
  smoke:{name:"Smoke Bomb",price:30,desc:"Throw at a tile within 3: your units on it and the 8 tiles around it get +20% evasion until your next turn."},
  fire:{name:"Fire Flask",price:35,desc:"Throw at an enemy within 3 for 3 damage, ignoring armor."},
  feather:{name:"Wind Elemental's Feather",price:40,r:1,free:1,desc:"Swap this unit with an ally within 2 tiles. Neither unit uses its move or action."},
+ koijar:{name:"Jar of Koi",price:50,r:1,lock:"sakura",desc:"Pour it out on an empty tile next to this unit to make a Koi Pond: it blocks movement, and each side's units beside it recover 1 HP at the end of their turn. Can't go on impassable terrain, or where it would cut off part of the field."},
  medkit:{name:"Advanced Med Kit",price:45,r:1,desc:"Mend 1 wound on this unit or an adjacent ally (campaign wounds, restoring 1 max HP). An Apothecary using it has a 25% chance to mend 2."},
  mule:{name:"Mule Hair Potion",price:40,r:1,lock:"mule",desc:"The drinker turns stubborn as a mule: +2 armor, and it can't be pushed or slowed, until the end of your next turn. Brewed from genuine mule hair. Marcus swears Parsnip had nothing to do with it."}};
 // r: rarity (commons are always stocked; an uncommon turns up on about half of visits); free: using it costs the unit nothing; lock: the unlock it waits for
@@ -3025,6 +3041,7 @@ const priceOf=p=>Math.round(p*(camp.relics.includes("token")?1-TOKEN_OFF:1)*(cam
 const IICON={
  draught:'<path d="M14 4h4v4q7 3 7 10q0 7-9 7t-9-7q0-7 7-10z" fill="rgba(200,60,50,.55)" stroke="#2a1410" stroke-width="1.100"/><path d="M8.600 17q0 6 7.400 6.500q7.400-.5 7.400-6.500z" fill="#b8372d"/><rect x="13.400" y="2" width="5.200" height="3.400" rx="1" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M10 13q-1 4 0 7" stroke="#fff" stroke-width="1.100" fill="none" opacity=".6"/><path d="M14 16h4M16 14v4" stroke="#fff4f0" stroke-width="1.300" stroke-linecap="round"/>',
  smoke:'<circle cx="15" cy="19" r="9" fill="#26262a" stroke="#0a0a0c" stroke-width="1.100"/><circle cx="12" cy="16" r="2.600" fill="#fff" opacity=".25"/><path d="M20 12q3-6 8-5" stroke="#8a6a3a" stroke-width="1.600" fill="none"/><circle cx="28" cy="7" r="2" fill="#ffb347"/><circle cx="28" cy="7" r="4" fill="#ffb347" opacity=".25"/><g fill="#b8b4b0" opacity=".55"><circle cx="6" cy="9" r="3"/><circle cx="9" cy="6" r="2.400"/></g>',
+ koijar:'<rect x="11" y="3" width="10" height="4" rx="1" fill="#8a5a2a" stroke="#3a2412" stroke-width=".8"/><path d="M10 7h12q1 3-1 5q5 3 5 9q0 8-10 8t-10-8q0-6 5-9q-2-2-1-5z" fill="rgba(150,210,230,.55)" stroke="#2a4a5a" stroke-width="1.100"/><path d="M7.200 18q8.800-2 17.600 0v3q0 7-8.800 7.500q-8.800-.5-8.800-7.500z" fill="#3f7f78" opacity=".85"/><path d="M11 21q3-2.400 6 0q-3 2.400-6 0zM11 21l-2.400-1.600v3.200z" fill="#f08a30"/><path d="M16 24.500q3-2 5.600 0q-2.600 2-5.600 0zM21.600 24.500l2-1.400v2.800z" fill="#fbfaf2"/><circle cx="18.600" cy="24.200" r=".8" fill="#e5554f"/><path d="M11 10q-1 5 0 8" stroke="#fff" stroke-width="1" opacity=".6" fill="none"/>',
  medkit:'<path d="M12 8q0-4 4-4t4 4" stroke="#3a2412" stroke-width="1.800" fill="none"/><rect x="4" y="8" width="24" height="18" rx="3" fill="#8a5a2e" stroke="#3a2412" stroke-width="1.200"/><path d="M4 13h24" stroke="#6a4420" stroke-width="1"/><rect x="9" y="12" width="14" height="12" rx="2" fill="#efe6d2" stroke="#4a3a28" stroke-width=".9"/><path d="M16 14.500v7M12.500 18h7" stroke="#c8372d" stroke-width="2.600" stroke-linecap="round"/><path d="M6 10h3" stroke="#c08a50" stroke-width=".9"/>',
  mule:'<path d="M13 3h6v4h-6z" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M12 7h8v3q6 3 6 10q0 8-10 8T6 20q0-7 6-10z" fill="rgba(170,120,70,.5)" stroke="#2a1410" stroke-width="1.100"/><path d="M6.600 19q0 8 9.400 8.500q9.400-.5 9.400-8.500z" fill="#8a5a2e"/><path d="M11 14q-2 4-1 8" stroke="#fff" stroke-width="1" fill="none" opacity=".55"/><path d="M18 15q3 1 2 4M21 14q2 2 1 4M16 17q2 2 1 4" stroke="#3a2412" stroke-width=".9" fill="none" stroke-linecap="round"/><path d="M19 2q4-2 6 1" stroke="#6a4a2a" stroke-width="1.200" fill="none" stroke-linecap="round"/>',
  feather:'<path d="M6 27q3-12 13-19q5-4 9-4q0 4-4 9q-7 10-18 14z" fill="#eef6fb" stroke="#3a5a6a" stroke-width="1.100" stroke-linejoin="round"/><path d="M6 27L24 8" stroke="#5a7a8a" stroke-width="1.100"/><path d="M12 20l-2-5M15 17l-1-6M18 14l0-5M13 19l5 1M16 16l6 0M19 13l5-1" stroke="#9ab8c8" stroke-width=".8"/><path d="M3 12q4-3 8 0t8 0M1 18q3-2 6 0" stroke="#6ab0d8" stroke-width="1.300" fill="none" stroke-linecap="round" opacity=".8"/>',
@@ -3033,6 +3050,7 @@ const itemIcon=(id,sz=32)=>`<svg viewBox="0 0 32 32" width="${sz}" height="${sz}
 const MARCUS={
  greet:["Ah, a customer! Mind Parsnip, he bites. Only on Tuesdays.","Wares for the weary! Every one of them one of a kind. Mostly.","Don't mind the bones, friend. Business has been dead lately. Ha!","Back from the fighting, eh? Gold spends the same whether you're alive or not. Trust me.","Herbert sends his regards. He still owes me for that mug."],
  buy:["Pleasure doing business!","Sold! No refunds. No exceptions. No questions.","Parsnip approves. I can tell. He's still asleep.","A fine choice for a fine customer."],
+ koijar:"A jar of koi! Pour gently. They're very particular about where they live.",
  medkit:"The advanced kit! Bandages, splints, and a needle I've only used twice. On other people.",
  cross:"The Sacred Cross of the Wise Ones. Fell off a cart. A holy cart. Don't ask which.",
  saddle:"Parsnip's spare saddlebags! He won't notice they're gone. He's asleep.",
