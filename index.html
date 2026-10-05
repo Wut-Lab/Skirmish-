@@ -25,7 +25,7 @@ h1{font-size:1.4rem;margin:0 0 4px}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .haunted{--tile:#3c3b38;--tile2:#373633}}
 :root[data-theme="dark"] .haunted{--tile:#3c3b38;--tile2:#373633}
 .t.sw{background:#4b4a33}
-.t.lv{background:#e2531a;cursor:default}.t.lv .dec{animation:lavaglow 3.200s ease-in-out infinite}.t.mg{background:#3b2722}.t.vo{cursor:default}
+.t.lv{background:#e2531a;cursor:default}.t.lv .dec{animation:lavaglow 3.200s ease-in-out infinite}.t.mg{background:#3b2722}.t.vo{cursor:default}.t.wo{background:#3f3e2c;cursor:default}@media (prefers-reduced-motion:no-preference){.t.wo .dec{animation:wisp 3.2s ease-in-out infinite alternate}}@keyframes wisp{from{opacity:.78}to{opacity:1}}
 @keyframes lavaglow{50%{opacity:.82}}@media (prefers-reduced-motion:reduce){.t.lv .dec{animation:none}}
 .volcanic{--tile:#8a7d72;--tile2:#83766b} /* Molten Wastes: ashen rock underfoot */
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .volcanic{--tile:#3e3631;--tile2:#39312c}}
@@ -668,7 +668,7 @@ const MODS={
  FT:{name:"Forest Tactics",desc:"Your units in a forest get +1 armor against ranged attacks. Enemies in a forest only get +5% evasion against your attacks, instead of +10%."},
  PAD:{name:"Padded Armor",desc:"Archers get +1 armor but have 1 less movement."},
  REST:{name:"Field Rest",desc:"At the end of your turn, each of your units that neither moved nor attacked that turn recovers 2 HP."}};
-let MURKY=false,HAUNTED=false,VOLCANIC=false,CHERRY=new Set(),SMOKE=new Set(),LAVA=new Set(),MAGMA=new Set(),VOLC=new Set(),GRAVES=new Set(),WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set(),SWAMP=new Set();
+let MURKY=false,HAUNTED=false,VOLCANIC=false,CHERRY=new Set(),SMOKE=new Set(),LAVA=new Set(),MAGMA=new Set(),VOLC=new Set(),WISP=new Set(),GRAVES=new Set(),WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set(),SWAMP=new Set();
 // Bump PROGRESS_EPOCH to wipe unlocks and the campaign save once on next load (editor drafts and sound settings stay).
 const PROGRESS_EPOCH=2;try{if(+localStorage.getItem("skirmish_epoch")!==PROGRESS_EPOCH){localStorage.removeItem("skirmish_unlocks_v1");localStorage.removeItem("skirmish-campaign");["quick","camp","chal"].forEach(m=>localStorage.removeItem("skirmish_hold_"+m));localStorage.setItem("skirmish_epoch",PROGRESS_EPOCH)}}catch(e){}
 const UKEY="skirmish_unlocks_v1",unlocks=(()=>{try{return JSON.parse(localStorage.getItem(UKEY)||"{}")||{}}catch(e){return{}}})();
@@ -683,7 +683,7 @@ function discover(){ // a short "New Discovery!" banner that fades away on whate
 const XB_DMG=4; // exploding barrel damage
 let BARRELS=new Set(),XBAR=new Set(),CAMPS=new Set(),bchoice=null,choiceMv=null,lastMove=null; // XBAR: the barrels that explode
 let WALLV=0,FORTV=new Map(),FORTK=new Set(); // one wall style per map; each connected fortress group shares one style; FORTK: the tile holding each fortress's keep
-const solid=k=>WALLS.has(k)||DEEP.has(k)||BARRELS.has(k)||CAMPS.has(k)||GRAVES.has(k)||LAVA.has(k)||VOLC.has(k);
+const solid=k=>WALLS.has(k)||DEEP.has(k)||BARRELS.has(k)||CAMPS.has(k)||GRAVES.has(k)||LAVA.has(k)||VOLC.has(k)||WISP.has(k);
 // each connected fortress group shares one style; its first tile holds the keep
 function groupForts(style){
   FORTV=new Map();FORTK=new Set();
@@ -825,17 +825,25 @@ function genMap(o={}){
       const x=R(W),y=4+R(H-8),ok=(a,b)=>a>=0&&a<W&&!walls.has(K(a,b))&&!graves.has(K(a,b))&&!fort.has(K(a,b))&&!swamp.has(K(a,b))&&!bars.has(K(a,b))&&!deep.has(K(a,b))&&!hot(a,b);
       if(ok(x,y)&&!forest.has(K(x,y))&&!shal.has(K(x,y))&&DIRS.filter(([dx,dy])=>ok(x+dx,y+dy)).length>=3)camps.add(K(x,y));
     }
+    const wisps=new Set(); // Will-o'-the-Wisp (unlockable): swamp maps sometimes get one in the middle or a mirrored pair, with room around it
+    if(unlocks.wisp&&o.swamp&&Math.random()<(o.swamp>=3?.6:.3)){
+      const ok=(a,b)=>a>=0&&a<W&&b>=0&&b<H&&!walls.has(K(a,b))&&!graves.has(K(a,b))&&!fort.has(K(a,b))&&!bars.has(K(a,b))&&!camps.has(K(a,b))&&!deep.has(K(a,b))&&!forest.has(K(a,b))&&!hot(a,b)&&!wisps.has(K(a,b));
+      const roomy=(a,b)=>ok(a,b)&&DIRS.filter(([dx,dy])=>ok(a+dx,b+dy)).length>=3;
+      if(Math.random()<.5){for(let t=0;t<60;t++){const a=2+R(W-4),b=5+R(2);if(roomy(a,b)){wisps.add(K(a,b));break}}}
+      else for(let t=0;t<80;t++){const a=1+R(W-2),b=3+R(2);if(roomy(a,b)&&roomy(W-1-a,H-1-b)){both(wisps,a,b);break}}
+      wisps.forEach(k=>{swamp.delete(k);shal.delete(k)});
+    }
     const seen=new Set(["0,0"]),q=[[0,0]];
     while(q.length){
       const[x,y]=q.pop();
       for(const[dx,dy] of DIRS){
         const nx=x+dx,ny=y+dy,k=nx+","+ny;
-        if(nx<0||ny<0||nx>=W||ny>=H||walls.has(k)||deep.has(k)||bars.has(k)||camps.has(k)||graves.has(k)||lava.has(k)||volc.has(k)||seen.has(k))continue;
+        if(nx<0||ny<0||nx>=W||ny>=H||walls.has(k)||deep.has(k)||bars.has(k)||camps.has(k)||graves.has(k)||lava.has(k)||volc.has(k)||wisps.has(k)||seen.has(k))continue;
         seen.add(k);q.push([nx,ny]);
       }
     }
-    if(seen.size===W*H-walls.size-deep.size-bars.size-camps.size-graves.size-lava.size-volc.size){ // every open tile connects: lava never cuts anyone off
-      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;SWAMP=swamp;MURKY=o.swamp>=3;GRAVES=graves;HAUNTED=!!o.graves;LAVA=lava;MAGMA=magma;VOLC=volc;VOLCANIC=!!o.lava;CHERRY=cherry;BARRELS=bars;XBAR=xbars;CAMPS=camps;WALLV=R(4);
+    if(seen.size===W*H-walls.size-deep.size-bars.size-camps.size-graves.size-lava.size-volc.size-wisps.size){ // every open tile connects: lava never cuts anyone off
+      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;SWAMP=swamp;MURKY=o.swamp>=3;GRAVES=graves;HAUNTED=!!o.graves;LAVA=lava;MAGMA=magma;VOLC=volc;WISP=wisps;VOLCANIC=!!o.lava;CHERRY=cherry;BARRELS=bars;XBAR=xbars;CAMPS=camps;WALLV=R(4);
       groupForts(()=>R(2));
       return;
     }
@@ -935,6 +943,13 @@ const MAGMA_V=[
 const smoke=(x,y,o=.35)=>`<g fill="#6a6260" opacity="${o}"><circle cx="${x}" cy="${y}" r="4"/><circle cx="${x+3}" cy="${y-5}" r="3.200"/><circle cx="${x-1}" cy="${y-9}" r="2.600"/></g>`;
 const volcanoArt=(lean=0)=>svg(`<ellipse cx="20" cy="36" rx="17" ry="3" fill="rgba(0,0,0,.3)"/><path d="M3 36L15 12q5-3 10 0L37 36z" fill="#4a3a34" stroke="#1a1210" stroke-width="1.200" stroke-linejoin="round"/><path d="M20 10q5 0 5 2L37 36H22z" fill="#000" opacity=".22"/><path d="M15 12q5-3 10 0l-1 2q-4-2-8 0z" fill="#ff6a1a" stroke="#1a1210" stroke-width=".9"/><ellipse cx="20" cy="12.400" rx="4" ry="1.200" fill="#ffd27a"/><path d="M18 14q-2 6 1 10t-3 10M23 14q3 8 1 12" stroke="#ff7a2a" stroke-width="1.800" fill="none" stroke-linecap="round" opacity=".85"/><path d="M8 30l3-1M29 28l3 2M12 22l2-1" stroke="#2a1e1a" stroke-width="1"/>`+smoke(20+lean,6));
 const VOLC_V=[volcanoArt(0),volcanoArt(3)];
+// Will-o'-the-Wisp: a pale ghost-light hovering over black bog water among the reeds, with its reflection below
+const wispArt=(ox,oy,flip)=>svg(`<ellipse cx="20" cy="31" rx="15" ry="5" fill="#1e2418" opacity=".85"/><ellipse cx="${20+ox}" cy="31.500" rx="7" ry="1.600" fill="#c8fff0" opacity=".28"/>`
+  +`<g stroke="#2a3220" stroke-width="1.300" stroke-linecap="round" fill="none"><path d="M${flip?33:6} 35q1-9 -1-15M${flip?35:8} 36q0-7 2-12M${flip?7:31} 36q-1-6 1-10"/></g><g fill="#3a4a2a"><ellipse cx="${flip?32:5}" cy="20" rx="1" ry="2.600"/><ellipse cx="${flip?37:10}" cy="24" rx="1" ry="2.200"/></g>`
+  +`<path d="M${20+ox} ${21+oy}q-4 5 -1 9q-3 -3 -6 -2" stroke="#c8fff0" stroke-width="1.400" fill="none" opacity=".5" stroke-linecap="round"/>`
+  +`<circle cx="${20+ox}" cy="${16+oy}" r="16" fill="#9ff0d8" opacity=".14"/><circle cx="${20+ox}" cy="${16+oy}" r="11" fill="#aef6de" opacity=".2"/><circle cx="${20+ox}" cy="${16+oy}" r="7.500" fill="#c8fbea" opacity=".38"/><circle cx="${20+ox}" cy="${16+oy}" r="5.200" fill="#e6fff7"/><circle cx="${19+ox}" cy="${15+oy}" r="2.400" fill="#fff"/>`
+  +`<g fill="#dcfff4"><circle cx="${11+ox}" cy="${9+oy}" r=".9" opacity=".8"/><circle cx="${29+ox}" cy="${11+oy}" r=".7" opacity=".7"/><circle cx="${27+ox}" cy="${24+oy}" r=".8" opacity=".6"/></g>`);
+const WISP_V=[wispArt(-2,0,false),wispArt(3,1,true)];
 function ashGround(x,y){ // ash-strewn rock in place of grass and flowers
   const v=tv(x,y,4),p=(n,k)=>tv(x,y,n,k);
   if(v===0)return svg([0,1,2].map(i=>`<ellipse cx="${6+p(28,i+5)}" cy="${8+p(26,i+9)}" rx="${1.6+p(3,i+2)*.6}" ry="${1.1+p(2,i+7)*.5}" fill="#4a423e"/>`).join(""));
@@ -1103,17 +1118,18 @@ const TERRAIN={
  xbarrel:{name:"Exploding Barrel",bg:"",art:()=>[XBAR_V],unlock:"xbarrels",desc:`Impassable. Breaking it deals ${XB_DMG} damage to every unit on the 8 tiles around it and sets off barrels in the blast. Each barrel has a 25% chance to be one.`},
  lava:{name:"Lava",bg:"background:#e2531a",art:()=>LAVA_V,unlock:"volcanic",desc:"Impassable. Units can't enter or cross it, but attacks can pass over it. Pools and flows in rivers, but never fully cuts off any part of the map."},
  magma:{name:"Magma Crust",bg:"background:#3b2722",art:()=>MAGMA_V,unlock:"volcanic",desc:"No movement penalty, but a unit that ends its turn on it takes 1 damage, ignoring armor."},
+ wisp:{name:"Will-o'-the-Wisp",bg:"background:#3f3e2c",art:()=>WISP_V,unlock:"wisp",desc:"Impassable. A ghostly bog light found in swamps. At the end of each round it slows one random unit on the 8 tiles around it, friend or foe: that unit can move only 1 tile on its next turn."},
  volcano:{name:"Volcano",bg:"",art:()=>VOLC_V,unlock:"volcanic",desc:"Impassable. 1 to 3 per map. At the end of each turn it has a small chance to erupt, dealing 2 damage (ignoring armor) to any unit on 3 random tiles around it."},
  wall:{name:"Wall",bg:"background:var(--wall)",art:()=>[0,1,2,3].map(v=>wallArt(v,0)),desc:"Impassable. Units can't enter or cross it, but attacks can pass over it."},
  fort:{name:"Fortress",bg:FR,art:()=>[fortArt(0,0,true),fortArt(0,1,true)],desc:"Uncommon. A unit standing on one gets +1 armor."}};
-const terrainKey=k=>CAMPS.has(k)?"campsite":GRAVES.has(k)?"grave":VOLC.has(k)?"volcano":LAVA.has(k)?"lava":MAGMA.has(k)?"magma":BARRELS.has(k)?(XBAR.has(k)?"xbarrel":"barrels"):WALLS.has(k)?"wall":DEEP.has(k)?"deep":SHALLOW.has(k)?"shallow":SWAMP.has(k)?"swamp":CHERRY.has(k)?"cherry":FOREST.has(k)?"forest":FORT.has(k)?"fort":"ground";
+const terrainKey=k=>CAMPS.has(k)?"campsite":GRAVES.has(k)?"grave":VOLC.has(k)?"volcano":WISP.has(k)?"wisp":LAVA.has(k)?"lava":MAGMA.has(k)?"magma":BARRELS.has(k)?(XBAR.has(k)?"xbarrel":"barrels"):WALLS.has(k)?"wall":DEEP.has(k)?"deep":SHALLOW.has(k)?"shallow":SWAMP.has(k)?"swamp":CHERRY.has(k)?"cherry":FOREST.has(k)?"forest":FORT.has(k)?"fort":"ground";
 function tileArt(x,y){ // the art for one board tile, picking a stable variant per tile
   const k=x+","+y;
   switch(terrainKey(k)){
     case "campsite":return CAMP_V;case "grave":return GRAVE_V[tv(x,y,4,23)];case "xbarrel":return XBAR_V;case "barrels":return BAR_V[tv(x,y,2,19)];case "wall":return wallArt(WALLV,wallMask(x,y));
     case "deep":return DP_V[tv(x,y,3,13)];case "shallow":return SH_V[tv(x,y,3,15)];case "swamp":return SW_V[tv(x,y,4,21)];case "forest":return HAUNTED||VOLCANIC?DEAD_V[tv(x,y,3,9)]:FOREST_V[tv(x,y,4,9)];
     case "cherry":return cherryArt(tv(x,y,3,43),joinMask(x,y,kk=>CHERRY.has(kk)),x,y);
-    case "volcano":return VOLC_V[tv(x,y,2,25)];case "lava":return LAVA_V[tv(x,y,3,27)];case "magma":return MAGMA_V[tv(x,y,3,29)];
+    case "volcano":return VOLC_V[tv(x,y,2,25)];case "wisp":return WISP_V[tv(x,y,2,47)];case "lava":return LAVA_V[tv(x,y,3,27)];case "magma":return MAGMA_V[tv(x,y,3,29)];
     case "fort":return fortArt(fortMask(x,y),FORTV.get(k)||0,FORTK.has(k));default:return VOLCANIC?ashGround(x,y):ground(x,y);
   }
 }
@@ -1254,7 +1270,7 @@ function render(){
   let html="",stepped=0;
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     const k=x+","+y,w=WALLS.has(k),dp=DEEP.has(k),sh=SHALLOW.has(k),f=FOREST.has(k),fr=FORT.has(k),bar=BARRELS.has(k),u=at(x,y);
-    const cls="t"+(bar?" brl":"")+(w?" w"+(wallMask(x,y)&1?" jn":"")+(wallMask(x,y)&4?" js":""):"")+(dp?" dp":"")+(sh?" sh":"")+(SWAMP.has(k)?" sw":"")+(LAVA.has(k)?" lv":"")+(MAGMA.has(k)?" mg":"")+(VOLC.has(k)?" vo":"")+(f?" fo":"")+(fr?" fr":"")+(tile&&tile.x===x&&tile.y===y?" ts":"")+(ig.has(k)?" ig":"")+(ir.has(k)?" ir":"")+(pr.has(k)?" pr":"")+(mv.has(k)?" m":"")+((u&&tg.has(u))||bt.has(k)?" a":"")+(u&&tg.has(u)&&mods.y==="PUSH"&&sel&&pushable(sel,u)?" pp":"")+(u&&hs.has(u)?" hl":"")+(u&&u===choice?" ch":"")+(pd&&pd.k===k?" pd":"")+(cm&&cm.x===x&&cm.y===y?" mt":"")+(bl.has(k)?" bl":"")+(CAMPS.has(k)?" cmp":"")+(cv.has(k)?" cv":"")+(it.has(k)?" it":"");
+    const cls="t"+(bar?" brl":"")+(w?" w"+(wallMask(x,y)&1?" jn":"")+(wallMask(x,y)&4?" js":""):"")+(dp?" dp":"")+(sh?" sh":"")+(SWAMP.has(k)?" sw":"")+(LAVA.has(k)?" lv":"")+(MAGMA.has(k)?" mg":"")+(VOLC.has(k)?" vo":"")+(WISP.has(k)?" wo":"")+(f?" fo":"")+(fr?" fr":"")+(tile&&tile.x===x&&tile.y===y?" ts":"")+(ig.has(k)?" ig":"")+(ir.has(k)?" ir":"")+(pr.has(k)?" pr":"")+(mv.has(k)?" m":"")+((u&&tg.has(u))||bt.has(k)?" a":"")+(u&&tg.has(u)&&mods.y==="PUSH"&&sel&&pushable(sel,u)?" pp":"")+(u&&hs.has(u)?" hl":"")+(u&&u===choice?" ch":"")+(pd&&pd.k===k?" pd":"")+(cm&&cm.x===x&&cm.y===y?" mt":"")+(bl.has(k)?" bl":"")+(CAMPS.has(k)?" cmp":"")+(cv.has(k)?" cv":"")+(it.has(k)?" it":"");
     const label=u?(u.team==="y"?"Your ":u.team==="w"?"Wild ":"Enemy ")+NAME[u.t]+", "+u.hp+" health"+(u.slow?", slowed":""):(mv.has(k)?"Move here, ":"")+TERRAIN[terrainKey(k)].name;
     html+=`<button class="${cls}" data-x="${x}" data-y="${y}"${pd&&pd.k===k?` data-arrow="${pd.a}"`:""} aria-label="${label.replace(/"/g,"&quot;")}">`
       +'<i class="lt"></i>'+tileArt(x,y)+(fr?'<i class="tint"></i>':"")+(SMOKE.has(k)?'<i class="smoke"></i>':"")+joins(x,y); // fortress art covers its tile, so highlights go on a see-through layer above it
@@ -1574,6 +1590,7 @@ function sfx(name){
       case "boom":tone("sine",62,t0,.6,2,30);noise(t0,.5,"lowpass",900,.7,1.3,140);noise(t0,.1,"bandpass",2400,1,.4);break; // a barrel going up
       case "bray":{const lp=actx.createBiquadFilter();lp.type="lowpass";lp.frequency.value=1400;lp.connect(out); // a small, indignant hee-haw
         [[620,0,.22,520],[300,.26,.34,230]].forEach(([f,st,len,f2])=>{const o=actx.createOscillator(),g=env(t0+st,.03,len*.4,len*.6,.5);o.type="sawtooth";o.frequency.setValueAtTime(f*vr,t0+st);o.frequency.linearRampToValueAtTime(f2*vr,t0+st+len);o.connect(g);g.connect(lp);o.start(t0+st);o.stop(t0+st+len+.05)});break}
+      case "wisp":{const o=actx.createOscillator(),g=env(t0,.12,.2,.6,.4),l=actx.createOscillator(),lg=actx.createGain();o.type="sine";o.frequency.setValueAtTime(700*vr,t0);o.frequency.exponentialRampToValueAtTime(1150*vr,t0+.5);l.frequency.value=7;lg.gain.value=18;l.connect(lg);lg.connect(o.frequency);o.connect(g);g.connect(out);o.start(t0);l.start(t0);o.stop(t0+1);l.stop(t0+1);bell(1760,t0+.15,.6,.08);break} // an eerie, wavering hum
       case "whisk":noise(t0,.16,"bandpass",1400*vr,2.5,.8,5200);noise(t0+.12,.14,"bandpass",4800*vr,2.5,.45,1600);noise(t0,.3,"highpass",6000,.7,.12);break; // a quick, airy whisk there and back
       case "smoke":noise(t0,.7,"highpass",1800,.6,.45,5200);noise(t0+.05,.6,"bandpass",600,.8,.3,300);break; // a hissing cloud
       case "flame":noise(t0,.45,"bandpass",350,1,.9,1400);[.08,.17,.29].forEach(st=>noise(t0+st,.02,"highpass",3500,1,.3));break; // a whoomp of fire and a crackle
@@ -1853,6 +1870,18 @@ function hazards(team,done){
   if(checkEnd())return;
   later(()=>{if(g===gid&&!over)done()},900);
 }
+// Will-o'-the-Wisp: once a round (as your turn begins), each wisp slows one random unit beside it, friend or foe, for that unit's next turn
+function wispsAct(){
+  const hit=[];
+  WISP.forEach(k=>{
+    const near=blastOf(k).map(([x,y])=>at(x,y)).filter(u=>u&&!u.slow&&!calm(u)&&!muled(u)&&!hit.includes(u));
+    if(!near.length)return;
+    const u=near[Math.floor(Math.random()*near.length)];u.slow=1;hit.push(u);floatText(u.x,u.y,"Slow","slow");
+  });
+  if(!hit.length)return "";
+  sfx("wisp");
+  return hit.length===1?`A will-o'-the-wisp drifted over ${who(hit[0])} and slowed it.`:`Will-o'-the-wisps slowed ${hit.length} units.`;
+}
 const CAMP_HEAL=.2; // share of max HP every surviving unit recovers after a campaign win
 const campHeal=t=>Math.ceil(TYPES[t].hp*CAMP_HEAL);
 const HEAL_SPOT=.7,HEAL_TEXT="A safe resting place. Visiting it restores 70% of each unit's health, once.",HERB_SPOT=.2; // HERB_SPOT: chance Herbert camps at a healing spot (once he's unlocked)
@@ -1931,7 +1960,7 @@ function evalTile(u,x,y,D,foes,xv){
   const care=.5+(1-u.hp/T.hp)*.9; // wounded units value safety more
   let s=(threat+wt)*care+(WOODS(k)?(mods[u.team]==="FT"?-1.5:1.5):0)+(CHERRY.has(k)?.5-(1-u.hp/T.hp):0)+(FORT.has(k)?-2:0)+(SHALLOW.has(k)?1.5:0); // forests slow the next move, but Forest Tactics likes them
   s+=blastOf(k).filter(([a,b])=>XBAR.has(a+","+b)).length*2; // don't loiter beside exploding barrels
-  s+=(MAGMA.has(k)?3:0)+blastOf(k).filter(([a,b])=>VOLC.has(a+","+b)).length*.6; // magma burns at turn end; volcanoes might erupt
+  s+=(MAGMA.has(k)?3:0)+blastOf(k).filter(([a,b])=>VOLC.has(a+","+b)).length*.6+blastOf(k).filter(([a,b])=>WISP.has(a+","+b)).length*.4; // ...and wisps might slow // magma burns at turn end; volcanoes might erupt
   const atk=inR.length?20+Math.max(...inR.map(p=>{const c=combat(u,p,g),kill=c.dmg>=p.hp,r=kill?null:retaliation(u,p,g); // a kill avoids any retaliation
     return c.hit*(10*c.dmg/p.hp+(kill?12:0))+(VAL[p.t]||0)-(r?r.hit*(r.dmg*2.5+(r.dmg>=u.hp?15:0))*care:0)})):0;
   const bv=(xv||[]).reduce((m,[bk,v])=>{const[a,b]=pk(bk),dd=Math.abs(a-x)+Math.abs(b-y);return dd>=T.mn&&dd<=rg&&!(Math.abs(a-x)<=1&&Math.abs(b-y)<=1)?Math.max(m,14+v):m},0);
@@ -2039,7 +2068,8 @@ function enemyTurn(note=""){
       SMOKE=new Set(); // the smoke drifts away as your turn begins
       const healed=mods.f==="REST"?rest("f"):0;
       units.forEach(u=>{u.moved=u.acted=0;if(u.team!=="y")delete u.slow});
-      turn="y";busy=false;say("Your turn. Select one of your units."+(healed?" Resting enemy units recovered HP.":""));render();notify("Enemy turn ended — your move");
+      const wisped=wispsAct();
+      turn="y";busy=false;say((wisped?wisped+" ":"")+"Your turn. Select one of your units."+(healed?" Resting enemy units recovered HP.":""));render();notify("Enemy turn ended — your move");
     });
   }
   step();
@@ -2984,7 +3014,7 @@ $("tmenu").onclick=()=>{gid++;$("triumph").hidden=true;camp.battle=null;show("me
    A map is plain data, so the editor, its map codes and the Challenges menu all share one format:
    {name, desc, diff, biome, mods:{y,f}, rows: 12 strings of 10 terrain letters, units: [[type, team, x, y], ...], reward?, hint?}
    Terrain letters (one source, read by the loader, the editor palette and the map codes): */
-const MAPCH={".":"ground",f:"forest",s:"shallow",d:"deep",m:"swamp",w:"wall",F:"fort",b:"barrels",x:"xbarrel",g:"grave",c:"campsite",l:"lava",h:"magma",v:"volcano",k:"cherry"};
+const MAPCH={".":"ground",f:"forest",s:"shallow",d:"deep",m:"swamp",w:"wall",F:"fort",b:"barrels",x:"xbarrel",g:"grave",c:"campsite",l:"lava",h:"magma",v:"volcano",k:"cherry",o:"wisp"};
 const MAPKEY=Object.fromEntries(Object.entries(MAPCH).map(([c,k])=>[k,c]));
 // Challenge maps. diff: 0 easy, 1 moderate, 2 hard (the menu lists them easiest first). reward: an unlock id granted on the first win (add it to UNLOCKS with its hint); hint: how the menu describes that reward
 const CHALLENGES=[
@@ -2997,7 +3027,7 @@ const CHALLENGES=[
  {id:"tanglewood",diff:0,reward:"hatchet",hint:"a relic",name:"Tanglewood",desc:"Fight your way through the thickets. Push the enemy into the trees to break their line.",biome:"forest",mods:{y:"PUSH",f:null},
   rows:["ff......ff","f..ff....f","...fff....","...ffff...","..fwwwwf..",".ffwFFwff.",".ffwFFwff.","..fwwwwf..","...ffff...","....fff...","f....ff..f","ff......ff"],
   units:[["E","f",4,0],["K","f",3,0],["K","f",6,0],["K","y",4,11],["K","y",5,11],["K","y",6,11]]},
- {id:"everglade",diff:2,name:"Fortress at Everglade Swamp",desc:"A quiet fortress sits hidden in the Everglade Swamp. Prepare for a slow, grueling battle against well-trained knights.",biome:"swamp",mods:{y:"TP",f:"TP"},
+ {id:"everglade",diff:2,reward:"wisp",hint:"a new tile",name:"Fortress at Everglade Swamp",desc:"A quiet fortress sits hidden in the Everglade Swamp. Prepare for a slow, grueling battle against well-trained knights.",biome:"swamp",mods:{y:"TP",f:"TP"},
   rows:["mmFm..smmm","mFFm....sm","FFFm....ss","mmmmm....f","FF.mssmff.","bx.sssm.ff","xmsssm....","ssss......","sss.......","sm........","mm........",".........f"],
   units:[["R","f",1,1],["K","f",0,2],["K","f",2,0],["A","f",2,2],["K","f",0,4],["A","y",8,10],["K","y",9,10],["K","y",8,11],["P","y",9,9],["E","y",7,11]]},
  {id:"wharton",diff:1,reward:"chicken",hint:"a relic",name:"Fort Wharton",desc:"A fortress with tight corridors.",biome:"forest",mods:{y:null,f:null},
@@ -3008,9 +3038,9 @@ let chal=null; // the fixed map being played: {def, test}
 const DIFF=[["Easy","#3f9a5a"],["Moderate","#c9962a"],["Hard","#c8372d"]];
 // lays a fixed map's terrain into the board state
 function applyMap(def){
-  const S={ground:new Set(),forest:new Set(),shallow:new Set(),deep:new Set(),swamp:new Set(),wall:new Set(),fort:new Set(),barrels:new Set(),xbarrel:new Set(),grave:new Set(),campsite:new Set(),lava:new Set(),magma:new Set(),volcano:new Set(),cherry:new Set()};
+  const S={ground:new Set(),forest:new Set(),shallow:new Set(),deep:new Set(),swamp:new Set(),wall:new Set(),fort:new Set(),barrels:new Set(),xbarrel:new Set(),grave:new Set(),campsite:new Set(),lava:new Set(),magma:new Set(),volcano:new Set(),cherry:new Set(),wisp:new Set()};
   def.rows.forEach((r,y)=>[...r].forEach((c,x)=>{const k=MAPCH[c]||"ground";S[k].add(x+","+y);if(k==="xbarrel")S.barrels.add(x+","+y)}));
-  WALLS=S.wall;FOREST=S.forest;FORT=S.fort;DEEP=S.deep;SHALLOW=S.shallow;SWAMP=S.swamp;GRAVES=S.grave;BARRELS=S.barrels;XBAR=S.xbarrel;CAMPS=S.campsite;LAVA=S.lava;MAGMA=S.magma;VOLC=S.volcano;CHERRY=S.cherry;S.cherry.forEach(k=>FOREST.add(k));
+  WALLS=S.wall;FOREST=S.forest;FORT=S.fort;DEEP=S.deep;SHALLOW=S.shallow;SWAMP=S.swamp;GRAVES=S.grave;BARRELS=S.barrels;XBAR=S.xbarrel;CAMPS=S.campsite;LAVA=S.lava;MAGMA=S.magma;VOLC=S.volcano;WISP=S.wisp;CHERRY=S.cherry;S.cherry.forEach(k=>FOREST.add(k));
   MURKY=def.biome==="swamp";HAUNTED=def.biome==="graveyard";VOLCANIC=def.biome==="volcanic";WALLV=def.wallStyle||0;groupForts(()=>0);
 }
 // what's wrong with a map, if anything (an empty list means it's playable); notes are warnings that don't block play
@@ -3089,7 +3119,7 @@ function edRender(){
   let html="";
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     const k=x+","+y,u=ed.units.find(v=>v[2]===x&&v[3]===y),fr=FORT.has(k);
-    const cls="t"+(BARRELS.has(k)?" brl":"")+(WALLS.has(k)?" w"+(wallMask(x,y)&1?" jn":"")+(wallMask(x,y)&4?" js":""):"")+(DEEP.has(k)?" dp":"")+(SHALLOW.has(k)?" sh":"")+(SWAMP.has(k)?" sw":"")+(LAVA.has(k)?" lv":"")+(MAGMA.has(k)?" mg":"")+(VOLC.has(k)?" vo":"")+(FOREST.has(k)?" fo":"")+(fr?" fr":"");
+    const cls="t"+(BARRELS.has(k)?" brl":"")+(WALLS.has(k)?" w"+(wallMask(x,y)&1?" jn":"")+(wallMask(x,y)&4?" js":""):"")+(DEEP.has(k)?" dp":"")+(SHALLOW.has(k)?" sh":"")+(SWAMP.has(k)?" sw":"")+(LAVA.has(k)?" lv":"")+(MAGMA.has(k)?" mg":"")+(VOLC.has(k)?" vo":"")+(WISP.has(k)?" wo":"")+(FOREST.has(k)?" fo":"")+(fr?" fr":"");
     html+=`<button class="${cls}" data-x="${x}" data-y="${y}" aria-label="${TERRAIN[terrainKey(k)].name}${u?", "+(u[1]==="y"?"your ":u[1]==="w"?"wild ":"enemy ")+NAME[u[0]]:""}"><i class="lt"></i>${tileArt(x,y)}${fr?'<i class="tint"></i>':""}${joins(x,y)}`
       +(u?`<div class="u ${u[1]}" style="background:${u[1]==="w"?"#7a5a36":COLORS[col[u[1]]][1]};--tc:${u[1]==="w"?"#7a5a36":COLORS[col[u[1]]][1]};--ic:${u[1]==="w"?"#fff":COLORS[col[u[1]]][2]}">${ICON[u[0]]}</div>`:"")+"</button>";
   }
@@ -3151,6 +3181,7 @@ const UNLOCKS=[
  {id:"campsite",terrain:"campsite",hint:"Some say a trio of polished helmets, out for a quick scrap, draws a curious host."},
  {id:"graveyard",biome:"graveyard",terrain:"grave",hint:"Our encouraging friend's home."},
  {id:"cherry",terrain:"cherry",hint:"Beauty blooms where none of your own fall."},
+ {id:"wisp",terrain:"wisp",hint:"Conquer the Fortress at Everglade Swamp challenge."},
  {id:"volcanic",biome:"volcanic",terrain:"lava",hint:"March on past your first conquest, and the land itself begins to burn."},
  {id:"drills",relic:"drills",hint:"Fall back from the long march often enough, and your troops learn to march faster."},
  {id:"salts",relic:"salts",hint:"Walk away from enough quick scraps, and someone starts packing remedies."},
@@ -3267,7 +3298,7 @@ const getHold=m=>{try{return JSON.parse(localStorage.getItem(HOLD(m))||"null")}c
 $("phold").onclick=()=>{
   if(turn!=="y"||busy||over)return;
   const A=x=>[...x],m=chal?"chal":camp.battle?"camp":"quick";
-  const h={t:[WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS].map(A),
+  const h={t:[WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS,WISP].map(A),
     f:{MURKY,HAUNTED,VOLCANIC,WALLV,seed,BIOME_KEY,herbertMet,firstTurn,pturn},fv:A(FORTV),fk:A(FORTK),
     units,mods,col,tpUsed,relic:A(RELIC),relicUsed,pick,def:chal&&chal.def,node:camp.battle?camp.battle.node:null,items0:camp.battle&&camp.battle.items0,biome:$("biome").textContent};
   try{localStorage.setItem(HOLD(m),JSON.stringify(h))}catch(e){return}
@@ -3277,7 +3308,7 @@ $("phold").onclick=()=>{
 };
 function resumeHold(h){
   resetBattle();
-  [WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS]=h.t.map(a=>new Set(a));
+  [WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS,WISP=new Set()]=h.t.map(a=>new Set(a));
   ({MURKY,HAUNTED,VOLCANIC,WALLV,seed,BIOME_KEY,herbertMet,firstTurn,pturn}=h.f);
   FORTV=new Map(h.fv);FORTK=new Set(h.fk);units=h.units;mods=h.mods;col=h.col;tpUsed=h.tpUsed;RELIC=new Set(h.relic);relicUsed=h.relicUsed;pick=h.pick;
   chal=h.def?{def:h.def,test:false}:null;camp.battle=h.node!=null?{node:h.node,items0:h.items0}:null;
