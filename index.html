@@ -603,7 +603,7 @@ const MUSTER_USES=2,MUSTER_ALIVE=2,BANNER_RANGE=2; // Captain: musters per battl
 const RELICS={
  gauntlets:{name:"Spiked Gauntlets",r:0,src:"both",desc:"Your units deal +1 damage when they retaliate."},
  coin:{name:"Copper Coin of Good Fortune",r:2,src:"shop",max:2,desc:"Shows one extra relic to choose from after each battle. Carry up to two; each adds a choice."},
- whet:{name:"Whetstones",r:0,desc:"Archers deal +1 damage."},
+ whet:{name:"Whetstones",r:0,src:"both",desc:"Archers deal +1 damage."},
  shield:{name:"Sturdy Shields",r:0,desc:"Knights get +1 armor."},
  rations:{name:"Trail Rations",r:0,src:"both",desc:"Your units heal 1 extra HP after each battle."},
  bandages:{name:"Spare Bandages",r:0,desc:"Your units that fall in a battle return for the next one with 3 HP instead of 1."},
@@ -622,6 +622,7 @@ const RELICS={
  font:{name:"Font of the Wise Ones",r:2,lock:"font",find:1,desc:"Once per battle, each of your units can spend its action to bless an adjacent ally: the ally gets +5% evasion until the end of your next turn."},
  mercy:{name:"Mercy Blade",r:2,desc:"Your units deal +2 damage to enemies at half health or less."},
  horn:{name:"Hunter's Horn of the Old Wood",r:2,lock:"horn",find:1,desc:"Your units attacking from a forest tile deal +2 damage."},
+ dandelion:{name:"Immortal Dandelion",r:2,lock:"dandelion",find:1,desc:"Your units with 2 or more HP that are within 2 tiles of an ally Apothecary or Enchanter have a 20% chance to survive a lethal blow with 1 HP."},
  bluemagma:{name:"Blue Magma",r:2,lock:"bluemagma",find:1,desc:"Your units' attacks get +1 pierce. When used to fire a smith's furnace, the steel comes out with a faint blue glow."},
  mug:{name:"Herbert's Mug",r:2,desc:"Once per battle, the first of your units to fall survives with 1 HP instead."},
  cap:{name:"Herbert's Nightcap",r:2,desc:"Once per battle, the first of your units to drop to half HP or less (without falling) heals 2 HP."}};
@@ -632,6 +633,8 @@ const BLESS_EV=.05;
 const blessed=u=>u.team==="y"&&u.blessUntil>=pturn; // Font of the Wise Ones: lasts through the enemy turn and your next one
 const canBless=(a,b)=>rel(a,"font")&&!a.blessUsed&&!a.acted&&b!==a&&b.team==="y"&&d(a,b)===1; // adjacent allies only
 const RALLY_EV=.05,RALLY_RANGE=2;
+const DANDELION_CHANCE=.2,DANDELION_RANGE=2; // Immortal Dandelion: the chance to shrug off a lethal blow, and how near a support unit must be
+const dandelionSaves=(u,before)=>rel(u,"dandelion")&&before>=2&&units.some(s=>s!==u&&s.team==="y"&&(s.t==="P"||s.t==="E")&&d(s,u)<=DANDELION_RANGE)&&Math.random()<DANDELION_CHANCE;
 const rallied=u=>u.team==="y"&&u.rallyUntil>=pturn; // Trumpet of Encouragement: lasts through the enemy turn and your next one
 const canTrumpet=u=>rel(u,"trumpet")&&!relicUsed.trumpet&&!u.acted&&!u.auto&&units.some(b=>b!==u&&b.team==="y"&&d(u,b)<=RALLY_RANGE);
 // Cherry Grove, Moment of Calm: counts as forest only for movement; no forest combat bonuses, no slowing, no retaliation in or out
@@ -1364,8 +1367,8 @@ function acts(){
   if(mods.y==="TP"&&!tpUsed.y&&!sel.moved)add("Teleport",()=>{mode="tp";say("Choose an open tile on the far edge.");render()});
   if(mods.y==="PUSH"&&sel.t==="K"&&!sel.acted&&units.some(b=>b.team==="y"&&pushable(sel,b)))add("Push Ally",()=>{mode="push";say("Choose an adjacent ally to push.");render()});
   if(!mode&&canTrumpet(sel))add("Sound Trumpet",()=>doTrumpet(sel));
-  if(!mode&&camp.battle&&!chal&&camp.items&&camp.items.length&&sel.team==="y"&&!sel.acted&&!sel.auto)add("Use Item",()=>{mode="items";say("Choose an item to use.");render()});
-  if(mode==="items")[...new Set(camp.items)].forEach(id=>{const k=camp.items.filter(i=>i===id).length;add(ITEMS[id].name+(k>1?" \u00d7"+k:""),()=>{mode="item:"+id;say(itemPrompt(id));render()})});
+  if(!mode&&camp.battle&&!chal&&camp.items&&camp.items.length&&sel.team==="y"&&(!sel.acted||camp.items.some(id=>ITEMS[id].free))&&!sel.auto)add("Use Item",()=>{mode="items";say("Choose an item to use.");render()});
+  if(mode==="items")[...new Set(camp.items)].filter(id=>!sel.acted||ITEMS[id].free).forEach(id=>{const k=camp.items.filter(i=>i===id).length;add(ITEMS[id].name+(k>1?" \u00d7"+k:""),()=>{mode="item:"+id;say(itemPrompt(id));render()})});
   if(!mode&&canMuster(sel))add("Muster Militia",()=>{const n=muster(sel);sel=null;insp=null;lastMove=null;say(`Mustered ${n} militia. They can act next turn.`);render()});
   if(mode)add("Cancel",()=>{mode=null;say("Move, attack, or pick another unit.");render()});
 }
@@ -1509,7 +1512,7 @@ function doTrumpet(a){ // Trumpet of Encouragement: nearby allies that have move
 // every effect and the music are synthesized on the fly and kept quiet; Sound and Music switch off separately (remembered per browser)
 const SKEY="skirmish_sound",MKEY="skirmish_music",pref=(k)=>{try{return localStorage.getItem(k)!=="off"}catch(e){return true}};
 let actx=null,sfxOn=pref(SKEY),musicOn=pref(MKEY),mus=null;const sfxLast={};
-const SFX_VOL=.07,MUSIC_VOL=.08,SFX_GAIN={step:3,swing:3,charge:3.5,bawk:2,shove:2.5,warp:1.5,boom:.75}; // SFX_GAIN: per-effect boost over SFX_VOL
+const SFX_VOL=.07,MUSIC_VOL=.08,SFX_GAIN={whisk:2.5,step:3,swing:3,charge:3.5,bawk:2,shove:2.5,warp:1.5,boom:.75}; // SFX_GAIN: per-effect boost over SFX_VOL
 function audio(){actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume();return actx}
 function sfx(name){
   if(!sfxOn)return;
@@ -1549,6 +1552,7 @@ function sfx(name){
       case "drum":[0,.09,.18,.27,.4].forEach((st,i)=>{tone("sine",i===4?95:120,t0+st,.14,i===4?1.2:.7,60);noise(t0+st,.05,"bandpass",1800,1.5,i===4?.4:.25)});break; // a muster call on the war drum
       case "crack":noise(t0,.05,"bandpass",1500*vr,2,.9);tone("triangle",210*vr,t0,.1,.35,140);noise(t0+.05,.12,"lowpass",900,1,.35,300);break; // splintering wood
       case "boom":tone("sine",62,t0,.6,2,30);noise(t0,.5,"lowpass",900,.7,1.3,140);noise(t0,.1,"bandpass",2400,1,.4);break; // a barrel going up
+      case "whisk":noise(t0,.16,"bandpass",1400*vr,2.5,.8,5200);noise(t0+.12,.14,"bandpass",4800*vr,2.5,.45,1600);noise(t0,.3,"highpass",6000,.7,.12);break; // a quick, airy whisk there and back
       case "smoke":noise(t0,.7,"highpass",1800,.6,.45,5200);noise(t0+.05,.6,"bandpass",600,.8,.3,300);break; // a hissing cloud
       case "flame":noise(t0,.45,"bandpass",350,1,.9,1400);[.08,.17,.29].forEach(st=>noise(t0+st,.02,"highpass",3500,1,.3));break; // a whoomp of fire and a crackle
       case "trumpet":{ // a short brass call: two detuned sawtooth voices through a soft low-pass
@@ -1646,16 +1650,21 @@ if(document.addEventListener){
   document.addEventListener("visibilitychange",()=>document.hidden?stopMusic():startMusic());
 }
 // Items from Marcus's wagon: using one takes the unit's action
-const itemPrompt=id=>id==="draught"?"Choose this unit or a wounded ally beside it.":id==="smoke"?"Choose a tile within 3 to throw the smoke bomb at.":"Choose an enemy within 3 to throw the fire flask at.";
+const itemPrompt=id=>id==="feather"?"Choose an ally within 2 tiles to swap places with.":id==="draught"?"Choose this unit or a wounded ally beside it.":id==="smoke"?"Choose a tile within 3 to throw the smoke bomb at.":"Choose an enemy within 3 to throw the fire flask at.";
 function itemTargets(u,id){
   const out=new Set();
   if(id==="draught")units.forEach(b=>{if(b.team==="y"&&d(u,b)<=1&&b.hp<TYPES[b.t].hp)out.add(b.x+","+b.y)});
+  else if(id==="feather")units.forEach(b=>{if(b.team==="y"&&b!==u&&d(u,b)<=2)out.add(b.x+","+b.y)});
   else if(id==="fire")units.forEach(b=>{if(b.team!=="y"&&d(u,b)<=3)out.add(b.x+","+b.y)});
   else for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(Math.abs(x-u.x)+Math.abs(y-u.y)<=3)out.add(x+","+y);
   return out;
 }
 function useItem(a,id,x,y){
   const i=camp.items.indexOf(id);if(i<0)return;camp.items.splice(i,1);saveCamp();
+  if(id==="feather"){ // a gust swaps the two; neither spends its move or action
+    const b=at(x,y);[a.x,a.y,b.x,b.y]=[b.x,b.y,a.x,a.y];sel=a;mode=null;choice=null;lastMove=null;insp=null;info=a;sfx("whisk");
+    say(`A gust of wind! Your ${NAME[a.t]} and ${NAME[b.t]} swapped places.`);return render();
+  }
   a.acted=a.moved=1;sel=null;mode=null;choice=null;lastMove=null;insp=null;
   if(id==="draught"){const b=at(x,y),n=Math.min(DRAUGHT_HEAL,TYPES[b.t].hp-b.hp);b.hp+=n;sfx("heal");floatText(b.x,b.y,"+"+n,"heal");info=b;say(`Your ${NAME[a.t]} used a Healing Draught: +${n} HP${b===a?"":" for your "+NAME[b.t]}.`);return render()}
   if(id==="smoke"){
@@ -1679,9 +1688,10 @@ const sent=w=>w[0].toUpperCase()+w.slice(1); // sentence case for status lines
 const who=u=>(u.team==="y"?"your ":u.team==="f"?"the enemy ":"the wild ")+NAME[u.t];
 // every point of damage goes through here, so Herbert's Mug and Nightcap see it all; returns true when u falls
 function hurt(u,n){
-  u.hp-=n;floatText(u.x,u.y,"-"+n);
+  const before=u.hp;u.hp-=n;floatText(u.x,u.y,"-"+n);
+  if(u.hp<=0&&dandelionSaves(u,before)){u.hp=1;later(()=>{if(units.includes(u)){floatText(u.x,u.y,"Resisted","heal");sfx("bless")}},250)}
   if(rel(u,"chicken")&&!relicUsed.chicken&&u.t!=="G")spawnChicken(u);
-  if(u.hp<=0&&rel(u,"mug")&&!relicUsed.mug){relicUsed.mug=1;u.hp=1;thanks(u)}
+  else if(u.hp<=0&&rel(u,"mug")&&!relicUsed.mug){relicUsed.mug=1;u.hp=1;thanks(u)}
   else if(u.hp>0&&u.hp<=TYPES[u.t].hp/2&&rel(u,"cap")&&!relicUsed.cap){relicUsed.cap=1;const h=Math.min(2,TYPES[u.t].hp-u.hp);u.hp+=h;later(()=>floatText(u.x,u.y,"+"+h,"heal"),250);thanks(u)}
   if(u.hp>0){sfx("hit");return false}
   sfx("kill");units=units.filter(v=>v!==u);return true;
@@ -2751,6 +2761,7 @@ $("haenter").onclick=()=>{
 const FINDS=[
  {relic:"font",when:n=>n.b==="swamp",story:who=>`Deep in the murky swamp, your ${who} pulled something strange from the dark water.`},
  {relic:"bluemagma",when:n=>n.b==="volcanic",story:who=>`At the edge of a cooling lava flow, your ${who} spotted a stone glowing a strange, cold blue.`},
+ {relic:"dandelion",when:n=>n.b==="plain",story:who=>`In a wind-swept meadow, your ${who} found a dandelion clock that would not lose a single seed, however hard the wind blew.`},
  {relic:"horn",when:n=>n.b==="forest",story:who=>`Beneath the roots of an ancient oak, your ${who} found a hunting horn, still warm as if just blown.`}
 ];
 function findRelics(nm){
@@ -2793,6 +2804,7 @@ const RICON={ // small 32-unit relic icons
  debris:'<circle cx="16" cy="16" r="4.500" fill="#5c5650" stroke="#24201c" stroke-width="1.100"/><path d="M16 16" /><g fill="#8a8178" stroke="#24201c" stroke-width=".9"><path d="M5 7l4 1l-1 3l-3-1z"/><path d="M25 5l3 3l-3 2l-2-2z"/><path d="M27 22l2 3l-4 1l-1-2z"/><path d="M6 24l3-1l1 3l-3 1z"/></g><path d="M11 11l-3-3M21 11l3-3M21 21l3 3M11 21l-3 3" stroke="#e8641e" stroke-width="1.400" stroke-linecap="round"/>',
  mercy:'<path d="M17 3l3 3l-9 15l-3-1z" fill="#c8ccd2" stroke="#2e3338" stroke-width="1.100" stroke-linejoin="round"/><path d="M18.500 4.500l-8.500 15" stroke="#f4f6f8" stroke-width=".9" opacity=".8"/><path d="M5 18l9 5" stroke="#5a3a1c" stroke-width="2.600" stroke-linecap="round"/><path d="M9 21l-3 6" stroke="#3a2412" stroke-width="2.600" stroke-linecap="round"/><path d="M7.500 24l2 1" stroke="#c9962a" stroke-width="1.200"/><circle cx="5.500" cy="28" r="1.700" fill="#c9962a" stroke="#3a2412" stroke-width=".8"/><path d="M14 13q2 1 1 3" stroke="#8a1a14" stroke-width="1.300" fill="none" stroke-linecap="round"/>',
  horn:'<path d="M6 8q2-5 10-4q8 1 10 9" fill="none" stroke="#5a3a1c" stroke-width="1.300"/><path d="M4 9Q6 26 25 25L25 13Q11 18 7 8z" fill="#e8dcbc" stroke="#3a2412" stroke-width="1.200" stroke-linejoin="round"/><path d="M8 11q2 8 12 9" fill="none" stroke="#fff8e6" stroke-width="1" opacity=".8"/><ellipse cx="25.500" cy="19" rx="3" ry="6.500" fill="#3a2a1a" stroke="#c9962a" stroke-width="1.600"/><path d="M19 16.500l.5 8M14 15l-.5 8" stroke="#c9962a" stroke-width="1.800"/><path d="M3 8.500l3-2l2 3l-3 1.500z" fill="#c9962a" stroke="#3a2412" stroke-width=".9"/><path d="M10 28q3-4 8-3q-3 3-8 3zM2 18q1-4 4-3q0 3-4 3z" fill="#3f7a3a" stroke="#1e4a1c" stroke-width=".9"/>',
+ dandelion:'<path d="M16 29q-1-8 0-15" stroke="#4a8a3a" stroke-width="1.600" fill="none" stroke-linecap="round"/><path d="M16 25q-5-1-7-5q4 0 7 3M16 23q4-2 6-6q-4 1-6 4" fill="#5a9a48" stroke="#2e5a24" stroke-width=".8"/><circle cx="16" cy="10" r="8" fill="#fff" opacity=".35"/><g stroke="#bab6aa" stroke-width=".7"><path d="M16 10l7.00 0.00"/><path d="M16 10l6.06 3.50"/><path d="M16 10l3.50 6.06"/><path d="M16 10l0.00 7.00"/><path d="M16 10l-3.50 6.06"/><path d="M16 10l-6.06 3.50"/><path d="M16 10l-7.00 0.00"/><path d="M16 10l-6.06 -3.50"/><path d="M16 10l-3.50 -6.06"/><path d="M16 10l-0.00 -7.00"/><path d="M16 10l3.50 -6.06"/><path d="M16 10l6.06 -3.50"/></g><g fill="#fff" stroke="#a8a498" stroke-width=".4"><circle cx="23.00" cy="10.00" r="1.300"/><circle cx="22.06" cy="13.50" r="1.300"/><circle cx="19.50" cy="16.06" r="1.300"/><circle cx="16.00" cy="17.00" r="1.300"/><circle cx="12.50" cy="16.06" r="1.300"/><circle cx="9.94" cy="13.50" r="1.300"/><circle cx="9.00" cy="10.00" r="1.300"/><circle cx="9.94" cy="6.50" r="1.300"/><circle cx="12.50" cy="3.94" r="1.300"/><circle cx="16.00" cy="3.00" r="1.300"/><circle cx="19.50" cy="3.94" r="1.300"/><circle cx="22.06" cy="6.50" r="1.300"/></g><circle cx="16" cy="10" r="1.800" fill="#c9a83a" stroke="#6a5a1a" stroke-width=".6"/><path d="M26 5l3-2M27 9l3-.5" stroke="#bab6aa" stroke-width=".6"/><circle cx="29.300" cy="2.800" r="1" fill="#fff" stroke="#a8a498" stroke-width=".4"/><circle cx="30.300" cy="8.500" r="1" fill="#fff" stroke="#a8a498" stroke-width=".4"/>',
  bluemagma:'<circle cx="16" cy="17" r="13" fill="#4ab8ff" opacity=".18"/><path d="M6 20l4-9l8-4l8 3l3 8l-4 8l-9 3l-8-3z" fill="#1e2a44" stroke="#0a1020" stroke-width="1.200" stroke-linejoin="round"/><path d="M18 7l8 3l3 8l-4 8l-6 2z" fill="#000" opacity=".2"/><path d="M9 14l5 3l4-5M14 17l1 7l6 2M18 12l6 4l3-2M21 16l-1 5" stroke="#6ad8ff" stroke-width="1.600" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 14l5 3l4-5M14 17l1 7" stroke="#e8fbff" stroke-width=".6" fill="none" stroke-linecap="round"/><path d="M10 11l5-3" stroke="#8aa4c8" stroke-width="1" opacity=".6"/>',
  mug:'<path d="M8 10h13l-1 16q-5.500 2-11 0z" fill="#c8c0aa" stroke="#1a120c" stroke-width="1.200"/><path d="M15 10h6l-1 16q-2.500 1-5 1z" fill="#000" opacity=".15"/><path d="M8 13.500h13" stroke="#2a3a5a" stroke-width="1.600"/><path d="M21 13q6 0 6 5t-6 5" fill="none" stroke="#1a120c" stroke-width="2.800"/><path d="M21 13q6 0 6 5t-6 5" fill="none" stroke="#c8c0aa" stroke-width="1.300"/><circle cx="11" cy="21" r="1.100" fill="#3a3028"/><path d="M12 7q-2-3 0-5M16 7q2-3 0-5" stroke="#9aa0aa" stroke-width="1.200" fill="none"/>',
  drills:'<path d="M10 6h8v13l6 3q2 1 2 4v2H10z" fill="#6a4a2a" stroke="#2a1a0c" stroke-width="1.200" stroke-linejoin="round"/><path d="M10 25h16" stroke="#2a1a0c" stroke-width="1"/><path d="M12 6v19" stroke="#9a7448" stroke-width="1" opacity=".7"/><path d="M10 10h8M10 13h8" stroke="#c9962a" stroke-width="1.100"/><path d="M2 12h5M3 17h5M2 22h5" stroke="#8a8f96" stroke-width="1.600" stroke-linecap="round"/>',
@@ -2812,11 +2824,14 @@ const SHOP_TEXT="Marcus the pedlar and his mule Parsnip have set up shop by the 
 const ITEMS={ // consumables, used in battle (campaign only); using one takes the unit's action
  draught:{name:"Healing Draught",price:25,desc:"Heal this unit or an adjacent ally for 5 HP."},
  smoke:{name:"Smoke Bomb",price:30,desc:"Throw at a tile within 3: your units on it and the 8 tiles around it get +20% evasion until your next turn."},
- fire:{name:"Fire Flask",price:35,desc:"Throw at an enemy within 3 for 3 damage, ignoring armor."}};
-const ITEM_CAP=3,RELIC_PRICE=[40,70,110],SMOKE_EV=.2,DRAUGHT_HEAL=5,FIRE_DMG=3; // RELIC_PRICE by rarity: common, uncommon, rare
+ fire:{name:"Fire Flask",price:35,desc:"Throw at an enemy within 3 for 3 damage, ignoring armor."},
+ feather:{name:"Wind Elemental's Feather",price:40,r:1,free:1,desc:"Swap this unit with an ally within 2 tiles. Neither unit uses its move or action."}};
+// r: rarity (commons are always stocked; an uncommon turns up on about half of visits); free: using it costs the unit nothing
+const ITEM_CAP=3,ITEM_STOCK=[1,.5],RELIC_PRICE=[40,70,110],SMOKE_EV=.2,DRAUGHT_HEAL=5,FIRE_DMG=3; // RELIC_PRICE by rarity: common, uncommon, rare
 const IICON={
  draught:'<path d="M14 4h4v4q7 3 7 10q0 7-9 7t-9-7q0-7 7-10z" fill="rgba(200,60,50,.55)" stroke="#2a1410" stroke-width="1.100"/><path d="M8.600 17q0 6 7.400 6.500q7.400-.5 7.400-6.500z" fill="#b8372d"/><rect x="13.400" y="2" width="5.200" height="3.400" rx="1" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M10 13q-1 4 0 7" stroke="#fff" stroke-width="1.100" fill="none" opacity=".6"/><path d="M14 16h4M16 14v4" stroke="#fff4f0" stroke-width="1.300" stroke-linecap="round"/>',
  smoke:'<circle cx="15" cy="19" r="9" fill="#26262a" stroke="#0a0a0c" stroke-width="1.100"/><circle cx="12" cy="16" r="2.600" fill="#fff" opacity=".25"/><path d="M20 12q3-6 8-5" stroke="#8a6a3a" stroke-width="1.600" fill="none"/><circle cx="28" cy="7" r="2" fill="#ffb347"/><circle cx="28" cy="7" r="4" fill="#ffb347" opacity=".25"/><g fill="#b8b4b0" opacity=".55"><circle cx="6" cy="9" r="3"/><circle cx="9" cy="6" r="2.400"/></g>',
+ feather:'<path d="M6 27q3-12 13-19q5-4 9-4q0 4-4 9q-7 10-18 14z" fill="#eef6fb" stroke="#3a5a6a" stroke-width="1.100" stroke-linejoin="round"/><path d="M6 27L24 8" stroke="#5a7a8a" stroke-width="1.100"/><path d="M12 20l-2-5M15 17l-1-6M18 14l0-5M13 19l5 1M16 16l6 0M19 13l5-1" stroke="#9ab8c8" stroke-width=".8"/><path d="M3 12q4-3 8 0t8 0M1 18q3-2 6 0" stroke="#6ab0d8" stroke-width="1.300" fill="none" stroke-linecap="round" opacity=".8"/>',
  fire:'<path d="M10 28v-10q0-7 6-9q6 2 6 9v10z" fill="#e2531a" stroke="#2a1410" stroke-width="1.100"/><path d="M13.500 9h5V5h-5z" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><circle cx="16" cy="20" r="7" fill="#ff8a2a" opacity=".28"/><path d="M16 25q-4-4 0-10q4 6 0 10z" fill="#ffd27a"/><path d="M12 16q-1 5 0 9" stroke="#fff" stroke-width="1" opacity=".45" fill="none"/>'};
 const itemIcon=(id,sz=32)=>`<svg viewBox="0 0 32 32" width="${sz}" height="${sz}" aria-hidden="true">${IICON[id]}</svg>`;
 const MARCUS={
@@ -2831,7 +2846,7 @@ const MARCUS={
 function shopStock(){
   const pool=shopRelics(),rel=[];
   while(rel.length<2&&pool.length){const tot=pool.reduce((t,id)=>t+RARITY_W[RELICS[id].r],0);let r=Math.random()*tot,i=0;while(r>=RARITY_W[RELICS[pool[i]].r]){r-=RARITY_W[RELICS[pool[i]].r];i++}rel.push(pool.splice(i,1)[0])}
-  return {relics:rel,sold:[]};
+  return {relics:rel,sold:[],items:Object.keys(ITEMS).filter(id=>Math.random()<ITEM_STOCK[ITEMS[id].r||0])};
 }
 let shopNode=null;
 const marcusSays=t=>{$("shline").textContent=t};
@@ -2841,7 +2856,7 @@ function renderShop(){
   $("shgold").innerHTML=`${PURSE}<b>${camp.gold}</b> gold<span class="shpack">Pack: ${camp.items.length} of ${ITEM_CAP}</span>`;
   const row=(kind,id,name,price,label,desc,icon,why,rc)=>`<button class="rcard shitem" data-kind="${kind}" data-id="${id}" style="--rc:${rc}"${why?" aria-disabled=\"true\"":""}><span class="ri">${icon}</span><span class="rr">${label}</span><b>${name}</b><small>${desc}</small><span class="shprice${why?" off":""}">${why||price+" gold"}</span></button>`;
   const need=p=>camp.gold<p?`Need ${p-camp.gold} more`:"";
-  $("shlist").innerHTML='<div class="shsec">Consumables</div>'+Object.entries(ITEMS).map(([id,I])=>row("item",id,I.name,I.price,"Consumable \u00b7 one use",I.desc,itemIcon(id,38),full?"Pack full":need(I.price),"#a08a64")).join("")
+  $("shlist").innerHTML='<div class="shsec">Consumables</div>'+(n.stock.items||Object.keys(ITEMS).filter(id=>!ITEMS[id].r)).map(id=>{const I=ITEMS[id];return row("item",id,I.name,I.price,(I.r?RARITY[I.r][0]+" consumable":"Consumable")+" \u00b7 one use",I.desc,itemIcon(id,38),full?"Pack full":need(I.price),I.r?RARITY[I.r][1]:"#a08a64")}).join("")
     +'<div class="shsec">Relics</div>'+(n.stock.relics.length?n.stock.relics.map(id=>{const R=RELICS[id],[rn,rc]=RARITY[R.r],pr=RELIC_PRICE[R.r];return row("relic",id,R.name,pr,rn+" relic",R.desc,relicIcon(id,38),n.stock.sold.includes(id)?"Sold":relicCount(id)>=(R.max||1)?"Owned":need(pr),rc)}).join(""):'<p class="rsub">Marcus has no relics for you today.</p>');
   $("shlist").querySelectorAll(".shitem").forEach(b=>b.onclick=()=>buy(b.dataset.kind,b.dataset.id));
 }
@@ -3085,6 +3100,7 @@ const UNLOCKS=[
  {id:"font",relic:"font",hint:"Darker realms can hide wonderful things."},
  {id:"horn",relic:"horn",hint:"The oldest trees remember the hunt."},
  {id:"bluemagma",relic:"bluemagma",hint:"Even fire has a colder heart."},
+ {id:"dandelion",relic:"dandelion",hint:"Even the humblest weed can refuse to fade."},
  {id:"pennant",relic:"pennant",hint:"Conquer the Dueling Fortresses challenge."},
  {id:"hatchet",relic:"hatchet",hint:"Conquer the Tanglewood challenge."},
  {id:"trumpet",relic:"trumpet",hint:"Conquer the Ford at Greywater challenge."},
