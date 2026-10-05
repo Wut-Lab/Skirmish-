@@ -615,6 +615,7 @@ const MUSTER_USES=2,MUSTER_ALIVE=2,BANNER_RANGE=2; // Captain: musters per battl
 // r: rarity (0 common, 1 uncommon, 2 rare); need: a unit type the army must include for it to be offered; lock: the unlock it waits for; find: only ever found in battle (see FINDS), never offered
 // Where a relic comes from — src:"shop" = the shop only; src:"both" = the shop and the pick after battles; no src = after battles only;
 // find:1 = found during a battle (the biome relics), never offered or sold. max: how many can be carried (default 1).
+// src:"boss" = offered only as a boss's spoils (the boss list).
 const RELICS={
  gauntlets:{name:"Spiked Gauntlets",r:0,src:"both",desc:"Your units deal +1 damage when they retaliate."},
  coin:{name:"Copper Coin of Good Fortune",r:2,src:"shop",max:2,desc:"Shows one extra relic to choose from after each battle. Carry up to two; each adds a choice."},
@@ -1948,7 +1949,7 @@ function showEnd(win){
     camp.hp=armyTypes().map((t,i)=>{const u=units.find(v=>v.team==="y"&&v.ci===i);return u?Math.min(campMax(i),u.hp+campHeal(t)+(camp.relics.includes("rations")?1:0)):Math.min(campMax(i),camp.relics.includes("bandages")?3:1)}); // survivors patch up; fallen units return at 1 HP (3 with Spare Bandages)
     findRelics(nm);
     const earned=goldFor(nm);camp.gold+=earned;camp.lastGold=earned; // spoils of war
-    camp.offer=nm.type==="boss"?null:relicOffer(); // pick a relic back on the map
+    camp.offer=nm.type==="boss"?bossOffer():relicOffer();camp.offerBoss=nm.type==="boss"; // pick a reward back on the map (a boss's spoils wait for the next region)
     camp.pos=nm.id;if(nm.type==="boss")camp.done=true;saveCamp();
     if(camp.cleared.filter(i=>{const n=WORLD[i];return n&&n.type!=="camp"&&n.type!=="heal"&&n.type!=="shop"}).length>=2)unlock("barrels"); // two real battles won
     unlocks.cw=(unlocks.cw||0)+1;saveU(); // campaign battle wins across every campaign
@@ -2215,8 +2216,8 @@ const guessBiome=()=>LAVA.size||VOLC.size?"volcanic":GRAVES.size?"graveyard":SWA
 const BIOME={mixed:{},forest:{forest:9,flowers:1},plain:{forest:2,flowers:1},fort:{fort:1},wild:{wild:1,flowers:1},boss:{fort:1,boss:1},wetlands:{water:1,forest:3,swamp:1},swamp:{swamp:3,pond:1,forest:6},graveyard:{graves:1,forest:5},volcanic:{lava:1,forest:3}};
 const adj=(a,b)=>EDGES.some(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a));
 const SAVE="skirmish-campaign";
-function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,items:camp.items,offer:camp.offer,found:camp.found,kills:camp.kills,names:camp.names,wounds:camp.wounds,honors:camp.honors,falls:camp.falls,news:camp.news,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
-function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],items:d.items||[],offer:d.offer||null,found:Array.isArray(d.found)?d.found:d.found?[d.found]:[],kills:d.kills||[],names:d.names||null,wounds:d.wounds||[],honors:d.honors||[],falls:d.falls||[],news:d.news||null,region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
+function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,items:camp.items,offer:camp.offer,offerBoss:camp.offerBoss,found:camp.found,kills:camp.kills,names:camp.names,wounds:camp.wounds,honors:camp.honors,falls:camp.falls,news:camp.news,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
+function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],items:d.items||[],offer:d.offer||null,offerBoss:!!d.offerBoss,found:Array.isArray(d.found)?d.found:d.found?[d.found]:[],kills:d.kills||[],names:d.names||null,wounds:d.wounds||[],honors:d.honors||[],falls:d.falls||[],news:d.news||null,region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
 const nest=(str,x,y,w,style="")=>str.replace(/<svg[^>]*>/,`<svg x="${x}" y="${y}" width="${w}" height="${w}" viewBox="0 0 40 40" style="${style}">`);
 function mapArt(){
   let g='<defs><radialGradient id="pg" cx=".5" cy=".4" r=".85"><stop offset="0" stop-color="#eadfb8"/><stop offset="1" stop-color="#cbb78a"/></radialGradient><filter id="wsh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="1.200" dy="2.400" stdDeviation="1.600" flood-color="#3a2810" flood-opacity=".45"/></filter><radialGradient id="wnode" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></radialGradient><filter id="wblur"><feGaussianBlur stdDeviation="6"/></filter><filter id="wblur2" x="-50%" y="-100%" width="200%" height="300%"><feGaussianBlur stdDeviation="2.500"/></filter><linearGradient id="wmt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a7656"/><stop offset=".6" stop-color="#9c8762" stop-opacity=".9"/><stop offset="1" stop-color="#b8a27a" stop-opacity="0"/></linearGradient></defs><rect width="400" height="520" fill="url(#pg)"/>';
@@ -2908,11 +2909,27 @@ const relicCount=id=>camp.relics.filter(r=>r===id).length;
 // relics the shop may stock right now: sold there, unlocked, useful to this army, and not already carried as many times as allowed
 const shopRelics=()=>{const army=armyTypes();return Object.keys(RELICS).filter(id=>{const R=RELICS[id];return (R.src==="shop"||R.src==="both")&&(!R.lock||unlocks[R.lock])&&(!R.need||army.includes(R.need))&&relicCount(id)<(R.max||1)})};
 function relicOffer(){
-  const army=armyTypes(),pool=Object.keys(RELICS).filter(id=>!camp.relics.includes(id)&&!RELICS[id].find&&RELICS[id].src!=="shop"&&(!RELICS[id].lock||unlocks[RELICS[id].lock])&&(!RELICS[id].need||army.includes(RELICS[id].need))),out=[];
+  const army=armyTypes(),pool=Object.keys(RELICS).filter(id=>!camp.relics.includes(id)&&!RELICS[id].find&&RELICS[id].src!=="shop"&&RELICS[id].src!=="boss"&&(!RELICS[id].lock||unlocks[RELICS[id].lock])&&(!RELICS[id].need||army.includes(RELICS[id].need))),out=[];
   for(let n=2+(Math.random()<.5?1:0)+relicCount("coin");n>0&&pool.length;n--){ // each Copper Coin of Good Fortune adds a choice
     const tot=pool.reduce((t,id)=>t+RARITY_W[RELICS[id].r],0);let roll=Math.random()*tot,i=0;
     while(roll>=RARITY_W[RELICS[pool[i]].r]){roll-=RARITY_W[RELICS[pool[i]].r];i++}
     out.push(pool.splice(i,1)[0]);
+  }
+  return out.length?out:null;
+}
+// a boss's spoils: pick 1 of 3, drawn from relics offered after battles (including the shop-and-battle and boss lists) and from consumables,
+// weighted toward rarer finds; at most 2 of the 3 are consumables
+const BOSS_W=[35,40,25];
+function bossOffer(){
+  const army=armyTypes(),ok=R=>(!R.lock||unlocks[R.lock])&&(!R.need||army.includes(R.need));
+  const pool=[...Object.keys(RELICS).filter(id=>{const R=RELICS[id];return !R.find&&R.src!=="shop"&&ok(R)&&relicCount(id)<(R.max||1)}),
+    ...Object.keys(ITEMS).filter(id=>ok(ITEMS[id])).map(id=>"item:"+id)],out=[];
+  const rar=e=>e.startsWith("item:")?(ITEMS[e.slice(5)].r||0):RELICS[e].r;
+  while(out.length<3&&pool.length){
+    const cand=out.filter(e=>e.startsWith("item:")).length>=2?pool.filter(e=>!e.startsWith("item:")):pool;if(!cand.length)break;
+    const tot=cand.reduce((t,e)=>t+BOSS_W[rar(e)],0);let roll=Math.random()*tot,i=0;
+    while(roll>=BOSS_W[rar(cand[i])]){roll-=BOSS_W[rar(cand[i])];i++}
+    out.push(cand[i]);pool.splice(pool.indexOf(cand[i]),1);
   }
   return out.length?out:null;
 }
@@ -3045,10 +3062,17 @@ function showRelicOffer(){
     $("rchoices").querySelector(".rcard").onclick=()=>{camp.found.shift();saveCamp();renderRelics();showRelicOffer()};
     $("relicv").hidden=false;$("rchoices").querySelector(".rcard").focus();return;
   }
-  $("rtitle").textContent="Choose a Relic";$("relicv").querySelector(".rsub").textContent="Spoils of victory. It lasts for the rest of this campaign.";
+  const boss=camp.offerBoss;
+  $("rtitle").textContent=boss?"Spoils of the Boss":"Choose a Relic";$("relicv").querySelector(".rsub").textContent=boss?"The boss's hoard is yours. Choose one: relics last for the rest of this campaign, consumables go in your pack.":"Spoils of victory. It lasts for the rest of this campaign.";
   if(!camp.offer){$("relicv").hidden=true;return}
-  $("rchoices").innerHTML=camp.offer.map(id=>{const R=RELICS[id],[rn,rc]=RARITY[R.r];return `<button class="rcard" data-id="${id}" style="--rc:${rc}"><span class="ri">${relicIcon(id,38)}</span><span class="rr">${rn}</span><b>${R.name}</b><small>${R.desc}</small></button>`}).join("");
-  $("rchoices").querySelectorAll(".rcard").forEach(b=>b.onclick=()=>{camp.relics.push(b.dataset.id);camp.offer=null;saveCamp();$("relicv").hidden=true;renderRelics();$("wmap").querySelector(".wn")&&renderWorld()});
+  const full=camp.items.length>=itemCap();
+  $("rchoices").innerHTML=camp.offer.map(id=>{
+    if(id.startsWith("item:")){const k=id.slice(5),I=ITEMS[k],rc=I.r?RARITY[I.r][1]:"#a08a64";return `<button class="rcard" data-id="${id}" style="--rc:${rc}"${full?' aria-disabled="true"':""}><span class="ri">${itemIcon(k,38)}</span><span class="rr">${I.r?RARITY[I.r][0]+" consumable":"Consumable"} \u00b7 ${full?"pack full":"one use"}</span><b>${I.name}</b><small>${I.desc}</small></button>`}
+    const R=RELICS[id],[rn,rc]=RARITY[R.r];return `<button class="rcard" data-id="${id}" style="--rc:${rc}"><span class="ri">${relicIcon(id,38)}</span><span class="rr">${rn}${boss?" relic":""}</span><b>${R.name}</b><small>${R.desc}</small></button>`}).join("");
+  $("rchoices").querySelectorAll(".rcard").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.id;
+    if(id.startsWith("item:")){if(camp.items.length>=itemCap())return;camp.items.push(id.slice(5));renderItems()}else camp.relics.push(id);
+    camp.offer=null;camp.offerBoss=false;saveCamp();$("relicv").hidden=true;renderRelics();$("wmap").querySelector(".wn")&&renderWorld()});
   $("relicv").hidden=false;$("rchoices").querySelector(".rcard").focus();
 }
 /* ---------- Campaign triumph: after the boss falls ---------- */
@@ -3067,7 +3091,7 @@ $("tnew").onclick=()=>{gid++;$("triumph").hidden=true;camp.battle=null;openCampS
 // keep the army, its health, relics, gold and record, and march on to a freshly rolled map
 $("ttravel").onclick=()=>{
   gid++;$("triumph").hidden=true;camp.battle=null;
-  camp.mapsPrior+=battlesWon();camp.region+=1;camp.pos=0;camp.cleared=[];camp.done=false;camp.offer=null;camp.sel=0;
+  camp.mapsPrior+=battlesWon();camp.region+=1;camp.pos=0;camp.cleared=[];camp.done=false;camp.sel=0;
   genWorld();saveCamp();openWorld();
 };
 $("tmenu").onclick=()=>{gid++;$("triumph").hidden=true;camp.battle=null;show("menu")};
