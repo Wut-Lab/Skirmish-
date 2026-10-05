@@ -1185,7 +1185,7 @@ function muster(u){ // 1-2 militia appear beside the captain, nearest the enemy 
   const foes=units.filter(e=>e.team!==u.team&&e.team!=="w"),near=([x,y])=>foes.length?Math.min(...foes.map(e=>Math.abs(e.x-x)+Math.abs(e.y-y))):0;
   const spots=musterSpots(u).sort((a,b)=>near(a)-near(b)),n=Math.min(MUSTER_ALIVE-units.filter(m=>m.cap===u).length,1+(Math.random()<.5?1:0),spots.length);
   for(let i=0;i<n;i++){const[x,y]=spots[i];units.push({t:"M",team:u.team,x,y,hp:TYPES.M.hp,moved:1,acted:1,cap:u,spawn:1})}
-  u.musters=(u.musters||0)+1;u.acted=u.moved=1;
+  u.musters=(u.musters||0)+1;u.acted=u.moved=1;if(n)sfx("drum");
   return n;
 }
 const spent=u=>(!!u.acted&&!!u.moved)||!!u.auto||(u.team!=="w"&&!!u.moved&&!canMuster(u)&&!canTrumpet(u)&&!(u.team==="y"&&!u.acted&&camp.battle&&!chal&&camp.items&&camp.items.length)&&!targets(u).length&&!healTargets(u).length&&!(rel(u,"font")&&units.some(b=>canBless(u,b)))&&(u.team!=="y"||!breakables(u).length)&&!(mods.y==="PUSH"&&u.t==="K"&&units.some(b=>b.team==="y"&&pushable(u,b))));
@@ -1408,7 +1408,7 @@ function click(x,y){
   const u=at(x,y);
   if(mode==="tp"&&!u&&y===0){
     lastMove={u:sel,x:sel.x,y:sel.y,tp:1};
-    sel.x=x;sel.y=y;sel.moved=1;tpUsed.y=1;mode=null;
+    sel.x=x;sel.y=y;sel.moved=1;tpUsed.y=1;mode=null;sfx("warp");
     say("Teleported. Attack or pick another unit.");return render();
   }
   if(mode==="push"&&u&&pushable(sel,u)){choice=u;say("Choose an action next to the unit.");return render()}
@@ -1416,7 +1416,7 @@ function click(x,y){
   if(u&&u.auto){insp=null;info=u;say("The Angry Chicken answers to no one. It charges at the end of your turn.");return render()}
   if(u&&u.team==="y"){
     if(sel===u){sel=null;mode=null;info=null;say("Select one of your units.");return render()}
-    sel=u;mode=null;insp=null;info=u;
+    sel=u;mode=null;insp=null;info=u;sfx("step");
     say(u.acted&&u.moved?"That unit has finished.":u.acted?"Rallied: green shows where it can move again.":"Green: where it can move. Red: what it can hit."+(mods.y==="PUSH"&&u.t==="K"?" Tap an adjacent enemy to attack or push it.":""));return render();
   }
   if(u&&u.team!=="y"){
@@ -1459,8 +1459,8 @@ function detonate(k0,by){ // by: the unit that set it off (for kill credit)
   while(q.length){
     const k=q.shift();if(!BARRELS.has(k))continue;
     const[x,y]=pk(k),xb=XBAR.has(k);BARRELS.delete(k);XBAR.delete(k);n++;
-    if(!xb){floatText(x,y,"Broken");continue}
-    boom(x,y);floatText(x,y,"Boom!",true);
+    if(!xb){sfx("crack");floatText(x,y,"Broken");continue}
+    sfx("boom");boom(x,y);floatText(x,y,"Boom!",true);
     blastOf(k).forEach(([a,b])=>{const kk=a+","+b;if(BARRELS.has(kk))q.push(kk);const u=at(a,b);if(u)hit.push(u)});
   }
   hit.forEach(u=>{if(units.includes(u)&&hurt(u,blastDmg(u)))credit(by,u)});
@@ -1492,7 +1492,7 @@ function applyHeal(a,b){const n=Math.min(healOf(a),TYPES[b.t].hp-b.hp);b.hp+=n;s
 function doSlow(a,u){
   if(calm(u))return; // Moment of Calm
   a.acted=1;a.moved=1;sel=null;insp=null;locked=true;lastMove=null;
-  animAttack(a,u,()=>{u.slow=1;floatText(u.x,u.y,"Slow","slow");say("Slowed the "+NAME[u.t]+": movement reduced to 1 on its next turn.");locked=false;info=u;afterAction()});
+  animAttack(a,u,()=>{u.slow=1;sfx("slow");floatText(u.x,u.y,"Slow","slow");say("Slowed the "+NAME[u.t]+": movement reduced to 1 on its next turn.");locked=false;info=u;afterAction()});
 }
 function doBless(a,b){
   a.blessUsed=1;a.acted=a.moved=1;b.blessUntil=pturn+1;sel=null;mode=null;choice=null;info=b;lastMove=null;
@@ -1509,14 +1509,14 @@ function doTrumpet(a){ // Trumpet of Encouragement: nearby allies that have move
 // every effect and the music are synthesized on the fly and kept quiet; Sound and Music switch off separately (remembered per browser)
 const SKEY="skirmish_sound",MKEY="skirmish_music",pref=(k)=>{try{return localStorage.getItem(k)!=="off"}catch(e){return true}};
 let actx=null,sfxOn=pref(SKEY),musicOn=pref(MKEY),mus=null;const sfxLast={};
-const SFX_VOL=.07,MUSIC_VOL=.08;
+const SFX_VOL=.07,MUSIC_VOL=.08,SFX_GAIN={step:3,swing:3,charge:3.5,bawk:2,shove:2.5,warp:1.5,boom:.75}; // SFX_GAIN: per-effect boost over SFX_VOL
 function audio(){actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume();return actx}
 function sfx(name){
   if(!sfxOn)return;
   try{
     const now=performance.now();if(now-(sfxLast[name]||0)<70)return;sfxLast[name]=now; // a splash of hits plays once
     audio();
-    const t0=actx.currentTime+.01,out=actx.createGain(),vr=1+(Math.random()-.5)*.08;out.gain.value=SFX_VOL;out.connect(actx.destination); // vr: a little pitch variety so repeats don't grate
+    const t0=actx.currentTime+.01,out=actx.createGain(),vr=1+(Math.random()-.5)*.08;out.gain.value=SFX_VOL*(SFX_GAIN[name]||1);out.connect(actx.destination); // vr: a little pitch variety so repeats don't grate
     const env=(s,a,hold,rel,peak=1)=>{const g=actx.createGain();g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(peak,s+a);g.gain.setValueAtTime(peak,s+a+hold);g.gain.exponentialRampToValueAtTime(.001,s+a+hold+rel);return g};
     const tone=(type,f,s,len,peak=1,f2)=>{const o=actx.createOscillator(),g=env(s,.008,0,len,peak);o.type=type;o.frequency.setValueAtTime(f,s);if(f2)o.frequency.exponentialRampToValueAtTime(f2,s+len);o.connect(g);g.connect(out);o.start(s);o.stop(s+len+.05)};
     const noise=(s,len,ftype,f,q,peak=1,f2)=>{const n=actx.createBufferSource(),b=actx.createBuffer(1,Math.ceil(actx.sampleRate*(len+.05)),actx.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
@@ -1533,6 +1533,24 @@ function sfx(name){
       case "lose":[[392,0,.28],[349.23,.24,.28],[293.66,.48,.75]].forEach(([f,st,len])=>{tone("triangle",f,t0+st,len,.55);tone("sine",f/2,t0+st,len,.3)});break;
       case "coin":tone("sine",1318.5,t0,.12,.55);tone("sine",1760,t0+.07,.22,.5);tone("triangle",2637,t0+.07,.12,.12);break; // the clink of coins
       case "erupt":tone("sine",70,t0,.7,1.8,35);noise(t0,.55,"lowpass",320,.8,1.2,120);noise(t0+.05,.3,"bandpass",900,1,.35,300);break; // a deep rumble and hiss
+      // attacks: played as the blow starts; the hit, kill or evade sound follows on impact
+      case "swing":noise(t0,.13,"bandpass",700*vr,2.2,.75,2600);tone("triangle",1900*vr,t0+.09,.07,.08,1500);break; // a blade cutting the air
+      case "charge":[0,.07,.14].forEach((st,i)=>noise(t0+st,.04,"lowpass",420*vr,1,.5-i*.08,160));noise(t0+.12,.14,"bandpass",600*vr,2,.7,2400);break; // hooves, then the swing
+      case "bow":tone("triangle",196*vr,t0,.16,.7,170);tone("sine",392*vr,t0,.08,.2);noise(t0+.02,.18,"bandpass",3000,2,.32,1200);break; // a string's twang and the arrow's hiss
+      case "siege":tone("sine",95*vr,t0,.22,1.3,50);noise(t0,.08,"lowpass",900,.8,.6);noise(t0+.05,.12,"lowpass",300,1,.5,120);noise(t0+.09,.3,"bandpass",1400,1.5,.25,500);break; // the arm's thump and a stone's rush
+      case "zap":tone("sine",880*vr,t0,.22,.35,1760);tone("sine",1320*vr,t0+.03,.2,.18,2640);noise(t0,.16,"highpass",4000,.7,.12);break; // a bright magic flicker
+      case "growl":{const o=actx.createOscillator(),lp=actx.createBiquadFilter(),g=env(t0,.04,.12,.18,.9),lfo=actx.createOscillator(),lg=actx.createGain();o.type="sawtooth";o.frequency.value=85*vr;lp.type="lowpass";lp.frequency.value=520;lfo.frequency.value=28;lg.gain.value=14;lfo.connect(lg);lg.connect(o.frequency);o.connect(lp);lp.connect(g);g.connect(out);o.start(t0);lfo.start(t0);o.stop(t0+.4);lfo.stop(t0+.4);noise(t0,.3,"bandpass",350,1.2,.4);break} // a rough snarl
+      case "screech":tone("sine",2200*vr,t0,.2,.35,1300);tone("triangle",1650*vr,t0,.16,.15,1100);noise(t0,.12,"bandpass",3200,3,.18);break; // a hawk's cry
+      case "bawk":tone("square",520*vr,t0,.07,.22,760);tone("square",640*vr,t0+.09,.12,.22,480);break; // an indignant chicken
+      // abilities
+      case "shove":noise(t0,.08,"lowpass",500,.8,.9,200);noise(t0+.04,.24,"bandpass",320*vr,1.2,.45,180);break; // a heavy shove and a scrape
+      case "slow":tone("sine",620*vr,t0,.5,.32,180);tone("sine",930*vr,t0,.35,.12,270);break; // a sinking, sleepy fall
+      case "warp":tone("sine",300*vr,t0,.38,.3,1800);[1318.5,1760,2349.3].forEach((f,i)=>bell(f,t0+.08+i*.06,.3,.12));break; // a rising shimmer
+      case "drum":[0,.09,.18,.27,.4].forEach((st,i)=>{tone("sine",i===4?95:120,t0+st,.14,i===4?1.2:.7,60);noise(t0+st,.05,"bandpass",1800,1.5,i===4?.4:.25)});break; // a muster call on the war drum
+      case "crack":noise(t0,.05,"bandpass",1500*vr,2,.9);tone("triangle",210*vr,t0,.1,.35,140);noise(t0+.05,.12,"lowpass",900,1,.35,300);break; // splintering wood
+      case "boom":tone("sine",62,t0,.6,2,30);noise(t0,.5,"lowpass",900,.7,1.3,140);noise(t0,.1,"bandpass",2400,1,.4);break; // a barrel going up
+      case "smoke":noise(t0,.7,"highpass",1800,.6,.45,5200);noise(t0+.05,.6,"bandpass",600,.8,.3,300);break; // a hissing cloud
+      case "flame":noise(t0,.45,"bandpass",350,1,.9,1400);[.08,.17,.29].forEach(st=>noise(t0+st,.02,"highpass",3500,1,.3));break; // a whoomp of fire and a crackle
       case "trumpet":{ // a short brass call: two detuned sawtooth voices through a soft low-pass
         const lp=actx.createBiquadFilter();lp.type="lowpass";lp.frequency.value=1500;lp.Q.value=.7;lp.connect(out);
         [[392,0,.14],[523.25,.16,.14],[659.25,.32,.38]].forEach(([f,st,len])=>{
@@ -1542,43 +1560,83 @@ function sfx(name){
     }
   }catch(e){} // no audio available: stay silent
 }
-/* Ambient music: an endless, gently wandering tune in D dorian — plucked lute-like notes over a low drone, with a soft echo.
-   Notes are chosen as it plays (a random walk that leans on the chord of the moment), so it never loops exactly. */
+/* Music: endless generative tunes, so they never loop exactly. Notes are chosen as they play (a random walk that leans on the chord of the moment).
+   calm: D dorian, plucked lute-like notes over a low drone, a soft echo, and a faint brass choir that swells in now and then.
+   boss: D minor and twice as driving — galloping low strings, war drums and brass calls. Plays during campaign boss battles. */
 const SCALE=[0,2,3,5,7,9,10],CHORDS=[[0,2,4],[6,1,3],[2,4,6],[0,2,4],[4,6,1],[6,1,3],[0,2,4],[0,2,4]]; // scale degrees: i, VII, III, i, v, VII, i, i
-const deg=(n,base=62)=>440*Math.pow(2,(base+12*Math.floor(n/7)+SCALE[((n%7)+7)%7]-69)/12); // scale degree -> Hz (62 = D4)
+const BSCALE=[0,2,3,5,7,8,10],BCHORDS=[[0,2,4],[0,2,4],[5,0,2],[6,1,3],[0,2,4],[3,5,0],[4,6,1],[4,6,1]]; // boss: i, i, VI, VII, i, iv, v, v
+const deg=(n,base=62,sc=SCALE)=>440*Math.pow(2,(base+12*Math.floor(n/7)+sc[((n%7)+7)%7]-69)/12); // scale degree -> Hz (62 = D4)
+const musicStyle=()=>!$("game").hidden&&!over&&camp.battle&&!chal&&WORLD[camp.battle.node]&&WORLD[camp.battle.node].type==="boss"?"boss":"calm";
 function startMusic(){
   if(!musicOn||mus||document.hidden)return;
   try{
-    const a=audio(),out=a.createGain(),bus=a.createGain(),dl=a.createDelay(),fb=a.createGain(),lp=a.createBiquadFilter(),wet=a.createGain();
-    out.gain.setValueAtTime(0,a.currentTime);out.gain.linearRampToValueAtTime(MUSIC_VOL,a.currentTime+4);out.connect(a.destination);
-    dl.delayTime.value=.36;fb.gain.value=.3;lp.type="lowpass";lp.frequency.value=1600;wet.gain.value=.4;
+    const a=audio(),boss=musicStyle()==="boss",sc=boss?BSCALE:SCALE,CH=boss?BCHORDS:CHORDS;
+    const out=a.createGain(),bus=a.createGain(),dl=a.createDelay(),fb=a.createGain(),lp=a.createBiquadFilter(),wet=a.createGain();
+    out.gain.setValueAtTime(0,a.currentTime);out.gain.linearRampToValueAtTime(MUSIC_VOL*(boss?1.1:1),a.currentTime+(boss?2:4));out.connect(a.destination);
+    dl.delayTime.value=boss?.25:.36;fb.gain.value=boss?.22:.3;lp.type="lowpass";lp.frequency.value=1600;wet.gain.value=boss?.25:.4;
     bus.connect(out);bus.connect(dl);dl.connect(lp);lp.connect(fb);fb.connect(dl);lp.connect(wet);wet.connect(out);
     const drone=[73.42,110].map((f,i)=>{const o=a.createOscillator(),g=a.createGain(),f2=a.createBiquadFilter(),l=a.createOscillator(),lg=a.createGain();
-      o.type=i?"sine":"triangle";o.frequency.value=f;f2.type="lowpass";f2.frequency.value=380;g.gain.value=.16;l.frequency.value=.05+i*.03;lg.gain.value=.07;
+      o.type=boss?"sawtooth":i?"sine":"triangle";o.frequency.value=f;f2.type="lowpass";f2.frequency.value=boss?300:380;g.gain.value=boss?.12:.16;l.frequency.value=.05+i*.03;lg.gain.value=.07;
       l.connect(lg);lg.connect(g.gain);o.connect(f2);f2.connect(g);g.connect(bus);o.start();l.start();return[o,l]}).flat();
     const pluck=(f,t,len,vol)=>{const o=a.createOscillator(),o2=a.createOscillator(),g=a.createGain(),g2=a.createGain(),f2=a.createBiquadFilter();
       o.type="triangle";o.frequency.value=f;o2.type="sine";o2.frequency.value=f*2;g2.gain.value=.25;f2.type="lowpass";f2.frequency.setValueAtTime(2600,t);f2.frequency.exponentialRampToValueAtTime(700,t+len);
       g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.006);g.gain.exponentialRampToValueAtTime(.001,t+len);
       o.connect(f2);o2.connect(g2);g2.connect(f2);f2.connect(g);g.connect(bus);o.start(t);o2.start(t);o.stop(t+len+.05);o2.stop(t+len+.05)};
-    const st={next:a.currentTime+.3,step:0,mel:7,beat:.4};
-    const tick=()=>{
-      while(st.next<a.currentTime+.5){
-        const t=st.next,s=st.step,bar=Math.floor(s/8)%CHORDS.length,ch=CHORDS[bar],phrase=s%64;
-        if(phrase<60){ // the last few steps of each phrase are left to the drone, to breathe
-          if(s%8===0)pluck(deg(ch[0],38),t,2.6,.5); // the chord's root, low
-          if(s%2===0)pluck(deg(ch[(s/2)%3],50),t,1.1,.22); // a gentle arpeggio
-          if(Math.random()<(s%4===0?.85:.45)){ // the tune: a random walk that leans on chord tones on the strong beats
-            st.mel=Math.max(4,Math.min(13,st.mel+[-2,-1,-1,0,1,1,2][Math.floor(Math.random()*7)]));
-            if(s%4===0&&!ch.includes(((st.mel%7)+7)%7))st.mel+=ch.includes(((st.mel+1)%7+7)%7)?1:-1;
-            pluck(deg(st.mel),t,1.3,.32);
-          }
+    // a brass voice: detuned saws through a low-pass that opens as the note swells, like a horn warming up
+    const brass=(f,t,len,vol,att=.18)=>{const g=a.createGain(),fl=a.createBiquadFilter();fl.type="lowpass";fl.Q.value=.8;
+      fl.frequency.setValueAtTime(f*1.2,t);fl.frequency.linearRampToValueAtTime(f*(boss?5:3.2),t+att+.1);fl.frequency.linearRampToValueAtTime(f*2,t+len);
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+att);g.gain.setValueAtTime(vol,t+len*.7);g.gain.linearRampToValueAtTime(0,t+len);
+      fl.connect(g);g.connect(bus);for(const det of[-7,5]){const o=a.createOscillator();o.type="sawtooth";o.frequency.value=f;o.detune.value=det;o.connect(fl);o.start(t);o.stop(t+len+.05)}};
+    const drum=(t,vol,f=110)=>{const o=a.createOscillator(),g=a.createGain();o.type="sine";o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(45,t+.25);
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.005);g.gain.exponentialRampToValueAtTime(.001,t+.32);o.connect(g);g.connect(out);o.start(t);o.stop(t+.35);
+      const n=a.createBufferSource(),bf=a.createBuffer(1,a.sampleRate*.12|0,a.sampleRate),d=bf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*(1-i/d.length);
+      const nf=a.createBiquadFilter(),ng=a.createGain();nf.type="lowpass";nf.frequency.value=700;ng.gain.value=vol*.5;n.buffer=bf;n.connect(nf);nf.connect(ng);ng.connect(out);n.start(t)};
+    const st={next:a.currentTime+.3,step:0,mel:7,beat:boss?.2:.4,horn:0};
+    const calm=(t,s,ch,phrase)=>{
+      if(phrase<60){ // the last few steps of each phrase are left to the drone, to breathe
+        if(s%8===0)pluck(deg(ch[0],38),t,2.6,.5); // the chord's root, low
+        if(s%2===0)pluck(deg(ch[(s/2)%3],50),t,1.1,.22); // a gentle arpeggio
+        if(Math.random()<(s%4===0?.85:.45)){ // the tune: a random walk that leans on chord tones on the strong beats
+          st.mel=Math.max(4,Math.min(13,st.mel+[-2,-1,-1,0,1,1,2][Math.floor(Math.random()*7)]));
+          if(s%4===0&&!ch.includes(((st.mel%7)+7)%7))st.mel+=ch.includes(((st.mel+1)%7+7)%7)?1:-1;
+          pluck(deg(st.mel),t,1.3,.32);
         }
-        st.next+=st.beat*(s%2?.92:1.08);st.step++; // a slight lilt
+        // faint brass: a slow swell of the chord every so often, and now and then a short horn call
+        if(s%16===0&&Math.random()<.55)ch.forEach((n,i)=>brass(deg(n,i?50:38),t,st.beat*14,i?.035:.045,1.2));
+        if(phrase===32&&Math.random()<.5)[[0,0,2],[2,2,1],[4,3,4]].forEach(([n,o,l])=>brass(deg(ch[n%3]+(n>3?7:0),50),t+o*st.beat,st.beat*l,.05,.08));
       }
     };
-    tick();mus={out,drone,timer:setInterval(tick,120)};
+    const fight=(t,s,ch,phrase)=>{
+      const root=ch[0];
+      // galloping low strings: da-da-DUM on every beat
+      pluck(deg(root,s%4===2?38:26,sc),t,.35,s%4===2?.45:.3);
+      if(s%4===0)pluck(deg(root,38,sc),t,.5,.3);
+      // war drums: a heavy pattern with a roll into each phrase
+      if([0,6,8,12].includes(s%16))drum(t,s%16===0?.9:.55);
+      if(phrase>=60)drum(t,.4+(phrase-60)*.12,130);
+      if(phrase<60){
+        // brass: a stab on each chord change, and calls on the strong beats
+        if(s%8===0)ch.forEach((n,i)=>brass(deg(n,i?50:38,sc),t,st.beat*(s%16===0?6:3),i?.08:.1,.04));
+        if(phrase>=16&&s%2===0&&Math.random()<(s%4===0?.8:.35)){
+          st.horn=Math.max(2,Math.min(10,st.horn+[-2,-1,0,1,1,2][Math.floor(Math.random()*6)]));
+          if(s%4===0&&!ch.includes(((st.horn%7)+7)%7))st.horn+=ch.includes(((st.horn+1)%7+7)%7)?1:-1;
+          brass(deg(st.horn,50,sc),t,st.beat*(s%4===0?3:1.6),.09,.05);
+        }
+        if(Math.random()<.5)pluck(deg(ch[s%3],62,sc),t,.4,.12); // a quick high figure over it all
+      }
+    };
+    const tick=()=>{
+      while(st.next<a.currentTime+.5){
+        const t=st.next,s=st.step,ch=CH[Math.floor(s/8)%CH.length],phrase=s%64;
+        (boss?fight:calm)(t,s,ch,phrase);
+        st.next+=boss?st.beat:st.beat*(s%2?.92:1.08);st.step++; // the calm tune has a slight lilt
+      }
+    };
+    tick();mus={out,drone,timer:setInterval(tick,120),style:boss?"boss":"calm"};
   }catch(e){mus=null}
 }
+// switches tracks when the scene calls for the other one (a boss battle starting or ending)
+function syncMusic(){if(mus&&mus.style!==musicStyle()){stopMusic();startMusic()}}
 function stopMusic(){
   if(!mus)return;const m=mus;mus=null;clearInterval(m.timer);
   try{const t=actx.currentTime;m.out.gain.cancelScheduledValues(t);m.out.gain.setValueAtTime(m.out.gain.value,t);m.out.gain.linearRampToValueAtTime(0,t+1.2);setTimeout(()=>{m.drone.forEach(o=>{try{o.stop()}catch(e){}});m.out.disconnect()},1400)}catch(e){}
@@ -1601,10 +1659,10 @@ function useItem(a,id,x,y){
   a.acted=a.moved=1;sel=null;mode=null;choice=null;lastMove=null;insp=null;
   if(id==="draught"){const b=at(x,y),n=Math.min(DRAUGHT_HEAL,TYPES[b.t].hp-b.hp);b.hp+=n;sfx("heal");floatText(b.x,b.y,"+"+n,"heal");info=b;say(`Your ${NAME[a.t]} used a Healing Draught: +${n} HP${b===a?"":" for your "+NAME[b.t]}.`);return render()}
   if(id==="smoke"){
-    blastOf(x+","+y).concat([[x,y]]).forEach(([cx,cy])=>SMOKE.add(cx+","+cy));sfx("evade");
+    blastOf(x+","+y).concat([[x,y]]).forEach(([cx,cy])=>SMOKE.add(cx+","+cy));sfx("smoke");
     say("Smoke billows across the field: your units in it get +20% evasion until your next turn.");return render();
   }
-  const b=at(x,y);sfx("hit");eruptFx(x,y);
+  const b=at(x,y);sfx("flame");eruptFx(x,y);
   if(hurt(b,FIRE_DMG)){credit(a,b);say(`Your ${NAME[a.t]}'s fire flask destroyed ${who(b)}.`)}else say(`Your ${NAME[a.t]}'s fire flask burned ${who(b)} for ${FIRE_DMG}.`);
   afterAction();
 }
@@ -1614,7 +1672,7 @@ function doHeal(a,b){
 }
 function doPush(a,u){
   const[nx,ny]=pushDest(a,u),n=Math.abs(nx-u.x)+Math.abs(ny-u.y);
-  u.x=nx;u.y=ny;a.acted=a.moved=1;sel=null;mode=null;choice=null;lastMove=null;
+  u.x=nx;u.y=ny;a.acted=a.moved=1;sel=null;mode=null;choice=null;lastMove=null;sfx("shove");
   say(n?"Pushed the "+NAME[u.t]+" "+n+" tile"+(n>1?"s":"")+".":"Blocked. The unit didn't move.");render();
 }
 const sent=w=>w[0].toUpperCase()+w.slice(1); // sentence case for status lines
@@ -1640,7 +1698,7 @@ function spawnChicken(u){
   if(!spot)return; // no room: it tries again the next time one of your units is hurt
   relicUsed.chicken=1;
   const c={t:"G",team:"y",auto:1,x:spot[0],y:spot[1],hp:TYPES.G.hp,moved:1,acted:1,spawn:1};units.push(c);
-  later(()=>{if(units.includes(c))floatText(c.x,c.y,"BAWK!","thanks")},300);
+  later(()=>{if(units.includes(c)){floatText(c.x,c.y,"BAWK!","thanks");sfx("bawk")}},300);
 }
 // at the end of your turn, each Angry Chicken charges: it heads for the nearest enemy and pecks the weakest one it can reach
 function chickensAct(done){
@@ -1693,8 +1751,9 @@ function burst(rb,bw){
   an.onfinish=()=>s.remove();
 }
 // melee units lunge at the target; ranged units fire a projectile
+const ATK_SFX={K:"swing",T:"swing",M:"swing",N:"swing",P:"swing",C:"charge",A:"bow",R:"siege",E:"zap",W:"growl",B:"growl",H:"screech",G:"bawk"};
 function animAttack(a,b,cb){
-  let fired=false;const fin=()=>{if(!fired){fired=true;cb()}};
+  let fired=false;const fin=()=>{if(!fired){fired=true;cb()}};sfx(ATK_SFX[a.t]||"swing");
   try{
     const ta=board.children[a.y*W+a.x],tb=board.children[b.y*W+b.x];
     if(!ta||!tb||!ta.animate||window.matchMedia("(prefers-reduced-motion: reduce)").matches)return fin();
@@ -1887,14 +1946,14 @@ function enemyTurn(note=""){
     }
     if(u.t==="E"&&ts.length&&!ts.some(p=>dmgTo(u,p)>=p.hp)){
       const sl=ts.filter(p=>!p.slow&&!calm(p)&&mvOf(p)>1).sort((a,b)=>TYPES[b.t].dmg-TYPES[a.t].dmg||TYPES[b.t].mv-TYPES[a.t].mv)[0];
-      if(sl){u.acted=1;animAttack(u,sl,()=>{sl.slow=1;floatText(sl.x,sl.y,"Slow","slow");say("Enemy "+NAME[u.t]+" slowed your "+NAME[sl.t]+".");fin()});return}
+      if(sl){u.acted=1;animAttack(u,sl,()=>{sl.slow=1;sfx("slow");floatText(sl.x,sl.y,"Slow","slow");say("Enemy "+NAME[u.t]+" slowed your "+NAME[sl.t]+".");fin()});return}
     }
     if(ts.length){
       u.acted=1;
       let pushed=false;
       if(mods.f==="PUSH"&&u.t==="K"){ // push a survivor into a forest to slow it down
         const c=ts.find(p=>pushable(u,p)&&dmgTo(u,p)<p.hp&&FOREST.has(pushDest(u,p)+"")&&pushDest(u,p)+""!==p.x+","+p.y);
-        if(c){[c.x,c.y]=pushDest(u,c);pushed=true;say("Enemy knight pushed your "+NAME[c.t]+" into a forest.")}
+        if(c){[c.x,c.y]=pushDest(u,c);pushed=true;sfx("shove");say("Enemy knight pushed your "+NAME[c.t]+" into a forest.")}
       }
       if(!pushed){attack(u,ts[0],fin);return}
     }
@@ -1913,7 +1972,7 @@ function enemyTurn(note=""){
         if(mv.length){p=mv.reduce((a,b)=>b.mS-b.s<a.mS-a.s?b:a);dest=p.mB;tp=p.mTp}
       }
       const u=p.u;done.add(u);
-      if(tp){tpUsed.f=1;say("Enemy teleported a "+NAME[u.t]+"!")}
+      if(tp){tpUsed.f=1;sfx("warp");say("Enemy teleported a "+NAME[u.t]+"!")}
       if(dest[0]!==u.x||dest[1]!==u.y){u.moved=1;movedAny=true}
       [u.x,u.y]=dest;render();
       later(()=>act(u),350);
@@ -2165,7 +2224,7 @@ $("wrestart").onclick=()=>{
 /* ---------- Screens & setup ---------- */
 const COLORS={red:["Red","#c8372d","#fff"],yellow:["Yellow","#e6b820","#2b2200"],blue:["Blue","#2f6fb5","#fff"],orange:["Orange","#e2812a","#fff"],green:["Green","#3b9a4e","#fff"],purple:["Purple","#7b4bb0","#fff"],black:["Black","#232a31","#fff"],wild:["Wild","#7a5a36","#fff"]};
 const CHOICES=["red","yellow","blue","orange","green","purple"];
-const show=n=>{["menu","pick","game","world","editor"].forEach(i=>$(i).hidden=i!==n);if(n==="menu"){$("rulesview").hidden=true;$("unlockview").hidden=true;$("chalview").hidden=true;$("mbtns").hidden=false}};
+const show=n=>{["menu","pick","game","world","editor"].forEach(i=>$(i).hidden=i!==n);syncMusic();if(n==="menu"){$("rulesview").hidden=true;$("unlockview").hidden=true;$("chalview").hidden=true;$("mbtns").hidden=false}};
 const disc=(t,c)=>`<div class="u" data-t="${t}" style="background:${c[1]};--tc:${c[1]};--ic:${c[2]}">${ICON[t]}</div>`;
 const foeColor=()=>pick.c==="red"?"black":"red";
 const cap=w=>w.replace(/\b\w/g,c=>c.toUpperCase()); // "banner bearer" -> "Banner Bearer"
