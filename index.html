@@ -632,6 +632,7 @@ const RELICS={
  blossom:{name:"Cherry Blossom Blade",r:2,src:"boss",get desc(){return unlocks.cherry // the Cherry Grove reveals what the blade remembers
    ?"Last Bloom: when one of your units falls, your units beside it get +1 damage for the rest of the battle (+2 if it fell in a Cherry Grove). Forged beneath the cherry boughs, where every petal falls too soon. It remembers each one."
    :"Last Bloom: when one of your units falls, your units beside it get +1 damage for the rest of the battle (more, if it fell in a place the blade remembers). Its steel is etched with petals from a grove no map shows. Someday, perhaps, you'll walk beneath those trees."}},
+ eldritch:{name:"Weak Eldritch Token",r:0,src:"shop",desc:"First Blood Pact: your units deal +1 damage to enemies at full health, but take +1 damage while they are at full health themselves. Cold to the touch, and faintly humming. Whatever it bargains with is very small. For now."},
  token:{name:"Marcus's Loyalty Token",r:2,src:"shop",desc:"Everything at Marcus's wagon costs 20% less."},
  whet:{name:"Whetstones",r:0,src:"both",desc:"Archers deal +1 damage."},
  shield:{name:"Sturdy Shields",r:0,desc:"Knights get +1 armor."},
@@ -1210,6 +1211,7 @@ function combat(a,b,from=a){
   add("Hunter's Horn",rel(a,"horn")&&WOODS(from.x+","+from.y)?2:0); // striking from the treeline
   add("Siege Ram",rel(a,"ram")&&FORT.has(k)?2:0); // battering the defenders
   add("Last Bloom",a.team==="y"&&a.bloom||0);
+  add("First Blood Pact",(rel(a,"eldritch")&&b.team!=="y"&&b.hp>=maxHp(b)?1:0)+(rel(b,"eldritch")&&a.team!=="y"&&b.hp>=maxHp(b)?1:0)); // Weak Eldritch Token: both ways
   add("War Drum",a.team==="y"&&turn==="y"&&a.drum===pturn?1:0);
   add("Elite",a.elite?1:0);
   const armor=[["Armor",B.ar||0],["Padded Armor",b.t==="A"&&mods[b.team]==="PAD"?1:0],["Forest Tactics",mods[b.team]==="FT"&&A.rg>1&&WOODS(k)?1:0],["Fortress",FORT.has(k)?1:0],["Sturdy Shields",b.t==="K"&&rel(b,"shield")?1:0],["Barding",b.t==="C"&&rel(b,"bard")?1:0],["Banner of the Fallen Keep",b.keep&&b.team==="y"?1:0],["Stubborn as a Mule",muled(b)?MULE_AR:0]];
@@ -2040,6 +2042,7 @@ function showEnd(win){
     if(g!==gid||!over)return;
     paused=false;$("pause").hidden=true;$("tguide").hidden=true;
     if(nm&&win&&nm.type==="boss")return showTriumph(nm); // the campaign is won: a screen of its own
+    if(nm&&!win)return campaignOver(nm,"lost"); // a lost battle ends the campaign
     $("defeat").hidden=false;$("dagain").focus();
   },900); // let the final hit play out first
 }
@@ -2582,7 +2585,7 @@ const HOWTO=[
         :k==="boss"?nest(FORT_ICON[1],x-14,y-14,28)
         :`<path d="M${x-6} ${y-6}L${x+6} ${y+6}M${x+6} ${y-6}L${x-6} ${y+6}" stroke="#3b2a14" stroke-width="3" stroke-linecap="round"/>`});
     return s+"</svg>"},
-  body:()=>`<p>Travel along the paths on the world map. Each new location starts a battle, and winning clears it. Every campaign uses a new random map. Defeat the boss at the top to finish, or travel on to new lands: a fresh map in a new region, with your army, relics and gold carried over.</p><p>You choose your extra units, modifier, and color once. Your units keep their health between battles. After each win, surviving units recover ${Math.round(CAMP_HEAL*100)}% of their max health, and a unit that falls returns with 1 HP.</p><p>Every soldier has a name. A unit that falls in a battle you win comes back wounded, with 1 less max HP for the rest of the campaign (up to ${WOUND_MAX} wounds, marked \u2020 on the world map). The healing space mends one wound per unit, and Herbert's fire mends them all. Brave deeds earn honors, like "the Bold" or "the Unbroken", and the roll of honor remembers it all when you conquer a region.</p><p>Each victory also earns gold, shown by the coin purse on the world map, and lets you choose one of two or three relics. Relics last for the rest of the campaign: rarer ones are stronger.</p><p>Teal wave spaces are wetlands: battles fought across lakes, ponds and rivers. One or two appear on each map. Dark reed spaces are murky swamps, thick with mud that stops units in their tracks.</p><p>Each map has one healing space (a green cross). Visiting it restores 70% of each unit's health, once.</p><p>Each map also has one Merchant (a gold coin purse), where Marcus sells potions, bombs and relics for gold. You can visit once. Your pack holds up to ${ITEM_CAP} items: in battle, select a unit and tap <b>Use Item</b>. Using an item takes that unit's action.</p>`},
+  body:()=>`<p>Travel along the paths on the world map. Each new location starts a battle, and winning clears it. Every campaign uses a new random map. Defeat the boss at the top to finish, or travel on to new lands: a fresh map in a new region, with your army, relics and gold carried over.</p><p>You choose your extra units, modifier, and color once. Your units keep their health between battles. After each win, surviving units recover ${Math.round(CAMP_HEAL*100)}% of their max health, and a unit that falls returns with 1 HP. But if your whole army falls, or you concede, the campaign ends there: choose your battles carefully.</p><p>Every soldier has a name. A unit that falls in a battle you win comes back wounded, with 1 less max HP for the rest of the campaign (up to ${WOUND_MAX} wounds, marked \u2020 on the world map). The healing space mends one wound per unit, and Herbert's fire mends them all. Brave deeds earn honors, like "the Bold" or "the Unbroken", and the roll of honor remembers it all when you conquer a region.</p><p>Each victory also earns gold, shown by the coin purse on the world map, and lets you choose one of two or three relics. Relics last for the rest of the campaign: rarer ones are stronger.</p><p>Teal wave spaces are wetlands: battles fought across lakes, ponds and rivers. One or two appear on each map. Dark reed spaces are murky swamps, thick with mud that stops units in their tracks.</p><p>Each map has one healing space (a green cross). Visiting it restores 70% of each unit's health, once.</p><p>Each map also has one Merchant (a gold coin purse), where Marcus sells potions, bombs and relics for gold. You can visit once. Your pack holds up to ${ITEM_CAP} items: in battle, select a unit and tap <b>Use Item</b>. Using an item takes that unit's action.</p>`},
  {id:"scout",title:"Scouting",art:()=>{const m=[];for(let y=0;y<7;y++){let r="";for(let x=0;x<7;x++){const d=Math.abs(x-3)+Math.abs(y-3);r+=d===0?".":d<=2?"g":d===3?"p":"."}m.push(r)}return hBoard(7,7,m,[["K","f",3,3]],38)},
   body:()=>"<p>Tap any unit to see its details, including its health. Tap an enemy to see where it can move (gray) and hit (red). Tap it again to hide.</p>"}
 ];
@@ -3026,6 +3029,7 @@ const RICON={ // small 32-unit relic icons
  blossom:'<path d="M6 27L25 6" stroke="#2e3338" stroke-width="3.400" stroke-linecap="round"/><path d="M6 27L25 6" stroke="#d8dee4" stroke-width="1.800" stroke-linecap="round"/><path d="M8 25.500L24 7.500" stroke="#f6f8fa" stroke-width=".6"/><path d="M3 30l5-5" stroke="#3a2412" stroke-width="3.200" stroke-linecap="round"/><path d="M3.500 29.500l1-1M5 28l1-1" stroke="#c9962a" stroke-width="1"/><ellipse cx="8.500" cy="24.500" rx="3.200" ry="1.400" fill="#c9962a" stroke="#6a4c10" stroke-width=".7" transform="rotate(45 8.500 24.500)"/><g transform="translate(20 20) scale(1)"><ellipse cx="0" cy="-1.900" rx="1.200" ry="1.900" fill="#f4b6c8" stroke="#c8708e" stroke-width=".4" transform="rotate(0)"/><ellipse cx="0" cy="-1.900" rx="1.200" ry="1.900" fill="#f4b6c8" stroke="#c8708e" stroke-width=".4" transform="rotate(72)"/><ellipse cx="0" cy="-1.900" rx="1.200" ry="1.900" fill="#f4b6c8" stroke="#c8708e" stroke-width=".4" transform="rotate(144)"/><ellipse cx="0" cy="-1.900" rx="1.200" ry="1.900" fill="#f4b6c8" stroke="#c8708e" stroke-width=".4" transform="rotate(216)"/><ellipse cx="0" cy="-1.900" rx="1.200" ry="1.900" fill="#f4b6c8" stroke="#c8708e" stroke-width=".4" transform="rotate(288)"/><circle r=".7" fill="#f2c94c"/></g><g transform="translate(25 15) scale(0.8)"><ellipse cx="0" cy="-1.900" rx="1.200" ry="1.900" fill="#f4b6c8" stroke="#c8708e" stroke-width=".4" transform="rotate(0)"/><ellipse cx="0" cy="-1.900" rx="1.200" ry="1.900" fill="#f4b6c8" stroke="#c8708e" stroke-width=".4" transform="rotate(72)"/><ellipse cx="0" cy="-1.900" rx="1.200" ry="1.900" fill="#f4b6c8" stroke="#c8708e" stroke-width=".4" transform="rotate(144)"/><ellipse cx="0" cy="-1.900" rx="1.200" ry="1.900" fill="#f4b6c8" stroke="#c8708e" stroke-width=".4" transform="rotate(216)"/><ellipse cx="0" cy="-1.900" rx="1.200" ry="1.900" fill="#f4b6c8" stroke="#c8708e" stroke-width=".4" transform="rotate(288)"/><circle r=".7" fill="#f2c94c"/></g><g transform="translate(13 13) scale(0.9)"><ellipse cx="0" cy="-1.900" rx="1.200" ry="1.900" fill="#f4b6c8" stroke="#c8708e" stroke-width=".4" transform="rotate(0)"/><ellipse cx="0" cy="-1.900" rx="1.200" ry="1.900" fill="#f4b6c8" stroke="#c8708e" stroke-width=".4" transform="rotate(72)"/><ellipse cx="0" cy="-1.900" rx="1.200" ry="1.900" fill="#f4b6c8" stroke="#c8708e" stroke-width=".4" transform="rotate(144)"/><ellipse cx="0" cy="-1.900" rx="1.200" ry="1.900" fill="#f4b6c8" stroke="#c8708e" stroke-width=".4" transform="rotate(216)"/><ellipse cx="0" cy="-1.900" rx="1.200" ry="1.900" fill="#f4b6c8" stroke="#c8708e" stroke-width=".4" transform="rotate(288)"/><circle r=".7" fill="#f2c94c"/></g><g transform="translate(27 24) scale(0.7)"><ellipse cx="0" cy="-1.900" rx="1.200" ry="1.900" fill="#f4b6c8" stroke="#c8708e" stroke-width=".4" transform="rotate(0)"/><ellipse cx="0" cy="-1.900" rx="1.200" ry="1.900" fill="#f4b6c8" stroke="#c8708e" stroke-width=".4" transform="rotate(72)"/><ellipse cx="0" cy="-1.900" rx="1.200" ry="1.900" fill="#f4b6c8" stroke="#c8708e" stroke-width=".4" transform="rotate(144)"/><ellipse cx="0" cy="-1.900" rx="1.200" ry="1.900" fill="#f4b6c8" stroke="#c8708e" stroke-width=".4" transform="rotate(216)"/><ellipse cx="0" cy="-1.900" rx="1.200" ry="1.900" fill="#f4b6c8" stroke="#c8708e" stroke-width=".4" transform="rotate(288)"/><circle r=".7" fill="#f2c94c"/></g>',
  drum:'<ellipse cx="16" cy="11" rx="11" ry="4" fill="#efe2c4" stroke="#4a3018" stroke-width="1.100"/><path d="M5 11v11q0 4 11 4t11-4V11q0 4-11 4T5 11z" fill="#8a2a24" stroke="#3a1210" stroke-width="1.100"/><path d="M5 13l5.500 9.500l5.500-7.500l5.500 7.500l5.500-9.500" stroke="#d9b84a" stroke-width="1.200" fill="none"/><path d="M6 3l7 7M26 3l-7 7" stroke="#5a3a1c" stroke-width="1.800" stroke-linecap="round"/><circle cx="6" cy="3" r="1.600" fill="#efe2c4" stroke="#4a3018" stroke-width=".7"/><circle cx="26" cy="3" r="1.600" fill="#efe2c4" stroke="#4a3018" stroke-width=".7"/>',
  muster:'<path d="M7 5h16q2 0 2 2v18q0 2-2 2H7z" fill="#efe2c4" stroke="#5a4630" stroke-width="1.100"/><ellipse cx="7" cy="16" rx="2.600" ry="11" fill="#d8c8a4" stroke="#5a4630" stroke-width="1"/><path d="M11 9h10M11 12h8M11 15h10M11 18h7M11 21h9" stroke="#6a5a44" stroke-width=".9"/><path d="M9 9l.8.8l1.400-1.600M9 12l.8.8l1.400-1.600M9 15l.8.8l1.400-1.600" stroke="#2f8f4e" stroke-width=".8" fill="none"/><circle cx="22" cy="25" r="3.400" fill="#b8372d" stroke="#6a1a14" stroke-width=".9"/><path d="M20.600 25h2.800M22 23.600v2.800" stroke="#f2c4b8" stroke-width=".8"/>',
+ eldritch:'<circle cx="16" cy="16" r="12" fill="#3a4a3e" stroke="#141c16" stroke-width="1.300"/><circle cx="16" cy="16" r="9" fill="none" stroke="#6a8a6e" stroke-width=".9" stroke-dasharray="2 1.500"/><path d="M16 8q4 4 0 8t0 8M10 12q6 2 12 0M10 20q6-2 12 0" stroke="#9fe0b0" stroke-width="1.200" fill="none" stroke-linecap="round"/><circle cx="16" cy="16" r="1.800" fill="#c8ffd8"/><circle cx="16" cy="16" r="5" fill="#9fe0b0" opacity=".15"/>',
  token:'<circle cx="16" cy="16" r="12" fill="#d8b24a" stroke="#6a4c10" stroke-width="1.300"/><circle cx="16" cy="16" r="9" fill="none" stroke="#f4dc8a" stroke-width="1"/><circle cx="16" cy="14" r="3.600" fill="#f2ead8" stroke="#6a4c10" stroke-width=".9"/><circle cx="14.700" cy="13.600" r=".9" fill="#3a2a14"/><circle cx="17.300" cy="13.600" r=".9" fill="#3a2a14"/><path d="M14.600 16h2.800" stroke="#3a2a14" stroke-width=".7"/><path d="M11 22q5-3 10 0" stroke="#6a4c10" stroke-width="1.100" fill="none"/><path d="M10 9l2 2M22 9l-2 2" stroke="#f4dc8a" stroke-width=".8"/>',
  coin:'<circle cx="16" cy="16" r="12" fill="#b8693a" stroke="#5a2a10" stroke-width="1.300"/><circle cx="16" cy="16" r="9" fill="none" stroke="#e09a5a" stroke-width="1"/><g fill="#3f7a3a" stroke="#1e4a1c" stroke-width=".7"><circle cx="14" cy="13" r="2.400"/><circle cx="18" cy="13" r="2.400"/><circle cx="14" cy="17" r="2.400"/><circle cx="18" cy="17" r="2.400"/></g><path d="M16 17q1 4 3 6" stroke="#1e4a1c" stroke-width="1" fill="none"/><path d="M8 11q3-5 8-6" stroke="#f0c08a" stroke-width="1.200" fill="none" opacity=".7"/>',
  whet:'<path d="M5 21l17-12q4-2 5 1t-2 5L9 25q-4 2-5-1t1-3z" fill="#8f979e" stroke="#2e3338" stroke-width="1.200"/><path d="M8 21l15-10" stroke="#d2d8dd" stroke-width="1.300" opacity=".7"/><path d="M9 24l14-10" stroke="#5c646b" stroke-width="1" opacity=".6"/>',
@@ -3081,6 +3085,7 @@ const itemIcon=(id,sz=32)=>`<svg viewBox="0 0 32 32" width="${sz}" height="${sz}
 const MARCUS={
  greet:["Ah, a customer! Mind Parsnip, he bites. Only on Tuesdays.","Wares for the weary! Every one of them one of a kind. Mostly.","Don't mind the bones, friend. Business has been dead lately. Ha!","Back from the fighting, eh? Gold spends the same whether you're alive or not. Trust me.","Herbert sends his regards. He still owes me for that mug."],
  buy:["Pleasure doing business!","Sold! No refunds. No exceptions. No questions.","Parsnip approves. I can tell. He's still asleep.","A fine choice for a fine customer."],
+ eldritch:"That one? Found it in a well. The well was empty after. I'd sell it quick, if I were me. Which I am.",
  tonic:"Courier's Tonic! Tastes like boots. Works like lightning.",
  koijar:"A jar of koi! Pour gently. They're very particular about where they live.",
  medkit:"The advanced kit! Bandages, splints, and a needle I've only used twice. On other people.",
@@ -3170,15 +3175,25 @@ function showRelicOffer(){
 }
 /* ---------- Campaign triumph: after the boss falls ---------- */
 const battlesWon=()=>camp.cleared.filter(i=>WORLD[i]&&(WORLD[i].type==="battle"||WORLD[i].type==="boss")).length; // in this region
+const HERBERT_LOSS=["Oh, friend... come sit by the fire a while. There's always another road.","Every great commander loses a battle. The great ones march again!","I'll keep a seat warm for your next campaign. Bring stories!"];
 const HERBERT_WIN=["You did it! I knew you would! I'm so proud I could burst... if I had anything left to burst.","A true champion! I'll be telling this story around the fire for centuries!","Conquered! Now come rest those bones. Well, your bones. Mine are always resting."];
-function showTriumph(nm){
+function showTriumph(nm,fallen){ // fallen: how a lost campaign ended ("lost", "conceded" or "abandoned")
   const army=armyTypes(),kills=army.map((t,i)=>camp.kills[i]||0),total=kills.reduce((a,b)=>a+b,0);
   const maps=camp.mapsPrior+battlesWon();
-  $("tsub").innerHTML=`You conquered <b>${nm.name}</b>`+(camp.region>1?` and won your ${["","","second","third","fourth","fifth"][camp.region]||camp.region+"th"} region!`:" and won the campaign!");
+  $("ttitle").textContent=fallen?"Your Campaign Has Ended":"Congratulations!";$("ttravel").hidden=!!fallen;
+  $("tsub").innerHTML=fallen?(fallen==="lost"?`Your army fell at <b>${nm.name}</b>.`:`You withdrew from <b>${nm.name}</b>, and the campaign ended there.`)+` You reached region ${camp.region}.`
+    :`You conquered <b>${nm.name}</b>`+(camp.region>1?` and won your ${["","","second","third","fourth","fifth"][camp.region]||camp.region+"th"} region!`:" and won the campaign!");
   $("tstats").innerHTML='<h3>Roll of honor</h3>'+army.map((t,i)=>{const f=(camp.falls&&camp.falls[i])||[];return `<div class="trow">${hIcon(t,"y")}<span>${heroName(i)} <small>${cap(NAME[t])}${t==="T"&&kills[i]?", with militia":""}${f.length?` · fell at ${listAnd([...new Set(f)])}`:" · never fell"}</small></span><b title="enemies defeated">${kills[i]}</b></div>`}).join("")
     +`<div class="ttot"><span>Total defeated: ${total}</span><span>Maps cleared: ${maps}</span></div>`;
   $("therb").innerHTML=unlocks.campsite?`<div class="hport" aria-hidden="true">${campScene("plain").replace('viewBox="0 0 320 220"','viewBox="178 48 90 84" preserveAspectRatio="xMidYMid slice"')}</div><div class="cbub"><b>Herbert:</b> “${HERBERT_WIN[Math.floor(Math.random()*HERBERT_WIN.length)]}”</div>`:"";
-  $("triumph").hidden=false;$("ttravel").focus();
+  if(fallen&&unlocks.campsite)$("therb").querySelector(".cbub").innerHTML=`<b>Herbert:</b> “${HERBERT_LOSS[Math.floor(Math.random()*HERBERT_LOSS.length)]}”`;
+  $("triumph").hidden=false;(fallen?$("tnew"):$("ttravel")).focus();
+}
+// a lost battle ends the campaign: show the roll of honor one last time, then clear the save
+function campaignOver(nm,how){
+  if(how!=="abandoned"&&camp.names)armyTypes().forEach((t,i)=>{if(!units.some(u=>u.team==="y"&&u.ci===i))(camp.falls[i]=camp.falls[i]||[]).push(nm.name)}); // the final battle's fallen join the roll
+  showTriumph(nm,how);
+  camp.cfg=null;camp.battle=null;dropHold("camp");try{localStorage.removeItem(SAVE)}catch(e){}
 }
 $("tnew").onclick=()=>{gid++;$("triumph").hidden=true;camp.battle=null;openCampSetup()};
 // keep the army, its health, relics, gold and record, and march on to a freshly rolled map
@@ -3469,13 +3484,13 @@ $("maback").onclick=()=>{$("maud").hidden=true;$("mbtns").hidden=false;$("maudio
 $("paback").onclick=()=>{resetPause();$("paudio").focus()};$("pmusic").onclick=$("mmusic").onclick=toggleMusic;
 const howPause={root:$("prules"),mainLabel:"Back to Pause Menu",pause:true,exit:()=>{resetPause();$("prule").focus()}};
 $("prule").onclick=()=>{$("pbtns").hidden=true;$("prules").hidden=false;$("ptitle").hidden=true;howView(howPause,null)};
-$("pconcede").onclick=()=>{panel("pconfirm");$("pno").focus()};
+$("pconcede").onclick=()=>{$("pconfirm").querySelector("p").textContent=camp.battle&&!chal?"Conceding ends your campaign. Are you sure?":"Are you sure you want to concede this game?";panel("pconfirm");$("pno").focus()};
 $("pno").onclick=()=>{panel("pmain");$("pback").focus()};
 $("pyes").onclick=()=>{
   if(!chal){const k=camp.battle?"cc":"qc";unlocks[k]=(unlocks[k]||0)+1;saveU(); // concedes: three in each mode unlock a relic
   if(unlocks[k]>=3)unlock(k==="cc"?"drills":"salts")}
   gid++;over=true;busy=false;panel("pover");
-  setTimeout(()=>{closePause();resetPause();if(chal){const t=chal.test;chal=null;t?openEditor():openChallenges()}else if(camp.battle){camp.battle=null;openWorld()}else show("menu")},1800);
+  setTimeout(()=>{closePause();resetPause();if(chal){const t=chal.test;chal=null;t?openEditor():openChallenges()}else if(camp.battle){campaignOver(WORLD[camp.battle.node],"conceded")}else show("menu")},1800);
 };
 /* ---------- Save & Quit: one held battle per mode, offered back the next time that mode is opened ---------- */
 const HOLD=m=>"skirmish_hold_"+m,dropHold=m=>{try{localStorage.removeItem(HOLD(m))}catch(e){}};
@@ -3505,10 +3520,10 @@ function askHold(m,open){
   if(h&&m==="camp"&&!((camp.cfg||loadCamp())&&WORLD[h.node])){dropHold(m);h=null}
   if(!h)return open();
   $("homsg").textContent=(m==="camp"?`Your battle at ${WORLD[h.node].name} was saved partway through.`:m==="chal"?`Your attempt at ${h.def.name} was saved partway through.`:"Your Quick Battle was saved partway through.")
-    +" Abandoning it counts as a loss, and you'll start that battle over"+(m==="camp"?" with any items you used in it back in your pack.":".");
+    +(m==="camp"?" Abandoning it counts as a loss and ends your campaign.":" Abandoning it counts as a loss, and you'll start that battle over.");
   $("holdask").hidden=false;$("hoyes").focus();
   $("hoyes").onclick=()=>{$("holdask").hidden=true;dropHold(m);resumeHold(h)};
-  $("hono").onclick=()=>{$("holdask").hidden=true;dropHold(m);if(m==="camp"&&h.items0){camp.items=h.items0.slice();if(h.wounds0)camp.wounds=h.wounds0.slice();saveCamp()}open()}; // the battle starts over, so items used in it come back
+  $("hono").onclick=()=>{$("holdask").hidden=true;dropHold(m);if(m==="camp")return campaignOver(WORLD[h.node],"abandoned");open()}; // abandoning a campaign battle is a loss, and a loss ends the campaign
 }
 pick={x:[],m:null,c:"blue"};show("menu");
 </script>
