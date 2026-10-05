@@ -268,6 +268,7 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .hfx .hplus{transform-box:fill-box;transform-origin:center;opacity:0;animation:hplus 1.3s ease-out both}
 @keyframes hplus{0%{opacity:0;transform:translateY(0) scale(.6)}25%{opacity:1;transform:translateY(-6px) scale(1)}100%{opacity:0;transform:translateY(-26px) scale(.9)}}
 #warmy .stat.healed{animation:hchip 1.8s ease-out}
+#warmy .stat small{opacity:.7;font-size:.7em}#warmy .wnd{color:#d64b3a;font-style:normal;font-weight:800;margin-left:3px;letter-spacing:-1px}
 @keyframes hchip{0%,100%{background:rgba(128,128,128,.18)}30%{background:rgba(76,195,138,.55);box-shadow:0 0 8px rgba(76,195,138,.7)}}
 @media (prefers-reduced-motion:reduce){.hfx{display:none}#warmy .stat.healed{animation:none}}
 /* ---- graphics polish: soft light on every tile, depth in deep water, earthy board frame ---- */
@@ -620,6 +621,7 @@ const RELICS={
  saddle:{name:"Parsnip's Saddlebags",r:1,src:"shop",max:2,desc:"Your pack holds one more item. Carry up to two; each adds a slot."},
  ledger:{name:"Tax Collector's Ledger",r:1,src:"shop",desc:"Each battle you win pays 5 extra gold."},
  horseshoe:{name:"Parsnip's Lucky Horseshoe",r:2,src:"shop",desc:"Once per battle, rub the horseshoe as you use an item, and the unit keeps its action."},
+ cross:{name:"Sacred Cross of the Wise Ones",r:2,src:"shop",desc:"Each of your units that falls in a battle you win has a 15% chance to be spared its wound."},
  token:{name:"Marcus's Loyalty Token",r:2,src:"shop",desc:"Everything at Marcus's wagon costs 20% less."},
  whet:{name:"Whetstones",r:0,src:"both",desc:"Archers deal +1 damage."},
  shield:{name:"Sturdy Shields",r:0,desc:"Knights get +1 armor."},
@@ -668,7 +670,7 @@ const MODS={
  FT:{name:"Forest Tactics",desc:"Your units in a forest get +1 armor against ranged attacks. Enemies in a forest only get +5% evasion against your attacks, instead of +10%."},
  PAD:{name:"Padded Armor",desc:"Archers get +1 armor but have 1 less movement."},
  REST:{name:"Field Rest",desc:"At the end of your turn, each of your units that neither moved nor attacked that turn recovers 2 HP."}};
-let MURKY=false,HAUNTED=false,VOLCANIC=false,CHERRY=new Set(),SMOKE=new Set(),LAVA=new Set(),MAGMA=new Set(),VOLC=new Set(),WISP=new Set(),GRAVES=new Set(),WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set(),SWAMP=new Set();
+let MURKY=false,HAUNTED=false,VOLCANIC=false,CHERRY=new Set(),SMOKE=new Set(),LAVA=new Set(),MAGMA=new Set(),VOLC=new Set(),WISP=new Set(),FLOWERS=new Set(),GRAVES=new Set(),WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set(),SWAMP=new Set();
 // Bump PROGRESS_EPOCH to wipe unlocks and the campaign save once on next load (editor drafts and sound settings stay).
 const PROGRESS_EPOCH=2;try{if(+localStorage.getItem("skirmish_epoch")!==PROGRESS_EPOCH){localStorage.removeItem("skirmish_unlocks_v1");localStorage.removeItem("skirmish-campaign");["quick","camp","chal"].forEach(m=>localStorage.removeItem("skirmish_hold_"+m));localStorage.setItem("skirmish_epoch",PROGRESS_EPOCH)}}catch(e){}
 const UKEY="skirmish_unlocks_v1",unlocks=(()=>{try{return JSON.parse(localStorage.getItem(UKEY)||"{}")||{}}catch(e){return{}}})();
@@ -833,6 +835,11 @@ function genMap(o={}){
       else for(let t=0;t<80;t++){const a=1+R(W-2),b=3+R(2);if(roomy(a,b)&&roomy(W-1-a,H-1-b)){both(wisps,a,b);break}}
       wisps.forEach(k=>{swamp.delete(k);shal.delete(k)});
     }
+    const flowers=new Set(); // wildflower fields (unlockable, no effect): 1 to 3 clumps of 1-3 tiles, on open ground in forests, plains and wilds
+    if(unlocks.flowers&&o.flowers&&Math.random()<.7){
+      const open=(a,b)=>a>=0&&a<W&&b>=0&&b<H&&![walls,forest,deep,shal,swamp,fort,bars,camps,graves,lava,magma,volc,wisps,flowers].some(st=>st.has(K(a,b)));
+      for(let n=1+R(3),t=0;n>0&&t<60;t++){const tl=grow(1+R(3),R(W),2+R(H-4));if(tl.every(([a,b])=>open(a,b))){tl.forEach(([a,b])=>flowers.add(K(a,b)));n--}}
+    }
     const seen=new Set(["0,0"]),q=[[0,0]];
     while(q.length){
       const[x,y]=q.pop();
@@ -843,7 +850,7 @@ function genMap(o={}){
       }
     }
     if(seen.size===W*H-walls.size-deep.size-bars.size-camps.size-graves.size-lava.size-volc.size){ // every open tile connects: lava never cuts anyone off
-      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;SWAMP=swamp;MURKY=o.swamp>=3;GRAVES=graves;HAUNTED=!!o.graves;LAVA=lava;MAGMA=magma;VOLC=volc;WISP=wisps;VOLCANIC=!!o.lava;CHERRY=cherry;BARRELS=bars;XBAR=xbars;CAMPS=camps;WALLV=R(4);
+      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;SWAMP=swamp;MURKY=o.swamp>=3;GRAVES=graves;HAUNTED=!!o.graves;LAVA=lava;MAGMA=magma;VOLC=volc;WISP=wisps;FLOWERS=flowers;VOLCANIC=!!o.lava;CHERRY=cherry;BARRELS=bars;XBAR=xbars;CAMPS=camps;WALLV=R(4);
       groupForts(()=>R(2));
       return;
     }
@@ -950,6 +957,8 @@ const wispArt=(ox,oy,flip)=>svg(`<ellipse cx="20" cy="31" rx="15" ry="5" fill="#
   +`<circle cx="${20+ox}" cy="${16+oy}" r="16" fill="#9ff0d8" opacity=".14"/><circle cx="${20+ox}" cy="${16+oy}" r="11" fill="#aef6de" opacity=".2"/><circle cx="${20+ox}" cy="${16+oy}" r="7.500" fill="#c8fbea" opacity=".38"/><circle cx="${20+ox}" cy="${16+oy}" r="5.200" fill="#e6fff7"/><circle cx="${19+ox}" cy="${15+oy}" r="2.400" fill="#fff"/>`
   +`<g fill="#dcfff4"><circle cx="${11+ox}" cy="${9+oy}" r=".9" opacity=".8"/><circle cx="${29+ox}" cy="${11+oy}" r=".7" opacity=".7"/><circle cx="${27+ox}" cy="${24+oy}" r=".8" opacity=".6"/></g>`);
 const WISP_V=[wispArt(-2,0,false),wispArt(3,1,true)];
+// wildflower field: a scatter of daisies and bright blooms among grass tufts (three mixes)
+const FLOWER_V=[svg(`<rect width="40" height="40" fill="#7fae4e" opacity=".28"/><ellipse cx="20" cy="22" rx="17" ry="14" fill="#8fbe5a" opacity=".22"/><g stroke="#4f7a34" stroke-width=".9" stroke-linecap="round" fill="none"><path d="M18.5 26.4q1.0 -2.500 0 -4"/><path d="M33.6 23.4q-0.4 -2.500 0 -4"/><path d="M9.9 24.9q-0.9 -2.500 0 -4"/><path d="M24.2 33.6q0.7 -2.500 0 -4"/><path d="M7.0 18.4q-1.0 -2.500 0 -4"/><path d="M6.9 34.1q0.9 -2.500 0 -4"/><path d="M26.2 10.3q1.0 -2.500 0 -4"/><path d="M35.4 38.9q0.1 -2.500 0 -4"/><path d="M24.9 28.1q-0.5 -2.500 0 -4"/><path d="M9.0 9.5q-1.0 -2.500 0 -4"/><path d="M20.9 10.8q-0.8 -2.500 0 -4"/><path d="M5.0 23.4q-1.0 -2.500 0 -4"/><path d="M18.1 35.1q-0.6 -2.500 0 -4"/><path d="M18.6 17.6q-0.6 -2.500 0 -4"/><path d="M16.0 19.8l-1 -2.500M16.0 19.8l.4 -3M16.0 19.8l1.400 -2.200" stroke="#5f9a3a"/><path d="M36.7 8.0l-1 -2.500M36.7 8.0l.4 -3M36.7 8.0l1.400 -2.200" stroke="#5f9a3a"/><path d="M32.4 37.2l-1 -2.500M32.4 37.2l.4 -3M32.4 37.2l1.400 -2.200" stroke="#5f9a3a"/><path d="M23.2 37.9l-1 -2.500M23.2 37.9l.4 -3M23.2 37.9l1.400 -2.200" stroke="#5f9a3a"/><path d="M3.7 13.6l-1 -2.500M3.7 13.6l.4 -3M3.7 13.6l1.400 -2.200" stroke="#5f9a3a"/><path d="M36.9 26.1l-1 -2.500M36.9 26.1l.4 -3M36.9 26.1l1.400 -2.200" stroke="#5f9a3a"/><path d="M22.6 9.3l-1 -2.500M22.6 9.3l.4 -3M22.6 9.3l1.400 -2.200" stroke="#5f9a3a"/><path d="M8.0 21.2l-1 -2.500M8.0 21.2l.4 -3M8.0 21.2l1.400 -2.200" stroke="#5f9a3a"/><path d="M3.3 26.3l-1 -2.500M3.3 26.3l.4 -3M3.3 26.3l1.400 -2.200" stroke="#5f9a3a"/></g><circle cx="19.8" cy="22.4" r="1.34" fill="#f2c94c"/><circle cx="18.5" cy="23.7" r="1.34" fill="#f2c94c"/><circle cx="17.2" cy="22.4" r="1.34" fill="#f2c94c"/><circle cx="18.5" cy="21.1" r="1.34" fill="#f2c94c"/><circle cx="18.5" cy="22.4" r="0.69" fill="#fff3b0"/><ellipse cx="33.6" cy="17.4" rx="0.90" ry="2.01" fill="#fbfaf2" transform="rotate(0 33.6 19.4)"/><ellipse cx="33.6" cy="17.4" rx="0.90" ry="2.01" fill="#fbfaf2" transform="rotate(60 33.6 19.4)"/><ellipse cx="33.6" cy="17.4" rx="0.90" ry="2.01" fill="#fbfaf2" transform="rotate(120 33.6 19.4)"/><ellipse cx="33.6" cy="17.4" rx="0.90" ry="2.01" fill="#fbfaf2" transform="rotate(180 33.6 19.4)"/><ellipse cx="33.6" cy="17.4" rx="0.90" ry="2.01" fill="#fbfaf2" transform="rotate(240 33.6 19.4)"/><ellipse cx="33.6" cy="17.4" rx="0.90" ry="2.01" fill="#fbfaf2" transform="rotate(300 33.6 19.4)"/><circle cx="33.6" cy="19.4" r="1.01" fill="#e8b830"/><circle cx="11.1" cy="20.9" r="1.19" fill="#f2c94c"/><circle cx="9.9" cy="22.0" r="1.19" fill="#f2c94c"/><circle cx="8.8" cy="20.9" r="1.19" fill="#f2c94c"/><circle cx="9.9" cy="19.7" r="1.19" fill="#f2c94c"/><circle cx="9.9" cy="20.9" r="0.61" fill="#fff3b0"/><circle cx="25.1" cy="29.6" r="1.03" fill="#f2c94c"/><circle cx="24.2" cy="30.6" r="1.03" fill="#f2c94c"/><circle cx="23.2" cy="29.6" r="1.03" fill="#f2c94c"/><circle cx="24.2" cy="28.6" r="1.03" fill="#f2c94c"/><circle cx="24.2" cy="29.6" r="0.53" fill="#fff3b0"/><circle cx="8.1" cy="14.4" r="1.10" fill="#f2c94c"/><circle cx="7.0" cy="15.5" r="1.10" fill="#f2c94c"/><circle cx="5.9" cy="14.4" r="1.10" fill="#f2c94c"/><circle cx="7.0" cy="13.3" r="1.10" fill="#f2c94c"/><circle cx="7.0" cy="14.4" r="0.57" fill="#fff3b0"/><circle cx="8.1" cy="30.1" r="1.23" fill="#f2c94c"/><circle cx="6.9" cy="31.3" r="1.23" fill="#f2c94c"/><circle cx="5.7" cy="30.1" r="1.23" fill="#f2c94c"/><circle cx="6.9" cy="28.9" r="1.23" fill="#f2c94c"/><circle cx="6.9" cy="30.1" r="0.63" fill="#fff3b0"/><circle cx="27.4" cy="6.3" r="1.20" fill="#f2c94c"/><circle cx="26.2" cy="7.5" r="1.20" fill="#f2c94c"/><circle cx="25.0" cy="6.3" r="1.20" fill="#f2c94c"/><circle cx="26.2" cy="5.1" r="1.20" fill="#f2c94c"/><circle cx="26.2" cy="6.3" r="0.62" fill="#fff3b0"/><ellipse cx="35.4" cy="32.7" rx="1.00" ry="2.22" fill="#fbfaf2" transform="rotate(0 35.4 34.9)"/><ellipse cx="35.4" cy="32.7" rx="1.00" ry="2.22" fill="#fbfaf2" transform="rotate(60 35.4 34.9)"/><ellipse cx="35.4" cy="32.7" rx="1.00" ry="2.22" fill="#fbfaf2" transform="rotate(120 35.4 34.9)"/><ellipse cx="35.4" cy="32.7" rx="1.00" ry="2.22" fill="#fbfaf2" transform="rotate(180 35.4 34.9)"/><ellipse cx="35.4" cy="32.7" rx="1.00" ry="2.22" fill="#fbfaf2" transform="rotate(240 35.4 34.9)"/><ellipse cx="35.4" cy="32.7" rx="1.00" ry="2.22" fill="#fbfaf2" transform="rotate(300 35.4 34.9)"/><circle cx="35.4" cy="34.9" r="1.11" fill="#e8b830"/><circle cx="26.0" cy="24.1" r="1.15" fill="#f2c94c"/><circle cx="24.9" cy="25.2" r="1.15" fill="#f2c94c"/><circle cx="23.8" cy="24.1" r="1.15" fill="#f2c94c"/><circle cx="24.9" cy="23.0" r="1.15" fill="#f2c94c"/><circle cx="24.9" cy="24.1" r="0.59" fill="#fff3b0"/><circle cx="10.4" cy="5.5" r="1.37" fill="#f2c94c"/><circle cx="9.0" cy="6.8" r="1.37" fill="#f2c94c"/><circle cx="7.7" cy="5.5" r="1.37" fill="#f2c94c"/><circle cx="9.0" cy="4.1" r="1.37" fill="#f2c94c"/><circle cx="9.0" cy="5.5" r="0.71" fill="#fff3b0"/><ellipse cx="20.9" cy="4.7" rx="0.97" ry="2.17" fill="#fbfaf2" transform="rotate(0 20.9 6.8)"/><ellipse cx="20.9" cy="4.7" rx="0.97" ry="2.17" fill="#fbfaf2" transform="rotate(60 20.9 6.8)"/><ellipse cx="20.9" cy="4.7" rx="0.97" ry="2.17" fill="#fbfaf2" transform="rotate(120 20.9 6.8)"/><ellipse cx="20.9" cy="4.7" rx="0.97" ry="2.17" fill="#fbfaf2" transform="rotate(180 20.9 6.8)"/><ellipse cx="20.9" cy="4.7" rx="0.97" ry="2.17" fill="#fbfaf2" transform="rotate(240 20.9 6.8)"/><ellipse cx="20.9" cy="4.7" rx="0.97" ry="2.17" fill="#fbfaf2" transform="rotate(300 20.9 6.8)"/><circle cx="20.9" cy="6.8" r="1.08" fill="#e8b830"/><circle cx="6.3" cy="19.4" r="1.39" fill="#f2c94c"/><circle cx="5.0" cy="20.7" r="1.39" fill="#f2c94c"/><circle cx="3.6" cy="19.4" r="1.39" fill="#f2c94c"/><circle cx="5.0" cy="18.0" r="1.39" fill="#f2c94c"/><circle cx="5.0" cy="19.4" r="0.72" fill="#fff3b0"/><ellipse cx="18.1" cy="29.2" rx="0.88" ry="1.96" fill="#fbfaf2" transform="rotate(0 18.1 31.1)"/><ellipse cx="18.1" cy="29.2" rx="0.88" ry="1.96" fill="#fbfaf2" transform="rotate(60 18.1 31.1)"/><ellipse cx="18.1" cy="29.2" rx="0.88" ry="1.96" fill="#fbfaf2" transform="rotate(120 18.1 31.1)"/><ellipse cx="18.1" cy="29.2" rx="0.88" ry="1.96" fill="#fbfaf2" transform="rotate(180 18.1 31.1)"/><ellipse cx="18.1" cy="29.2" rx="0.88" ry="1.96" fill="#fbfaf2" transform="rotate(240 18.1 31.1)"/><ellipse cx="18.1" cy="29.2" rx="0.88" ry="1.96" fill="#fbfaf2" transform="rotate(300 18.1 31.1)"/><circle cx="18.1" cy="31.1" r="0.98" fill="#e8b830"/><ellipse cx="18.6" cy="11.7" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(0 18.6 13.6)"/><ellipse cx="18.6" cy="11.7" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(60 18.6 13.6)"/><ellipse cx="18.6" cy="11.7" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(120 18.6 13.6)"/><ellipse cx="18.6" cy="11.7" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(180 18.6 13.6)"/><ellipse cx="18.6" cy="11.7" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(240 18.6 13.6)"/><ellipse cx="18.6" cy="11.7" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(300 18.6 13.6)"/><circle cx="18.6" cy="13.6" r="0.97" fill="#e8b830"/>`),svg(`<rect width="40" height="40" fill="#7fae4e" opacity=".28"/><ellipse cx="20" cy="22" rx="17" ry="14" fill="#8fbe5a" opacity=".22"/><g stroke="#4f7a34" stroke-width=".9" stroke-linecap="round" fill="none"><path d="M33.6 38.4q0.2 -2.500 0 -4"/><path d="M32.6 11.6q1.0 -2.500 0 -4"/><path d="M22.9 22.1q-0.2 -2.500 0 -4"/><path d="M21.0 13.0q0.4 -2.500 0 -4"/><path d="M10.1 22.8q0.9 -2.500 0 -4"/><path d="M4.8 11.7q-0.3 -2.500 0 -4"/><path d="M20.4 31.8q-0.9 -2.500 0 -4"/><path d="M15.5 10.8q-0.6 -2.500 0 -4"/><path d="M29.1 27.3q-0.6 -2.500 0 -4"/><path d="M35.1 20.2q0.3 -2.500 0 -4"/><path d="M28.3 20.4q-0.2 -2.500 0 -4"/><path d="M5.2 17.5q-0.3 -2.500 0 -4"/><path d="M13.2 18.4q0.8 -2.500 0 -4"/><path d="M21.5 37.5q0.9 -2.500 0 -4"/><path d="M17.5 17.0l-1 -2.500M17.5 17.0l.4 -3M17.5 17.0l1.400 -2.200" stroke="#5f9a3a"/><path d="M32.3 26.3l-1 -2.500M32.3 26.3l.4 -3M32.3 26.3l1.400 -2.200" stroke="#5f9a3a"/><path d="M4.8 16.5l-1 -2.500M4.8 16.5l.4 -3M4.8 16.5l1.400 -2.200" stroke="#5f9a3a"/><path d="M3.9 12.2l-1 -2.500M3.9 12.2l.4 -3M3.9 12.2l1.400 -2.200" stroke="#5f9a3a"/><path d="M35.8 29.9l-1 -2.500M35.8 29.9l.4 -3M35.8 29.9l1.400 -2.200" stroke="#5f9a3a"/><path d="M17.6 13.0l-1 -2.500M17.6 13.0l.4 -3M17.6 13.0l1.400 -2.200" stroke="#5f9a3a"/><path d="M25.5 18.1l-1 -2.500M25.5 18.1l.4 -3M25.5 18.1l1.400 -2.200" stroke="#5f9a3a"/><path d="M26.4 11.4l-1 -2.500M26.4 11.4l.4 -3M26.4 11.4l1.400 -2.200" stroke="#5f9a3a"/><path d="M33.2 36.7l-1 -2.500M33.2 36.7l.4 -3M33.2 36.7l1.400 -2.200" stroke="#5f9a3a"/></g><circle cx="34.6" cy="34.4" r="1.07" fill="#e5554f"/><circle cx="33.6" cy="35.4" r="1.07" fill="#e5554f"/><circle cx="32.6" cy="34.4" r="1.07" fill="#e5554f"/><circle cx="33.6" cy="33.4" r="1.07" fill="#e5554f"/><circle cx="33.6" cy="34.4" r="0.55" fill="#fff3b0"/><circle cx="33.8" cy="7.6" r="1.30" fill="#e5554f"/><circle cx="32.6" cy="8.9" r="1.30" fill="#e5554f"/><circle cx="31.3" cy="7.6" r="1.30" fill="#e5554f"/><circle cx="32.6" cy="6.3" r="1.30" fill="#e5554f"/><circle cx="32.6" cy="7.6" r="0.67" fill="#fff3b0"/><ellipse cx="22.9" cy="15.9" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(0 22.9 18.1)"/><ellipse cx="22.9" cy="15.9" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(60 22.9 18.1)"/><ellipse cx="22.9" cy="15.9" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(120 22.9 18.1)"/><ellipse cx="22.9" cy="15.9" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(180 22.9 18.1)"/><ellipse cx="22.9" cy="15.9" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(240 22.9 18.1)"/><ellipse cx="22.9" cy="15.9" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(300 22.9 18.1)"/><circle cx="22.9" cy="18.1" r="1.12" fill="#e8b830"/><ellipse cx="21.0" cy="6.8" rx="1.01" ry="2.24" fill="#fbfaf2" transform="rotate(0 21.0 9.0)"/><ellipse cx="21.0" cy="6.8" rx="1.01" ry="2.24" fill="#fbfaf2" transform="rotate(60 21.0 9.0)"/><ellipse cx="21.0" cy="6.8" rx="1.01" ry="2.24" fill="#fbfaf2" transform="rotate(120 21.0 9.0)"/><ellipse cx="21.0" cy="6.8" rx="1.01" ry="2.24" fill="#fbfaf2" transform="rotate(180 21.0 9.0)"/><ellipse cx="21.0" cy="6.8" rx="1.01" ry="2.24" fill="#fbfaf2" transform="rotate(240 21.0 9.0)"/><ellipse cx="21.0" cy="6.8" rx="1.01" ry="2.24" fill="#fbfaf2" transform="rotate(300 21.0 9.0)"/><circle cx="21.0" cy="9.0" r="1.12" fill="#e8b830"/><circle cx="11.5" cy="18.8" r="1.36" fill="#e5554f"/><circle cx="10.1" cy="20.1" r="1.36" fill="#e5554f"/><circle cx="8.8" cy="18.8" r="1.36" fill="#e5554f"/><circle cx="10.1" cy="17.5" r="1.36" fill="#e5554f"/><circle cx="10.1" cy="18.8" r="0.70" fill="#fff3b0"/><circle cx="6.0" cy="7.7" r="1.24" fill="#e5554f"/><circle cx="4.8" cy="8.9" r="1.24" fill="#e5554f"/><circle cx="3.6" cy="7.7" r="1.24" fill="#e5554f"/><circle cx="4.8" cy="6.5" r="1.24" fill="#e5554f"/><circle cx="4.8" cy="7.7" r="0.64" fill="#fff3b0"/><circle cx="21.6" cy="27.8" r="1.22" fill="#f2c94c"/><circle cx="20.4" cy="28.9" r="1.22" fill="#f2c94c"/><circle cx="19.2" cy="27.8" r="1.22" fill="#f2c94c"/><circle cx="20.4" cy="26.6" r="1.22" fill="#f2c94c"/><circle cx="20.4" cy="27.8" r="0.63" fill="#fff3b0"/><circle cx="16.9" cy="6.8" r="1.46" fill="#e5554f"/><circle cx="15.5" cy="8.2" r="1.46" fill="#e5554f"/><circle cx="14.1" cy="6.8" r="1.46" fill="#e5554f"/><circle cx="15.5" cy="5.4" r="1.46" fill="#e5554f"/><circle cx="15.5" cy="6.8" r="0.76" fill="#fff3b0"/><circle cx="30.3" cy="23.3" r="1.27" fill="#e5554f"/><circle cx="29.1" cy="24.5" r="1.27" fill="#e5554f"/><circle cx="27.8" cy="23.3" r="1.27" fill="#e5554f"/><circle cx="29.1" cy="22.0" r="1.27" fill="#e5554f"/><circle cx="29.1" cy="23.3" r="0.65" fill="#fff3b0"/><ellipse cx="35.1" cy="14.4" rx="0.81" ry="1.80" fill="#fbfaf2" transform="rotate(0 35.1 16.2)"/><ellipse cx="35.1" cy="14.4" rx="0.81" ry="1.80" fill="#fbfaf2" transform="rotate(60 35.1 16.2)"/><ellipse cx="35.1" cy="14.4" rx="0.81" ry="1.80" fill="#fbfaf2" transform="rotate(120 35.1 16.2)"/><ellipse cx="35.1" cy="14.4" rx="0.81" ry="1.80" fill="#fbfaf2" transform="rotate(180 35.1 16.2)"/><ellipse cx="35.1" cy="14.4" rx="0.81" ry="1.80" fill="#fbfaf2" transform="rotate(240 35.1 16.2)"/><ellipse cx="35.1" cy="14.4" rx="0.81" ry="1.80" fill="#fbfaf2" transform="rotate(300 35.1 16.2)"/><circle cx="35.1" cy="16.2" r="0.90" fill="#e8b830"/><circle cx="29.5" cy="16.4" r="1.21" fill="#e5554f"/><circle cx="28.3" cy="17.6" r="1.21" fill="#e5554f"/><circle cx="27.1" cy="16.4" r="1.21" fill="#e5554f"/><circle cx="28.3" cy="15.3" r="1.21" fill="#e5554f"/><circle cx="28.3" cy="16.4" r="0.63" fill="#fff3b0"/><circle cx="6.6" cy="13.5" r="1.40" fill="#e5554f"/><circle cx="5.2" cy="14.9" r="1.40" fill="#e5554f"/><circle cx="3.9" cy="13.5" r="1.40" fill="#e5554f"/><circle cx="5.2" cy="12.2" r="1.40" fill="#e5554f"/><circle cx="5.2" cy="13.5" r="0.72" fill="#fff3b0"/><circle cx="14.2" cy="14.4" r="1.03" fill="#e5554f"/><circle cx="13.2" cy="15.4" r="1.03" fill="#e5554f"/><circle cx="12.2" cy="14.4" r="1.03" fill="#e5554f"/><circle cx="13.2" cy="13.5" r="1.03" fill="#e5554f"/><circle cx="13.2" cy="14.4" r="0.53" fill="#fff3b0"/><ellipse cx="21.5" cy="31.4" rx="0.92" ry="2.04" fill="#fbfaf2" transform="rotate(0 21.5 33.5)"/><ellipse cx="21.5" cy="31.4" rx="0.92" ry="2.04" fill="#fbfaf2" transform="rotate(60 21.5 33.5)"/><ellipse cx="21.5" cy="31.4" rx="0.92" ry="2.04" fill="#fbfaf2" transform="rotate(120 21.5 33.5)"/><ellipse cx="21.5" cy="31.4" rx="0.92" ry="2.04" fill="#fbfaf2" transform="rotate(180 21.5 33.5)"/><ellipse cx="21.5" cy="31.4" rx="0.92" ry="2.04" fill="#fbfaf2" transform="rotate(240 21.5 33.5)"/><ellipse cx="21.5" cy="31.4" rx="0.92" ry="2.04" fill="#fbfaf2" transform="rotate(300 21.5 33.5)"/><circle cx="21.5" cy="33.5" r="1.02" fill="#e8b830"/>`),svg(`<rect width="40" height="40" fill="#7fae4e" opacity=".28"/><ellipse cx="20" cy="22" rx="17" ry="14" fill="#8fbe5a" opacity=".22"/><g stroke="#4f7a34" stroke-width=".9" stroke-linecap="round" fill="none"><path d="M25.8 11.8q-0.9 -2.500 0 -4"/><path d="M23.8 35.1q0.3 -2.500 0 -4"/><path d="M30.7 25.0q-0.8 -2.500 0 -4"/><path d="M24.2 20.4q-0.9 -2.500 0 -4"/><path d="M25.9 27.6q-0.7 -2.500 0 -4"/><path d="M13.0 20.7q-0.4 -2.500 0 -4"/><path d="M34.7 39.1q0.1 -2.500 0 -4"/><path d="M6.4 17.9q-0.8 -2.500 0 -4"/><path d="M15.6 30.9q0.0 -2.500 0 -4"/><path d="M5.1 25.3q-0.9 -2.500 0 -4"/><path d="M33.1 11.1q-0.7 -2.500 0 -4"/><path d="M15.3 13.9q-0.6 -2.500 0 -4"/><path d="M31.5 31.6q0.6 -2.500 0 -4"/><path d="M10.8 28.2q0.4 -2.500 0 -4"/><path d="M12.5 26.0l-1 -2.500M12.5 26.0l.4 -3M12.5 26.0l1.400 -2.200" stroke="#5f9a3a"/><path d="M31.8 24.3l-1 -2.500M31.8 24.3l.4 -3M31.8 24.3l1.400 -2.200" stroke="#5f9a3a"/><path d="M30.5 29.6l-1 -2.500M30.5 29.6l.4 -3M30.5 29.6l1.400 -2.200" stroke="#5f9a3a"/><path d="M31.7 27.2l-1 -2.500M31.7 27.2l.4 -3M31.7 27.2l1.400 -2.200" stroke="#5f9a3a"/><path d="M35.3 25.4l-1 -2.500M35.3 25.4l.4 -3M35.3 25.4l1.400 -2.200" stroke="#5f9a3a"/><path d="M32.7 15.8l-1 -2.500M32.7 15.8l.4 -3M32.7 15.8l1.400 -2.200" stroke="#5f9a3a"/><path d="M35.8 14.6l-1 -2.500M35.8 14.6l.4 -3M35.8 14.6l1.400 -2.200" stroke="#5f9a3a"/><path d="M36.7 32.8l-1 -2.500M36.7 32.8l.4 -3M36.7 32.8l1.400 -2.200" stroke="#5f9a3a"/><path d="M15.1 14.2l-1 -2.500M15.1 14.2l.4 -3M15.1 14.2l1.400 -2.200" stroke="#5f9a3a"/></g><circle cx="26.8" cy="7.8" r="1.04" fill="#f0a0c0"/><circle cx="25.8" cy="8.9" r="1.04" fill="#f0a0c0"/><circle cx="24.8" cy="7.8" r="1.04" fill="#f0a0c0"/><circle cx="25.8" cy="6.8" r="1.04" fill="#f0a0c0"/><circle cx="25.8" cy="7.8" r="0.54" fill="#fff3b0"/><circle cx="25.0" cy="31.1" r="1.31" fill="#b07cd8"/><circle cx="23.8" cy="32.4" r="1.31" fill="#b07cd8"/><circle cx="22.5" cy="31.1" r="1.31" fill="#b07cd8"/><circle cx="23.8" cy="29.8" r="1.31" fill="#b07cd8"/><circle cx="23.8" cy="31.1" r="0.68" fill="#fff3b0"/><ellipse cx="30.7" cy="19.1" rx="0.84" ry="1.87" fill="#fbfaf2" transform="rotate(0 30.7 21.0)"/><ellipse cx="30.7" cy="19.1" rx="0.84" ry="1.87" fill="#fbfaf2" transform="rotate(60 30.7 21.0)"/><ellipse cx="30.7" cy="19.1" rx="0.84" ry="1.87" fill="#fbfaf2" transform="rotate(120 30.7 21.0)"/><ellipse cx="30.7" cy="19.1" rx="0.84" ry="1.87" fill="#fbfaf2" transform="rotate(180 30.7 21.0)"/><ellipse cx="30.7" cy="19.1" rx="0.84" ry="1.87" fill="#fbfaf2" transform="rotate(240 30.7 21.0)"/><ellipse cx="30.7" cy="19.1" rx="0.84" ry="1.87" fill="#fbfaf2" transform="rotate(300 30.7 21.0)"/><circle cx="30.7" cy="21.0" r="0.94" fill="#e8b830"/><ellipse cx="24.2" cy="14.8" rx="0.74" ry="1.65" fill="#fbfaf2" transform="rotate(0 24.2 16.4)"/><ellipse cx="24.2" cy="14.8" rx="0.74" ry="1.65" fill="#fbfaf2" transform="rotate(60 24.2 16.4)"/><ellipse cx="24.2" cy="14.8" rx="0.74" ry="1.65" fill="#fbfaf2" transform="rotate(120 24.2 16.4)"/><ellipse cx="24.2" cy="14.8" rx="0.74" ry="1.65" fill="#fbfaf2" transform="rotate(180 24.2 16.4)"/><ellipse cx="24.2" cy="14.8" rx="0.74" ry="1.65" fill="#fbfaf2" transform="rotate(240 24.2 16.4)"/><ellipse cx="24.2" cy="14.8" rx="0.74" ry="1.65" fill="#fbfaf2" transform="rotate(300 24.2 16.4)"/><circle cx="24.2" cy="16.4" r="0.83" fill="#e8b830"/><ellipse cx="25.9" cy="21.4" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(0 25.9 23.6)"/><ellipse cx="25.9" cy="21.4" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(60 25.9 23.6)"/><ellipse cx="25.9" cy="21.4" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(120 25.9 23.6)"/><ellipse cx="25.9" cy="21.4" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(180 25.9 23.6)"/><ellipse cx="25.9" cy="21.4" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(240 25.9 23.6)"/><ellipse cx="25.9" cy="21.4" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(300 25.9 23.6)"/><circle cx="25.9" cy="23.6" r="1.13" fill="#e8b830"/><circle cx="14.3" cy="16.7" r="1.28" fill="#7aa8e0"/><circle cx="13.0" cy="18.0" r="1.28" fill="#7aa8e0"/><circle cx="11.8" cy="16.7" r="1.28" fill="#7aa8e0"/><circle cx="13.0" cy="15.5" r="1.28" fill="#7aa8e0"/><circle cx="13.0" cy="16.7" r="0.66" fill="#fff3b0"/><circle cx="35.7" cy="35.1" r="1.06" fill="#b07cd8"/><circle cx="34.7" cy="36.1" r="1.06" fill="#b07cd8"/><circle cx="33.7" cy="35.1" r="1.06" fill="#b07cd8"/><circle cx="34.7" cy="34.1" r="1.06" fill="#b07cd8"/><circle cx="34.7" cy="35.1" r="0.55" fill="#fff3b0"/><ellipse cx="6.4" cy="12.0" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(0 6.4 13.9)"/><ellipse cx="6.4" cy="12.0" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(60 6.4 13.9)"/><ellipse cx="6.4" cy="12.0" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(120 6.4 13.9)"/><ellipse cx="6.4" cy="12.0" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(180 6.4 13.9)"/><ellipse cx="6.4" cy="12.0" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(240 6.4 13.9)"/><ellipse cx="6.4" cy="12.0" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(300 6.4 13.9)"/><circle cx="6.4" cy="13.9" r="0.97" fill="#e8b830"/><circle cx="16.7" cy="26.9" r="1.17" fill="#7aa8e0"/><circle cx="15.6" cy="28.0" r="1.17" fill="#7aa8e0"/><circle cx="14.4" cy="26.9" r="1.17" fill="#7aa8e0"/><circle cx="15.6" cy="25.7" r="1.17" fill="#7aa8e0"/><circle cx="15.6" cy="26.9" r="0.60" fill="#fff3b0"/><circle cx="6.2" cy="21.3" r="1.10" fill="#7aa8e0"/><circle cx="5.1" cy="22.4" r="1.10" fill="#7aa8e0"/><circle cx="4.0" cy="21.3" r="1.10" fill="#7aa8e0"/><circle cx="5.1" cy="20.3" r="1.10" fill="#7aa8e0"/><circle cx="5.1" cy="21.3" r="0.57" fill="#fff3b0"/><circle cx="34.2" cy="7.1" r="1.15" fill="#f0a0c0"/><circle cx="33.1" cy="8.2" r="1.15" fill="#f0a0c0"/><circle cx="32.0" cy="7.1" r="1.15" fill="#f0a0c0"/><circle cx="33.1" cy="6.0" r="1.15" fill="#f0a0c0"/><circle cx="33.1" cy="7.1" r="0.59" fill="#fff3b0"/><circle cx="16.2" cy="9.9" r="1.02" fill="#b07cd8"/><circle cx="15.3" cy="10.9" r="1.02" fill="#b07cd8"/><circle cx="14.3" cy="9.9" r="1.02" fill="#b07cd8"/><circle cx="15.3" cy="9.0" r="1.02" fill="#b07cd8"/><circle cx="15.3" cy="9.9" r="0.52" fill="#fff3b0"/><circle cx="32.9" cy="27.6" r="1.44" fill="#f0a0c0"/><circle cx="31.5" cy="29.0" r="1.44" fill="#f0a0c0"/><circle cx="30.1" cy="27.6" r="1.44" fill="#f0a0c0"/><circle cx="31.5" cy="26.2" r="1.44" fill="#f0a0c0"/><circle cx="31.5" cy="27.6" r="0.74" fill="#fff3b0"/><circle cx="12.1" cy="24.2" r="1.37" fill="#b07cd8"/><circle cx="10.8" cy="25.5" r="1.37" fill="#b07cd8"/><circle cx="9.5" cy="24.2" r="1.37" fill="#b07cd8"/><circle cx="10.8" cy="22.8" r="1.37" fill="#b07cd8"/><circle cx="10.8" cy="24.2" r="0.71" fill="#fff3b0"/>`)];
 function ashGround(x,y){ // ash-strewn rock in place of grass and flowers
   const v=tv(x,y,4),p=(n,k)=>tv(x,y,n,k);
   if(v===0)return svg([0,1,2].map(i=>`<ellipse cx="${6+p(28,i+5)}" cy="${8+p(26,i+9)}" rx="${1.6+p(3,i+2)*.6}" ry="${1.1+p(2,i+7)*.5}" fill="#4a423e"/>`).join(""));
@@ -1118,18 +1127,19 @@ const TERRAIN={
  xbarrel:{name:"Exploding Barrel",bg:"",art:()=>[XBAR_V],unlock:"xbarrels",desc:`Impassable. Breaking it deals ${XB_DMG} damage to every unit on the 8 tiles around it and sets off barrels in the blast. Each barrel has a 25% chance to be one.`},
  lava:{name:"Lava",bg:"background:#e2531a",art:()=>LAVA_V,unlock:"volcanic",desc:"Impassable. Units can't enter or cross it, but attacks can pass over it. Pools and flows in rivers, but never fully cuts off any part of the map."},
  magma:{name:"Magma Crust",bg:"background:#3b2722",art:()=>MAGMA_V,unlock:"volcanic",desc:"No movement penalty, but a unit that ends its turn on it takes 1 damage, ignoring armor."},
+ flowers:{name:"Wildflower Field",bg:"",art:()=>FLOWER_V,unlock:"flowers",desc:"A patch of open ground in bloom. No special effect: it's just pretty. Found in clumps on forest, plains and wilds maps."},
  wisp:{name:"Will-o'-the-Wisp",bg:"background:#3f3e2c",art:()=>WISP_V,unlock:"wisp",desc:"A ghostly bog light found in swamps, and now and then in deep forest. Units can pass through it. At the end of each round it slows one random unit on it or the 8 tiles around it, friend or foe: that unit can move only 1 tile on its next turn."},
  volcano:{name:"Volcano",bg:"",art:()=>VOLC_V,unlock:"volcanic",desc:"Impassable. 1 to 3 per map. At the end of each turn it has a small chance to erupt, dealing 2 damage (ignoring armor) to any unit on 3 random tiles around it."},
  wall:{name:"Wall",bg:"background:var(--wall)",art:()=>[0,1,2,3].map(v=>wallArt(v,0)),desc:"Impassable. Units can't enter or cross it, but attacks can pass over it."},
  fort:{name:"Fortress",bg:FR,art:()=>[fortArt(0,0,true),fortArt(0,1,true)],desc:"Uncommon. A unit standing on one gets +1 armor."}};
-const terrainKey=k=>CAMPS.has(k)?"campsite":GRAVES.has(k)?"grave":VOLC.has(k)?"volcano":WISP.has(k)?"wisp":LAVA.has(k)?"lava":MAGMA.has(k)?"magma":BARRELS.has(k)?(XBAR.has(k)?"xbarrel":"barrels"):WALLS.has(k)?"wall":DEEP.has(k)?"deep":SHALLOW.has(k)?"shallow":SWAMP.has(k)?"swamp":CHERRY.has(k)?"cherry":FOREST.has(k)?"forest":FORT.has(k)?"fort":"ground";
+const terrainKey=k=>CAMPS.has(k)?"campsite":GRAVES.has(k)?"grave":VOLC.has(k)?"volcano":WISP.has(k)?"wisp":FLOWERS.has(k)?"flowers":LAVA.has(k)?"lava":MAGMA.has(k)?"magma":BARRELS.has(k)?(XBAR.has(k)?"xbarrel":"barrels"):WALLS.has(k)?"wall":DEEP.has(k)?"deep":SHALLOW.has(k)?"shallow":SWAMP.has(k)?"swamp":CHERRY.has(k)?"cherry":FOREST.has(k)?"forest":FORT.has(k)?"fort":"ground";
 function tileArt(x,y){ // the art for one board tile, picking a stable variant per tile
   const k=x+","+y;
   switch(terrainKey(k)){
     case "campsite":return CAMP_V;case "grave":return GRAVE_V[tv(x,y,4,23)];case "xbarrel":return XBAR_V;case "barrels":return BAR_V[tv(x,y,2,19)];case "wall":return wallArt(WALLV,wallMask(x,y));
     case "deep":return DP_V[tv(x,y,3,13)];case "shallow":return SH_V[tv(x,y,3,15)];case "swamp":return SW_V[tv(x,y,4,21)];case "forest":return HAUNTED||VOLCANIC?DEAD_V[tv(x,y,3,9)]:FOREST_V[tv(x,y,4,9)];
     case "cherry":return cherryArt(tv(x,y,3,43),joinMask(x,y,kk=>CHERRY.has(kk)),x,y);
-    case "volcano":return VOLC_V[tv(x,y,2,25)];case "wisp":return WISP_V[tv(x,y,2,47)];case "lava":return LAVA_V[tv(x,y,3,27)];case "magma":return MAGMA_V[tv(x,y,3,29)];
+    case "volcano":return VOLC_V[tv(x,y,2,25)];case "wisp":return WISP_V[tv(x,y,2,47)];case "flowers":return FLOWER_V[tv(x,y,3,53)];case "lava":return LAVA_V[tv(x,y,3,27)];case "magma":return MAGMA_V[tv(x,y,3,29)];
     case "fort":return fortArt(fortMask(x,y),FORTV.get(k)||0,FORTK.has(k));default:return VOLCANIC?ashGround(x,y):ground(x,y);
   }
 }
@@ -1188,8 +1198,8 @@ const pushable=(a,b)=>a.t==="K"&&b!==a&&!muled(b)&&b.t!=="R"&&b.t!=="C"&&d(a,b)=
 function pushDest(a,b){const dx=b.x-a.x,dy=b.y-a.y;let x=b.x,y=b.y;for(let i=0;i<2;i++){if(!open(x+dx,y+dy))break;x+=dx;y+=dy}return[x,y]}
 const later=(fn,ms)=>setTimeout(function w(){if(paused)setTimeout(w,200);else fn()},ms);
 function rest(team){ // Field Rest: idle units recover 2 HP
-  const idle=units.filter(u=>u.team===team&&!u.moved&&!u.acted&&u.hp<TYPES[u.t].hp);
-  idle.forEach(u=>{const n=Math.min(2,TYPES[u.t].hp-u.hp);u.hp+=n;floatText(u.x,u.y,"+"+n,"heal")});
+  const idle=units.filter(u=>u.team===team&&!u.moved&&!u.acted&&u.hp<maxHp(u));
+  idle.forEach(u=>{const n=Math.min(2,maxHp(u)-u.hp);u.hp+=n;floatText(u.x,u.y,"+"+n,"heal")});
   return idle.length;
 }
 const say=s=>$("status").textContent=s;
@@ -1215,7 +1225,7 @@ function reach(u){ // entering shallow water costs 2; leaving a forest costs 1 e
 }
 const canBreak=(a,x,y)=>{const dd=d(a,{x,y}),T=TYPES[a.t];return dd>=T.mn&&dd<=rgOf(a)};
 const breakables=u=>[...BARRELS].filter(k=>{const[x,y]=pk(k);return canBreak(u,x,y)});
-const healable=(a,b)=>!!TYPES[a.t].heal&&b!==a&&b.team===a.team&&b.hp<TYPES[b.t].hp&&d(a,b)<=TYPES[a.t].rg&&d(a,b)>=TYPES[a.t].mn;
+const healable=(a,b)=>!!TYPES[a.t].heal&&b!==a&&b.team===a.team&&b.hp<maxHp(b)&&d(a,b)<=TYPES[a.t].rg&&d(a,b)>=TYPES[a.t].mn;
 const healTargets=u=>units.filter(b=>healable(u,b));
 const musterSpots=u=>DIRS.map(([dx,dy])=>[u.x+dx,u.y+dy]).filter(([x,y])=>open(x,y));
 const canMuster=u=>u.t==="T"&&!u.acted&&(u.musters||0)<MUSTER_USES&&units.filter(m=>m.cap===u).length<MUSTER_ALIVE&&musterSpots(u).length>0;
@@ -1283,7 +1293,7 @@ function render(){
         if(dist>6)uc+=" tpin";
         else{uc+=" mv";stepped=1;mvs=`;--dx:${ddx*122}%;--dy:${ddy*122}%;--dur:${.1+.06*dist}s`}
       }
-      const c=COLORS[col[u.team]],hr=u.hp/TYPES[u.t].hp,bg=u.auto?`color-mix(in srgb,${c[1]} 55%,#fff)`:c[1]; // units that act on their own wear a lighter shade
+      const c=COLORS[col[u.team]],hr=u.hp/maxHp(u),bg=u.auto?`color-mix(in srgb,${c[1]} 55%,#fff)`:c[1]; // units that act on their own wear a lighter shade
       html+=`<div class="${uc}" data-t="${u.t}" data-team="${u.team}" style="background:${bg};--tc:${bg};--ic:${c[2]}${mvs}">${ICON[u.t]}</div>`
         +`<div class="hp"><i style="width:${100*hr}%;background-color:${hr>.5?"#5fd068":hr>.25?"#f0c33a":"#ee5a45"}"></i></div>`;
     }
@@ -1319,7 +1329,7 @@ function renderInfo(){
   const el=$("info");
   if(info&&!units.includes(info))info=null;
   if(!info){el.className="pb empty";el.style.borderLeft="";el.innerHTML='<div class="lbl">Unit</div><div class="ph">Tap a unit to see its details.</div>';return}
-  const u=info,T=TYPES[u.t],c=COLORS[col[u.team]],fo=WOODS(u.x+","+u.y),r=u.hp/T.hp,notes=[];
+  const u=info,T=TYPES[u.t],c=COLORS[col[u.team]],fo=WOODS(u.x+","+u.y),r=u.hp/maxHp(u),notes=[],hero=camp.battle&&!chal&&u.team==="y"&&u.ci!=null&&camp.names;
   if(u.team==="w")notes.push("Wild: wanders at random and attacks any unit in range.");
   if(ABILITY[u.t])notes.push(ABILITY[u.t]);
   if(u.t==="T")notes.push(`Musters left this battle: ${MUSTER_USES-(u.musters||0)}.`);
@@ -1327,6 +1337,7 @@ function renderInfo(){
   if(u.slow)notes.push("Slowed: movement reduced to 1 until the end of its next turn.");
   if(blessed(u))notes.push("Blessed: +5% evasion until the end of your next turn.");
   if(rallied(u))notes.push("Rallied: +5% evasion until the end of your next turn.");
+  if(u.wounds)notes.push(`Wounded ${u.wounds===1?"once":u.wounds+" times"}: max HP ${maxHp(u)} instead of ${T.hp}.`);
   if(muled(u))notes.push("Stubborn as a Mule: +2 armor and can't be pushed or slowed until the end of your next turn.");
   if(u.team==="y"&&SMOKE.has(u.x+","+u.y))notes.push("In smoke: +20% evasion until your next turn.");
   if(calm(u))notes.push("Moment of Calm: in a Cherry Grove, so it can't be slowed, and it neither retaliates nor suffers retaliation.");
@@ -1341,7 +1352,7 @@ function renderInfo(){
   const arm=(T.ar||0)+(u.t==="A"&&mods[u.team]==="PAD"?1:0)+(u.t==="K"&&rel(u,"shield")?1:0)+(u.t==="C"&&rel(u,"bard")?1:0);
   const stats=[["Move",mvOf(u)],["Range",rangeTxt({...T,rg:rgOf(u)})],["Damage",T.dmg+(u.t==="A"&&rel(u,"whet")?1:0)+(inspired(u)?"+1":"")],...(T.heal?[["Heal",healOf(u)]]:[]),...(arm?[["Armor",arm]]:[]),...(T.pi?[["Pierce",T.pi]]:[]),...(T.ev?[["Evasion",pct(T.ev)]]:[])].map(([k,v])=>`<span class="stat">${k} <b>${v}</b></span>`).join("");
   el.className="pb";el.style.borderLeft=`8px solid ${c[1]}`;
-  el.innerHTML=`<div class="lbl">Unit</div><div class="row"><div class="pv">${disc(u.t,c)}</div><div class="ib"><div class="nm"><strong>${cap(NAME[u.t])}</strong><span>${u.team==="y"?"Your unit":u.team==="w"?"Wild":"Enemy"}</span></div><div class="hprow"><span>HP</span><b>${u.hp} / ${T.hp}</b></div><div class="hpb"><i style="width:${100*r}%;background:${r>.5?"#4caf50":r>.25?"#e0b21c":"#d64b3a"}"></i></div><div class="stats">${stats}</div>${notes.map(n=>`<small>${n}</small>`).join("")}</div></div>`;
+  el.innerHTML=`<div class="lbl">Unit</div><div class="row"><div class="pv">${disc(u.t,c)}</div><div class="ib"><div class="nm"><strong>${hero?heroName(u.ci):cap(NAME[u.t])}</strong><span>${hero?cap(NAME[u.t]):u.team==="y"?"Your unit":u.team==="w"?"Wild":"Enemy"}</span></div><div class="hprow"><span>HP</span><b>${u.hp} / ${maxHp(u)}</b></div><div class="hpb"><i style="width:${100*r}%;background:${r>.5?"#4caf50":r>.25?"#e0b21c":"#d64b3a"}"></i></div><div class="stats">${stats}</div>${notes.map(n=>`<small>${n}</small>`).join("")}</div></div>`;
 }
 function floatText(x,y,t,miss){
   const p=document.createElement("div");p.className="pop"+(miss===true?" miss":miss==="heal"?" heal":miss==="slow"?" slow":miss==="thanks"?" thanks":miss==="bless"?" bless":miss==="rally"?" rally":"");p.textContent=t;
@@ -1379,7 +1390,7 @@ function buildMenu(){
     opt(`<b>${!ok?"Can't Push":n?`Push ${n} Tile${n>1?"s":""}`:"Push (Blocked)"}</b><small>${!ok?"Too heavy":t.team==="y"?"Reposition ally":"Instead of attacking"}</small>`,()=>{choice=null;doPush(sel,t)},!ok||!n);
   }
   if(sel.t==="E"&&t.team!==sel.team&&(cm||targets(sel).includes(t)))opt(`<b>${cm?"Move &amp; Slow":"Slow"}</b><small>${calm(t)?"Calm: can't be slowed":t.slow?"Already slowed":"Move 1 next turn"}</small>`,go(a=>doSlow(a,t)),!!t.slow||calm(t));
-  if(!cm&&healable(sel,t)){const hn=Math.min(healOf(sel),TYPES[t.t].hp-t.hp);opt(`<b>Heal</b><small>+${hn} HP</small>`,()=>{choice=null;doHeal(sel,t)})}
+  if(!cm&&healable(sel,t)){const hn=Math.min(healOf(sel),maxHp(t)-t.hp);opt(`<b>Heal</b><small>+${hn} HP</small>`,()=>{choice=null;doHeal(sel,t)})}
   if(!cm&&canBless(sel,t))opt(`<b>Bless</b><small>${blessed(t)?"Already blessed":"+5% evasion until your next turn ends"}</small>`,()=>{choice=null;doBless(sel,t)},blessed(t));
   opt("<b>Cancel</b>",()=>{choice=null;say("Move, attack, or pick another unit.");render()});
   // keep the push-preview arrow visible: sit beside the target for vertical pushes, above or below it for horizontal ones
@@ -1527,7 +1538,7 @@ function doBreak(a,t){
   }
   say(msg);if(!checkEnd())render();
 }
-function applyHeal(a,b){const n=Math.min(healOf(a),TYPES[b.t].hp-b.hp);b.hp+=n;sfx("heal");floatText(b.x,b.y,"+"+n,"heal");return n}
+function applyHeal(a,b){const n=Math.min(healOf(a),maxHp(b)-b.hp);b.hp+=n;sfx("heal");floatText(b.x,b.y,"+"+n,"heal");return n}
 function doSlow(a,u){
   if(calm(u))return; // Moment of Calm
   a.acted=1;a.moved=1;sel=null;insp=null;locked=true;lastMove=null;
@@ -1689,11 +1700,12 @@ if(document.addEventListener){
   document.addEventListener("visibilitychange",()=>document.hidden?stopMusic():startMusic());
 }
 // Items from Marcus's wagon: using one takes the unit's action
-const itemPrompt=id=>id==="mule"?"Tap this unit to drink the potion.":id==="feather"?"Choose an ally within 2 tiles to swap places with.":id==="draught"?"Choose this unit or a wounded ally beside it.":id==="smoke"?"Choose a tile within 3 to throw the smoke bomb at.":"Choose an enemy within 3 to throw the fire flask at.";
+const itemPrompt=id=>id==="medkit"?"Choose this unit or a wounded ally beside it to mend.":id==="mule"?"Tap this unit to drink the potion.":id==="feather"?"Choose an ally within 2 tiles to swap places with.":id==="draught"?"Choose this unit or a wounded ally beside it.":id==="smoke"?"Choose a tile within 3 to throw the smoke bomb at.":"Choose an enemy within 3 to throw the fire flask at.";
 function itemTargets(u,id){
   const out=new Set();
-  if(id==="draught")units.forEach(b=>{if(b.team==="y"&&d(u,b)<=1&&b.hp<TYPES[b.t].hp)out.add(b.x+","+b.y)});
+  if(id==="draught")units.forEach(b=>{if(b.team==="y"&&d(u,b)<=1&&b.hp<maxHp(b))out.add(b.x+","+b.y)});
   else if(id==="mule")out.add(u.x+","+u.y);
+  else if(id==="medkit")units.forEach(b=>{if(b.team==="y"&&d(u,b)<=1&&b.wounds)out.add(b.x+","+b.y)});
   else if(id==="feather")units.forEach(b=>{if(b.team==="y"&&b!==u&&d(u,b)<=2)out.add(b.x+","+b.y)});
   else if(id==="fire")units.forEach(b=>{if(b.team!=="y"&&d(u,b)<=3)out.add(b.x+","+b.y)});
   else for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(Math.abs(x-u.x)+Math.abs(y-u.y)<=3)out.add(x+","+y);
@@ -1714,8 +1726,14 @@ function useItem(a,id,x,y,rub){
     say(`A gust of wind! Your ${NAME[a.t]} and ${NAME[b.t]} swapped places.`);return render();
   }
   if(!rub)a.acted=a.moved=1;sel=rub?a:null;mode=null;choice=null;lastMove=null;insp=null;
+  if(id==="medkit"){ // mends campaign wounds: max HP comes back now and stays back
+    const b=at(x,y),n=Math.min(b.wounds,a.t==="P"&&Math.random()<MEDKIT_DOUBLE?2:1);b.wounds-=n;if(!b.wounds)delete b.wounds;
+    if(b.ci!=null&&camp.wounds)camp.wounds[b.ci]=Math.max(0,woundsOf(b.ci)-n);saveCamp();
+    sfx("heal");floatText(b.x,b.y,n>1?"2 wounds mended":"Mended","heal");info=b;
+    say(`Your ${NAME[a.t]} used the Advanced Med Kit: ${n>1?"2 wounds":"1 wound"} mended${b===a?"":" for "+(camp.names&&b.ci!=null?camp.names[b.ci]:"your "+NAME[b.t])}. Max HP is now ${maxHp(b)}.`);return render();
+  }
   if(id==="mule"){a.muleUntil=pturn+1;a.slow=0;sfx("bray");floatText(a.x,a.y,"Stubborn!","slow");info=a;say(`Your ${NAME[a.t]} drank the Mule Hair Potion: +2 armor, and it can't be pushed or slowed until the end of your next turn.`);return render()}
-  if(id==="draught"){const b=at(x,y),n=Math.min(DRAUGHT_HEAL,TYPES[b.t].hp-b.hp);b.hp+=n;sfx("heal");floatText(b.x,b.y,"+"+n,"heal");info=b;say(`Your ${NAME[a.t]} used a Healing Draught: +${n} HP${b===a?"":" for your "+NAME[b.t]}.`);return render()}
+  if(id==="draught"){const b=at(x,y),n=Math.min(DRAUGHT_HEAL,maxHp(b)-b.hp);b.hp+=n;sfx("heal");floatText(b.x,b.y,"+"+n,"heal");info=b;say(`Your ${NAME[a.t]} used a Healing Draught: +${n} HP${b===a?"":" for your "+NAME[b.t]}.`);return render()}
   if(id==="smoke"){
     blastOf(x+","+y).concat([[x,y]]).forEach(([cx,cy])=>SMOKE.add(cx+","+cy));sfx("smoke");
     say("Smoke billows across the field: your units in it get +20% evasion until your next turn.");return render();
@@ -1741,7 +1759,7 @@ function hurt(u,n){
   if(u.hp<=0&&dandelionSaves(u,before)){u.hp=1;later(()=>{if(units.includes(u)){floatText(u.x,u.y,"Resisted","heal");sfx("bless")}},250)}
   if(rel(u,"chicken")&&!relicUsed.chicken&&u.t!=="G")spawnChicken(u);
   else if(u.hp<=0&&rel(u,"mug")&&!relicUsed.mug){relicUsed.mug=1;u.hp=1;thanks(u)}
-  else if(u.hp>0&&u.hp<=TYPES[u.t].hp/2&&rel(u,"cap")&&!relicUsed.cap){relicUsed.cap=1;const h=Math.min(2,TYPES[u.t].hp-u.hp);u.hp+=h;later(()=>floatText(u.x,u.y,"+"+h,"heal"),250);thanks(u)}
+  else if(u.hp>0&&u.hp<=maxHp(u)/2&&rel(u,"cap")&&!relicUsed.cap){relicUsed.cap=1;const h=Math.min(2,maxHp(u)-u.hp);u.hp+=h;later(()=>floatText(u.x,u.y,"+"+h,"heal"),250);thanks(u)}
   if(u.hp>0){sfx("hit");return false}
   sfx("kill");units=units.filter(v=>v!==u);return true;
 }
@@ -1882,6 +1900,40 @@ function wispsAct(){
   sfx("wisp");
   return hit.length===1?`A will-o'-the-wisp drifted over ${who(hit[0])} and slowed it.`:`Will-o'-the-wisps slowed ${hit.length} units.`;
 }
+/* ---------- Wounds and honors: each campaign soldier has a name, a record and scars ---------- */
+// a unit that falls in a won campaign battle comes back wounded: 1 less max HP per wound, for the rest of the campaign.
+// Healing spots mend one wound per unit; Herbert's fire mends them all.
+const WOUND_MAX=3,CROSS_SPARE=.15,MEDKIT_DOUBLE=.25,maxHp=u=>TYPES[u.t].hp-(u.wounds||0);
+const woundsOf=i=>(camp.wounds&&camp.wounds[i])||0,campMax=i=>TYPES[armyTypes()[i]].hp-woundsOf(i);
+const HERO_NAMES=["Aldric","Bertram","Cedric","Dunstan","Edmund","Fulk","Godfrey","Hugh","Ivo","Jocelyn","Kenric","Leofric","Maud","Nesta","Osric","Percival","Quentin","Roswitha","Sibyl","Tristan","Ulric","Wymond","Agnes","Beatrix","Ysolde","Gareth","Hawise","Odo","Rowena","Thurstan","Elfric","Mabel","Warin","Isolde","Baldwin","Edith","Ranulf","Alys","Gilbert","Petronella"];
+// honors are earned once each; a soldier goes by the latest one ("Aldric the Bold")
+const HONORS=[
+ {id:"bold",title:"the Bold",why:"defeated 3 enemies",test:r=>r.kills>=3},
+ {id:"unbroken",title:"the Unbroken",why:"won a battle with 1 HP left",test:r=>r.lastStand},
+ {id:"stubborn",title:"Thrice-Fallen",why:"fell three times and kept marching",test:r=>r.falls>=3},
+ {id:"conqueror",title:"the Conqueror",why:"stood to the end of a boss battle",test:r=>r.boss},
+ {id:"dreaded",title:"the Dreaded",why:"defeated 8 enemies",test:r=>r.kills>=8},
+ {id:"legend",title:"the Legend",why:"defeated 15 enemies",test:r=>r.kills>=15}];
+const heroTitle=i=>{const h=(camp.honors&&camp.honors[i])||[];return h.length?HONORS.find(o=>o.id===h[h.length-1]).title:""};
+const heroName=i=>camp.names&&camp.names[i]?camp.names[i]+(heroTitle(i)?" "+heroTitle(i):""):cap(NAME[armyTypes()[i]]);
+function rollNames(){const pool=HERO_NAMES.slice().sort(()=>Math.random()-.5);camp.names=armyTypes().map((t,i)=>pool[i]);camp.wounds=[];camp.honors=[];camp.falls=[]}
+// after a won campaign battle: wound the fallen, record falls, and award honors; the news shows on the world map
+function campaignRecord(nm){
+  if(!camp.names)rollNames();
+  const news=[];
+  armyTypes().forEach((t,i)=>{
+    const u=units.find(v=>v.team==="y"&&v.ci===i),nmI=camp.names[i];
+    if(!u){
+      (camp.falls[i]=camp.falls[i]||[]).push(nm.name);
+      if(camp.relics.includes("cross")&&Math.random()<CROSS_SPARE)news.push(`${nmI} the ${cap(NAME[t])} fell, but the Sacred Cross spared them a wound.`);
+      else if(woundsOf(i)<WOUND_MAX){camp.wounds[i]=woundsOf(i)+1;news.push(`${nmI} the ${cap(NAME[t])} fell and was wounded (max HP ${campMax(i)}).`)}
+      else news.push(`${nmI} the ${cap(NAME[t])} fell again, but can't be wounded any further.`);
+    }
+    const rec={kills:camp.kills[i]||0,falls:(camp.falls[i]||[]).length,lastStand:!!u&&u.hp===1,boss:!!u&&nm.type==="boss"},got=camp.honors[i]=camp.honors[i]||[];
+    HONORS.forEach(o=>{if(!got.includes(o.id)&&o.test(rec)){got.push(o.id);news.push(`${nmI} ${o.why} and is now ${nmI} ${o.title}!`)}});
+  });
+  camp.news=news.join(" ")||null;
+}
 const CAMP_HEAL=.2; // share of max HP every surviving unit recovers after a campaign win
 const campHeal=t=>Math.ceil(TYPES[t].hp*CAMP_HEAL);
 const HEAL_SPOT=.7,HEAL_TEXT="A safe resting place. Visiting it restores 70% of each unit's health, once.",HERB_SPOT=.2; // HERB_SPOT: chance Herbert camps at a healing spot (once he's unlocked)
@@ -1892,7 +1944,8 @@ function showEnd(win){
   endMode=nm?(win?"cwin":"close"):"quick";
   if(nm&&win){ // record campaign progress right away
     if(!camp.cleared.includes(nm.id))camp.cleared.push(nm.id);
-    camp.hp=armyTypes().map((t,i)=>{const u=units.find(v=>v.team==="y"&&v.ci===i);return u?Math.min(TYPES[t].hp,u.hp+campHeal(t)+(camp.relics.includes("rations")?1:0)):Math.min(TYPES[t].hp,camp.relics.includes("bandages")?3:1)}); // survivors patch up; fallen units return at 1 HP (3 with Spare Bandages)
+    campaignRecord(nm);
+    camp.hp=armyTypes().map((t,i)=>{const u=units.find(v=>v.team==="y"&&v.ci===i);return u?Math.min(campMax(i),u.hp+campHeal(t)+(camp.relics.includes("rations")?1:0)):Math.min(campMax(i),camp.relics.includes("bandages")?3:1)}); // survivors patch up; fallen units return at 1 HP (3 with Spare Bandages)
     findRelics(nm);
     const earned=goldFor(nm);camp.gold+=earned;camp.lastGold=earned; // spoils of war
     camp.offer=nm.type==="boss"?null:relicOffer(); // pick a relic back on the map
@@ -1976,7 +2029,7 @@ function enemyTurn(note=""){
   const g=gid;
   // works out where u would like to stand: its best tile overall, and its best tile that isn't where it is now
   function planFor(u,pl,D,xv){
-    const hurt=u.t==="P"?units.filter(p=>p.team==="f"&&p!==u&&p.hp<TYPES[p.t].hp):[];
+    const hurt=u.t==="P"?units.filter(p=>p.team==="f"&&p!==u&&p.hp<maxHp(p)):[];
     // a healer heads for wounded allies while keeping out of danger; otherwise it acts like any other unit
     const sc=hurt.length?(x,y)=>{const q={x,y},th=pl.reduce((n,p)=>n+(d(q,p)<=mvOf(p)+rgOf(p)?dmgTo(p,{...u,x,y}):0),0);return th*.5+(hurt.some(p=>d(q,p)<=TYPES.P.rg)?-10:Math.min(...hurt.map(p=>d(q,p))))}:u.t==="N"?(x,y)=>evalTile(u,x,y,D,pl,xv)-3*units.filter(a=>a.team==="f"&&a!==u&&Math.abs(a.x-x)+Math.abs(a.y-y)<=BANNER_RANGE).length // the bearer stays close to its allies
       :(x,y)=>evalTile(u,x,y,D,pl,xv);
@@ -2000,7 +2053,7 @@ function enemyTurn(note=""){
     const fin=()=>{u.acted=1;if(!checkEnd())render();later(step,500)};
     const pri=p=>{const c=combat(u,p),kill=c.dmg>=p.hp,r=kill?null:retaliation(u,p);return (kill?100*c.hit:0)+(VAL[p.t]||0)-p.hp*.5-(r?r.hit*r.dmg*2:0)}; // likely kills first, then soft, valuable targets that won't hit back hard
     const ts=targets(u).filter(p=>{const r=dmgTo(u,p)<p.hp&&retaliation(u,p);return !(r&&r.dmg>=u.hp&&r.hit>.5)}).sort((a,b)=>pri(b)-pri(a)); // never trade itself for nothing
-    const hs=healTargets(u).sort((a,b)=>a.hp/TYPES[a.t].hp-b.hp/TYPES[b.t].hp);
+    const hs=healTargets(u).sort((a,b)=>a.hp/maxHp(a)-b.hp/maxHp(b));
     if(hs.length&&(hs[0].hp<=TYPES[hs[0].t].hp-2||!ts.length)){u.acted=1;applyHeal(u,hs[0]);say("Enemy "+NAME[u.t]+" healed an ally.");render();return later(step,600)}
     if(canMuster(u)&&!ts.some(p=>dmgTo(u,p)>=p.hp)){const n=muster(u);say(`Enemy captain mustered ${n} militia.`);render();return later(step,600)} // muster unless a kill is on offer
     // set off an exploding barrel when it beats the best plain attack
@@ -2159,11 +2212,11 @@ function genWorld(){
 const BIOME_NAME={forest:"Forest",plain:"Plains",fort:"Stronghold",wild:"Wilds",wetlands:"Wetlands",swamp:"Murky Swamp",graveyard:"Haunted Graveyard",volcanic:"Molten Wastes",boss:"Enemy Stronghold"};
 // a Quick Battle map has no biome of its own, so name it from what was generated
 const guessBiome=()=>LAVA.size||VOLC.size?"volcanic":GRAVES.size?"graveyard":SWAMP.size>=10?"swamp":DEEP.size+SHALLOW.size>=20?"wetlands":FORT.size?"fort":units.some(u=>u.team==="w")?"wild":FOREST.size>=16?"forest":"plain";
-const BIOME={mixed:{},forest:{forest:9},plain:{forest:2},fort:{fort:1},wild:{wild:1},boss:{fort:1,boss:1},wetlands:{water:1,forest:3,swamp:1},swamp:{swamp:3,pond:1,forest:6},graveyard:{graves:1,forest:5},volcanic:{lava:1,forest:3}};
+const BIOME={mixed:{},forest:{forest:9,flowers:1},plain:{forest:2,flowers:1},fort:{fort:1},wild:{wild:1,flowers:1},boss:{fort:1,boss:1},wetlands:{water:1,forest:3,swamp:1},swamp:{swamp:3,pond:1,forest:6},graveyard:{graves:1,forest:5},volcanic:{lava:1,forest:3}};
 const adj=(a,b)=>EDGES.some(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a));
 const SAVE="skirmish-campaign";
-function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,items:camp.items,offer:camp.offer,found:camp.found,kills:camp.kills,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
-function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],items:d.items||[],offer:d.offer||null,found:Array.isArray(d.found)?d.found:d.found?[d.found]:[],kills:d.kills||[],region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
+function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,items:camp.items,offer:camp.offer,found:camp.found,kills:camp.kills,names:camp.names,wounds:camp.wounds,honors:camp.honors,falls:camp.falls,news:camp.news,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
+function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],items:d.items||[],offer:d.offer||null,found:Array.isArray(d.found)?d.found:d.found?[d.found]:[],kills:d.kills||[],names:d.names||null,wounds:d.wounds||[],honors:d.honors||[],falls:d.falls||[],news:d.news||null,region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
 const nest=(str,x,y,w,style="")=>str.replace(/<svg[^>]*>/,`<svg x="${x}" y="${y}" width="${w}" height="${w}" viewBox="0 0 40 40" style="${style}">`);
 function mapArt(){
   let g='<defs><radialGradient id="pg" cx=".5" cy=".4" r=".85"><stop offset="0" stop-color="#eadfb8"/><stop offset="1" stop-color="#cbb78a"/></radialGradient><filter id="wsh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="1.200" dy="2.400" stdDeviation="1.600" flood-color="#3a2810" flood-opacity=".45"/></filter><radialGradient id="wnode" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></radialGradient><filter id="wblur"><feGaussianBlur stdDeviation="6"/></filter><filter id="wblur2" x="-50%" y="-100%" width="200%" height="300%"><feGaussianBlur stdDeviation="2.500"/></filter><linearGradient id="wmt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a7656"/><stop offset=".6" stop-color="#9c8762" stop-opacity=".9"/><stop offset="1" stop-color="#b8a27a" stop-opacity="0"/></linearGradient></defs><rect width="400" height="520" fill="url(#pg)"/>';
@@ -2235,7 +2288,7 @@ function renderWorld(){
     g.onclick=()=>{if(!worldLock){camp.sel=+g.dataset.id;renderWorld()}};
     g.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();g.onclick()}};
   });
-  $("warmy").innerHTML=armyTypes().map((t,i)=>{const mx=TYPES[t].hp,h=camp.hp&&camp.hp[i]!=null?camp.hp[i]:mx;return `<span class="stat">${cap(NAME[t])} <b style="color:${h<=mx*.25?"#d64b3a":"inherit"}">${h}/${mx}</b></span>`}).join("");
+  $("warmy").innerHTML=armyTypes().map((t,i)=>{const mx=campMax(i),h=Math.min(mx,camp.hp&&camp.hp[i]!=null?camp.hp[i]:mx),w=woundsOf(i);return `<span class="stat" title="${heroName(i)}">${camp.names?camp.names[i]:cap(NAME[t])} <small>${cap(NAME[t])}</small> <b style="color:${h<=mx*.25?"#d64b3a":"inherit"}">${h}/${mx}</b>${w?`<i class="wnd" aria-label="${w} wound${w>1?"s":""}">${"\u2020".repeat(w)}</i>`:""}</span>`}).join("");
   const total=WORLD.filter(n=>n.type!=="camp").length;
   $("wtitle").textContent=camp.region>1?`World Map \u00b7 Region ${camp.region}`:"World Map";
   $("wprog").textContent=camp.done?"Campaign complete! You cleared every location.":`Locations cleared: ${camp.cleared.length} of ${total}. Tap a glowing location to travel there.`;
@@ -2253,7 +2306,8 @@ function healFx(n){ // a gentle glow at the healing spot: rings drift outward an
   sv.insertBefore(g,$("wm"));setTimeout(()=>g.remove(),2600);
   $("warmy").querySelectorAll(".stat").forEach(c=>c.classList.add("healed"));
 }
-function openWorld(){camp.battle=null;camp.sel=camp.pos;renderWorld();show("world");renderGold();renderRelics();renderItems();showRelicOffer()}
+function openWorld(){camp.battle=null;camp.sel=camp.pos;if(camp.cfg&&!camp.names){rollNames();saveCamp()} // campaigns from before names existed
+  renderWorld();if(camp.news){$("wprog").textContent=camp.news;camp.news=null;saveCamp()}show("world");renderGold();renderRelics();renderItems();showRelicOffer()}
 function travel(id){
   if(worldLock)return;
   const n=WORLD[id];worldLock=true;camp.sel=id;
@@ -2261,8 +2315,9 @@ function travel(id){
   setTimeout(()=>{
     worldLock=false;
     if(n.type==="heal"&&!camp.cleared.includes(id)){
-      camp.cleared.push(id);camp.pos=id;camp.hp=armyTypes().map((t,i)=>{const mx=TYPES[t].hp,h=camp.hp&&camp.hp[i]!=null?camp.hp[i]:mx;return Math.min(mx,h+Math.ceil(mx*HEAL_SPOT))});
-      saveCamp();renderWorld();$("wprog").textContent="Your army rested and recovered some health.";healFx(n);
+      camp.cleared.push(id);camp.pos=id;const mended=(camp.wounds||[]).filter(w=>w>0).length;camp.wounds=(camp.wounds||[]).map(w=>Math.max(0,(w||0)-1)); // a healing spot mends one wound per unit
+      camp.hp=armyTypes().map((t,i)=>{const mx=campMax(i),h=camp.hp&&camp.hp[i]!=null?camp.hp[i]:mx;return Math.min(mx,h+Math.ceil(TYPES[t].hp*HEAL_SPOT))});
+      saveCamp();renderWorld();$("wprog").textContent="Your army rested and recovered some health."+(mended?` ${mended===1?"One wound was":mended+" wounds were"} mended.`:"");healFx(n);
       if(n.herb)setTimeout(()=>{if(!$("world").hidden){$("herbask").hidden=false;$("haenter").focus()}},1400); // a familiar campfire...
     }
     else if(n.type==="shop"&&!camp.cleared.includes(id)){camp.cleared.push(id);camp.pos=id;if(!n.stock)n.stock=shopStock();saveCamp();renderWorld();openShop(n)} // one visit per Merchant
@@ -2279,7 +2334,7 @@ function seeded(sd,fn){
 function beginBattle(n){
   if(n.seed==null){n.seed=Math.floor(Math.random()*2147483647);saveCamp()} // each location's battle is fixed for the whole campaign, so losing or conceding can't reroll it
   seeded(n.seed,()=>{
-    resetBattle();chal=null;camp.battle={node:n.id,items0:camp.items.slice()}; // items0: the pack as the battle began, handed back if a saved battle is abandoned
+    resetBattle();chal=null;camp.battle={node:n.id,items0:camp.items.slice(),wounds0:(camp.wounds||[]).slice()}; // items0: the pack as the battle began, handed back if a saved battle is abandoned
     pick={x:camp.cfg.x.slice(),m:camp.cfg.m,c:camp.cfg.c};
     start(Object.assign({},BIOME[n.b]));
   });
@@ -2376,7 +2431,7 @@ function start(o={}){
   mods.y=pick.m;units=[];herbertMet=false;firstTurn=true;pturn=1;RELIC=new Set(camp.battle?camp.relics:[]);relicUsed={};
   if(!camp.battle&&mine.filter(t=>t==="K").length===3)unlock("campsite"); // three knights in a quick battle
   [1,3,4,6,8].forEach((x,i)=>{
-    units.push({t:mine[i],team:"y",ci:i,x,y:H-1,hp:Math.min(TYPES[mine[i]].hp,camp.battle&&camp.hp&&camp.hp[i]>0?camp.hp[i]:TYPES[mine[i]].hp),moved:0,acted:0});
+    const wd=camp.battle?woundsOf(i):0;units.push({t:mine[i],team:"y",ci:i,x,y:H-1,hp:Math.min(TYPES[mine[i]].hp-wd,camp.battle&&camp.hp&&camp.hp[i]>0?camp.hp[i]:TYPES[mine[i]].hp),moved:0,acted:0,...(wd?{wounds:wd}:{})});
     units.push({t:foe[i],team:"f",x:W-1-x,y:0,hp:TYPES[foe[i]].hp,moved:0,acted:0});
   });
   if(o.boss){const t=rnd(foe);units.push({t,team:"f",x:5,y:1,hp:TYPES[t].hp,moved:0,acted:0})}
@@ -2448,7 +2503,7 @@ const HOWTO=[
         :k==="boss"?nest(FORT_ICON[1],x-14,y-14,28)
         :`<path d="M${x-6} ${y-6}L${x+6} ${y+6}M${x+6} ${y-6}L${x-6} ${y+6}" stroke="#3b2a14" stroke-width="3" stroke-linecap="round"/>`});
     return s+"</svg>"},
-  body:()=>`<p>Travel along the paths on the world map. Each new location starts a battle, and winning clears it. Every campaign uses a new random map. Defeat the boss at the top to finish, or travel on to new lands: a fresh map in a new region, with your army, relics and gold carried over.</p><p>You choose your extra units, modifier, and color once. Your units keep their health between battles. After each win, surviving units recover ${Math.round(CAMP_HEAL*100)}% of their max health, and a unit that falls returns with 1 HP.</p><p>Each victory also earns gold, shown by the coin purse on the world map, and lets you choose one of two or three relics. Relics last for the rest of the campaign: rarer ones are stronger.</p><p>Teal wave spaces are wetlands: battles fought across lakes, ponds and rivers. One or two appear on each map. Dark reed spaces are murky swamps, thick with mud that stops units in their tracks.</p><p>Each map has one healing space (a green cross). Visiting it restores 70% of each unit's health, once.</p><p>Each map also has one Merchant (a gold coin purse), where Marcus sells potions, bombs and relics for gold. You can visit once. Your pack holds up to ${ITEM_CAP} items: in battle, select a unit and tap <b>Use Item</b>. Using an item takes that unit's action.</p>`},
+  body:()=>`<p>Travel along the paths on the world map. Each new location starts a battle, and winning clears it. Every campaign uses a new random map. Defeat the boss at the top to finish, or travel on to new lands: a fresh map in a new region, with your army, relics and gold carried over.</p><p>You choose your extra units, modifier, and color once. Your units keep their health between battles. After each win, surviving units recover ${Math.round(CAMP_HEAL*100)}% of their max health, and a unit that falls returns with 1 HP.</p><p>Every soldier has a name. A unit that falls in a battle you win comes back wounded, with 1 less max HP for the rest of the campaign (up to ${WOUND_MAX} wounds, marked \u2020 on the world map). The healing space mends one wound per unit, and Herbert's fire mends them all. Brave deeds earn honors, like "the Bold" or "the Unbroken", and the roll of honor remembers it all when you conquer a region.</p><p>Each victory also earns gold, shown by the coin purse on the world map, and lets you choose one of two or three relics. Relics last for the rest of the campaign: rarer ones are stronger.</p><p>Teal wave spaces are wetlands: battles fought across lakes, ponds and rivers. One or two appear on each map. Dark reed spaces are murky swamps, thick with mud that stops units in their tracks.</p><p>Each map has one healing space (a green cross). Visiting it restores 70% of each unit's health, once.</p><p>Each map also has one Merchant (a gold coin purse), where Marcus sells potions, bombs and relics for gold. You can visit once. Your pack holds up to ${ITEM_CAP} items: in battle, select a unit and tap <b>Use Item</b>. Using an item takes that unit's action.</p>`},
  {id:"scout",title:"Scouting",art:()=>{const m=[];for(let y=0;y<7;y++){let r="";for(let x=0;x<7;x++){const d=Math.abs(x-3)+Math.abs(y-3);r+=d===0?".":d<=2?"g":d===3?"p":"."}m.push(r)}return hBoard(7,7,m,[["K","f",3,3]],38)},
   body:()=>"<p>Tap any unit to see its details, including its health. Tap an enemy to see where it can move (gray) and hit (red). Tap it again to hide.</p>"}
 ];
@@ -2822,7 +2877,7 @@ $("haleave").onclick=()=>{$("herbask").hidden=true};
 $("haenter").onclick=()=>{
   $("herbask").hidden=true;herbertMet=false; // a new place: this visit counts toward his home
   openCamp("heal",HERBERT_MEAL[Math.floor(Math.random()*HERBERT_MEAL.length)],"Rest and Share a Meal",true,()=>{
-    camp.hp=null;saveCamp();renderWorld();$("wprog").textContent="A hot meal and a good rest by Herbert's fire restored your army to full health.";healFx(WORLD[camp.pos]);
+    const mended=(camp.wounds||[]).reduce((a,w)=>a+(w||0),0);camp.wounds=[];camp.hp=null;saveCamp();renderWorld();$("wprog").textContent="A hot meal and a good rest by Herbert's fire restored your army to full health"+(mended?" and mended every wound.":".");healFx(WORLD[camp.pos]);
   });
 };
 /* ---------- Relics found in battle ----------
@@ -2867,6 +2922,7 @@ const RICON={ // small 32-unit relic icons
  saddle:'<path d="M5 10q11-6 22 0" stroke="#5a3a1c" stroke-width="2" fill="none"/><path d="M3 11h10v12q0 4-5 4t-5-4z" fill="#9a6a3a" stroke="#3a2412" stroke-width="1.100"/><path d="M19 11h10v12q0 4-5 4t-5-4z" fill="#8a5a2e" stroke="#3a2412" stroke-width="1.100"/><path d="M3 11h10l-1 6q-4 2-8 0zM19 11h10l-1 6q-4 2-8 0z" fill="#6a4420" stroke="#3a2412" stroke-width=".9"/><circle cx="8" cy="16.500" r="1.100" fill="#c9962a"/><circle cx="24" cy="16.500" r="1.100" fill="#c9962a"/><path d="M6 21h4M22 21h4" stroke="#c08a50" stroke-width=".8"/>',
  ledger:'<path d="M7 4h17q2 0 2 2v21q0 2-2 2H7z" fill="#4a2a3a" stroke="#1e1018" stroke-width="1.100"/><path d="M9 5h14v22H9z" fill="#efe6d2" stroke="#6a5a44" stroke-width=".7"/><path d="M11 9h10M11 12h8M11 15h10M11 18h7M11 21h9" stroke="#7a6a54" stroke-width=".8"/><path d="M18 9v14" stroke="#b8372d" stroke-width=".6" opacity=".7"/><path d="M5 4v25" stroke="#2a1420" stroke-width="2.400"/><circle cx="23" cy="25" r="4" fill="#c9962a" stroke="#6a4c10" stroke-width="1"/><path d="M22 25h2" stroke="#6a4c10" stroke-width="1.100"/>',
  horseshoe:'<path d="M9 26L7 15q-1-10 9-10t9 10l-2 11h-4l2-11q0-5-5-5t-5 5l2 11z" fill="#8f979e" stroke="#2e3338" stroke-width="1.200" stroke-linejoin="round"/><path d="M9 15q0-8 7-8" stroke="#d8dee4" stroke-width="1" fill="none" opacity=".8"/><g fill="#2e3338"><circle cx="9" cy="21" r=".9"/><circle cx="8.500" cy="14" r=".9"/><circle cx="23" cy="21" r=".9"/><circle cx="23.500" cy="14" r=".9"/></g><g fill="#ffd84a"><path d="M27 4l.8 2l2 .8l-2 .8l-.8 2l-.8-2l-2-.8l2-.8z"/><path d="M4 6l.6 1.400l1.400.6l-1.400.6l-.6 1.400l-.6-1.400l-1.400-.6l1.400-.6z"/></g>',
+ cross:'<circle cx="16" cy="14" r="12" fill="#ffe7a0" opacity=".22"/><path d="M13 3h6v7h7v6h-7v13h-6V16H6v-6h7z" fill="#d8b24a" stroke="#6a4c10" stroke-width="1.200" stroke-linejoin="round"/><path d="M14.500 4.500v7h-7M14.500 16v11.500" stroke="#f6e2a0" stroke-width="1" fill="none" opacity=".8"/><circle cx="16" cy="13" r="2.600" fill="#5ac8f0" stroke="#1e4a6a" stroke-width=".9"/><circle cx="15.300" cy="12.300" r=".8" fill="#e8faff"/>',
  token:'<circle cx="16" cy="16" r="12" fill="#d8b24a" stroke="#6a4c10" stroke-width="1.300"/><circle cx="16" cy="16" r="9" fill="none" stroke="#f4dc8a" stroke-width="1"/><circle cx="16" cy="14" r="3.600" fill="#f2ead8" stroke="#6a4c10" stroke-width=".9"/><circle cx="14.700" cy="13.600" r=".9" fill="#3a2a14"/><circle cx="17.300" cy="13.600" r=".9" fill="#3a2a14"/><path d="M14.600 16h2.800" stroke="#3a2a14" stroke-width=".7"/><path d="M11 22q5-3 10 0" stroke="#6a4c10" stroke-width="1.100" fill="none"/><path d="M10 9l2 2M22 9l-2 2" stroke="#f4dc8a" stroke-width=".8"/>',
  coin:'<circle cx="16" cy="16" r="12" fill="#b8693a" stroke="#5a2a10" stroke-width="1.300"/><circle cx="16" cy="16" r="9" fill="none" stroke="#e09a5a" stroke-width="1"/><g fill="#3f7a3a" stroke="#1e4a1c" stroke-width=".7"><circle cx="14" cy="13" r="2.400"/><circle cx="18" cy="13" r="2.400"/><circle cx="14" cy="17" r="2.400"/><circle cx="18" cy="17" r="2.400"/></g><path d="M16 17q1 4 3 6" stroke="#1e4a1c" stroke-width="1" fill="none"/><path d="M8 11q3-5 8-6" stroke="#f0c08a" stroke-width="1.200" fill="none" opacity=".7"/>',
  whet:'<path d="M5 21l17-12q4-2 5 1t-2 5L9 25q-4 2-5-1t1-3z" fill="#8f979e" stroke="#2e3338" stroke-width="1.200"/><path d="M8 21l15-10" stroke="#d2d8dd" stroke-width="1.300" opacity=".7"/><path d="M9 24l14-10" stroke="#5c646b" stroke-width="1" opacity=".6"/>',
@@ -2901,6 +2957,7 @@ const ITEMS={ // consumables, used in battle (campaign only); using one takes th
  smoke:{name:"Smoke Bomb",price:30,desc:"Throw at a tile within 3: your units on it and the 8 tiles around it get +20% evasion until your next turn."},
  fire:{name:"Fire Flask",price:35,desc:"Throw at an enemy within 3 for 3 damage, ignoring armor."},
  feather:{name:"Wind Elemental's Feather",price:40,r:1,free:1,desc:"Swap this unit with an ally within 2 tiles. Neither unit uses its move or action."},
+ medkit:{name:"Advanced Med Kit",price:45,r:1,desc:"Mend 1 wound on this unit or an adjacent ally (campaign wounds, restoring 1 max HP). An Apothecary using it has a 25% chance to mend 2."},
  mule:{name:"Mule Hair Potion",price:40,r:1,lock:"mule",desc:"The drinker turns stubborn as a mule: +2 armor, and it can't be pushed or slowed, until the end of your next turn. Brewed from genuine mule hair. Marcus swears Parsnip had nothing to do with it."}};
 // r: rarity (commons are always stocked; an uncommon turns up on about half of visits); free: using it costs the unit nothing; lock: the unlock it waits for
 const ITEM_CAP=3,LEDGER_GOLD=5,TOKEN_OFF=.2,ITEM_STOCK=[1,.5],MULE_BUYS=5,RELIC_PRICE=[40,70,110],SMOKE_EV=.2,DRAUGHT_HEAL=5,FIRE_DMG=3; // RELIC_PRICE by rarity: common, uncommon, rare
@@ -2909,6 +2966,7 @@ const priceOf=p=>camp.relics.includes("token")?Math.round(p*(1-TOKEN_OFF)):p; //
 const IICON={
  draught:'<path d="M14 4h4v4q7 3 7 10q0 7-9 7t-9-7q0-7 7-10z" fill="rgba(200,60,50,.55)" stroke="#2a1410" stroke-width="1.100"/><path d="M8.600 17q0 6 7.400 6.500q7.400-.5 7.400-6.500z" fill="#b8372d"/><rect x="13.400" y="2" width="5.200" height="3.400" rx="1" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M10 13q-1 4 0 7" stroke="#fff" stroke-width="1.100" fill="none" opacity=".6"/><path d="M14 16h4M16 14v4" stroke="#fff4f0" stroke-width="1.300" stroke-linecap="round"/>',
  smoke:'<circle cx="15" cy="19" r="9" fill="#26262a" stroke="#0a0a0c" stroke-width="1.100"/><circle cx="12" cy="16" r="2.600" fill="#fff" opacity=".25"/><path d="M20 12q3-6 8-5" stroke="#8a6a3a" stroke-width="1.600" fill="none"/><circle cx="28" cy="7" r="2" fill="#ffb347"/><circle cx="28" cy="7" r="4" fill="#ffb347" opacity=".25"/><g fill="#b8b4b0" opacity=".55"><circle cx="6" cy="9" r="3"/><circle cx="9" cy="6" r="2.400"/></g>',
+ medkit:'<path d="M12 8q0-4 4-4t4 4" stroke="#3a2412" stroke-width="1.800" fill="none"/><rect x="4" y="8" width="24" height="18" rx="3" fill="#8a5a2e" stroke="#3a2412" stroke-width="1.200"/><path d="M4 13h24" stroke="#6a4420" stroke-width="1"/><rect x="9" y="12" width="14" height="12" rx="2" fill="#efe6d2" stroke="#4a3a28" stroke-width=".9"/><path d="M16 14.500v7M12.500 18h7" stroke="#c8372d" stroke-width="2.600" stroke-linecap="round"/><path d="M6 10h3" stroke="#c08a50" stroke-width=".9"/>',
  mule:'<path d="M13 3h6v4h-6z" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M12 7h8v3q6 3 6 10q0 8-10 8T6 20q0-7 6-10z" fill="rgba(170,120,70,.5)" stroke="#2a1410" stroke-width="1.100"/><path d="M6.600 19q0 8 9.400 8.500q9.400-.5 9.400-8.500z" fill="#8a5a2e"/><path d="M11 14q-2 4-1 8" stroke="#fff" stroke-width="1" fill="none" opacity=".55"/><path d="M18 15q3 1 2 4M21 14q2 2 1 4M16 17q2 2 1 4" stroke="#3a2412" stroke-width=".9" fill="none" stroke-linecap="round"/><path d="M19 2q4-2 6 1" stroke="#6a4a2a" stroke-width="1.200" fill="none" stroke-linecap="round"/>',
  feather:'<path d="M6 27q3-12 13-19q5-4 9-4q0 4-4 9q-7 10-18 14z" fill="#eef6fb" stroke="#3a5a6a" stroke-width="1.100" stroke-linejoin="round"/><path d="M6 27L24 8" stroke="#5a7a8a" stroke-width="1.100"/><path d="M12 20l-2-5M15 17l-1-6M18 14l0-5M13 19l5 1M16 16l6 0M19 13l5-1" stroke="#9ab8c8" stroke-width=".8"/><path d="M3 12q4-3 8 0t8 0M1 18q3-2 6 0" stroke="#6ab0d8" stroke-width="1.300" fill="none" stroke-linecap="round" opacity=".8"/>',
  fire:'<path d="M10 28v-10q0-7 6-9q6 2 6 9v10z" fill="#e2531a" stroke="#2a1410" stroke-width="1.100"/><path d="M13.500 9h5V5h-5z" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><circle cx="16" cy="20" r="7" fill="#ff8a2a" opacity=".28"/><path d="M16 25q-4-4 0-10q4 6 0 10z" fill="#ffd27a"/><path d="M12 16q-1 5 0 9" stroke="#fff" stroke-width="1" opacity=".45" fill="none"/>'};
@@ -2916,6 +2974,8 @@ const itemIcon=(id,sz=32)=>`<svg viewBox="0 0 32 32" width="${sz}" height="${sz}
 const MARCUS={
  greet:["Ah, a customer! Mind Parsnip, he bites. Only on Tuesdays.","Wares for the weary! Every one of them one of a kind. Mostly.","Don't mind the bones, friend. Business has been dead lately. Ha!","Back from the fighting, eh? Gold spends the same whether you're alive or not. Trust me.","Herbert sends his regards. He still owes me for that mug."],
  buy:["Pleasure doing business!","Sold! No refunds. No exceptions. No questions.","Parsnip approves. I can tell. He's still asleep.","A fine choice for a fine customer."],
+ medkit:"The advanced kit! Bandages, splints, and a needle I've only used twice. On other people.",
+ cross:"The Sacred Cross of the Wise Ones. Fell off a cart. A holy cart. Don't ask which.",
  saddle:"Parsnip's spare saddlebags! He won't notice they're gone. He's asleep.",
  horseshoe:"Parsnip's lucky horseshoe. He threw it, I caught it. That's how luck works.",
  token:"A loyalty token! Don't tell my other customers. There aren't any, but still.",
@@ -2998,7 +3058,7 @@ function showTriumph(nm){
   const army=armyTypes(),kills=army.map((t,i)=>camp.kills[i]||0),total=kills.reduce((a,b)=>a+b,0);
   const maps=camp.mapsPrior+battlesWon();
   $("tsub").innerHTML=`You conquered <b>${nm.name}</b>`+(camp.region>1?` and won your ${["","","second","third","fourth","fifth"][camp.region]||camp.region+"th"} region!`:" and won the campaign!");
-  $("tstats").innerHTML='<h3>Enemies defeated</h3>'+army.map((t,i)=>`<div class="trow">${hIcon(t,"y")}<span>${cap(NAME[t])}${t==="T"&&kills[i]?" <small>(with militia)</small>":""}</span><b>${kills[i]}</b></div>`).join("")
+  $("tstats").innerHTML='<h3>Roll of honor</h3>'+army.map((t,i)=>{const f=(camp.falls&&camp.falls[i])||[];return `<div class="trow">${hIcon(t,"y")}<span>${heroName(i)} <small>${cap(NAME[t])}${t==="T"&&kills[i]?", with militia":""}${f.length?` · fell at ${listAnd([...new Set(f)])}`:" · never fell"}</small></span><b title="enemies defeated">${kills[i]}</b></div>`}).join("")
     +`<div class="ttot"><span>Total defeated: ${total}</span><span>Maps cleared: ${maps}</span></div>`;
   $("therb").innerHTML=unlocks.campsite?`<div class="hport" aria-hidden="true">${campScene("plain").replace('viewBox="0 0 320 220"','viewBox="178 48 90 84" preserveAspectRatio="xMidYMid slice"')}</div><div class="cbub"><b>Herbert:</b> “${HERBERT_WIN[Math.floor(Math.random()*HERBERT_WIN.length)]}”</div>`:"";
   $("triumph").hidden=false;$("ttravel").focus();
@@ -3015,10 +3075,13 @@ $("tmenu").onclick=()=>{gid++;$("triumph").hidden=true;camp.battle=null;show("me
    A map is plain data, so the editor, its map codes and the Challenges menu all share one format:
    {name, desc, diff, biome, mods:{y,f}, rows: 12 strings of 10 terrain letters, units: [[type, team, x, y], ...], reward?, hint?}
    Terrain letters (one source, read by the loader, the editor palette and the map codes): */
-const MAPCH={".":"ground",f:"forest",s:"shallow",d:"deep",m:"swamp",w:"wall",F:"fort",b:"barrels",x:"xbarrel",g:"grave",c:"campsite",l:"lava",h:"magma",v:"volcano",k:"cherry",o:"wisp"};
+const MAPCH={".":"ground",f:"forest",s:"shallow",d:"deep",m:"swamp",w:"wall",F:"fort",b:"barrels",x:"xbarrel",g:"grave",c:"campsite",l:"lava",h:"magma",v:"volcano",k:"cherry",o:"wisp",p:"flowers"};
 const MAPKEY=Object.fromEntries(Object.entries(MAPCH).map(([c,k])=>[k,c]));
 // Challenge maps. diff: 0 easy, 1 moderate, 2 hard (the menu lists them easiest first). reward: an unlock id granted on the first win (add it to UNLOCKS with its hint); hint: how the menu describes that reward
 const CHALLENGES=[
+ {id:"meadow",diff:0,reward:"flowers",hint:"a new tile",name:"Wildflower Meadow",desc:"A quiet meadow in full bloom. A small enemy patrol stands between you and the road home.",biome:"plain",mods:{y:null,f:null},
+  rows:["f........f","..pp......","......f...","..f....pp.",".....p....","pp...f....","....f...pp","...p......",".pp....f..","......pp..","f.........","........f."],
+  units:[["A","f",3,0],["A","f",6,0],["K","f",4,1],["K","y",4,10],["K","y",5,10],["A","y",3,11],["P","y",5,11],["C","y",6,11]]},
  {id:"ford",diff:1,reward:"trumpet",hint:"a relic",name:"The Ford at Greywater",desc:"Enemy knights hold a fortified ford. Cross the river and break their line.",biome:"fort",mods:{y:null,f:null},
   rows:["..f....f..","...w..w...",".f......f.","....FF....","..s....s..","dddds.dddd","dddd.sdddd","..s....s..",".....f....",".f......f.","...w..w...","..f....f.."],
   units:[["R","f",5,0],["A","f",2,1],["A","f",7,1],["K","f",4,3],["K","f",5,3],["K","y",1,11],["K","y",3,11],["A","y",4,11],["P","y",6,11],["C","y",8,11]]},
@@ -3039,9 +3102,9 @@ let chal=null; // the fixed map being played: {def, test}
 const DIFF=[["Easy","#3f9a5a"],["Moderate","#c9962a"],["Hard","#c8372d"]];
 // lays a fixed map's terrain into the board state
 function applyMap(def){
-  const S={ground:new Set(),forest:new Set(),shallow:new Set(),deep:new Set(),swamp:new Set(),wall:new Set(),fort:new Set(),barrels:new Set(),xbarrel:new Set(),grave:new Set(),campsite:new Set(),lava:new Set(),magma:new Set(),volcano:new Set(),cherry:new Set(),wisp:new Set()};
+  const S={ground:new Set(),forest:new Set(),shallow:new Set(),deep:new Set(),swamp:new Set(),wall:new Set(),fort:new Set(),barrels:new Set(),xbarrel:new Set(),grave:new Set(),campsite:new Set(),lava:new Set(),magma:new Set(),volcano:new Set(),cherry:new Set(),wisp:new Set(),flowers:new Set()};
   def.rows.forEach((r,y)=>[...r].forEach((c,x)=>{const k=MAPCH[c]||"ground";S[k].add(x+","+y);if(k==="xbarrel")S.barrels.add(x+","+y)}));
-  WALLS=S.wall;FOREST=S.forest;FORT=S.fort;DEEP=S.deep;SHALLOW=S.shallow;SWAMP=S.swamp;GRAVES=S.grave;BARRELS=S.barrels;XBAR=S.xbarrel;CAMPS=S.campsite;LAVA=S.lava;MAGMA=S.magma;VOLC=S.volcano;WISP=S.wisp;CHERRY=S.cherry;S.cherry.forEach(k=>FOREST.add(k));
+  WALLS=S.wall;FOREST=S.forest;FORT=S.fort;DEEP=S.deep;SHALLOW=S.shallow;SWAMP=S.swamp;GRAVES=S.grave;BARRELS=S.barrels;XBAR=S.xbarrel;CAMPS=S.campsite;LAVA=S.lava;MAGMA=S.magma;VOLC=S.volcano;WISP=S.wisp;FLOWERS=S.flowers;CHERRY=S.cherry;S.cherry.forEach(k=>FOREST.add(k));
   MURKY=def.biome==="swamp";HAUNTED=def.biome==="graveyard";VOLCANIC=def.biome==="volcanic";WALLV=def.wallStyle||0;groupForts(()=>0);
 }
 // what's wrong with a map, if anything (an empty list means it's playable); notes are warnings that don't block play
@@ -3183,6 +3246,7 @@ const UNLOCKS=[
  {id:"graveyard",biome:"graveyard",terrain:"grave",hint:"Our encouraging friend's home."},
  {id:"cherry",terrain:"cherry",hint:"Beauty blooms where none of your own fall."},
  {id:"wisp",terrain:"wisp",hint:"Conquer the Fortress at Everglade Swamp challenge."},
+ {id:"flowers",terrain:"flowers",hint:"Conquer the Wildflower Meadow challenge."},
  {id:"volcanic",biome:"volcanic",terrain:"lava",hint:"March on past your first conquest, and the land itself begins to burn."},
  {id:"drills",relic:"drills",hint:"Fall back from the long march often enough, and your troops learn to march faster."},
  {id:"salts",relic:"salts",hint:"Walk away from enough quick scraps, and someone starts packing remedies."},
@@ -3219,7 +3283,7 @@ $("unl").onclick=()=>{$("mbtns").hidden=true;$("unlockview").hidden=false;unlock
 $("how").onclick=()=>{$("mbtns").hidden=true;$("rulesview").hidden=false;howView(howMain,null)};
 $("back").onclick=()=>show("menu");
 $("go").onclick=()=>{
-  if(campSetup){dropHold("camp");camp.cfg={x:pick.x.slice(),m:pick.m,c:pick.c};camp.pos=0;camp.cleared=[];camp.done=false;camp.hp=null;camp.gold=0;camp.relics=[];camp.items=[];camp.offer=null;camp.found=[];camp.lastGold=0;camp.kills=[];camp.region=1;camp.mapsPrior=0;camp.bossUsed={loc:[],name:[]};camp.sel=0;genWorld();saveCamp();openWorld()}
+  if(campSetup){dropHold("camp");camp.cfg={x:pick.x.slice(),m:pick.m,c:pick.c};camp.pos=0;camp.cleared=[];camp.done=false;camp.hp=null;camp.gold=0;camp.relics=[];camp.items=[];camp.offer=null;camp.found=[];camp.lastGold=0;camp.kills=[];rollNames();camp.region=1;camp.mapsPrior=0;camp.bossUsed={loc:[],name:[]};camp.sel=0;genWorld();saveCamp();openWorld()}
   else start();
 };
 $("end").onclick=()=>{
@@ -3299,9 +3363,9 @@ const getHold=m=>{try{return JSON.parse(localStorage.getItem(HOLD(m))||"null")}c
 $("phold").onclick=()=>{
   if(turn!=="y"||busy||over)return;
   const A=x=>[...x],m=chal?"chal":camp.battle?"camp":"quick";
-  const h={t:[WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS,WISP].map(A),
+  const h={t:[WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS,WISP,FLOWERS].map(A),
     f:{MURKY,HAUNTED,VOLCANIC,WALLV,seed,BIOME_KEY,herbertMet,firstTurn,pturn},fv:A(FORTV),fk:A(FORTK),
-    units,mods,col,tpUsed,relic:A(RELIC),relicUsed,pick,def:chal&&chal.def,node:camp.battle?camp.battle.node:null,items0:camp.battle&&camp.battle.items0,biome:$("biome").textContent};
+    units,mods,col,tpUsed,relic:A(RELIC),relicUsed,pick,def:chal&&chal.def,node:camp.battle?camp.battle.node:null,items0:camp.battle&&camp.battle.items0,wounds0:camp.battle&&camp.battle.wounds0,biome:$("biome").textContent};
   try{localStorage.setItem(HOLD(m),JSON.stringify(h))}catch(e){return}
   if(m==="camp")saveCamp();
   gid++;over=true;busy=false;panel("pheld");
@@ -3309,10 +3373,10 @@ $("phold").onclick=()=>{
 };
 function resumeHold(h){
   resetBattle();
-  [WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS,WISP=new Set()]=h.t.map(a=>new Set(a));
+  [WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS,WISP=new Set(),FLOWERS=new Set()]=h.t.map(a=>new Set(a));
   ({MURKY,HAUNTED,VOLCANIC,WALLV,seed,BIOME_KEY,herbertMet,firstTurn,pturn}=h.f);
   FORTV=new Map(h.fv);FORTK=new Set(h.fk);units=h.units;mods=h.mods;col=h.col;tpUsed=h.tpUsed;RELIC=new Set(h.relic);relicUsed=h.relicUsed;pick=h.pick;
-  chal=h.def?{def:h.def,test:false}:null;camp.battle=h.node!=null?{node:h.node,items0:h.items0}:null;
+  chal=h.def?{def:h.def,test:false}:null;camp.battle=h.node!=null?{node:h.node,items0:h.items0,wounds0:h.wounds0}:null;
   $("biome").textContent=h.biome;show("game");say("Battle resumed. Your turn. Select one of your units.");render();
 }
 // opening a mode with a held battle asks first; abandoning it just drops the battle (no concede is counted)
@@ -3324,7 +3388,7 @@ function askHold(m,open){
     +" Abandoning it counts as a loss, and you'll start that battle over"+(m==="camp"?" with any items you used in it back in your pack.":".");
   $("holdask").hidden=false;$("hoyes").focus();
   $("hoyes").onclick=()=>{$("holdask").hidden=true;dropHold(m);resumeHold(h)};
-  $("hono").onclick=()=>{$("holdask").hidden=true;dropHold(m);if(m==="camp"&&h.items0){camp.items=h.items0.slice();saveCamp()}open()}; // the battle starts over, so items used in it come back
+  $("hono").onclick=()=>{$("holdask").hidden=true;dropHold(m);if(m==="camp"&&h.items0){camp.items=h.items0.slice();if(h.wounds0)camp.wounds=h.wounds0.slice();saveCamp()}open()}; // the battle starts over, so items used in it come back
 }
 pick={x:[],m:null,c:"blue"};show("menu");
 </script>
