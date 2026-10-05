@@ -2369,6 +2369,7 @@ function openCampSetup(){
 function start(o={}){
   if(!camp.battle&&unlocks.graveyard&&Math.random()<.12)o={...o,graves:1,forest:5}; // quick battles: an occasional graveyard
   else if(!camp.battle&&unlocks.volcanic&&Math.random()<.1)o={...o,lava:1,forest:3}; // ...or molten wastes
+  else if(!camp.battle&&unlocks.wisp&&Math.random()<.1)o={...o,...BIOME.swamp}; // ...or a murky swamp, where the wisps drift
   genMap(o);col={y:pick.c,f:foeColor(),w:"wild"};
   const extra=pick.x.slice();
   const P=poolNow(),rnd=(have=[])=>{let t;do t=P[Math.floor(Math.random()*P.length)];while(LIMIT1.includes(t)&&have.includes(t));return t},mine=["K","A","C",...extra],foe=["K","A","C"];foe.push(rnd(foe));foe.push(rnd(foe));
