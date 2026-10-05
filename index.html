@@ -573,6 +573,14 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 <button class="b big" id="riclose">Close</button>
 </div>
 </div>
+<div class="ov" id="rubask" hidden>
+<div class="panel cpan" role="alertdialog" aria-labelledby="rbtitle">
+<h2 id="rbtitle">Rub the Horseshoe?</h2>
+<p class="rsub">Parsnip's Lucky Horseshoe works once per battle. Rub it now and this unit keeps its action after using the item.</p>
+<button class="b big pri" id="rbyes">Rub It</button>
+<button class="b big" id="rbno">Not Now</button>
+</div>
+</div>
 <div class="ov" id="holdask" hidden>
 <div class="panel cpan" role="alertdialog" aria-labelledby="hotitle">
 <h2 id="hotitle">Battle in Progress</h2>
@@ -609,6 +617,10 @@ const MUSTER_USES=2,MUSTER_ALIVE=2,BANNER_RANGE=2; // Captain: musters per battl
 const RELICS={
  gauntlets:{name:"Spiked Gauntlets",r:0,src:"both",desc:"Your units deal +1 damage when they retaliate."},
  coin:{name:"Copper Coin of Good Fortune",r:2,src:"shop",max:2,desc:"Shows one extra relic to choose from after each battle. Carry up to two; each adds a choice."},
+ saddle:{name:"Parsnip's Saddlebags",r:1,src:"shop",max:2,desc:"Your pack holds one more item. Carry up to two; each adds a slot."},
+ ledger:{name:"Tax Collector's Ledger",r:1,src:"shop",desc:"Each battle you win pays 5 extra gold."},
+ horseshoe:{name:"Parsnip's Lucky Horseshoe",r:2,src:"shop",desc:"Once per battle, rub the horseshoe as you use an item, and the unit keeps its action."},
+ token:{name:"Marcus's Loyalty Token",r:2,src:"shop",desc:"Everything at Marcus's wagon costs 20% less."},
  whet:{name:"Whetstones",r:0,src:"both",desc:"Archers deal +1 damage."},
  shield:{name:"Sturdy Shields",r:0,desc:"Knights get +1 armor."},
  rations:{name:"Trail Rations",r:0,src:"both",desc:"Your units heal 1 extra HP after each battle."},
@@ -1670,13 +1682,21 @@ function itemTargets(u,id){
   else for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(Math.abs(x-u.x)+Math.abs(y-u.y)<=3)out.add(x+","+y);
   return out;
 }
-function useItem(a,id,x,y){
+// Parsnip's Lucky Horseshoe: asks before an item that would spend the unit's action
+function askRub(then){
+  locked=true;$("rubask").hidden=false;$("rbyes").focus();
+  const done=ok=>{$("rubask").hidden=true;locked=false;then(ok)};
+  $("rbyes").onclick=()=>done(true);$("rbno").onclick=()=>done(false);
+}
+function useItem(a,id,x,y,rub){
+  if(rub===undefined&&rel(a,"horseshoe")&&!relicUsed.horseshoe&&!ITEMS[id].free&&!a.acted)return askRub(ok=>useItem(a,id,x,y,ok));
   const i=camp.items.indexOf(id);if(i<0)return;camp.items.splice(i,1);saveCamp();
+  if(rub){relicUsed.horseshoe=1;sfx("coin");later(()=>{if(units.includes(a))floatText(a.x,a.y,"Lucky!","thanks")},450)} // the unit keeps its move and action
   if(id==="feather"){ // a gust swaps the two; neither spends its move or action
     const b=at(x,y);[a.x,a.y,b.x,b.y]=[b.x,b.y,a.x,a.y];sel=a;mode=null;choice=null;lastMove=null;insp=null;info=a;sfx("whisk");
     say(`A gust of wind! Your ${NAME[a.t]} and ${NAME[b.t]} swapped places.`);return render();
   }
-  a.acted=a.moved=1;sel=null;mode=null;choice=null;lastMove=null;insp=null;
+  if(!rub)a.acted=a.moved=1;sel=rub?a:null;mode=null;choice=null;lastMove=null;insp=null;
   if(id==="mule"){a.muleUntil=pturn+1;a.slow=0;sfx("bray");floatText(a.x,a.y,"Stubborn!","slow");info=a;say(`Your ${NAME[a.t]} drank the Mule Hair Potion: +2 armor, and it can't be pushed or slowed until the end of your next turn.`);return render()}
   if(id==="draught"){const b=at(x,y),n=Math.min(DRAUGHT_HEAL,TYPES[b.t].hp-b.hp);b.hp+=n;sfx("heal");floatText(b.x,b.y,"+"+n,"heal");info=b;say(`Your ${NAME[a.t]} used a Healing Draught: +${n} HP${b===a?"":" for your "+NAME[b.t]}.`);return render()}
   if(id==="smoke"){
@@ -2796,7 +2816,7 @@ function findRelics(nm){
   });
 }
 /* ---------- Gold and relic rewards ---------- */
-const goldFor=n=>(n.type==="boss"?25:10)+2*units.filter(u=>u.team==="y"&&u.ci!=null).length; // more for bringing your army home
+const goldFor=n=>(n.type==="boss"?25:10)+2*units.filter(u=>u.team==="y"&&u.ci!=null).length+(camp.relics.includes("ledger")?LEDGER_GOLD:0); // more for bringing your army home
 // 2 or 3 relics the army doesn't have yet, drawn by rarity weight
 const relicCount=id=>camp.relics.filter(r=>r===id).length;
 // relics the shop may stock right now: sold there, unlocked, useful to this army, and not already carried as many times as allowed
@@ -2813,6 +2833,10 @@ function relicOffer(){
 const PURSE='<svg viewBox="0 0 32 32" aria-hidden="true"><ellipse cx="16" cy="28" rx="10" ry="2" fill="rgba(0,0,0,.18)"/><path d="M11 9q-3-4 1-5q2 2 4 1q2 1 4-1q4 1 1 5z" fill="#8a5a2a" stroke="#3a2412" stroke-width="1.200" stroke-linejoin="round"/><path d="M10.500 10q-6 5-6 11q0 6 11.500 6t11.500-6q0-6-6-11z" fill="#a8743a" stroke="#3a2412" stroke-width="1.300" stroke-linejoin="round"/><path d="M10 10.500h12" stroke="#d9b84a" stroke-width="2.200" stroke-linecap="round"/><path d="M8 18q1-5 5-7" stroke="#d8a868" stroke-width="1.400" fill="none" opacity=".7"/><circle cx="16" cy="20" r="4.200" fill="#f2c94c" stroke="#8a6410" stroke-width="1.100"/><path d="M16 17.600v4.800M14.600 18.600h2.200q1.200 0 1.200 1t-1.200 1h-1.600" stroke="#8a6410" stroke-width=".9" fill="none"/></svg>';
 const RICON={ // small 32-unit relic icons
  gauntlets:'<path d="M9 28v-9l-2-6q0-3 3-3l1 4V8q0-2 2-2t2 2v5V6q0-2 2-2t2 2v7V7q0-2 2-2t2 2v8l1-3q3 0 2 3l-2 7v6z" fill="#8a949e" stroke="#2e3338" stroke-width="1.100" stroke-linejoin="round"/><path d="M9 28h14v-4H9z" fill="#5a3a1c" stroke="#2a1a0c" stroke-width="1"/><path d="M13 13v6M17 13v6M21 13v6" stroke="#5c646b" stroke-width=".9"/><g fill="#d8dde2" stroke="#2e3338" stroke-width=".7"><path d="M12 6l1-3l1 3z"/><path d="M16 4l1-3l1 3z"/><path d="M20 5l1-3l1 3z"/><path d="M7 15l-3-1l3-1z"/></g>',
+ saddle:'<path d="M5 10q11-6 22 0" stroke="#5a3a1c" stroke-width="2" fill="none"/><path d="M3 11h10v12q0 4-5 4t-5-4z" fill="#9a6a3a" stroke="#3a2412" stroke-width="1.100"/><path d="M19 11h10v12q0 4-5 4t-5-4z" fill="#8a5a2e" stroke="#3a2412" stroke-width="1.100"/><path d="M3 11h10l-1 6q-4 2-8 0zM19 11h10l-1 6q-4 2-8 0z" fill="#6a4420" stroke="#3a2412" stroke-width=".9"/><circle cx="8" cy="16.500" r="1.100" fill="#c9962a"/><circle cx="24" cy="16.500" r="1.100" fill="#c9962a"/><path d="M6 21h4M22 21h4" stroke="#c08a50" stroke-width=".8"/>',
+ ledger:'<path d="M7 4h17q2 0 2 2v21q0 2-2 2H7z" fill="#4a2a3a" stroke="#1e1018" stroke-width="1.100"/><path d="M9 5h14v22H9z" fill="#efe6d2" stroke="#6a5a44" stroke-width=".7"/><path d="M11 9h10M11 12h8M11 15h10M11 18h7M11 21h9" stroke="#7a6a54" stroke-width=".8"/><path d="M18 9v14" stroke="#b8372d" stroke-width=".6" opacity=".7"/><path d="M5 4v25" stroke="#2a1420" stroke-width="2.400"/><circle cx="23" cy="25" r="4" fill="#c9962a" stroke="#6a4c10" stroke-width="1"/><path d="M22 25h2" stroke="#6a4c10" stroke-width="1.100"/>',
+ horseshoe:'<path d="M9 26L7 15q-1-10 9-10t9 10l-2 11h-4l2-11q0-5-5-5t-5 5l2 11z" fill="#8f979e" stroke="#2e3338" stroke-width="1.200" stroke-linejoin="round"/><path d="M9 15q0-8 7-8" stroke="#d8dee4" stroke-width="1" fill="none" opacity=".8"/><g fill="#2e3338"><circle cx="9" cy="21" r=".9"/><circle cx="8.500" cy="14" r=".9"/><circle cx="23" cy="21" r=".9"/><circle cx="23.500" cy="14" r=".9"/></g><g fill="#ffd84a"><path d="M27 4l.8 2l2 .8l-2 .8l-.8 2l-.8-2l-2-.8l2-.8z"/><path d="M4 6l.6 1.400l1.400.6l-1.400.6l-.6 1.400l-.6-1.400l-1.400-.6l1.400-.6z"/></g>',
+ token:'<circle cx="16" cy="16" r="12" fill="#d8b24a" stroke="#6a4c10" stroke-width="1.300"/><circle cx="16" cy="16" r="9" fill="none" stroke="#f4dc8a" stroke-width="1"/><circle cx="16" cy="14" r="3.600" fill="#f2ead8" stroke="#6a4c10" stroke-width=".9"/><circle cx="14.700" cy="13.600" r=".9" fill="#3a2a14"/><circle cx="17.300" cy="13.600" r=".9" fill="#3a2a14"/><path d="M14.600 16h2.800" stroke="#3a2a14" stroke-width=".7"/><path d="M11 22q5-3 10 0" stroke="#6a4c10" stroke-width="1.100" fill="none"/><path d="M10 9l2 2M22 9l-2 2" stroke="#f4dc8a" stroke-width=".8"/>',
  coin:'<circle cx="16" cy="16" r="12" fill="#b8693a" stroke="#5a2a10" stroke-width="1.300"/><circle cx="16" cy="16" r="9" fill="none" stroke="#e09a5a" stroke-width="1"/><g fill="#3f7a3a" stroke="#1e4a1c" stroke-width=".7"><circle cx="14" cy="13" r="2.400"/><circle cx="18" cy="13" r="2.400"/><circle cx="14" cy="17" r="2.400"/><circle cx="18" cy="17" r="2.400"/></g><path d="M16 17q1 4 3 6" stroke="#1e4a1c" stroke-width="1" fill="none"/><path d="M8 11q3-5 8-6" stroke="#f0c08a" stroke-width="1.200" fill="none" opacity=".7"/>',
  whet:'<path d="M5 21l17-12q4-2 5 1t-2 5L9 25q-4 2-5-1t1-3z" fill="#8f979e" stroke="#2e3338" stroke-width="1.200"/><path d="M8 21l15-10" stroke="#d2d8dd" stroke-width="1.300" opacity=".7"/><path d="M9 24l14-10" stroke="#5c646b" stroke-width="1" opacity=".6"/>',
  shield:'<path d="M16 4l10 3v8q0 9-10 13q-10-4-10-13V7z" fill="#7f8a95" stroke="#262b31" stroke-width="1.300"/><path d="M16 4v24q10-4 10-13V7z" fill="#000" opacity=".15"/><path d="M16 7l7 2v6q0 6-7 9.500" stroke="#c8d0d8" stroke-width="1" fill="none" opacity=".5"/><circle cx="16" cy="14" r="2.800" fill="#c9962a" stroke="#6a4c10" stroke-width=".9"/>',
@@ -2848,7 +2872,9 @@ const ITEMS={ // consumables, used in battle (campaign only); using one takes th
  feather:{name:"Wind Elemental's Feather",price:40,r:1,free:1,desc:"Swap this unit with an ally within 2 tiles. Neither unit uses its move or action."},
  mule:{name:"Mule Hair Potion",price:40,r:1,lock:"mule",desc:"The drinker turns stubborn as a mule: +2 armor, and it can't be pushed or slowed, until the end of your next turn. Brewed from genuine mule hair. Marcus swears Parsnip had nothing to do with it."}};
 // r: rarity (commons are always stocked; an uncommon turns up on about half of visits); free: using it costs the unit nothing; lock: the unlock it waits for
-const ITEM_CAP=3,ITEM_STOCK=[1,.5],MULE_BUYS=5,RELIC_PRICE=[40,70,110],SMOKE_EV=.2,DRAUGHT_HEAL=5,FIRE_DMG=3; // RELIC_PRICE by rarity: common, uncommon, rare
+const ITEM_CAP=3,LEDGER_GOLD=5,TOKEN_OFF=.2,ITEM_STOCK=[1,.5],MULE_BUYS=5,RELIC_PRICE=[40,70,110],SMOKE_EV=.2,DRAUGHT_HEAL=5,FIRE_DMG=3; // RELIC_PRICE by rarity: common, uncommon, rare
+const itemCap=()=>ITEM_CAP+relicCount("saddle"); // Parsnip's Saddlebags: a slot each
+const priceOf=p=>camp.relics.includes("token")?Math.round(p*(1-TOKEN_OFF)):p; // Marcus's Loyalty Token
 const IICON={
  draught:'<path d="M14 4h4v4q7 3 7 10q0 7-9 7t-9-7q0-7 7-10z" fill="rgba(200,60,50,.55)" stroke="#2a1410" stroke-width="1.100"/><path d="M8.600 17q0 6 7.400 6.500q7.400-.5 7.400-6.500z" fill="#b8372d"/><rect x="13.400" y="2" width="5.200" height="3.400" rx="1" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M10 13q-1 4 0 7" stroke="#fff" stroke-width="1.100" fill="none" opacity=".6"/><path d="M14 16h4M16 14v4" stroke="#fff4f0" stroke-width="1.300" stroke-linecap="round"/>',
  smoke:'<circle cx="15" cy="19" r="9" fill="#26262a" stroke="#0a0a0c" stroke-width="1.100"/><circle cx="12" cy="16" r="2.600" fill="#fff" opacity=".25"/><path d="M20 12q3-6 8-5" stroke="#8a6a3a" stroke-width="1.600" fill="none"/><circle cx="28" cy="7" r="2" fill="#ffb347"/><circle cx="28" cy="7" r="4" fill="#ffb347" opacity=".25"/><g fill="#b8b4b0" opacity=".55"><circle cx="6" cy="9" r="3"/><circle cx="9" cy="6" r="2.400"/></g>',
@@ -2859,6 +2885,10 @@ const itemIcon=(id,sz=32)=>`<svg viewBox="0 0 32 32" width="${sz}" height="${sz}
 const MARCUS={
  greet:["Ah, a customer! Mind Parsnip, he bites. Only on Tuesdays.","Wares for the weary! Every one of them one of a kind. Mostly.","Don't mind the bones, friend. Business has been dead lately. Ha!","Back from the fighting, eh? Gold spends the same whether you're alive or not. Trust me.","Herbert sends his regards. He still owes me for that mug."],
  buy:["Pleasure doing business!","Sold! No refunds. No exceptions. No questions.","Parsnip approves. I can tell. He's still asleep.","A fine choice for a fine customer."],
+ saddle:"Parsnip's spare saddlebags! He won't notice they're gone. He's asleep.",
+ horseshoe:"Parsnip's lucky horseshoe. He threw it, I caught it. That's how luck works.",
+ token:"A loyalty token! Don't tell my other customers. There aren't any, but still.",
+ ledger:"A tax collector's ledger. He won't be needing it. Long story. Don't ask.",
  mule:"Genuine mule hair. Sourced from a very distant mule. Not Parsnip. Don't look at Parsnip.",
  fire:"Fire Flask? Excellent choice. Point it away from the wagon, please.",
  coin:"A genuine Copper Coin of Good Fortune! I've only got... well, a few.",
@@ -2875,30 +2905,30 @@ let shopNode=null;
 const marcusSays=t=>{$("shline").textContent=t};
 function openShop(n){shopNode=n;marcusSays(MARCUS.greet[Math.floor(Math.random()*MARCUS.greet.length)]);$("shscene").innerHTML=shopScene();renderShop();$("shopv").hidden=false;$("shopv").scrollTop=0;$("shleave").focus({preventScroll:true})}
 function renderShop(){
-  const n=shopNode,full=camp.items.length>=ITEM_CAP;
-  $("shgold").innerHTML=`${PURSE}<b>${camp.gold}</b> gold<span class="shpack">Pack: ${camp.items.length} of ${ITEM_CAP}</span>`;
+  const n=shopNode,full=camp.items.length>=itemCap();
+  $("shgold").innerHTML=`${PURSE}<b>${camp.gold}</b> gold<span class="shpack">Pack: ${camp.items.length} of ${itemCap()}</span>`;
   const row=(kind,id,name,price,label,desc,icon,why,rc)=>`<button class="rcard shitem" data-kind="${kind}" data-id="${id}" style="--rc:${rc}"${why?" aria-disabled=\"true\"":""}><span class="ri">${icon}</span><span class="rr">${label}</span><b>${name}</b><small>${desc}</small><span class="shprice${why?" off":""}">${why||price+" gold"}</span></button>`;
   const need=p=>camp.gold<p?`Need ${p-camp.gold} more`:"";
-  $("shlist").innerHTML='<div class="shsec">Consumables</div>'+(n.stock.items||Object.keys(ITEMS).filter(id=>!ITEMS[id].r)).map(id=>{const I=ITEMS[id];return row("item",id,I.name,I.price,(I.r?RARITY[I.r][0]+" consumable":"Consumable")+" \u00b7 one use",I.desc,itemIcon(id,38),full?"Pack full":need(I.price),I.r?RARITY[I.r][1]:"#a08a64")}).join("")
-    +'<div class="shsec">Relics</div>'+(n.stock.relics.length?n.stock.relics.map(id=>{const R=RELICS[id],[rn,rc]=RARITY[R.r],pr=RELIC_PRICE[R.r];return row("relic",id,R.name,pr,rn+" relic",R.desc,relicIcon(id,38),n.stock.sold.includes(id)?"Sold":relicCount(id)>=(R.max||1)?"Owned":need(pr),rc)}).join(""):'<p class="rsub">Marcus has no relics for you today.</p>');
+  $("shlist").innerHTML='<div class="shsec">Consumables</div>'+(n.stock.items||Object.keys(ITEMS).filter(id=>!ITEMS[id].r)).map(id=>{const I=ITEMS[id],pr=priceOf(I.price);return row("item",id,I.name,pr,(I.r?RARITY[I.r][0]+" consumable":"Consumable")+" \u00b7 one use",I.desc,itemIcon(id,38),full?"Pack full":need(pr),I.r?RARITY[I.r][1]:"#a08a64")}).join("")
+    +'<div class="shsec">Relics</div>'+(n.stock.relics.length?n.stock.relics.map(id=>{const R=RELICS[id],[rn,rc]=RARITY[R.r],pr=priceOf(RELIC_PRICE[R.r]);return row("relic",id,R.name,pr,rn+" relic",R.desc,relicIcon(id,38),n.stock.sold.includes(id)?"Sold":relicCount(id)>=(R.max||1)?"Owned":need(pr),rc)}).join(""):'<p class="rsub">Marcus has no relics for you today.</p>');
   $("shlist").querySelectorAll(".shitem").forEach(b=>b.onclick=()=>buy(b.dataset.kind,b.dataset.id));
 }
 const boughtFromMarcus=()=>{unlocks.buys=(unlocks.buys||0)+1;saveU();if(unlocks.buys>=MULE_BUYS)unlock("mule")}; // every purchase counts toward the Mule Hair Potion
 function buy(kind,id){
   const n=shopNode;
   if(kind==="item"){
-    const I=ITEMS[id];if(camp.items.length>=ITEM_CAP)return marcusSays(MARCUS.full);if(camp.gold<I.price)return marcusSays(MARCUS.poor);
-    camp.gold-=I.price;camp.items.push(id);boughtFromMarcus();marcusSays(id==="mule"?MARCUS.mule:id==="fire"?MARCUS.fire:MARCUS.buy[Math.floor(Math.random()*MARCUS.buy.length)]);
+    const I=ITEMS[id],pr=priceOf(I.price);if(camp.items.length>=itemCap())return marcusSays(MARCUS.full);if(camp.gold<pr)return marcusSays(MARCUS.poor);
+    camp.gold-=pr;camp.items.push(id);boughtFromMarcus();marcusSays(id==="mule"?MARCUS.mule:id==="fire"?MARCUS.fire:MARCUS.buy[Math.floor(Math.random()*MARCUS.buy.length)]);
   }else{
-    const R=RELICS[id],pr=RELIC_PRICE[R.r];if(n.stock.sold.includes(id)||relicCount(id)>=(R.max||1))return;if(camp.gold<pr)return marcusSays(MARCUS.poor);
-    camp.gold-=pr;camp.relics.push(id);boughtFromMarcus();n.stock.sold.push(id);marcusSays(id==="coin"?MARCUS.coin:MARCUS.buy[Math.floor(Math.random()*MARCUS.buy.length)]);renderRelics();
+    const R=RELICS[id],pr=priceOf(RELIC_PRICE[R.r]);if(n.stock.sold.includes(id)||relicCount(id)>=(R.max||1))return;if(camp.gold<pr)return marcusSays(MARCUS.poor);
+    camp.gold-=pr;camp.relics.push(id);boughtFromMarcus();n.stock.sold.push(id);marcusSays(MARCUS[id]||MARCUS.buy[Math.floor(Math.random()*MARCUS.buy.length)]);renderRelics();
   }
   sfx("coin");saveCamp();renderGold();renderItems();renderShop();
 }
 $("shleave").onclick=()=>{marcusSays(MARCUS.bye);$("shopv").hidden=true;shopNode=null;renderWorld()};
 // the pack on the world map: tap an item for its details
 function renderItems(){
-  $("witems").innerHTML=(camp.items||[]).map((id,i)=>`<button class="rchip ichip" data-id="${id}" title="${ITEMS[id].name}" aria-label="${ITEMS[id].name}">${itemIcon(id,26)}</button>`).join("")+((camp.items||[]).length?`<span class="ipack">${camp.items.length}/${ITEM_CAP}</span>`:"");
+  $("witems").innerHTML=(camp.items||[]).map((id,i)=>`<button class="rchip ichip" data-id="${id}" title="${ITEMS[id].name}" aria-label="${ITEMS[id].name}">${itemIcon(id,26)}</button>`).join("")+((camp.items||[]).length?`<span class="ipack">${camp.items.length}/${itemCap()}</span>`:"");
   $("witems").querySelectorAll(".ichip").forEach(b=>b.onclick=()=>{const I=ITEMS[b.dataset.id];relinfoFrom=b;$("rititle").textContent=I.name;$("ribody").innerHTML=`<div class="rcard" style="--rc:#a08a64"><span class="ri">${itemIcon(b.dataset.id,38)}</span><span class="rr">Consumable \u00b7 one use</span><small>${I.desc} In battle, select a unit and tap Use Item.</small></div>`;$("relinfo").hidden=false;$("riclose").focus()});
 }
 function renderRelics(){ // just the symbols; tap one for its details
