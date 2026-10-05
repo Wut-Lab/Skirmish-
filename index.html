@@ -25,7 +25,7 @@ h1{font-size:1.4rem;margin:0 0 4px}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .haunted{--tile:#3c3b38;--tile2:#373633}}
 :root[data-theme="dark"] .haunted{--tile:#3c3b38;--tile2:#373633}
 .t.sw{background:#4b4a33}
-.t.lv{background:#e2531a;cursor:default}.t.lv .dec{animation:lavaglow 3.200s ease-in-out infinite}.t.mg{background:#3b2722}.t.vo{cursor:default}.t.wo{background:#3f3e2c;cursor:default}@media (prefers-reduced-motion:no-preference){.t.wo .dec{animation:wisp 3.2s ease-in-out infinite alternate}}@keyframes wisp{from{opacity:.78}to{opacity:1}}
+.t.lv{background:#e2531a;cursor:default}.t.lv .dec{animation:lavaglow 3.200s ease-in-out infinite}.t.mg{background:#3b2722}.t.vo{cursor:default}.t.wo{background:#3f3e2c}@media (prefers-reduced-motion:no-preference){.t.wo .dec{animation:wisp 3.2s ease-in-out infinite alternate}}@keyframes wisp{from{opacity:.78}to{opacity:1}}
 @keyframes lavaglow{50%{opacity:.82}}@media (prefers-reduced-motion:reduce){.t.lv .dec{animation:none}}
 .volcanic{--tile:#8a7d72;--tile2:#83766b} /* Molten Wastes: ashen rock underfoot */
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .volcanic{--tile:#3e3631;--tile2:#39312c}}
@@ -683,7 +683,7 @@ function discover(){ // a short "New Discovery!" banner that fades away on whate
 const XB_DMG=4; // exploding barrel damage
 let BARRELS=new Set(),XBAR=new Set(),CAMPS=new Set(),bchoice=null,choiceMv=null,lastMove=null; // XBAR: the barrels that explode
 let WALLV=0,FORTV=new Map(),FORTK=new Set(); // one wall style per map; each connected fortress group shares one style; FORTK: the tile holding each fortress's keep
-const solid=k=>WALLS.has(k)||DEEP.has(k)||BARRELS.has(k)||CAMPS.has(k)||GRAVES.has(k)||LAVA.has(k)||VOLC.has(k)||WISP.has(k);
+const solid=k=>WALLS.has(k)||DEEP.has(k)||BARRELS.has(k)||CAMPS.has(k)||GRAVES.has(k)||LAVA.has(k)||VOLC.has(k);
 // each connected fortress group shares one style; its first tile holds the keep
 function groupForts(style){
   FORTV=new Map();FORTK=new Set();
@@ -825,8 +825,8 @@ function genMap(o={}){
       const x=R(W),y=4+R(H-8),ok=(a,b)=>a>=0&&a<W&&!walls.has(K(a,b))&&!graves.has(K(a,b))&&!fort.has(K(a,b))&&!swamp.has(K(a,b))&&!bars.has(K(a,b))&&!deep.has(K(a,b))&&!hot(a,b);
       if(ok(x,y)&&!forest.has(K(x,y))&&!shal.has(K(x,y))&&DIRS.filter(([dx,dy])=>ok(x+dx,y+dy)).length>=3)camps.add(K(x,y));
     }
-    const wisps=new Set(); // Will-o'-the-Wisp (unlockable): swamp maps sometimes get one in the middle or a mirrored pair, with room around it
-    if(unlocks.wisp&&o.swamp&&Math.random()<(o.swamp>=3?.6:.3)){
+    const wisps=new Set(); // Will-o'-the-Wisp (unlockable): swamp maps often, and forest maps now and then, get one in the middle or a mirrored pair
+    if(unlocks.wisp&&Math.random()<(o.swamp>=3?.6:o.swamp?.3:o.forest>=9?.15:0)){
       const ok=(a,b)=>a>=0&&a<W&&b>=0&&b<H&&!walls.has(K(a,b))&&!graves.has(K(a,b))&&!fort.has(K(a,b))&&!bars.has(K(a,b))&&!camps.has(K(a,b))&&!deep.has(K(a,b))&&!forest.has(K(a,b))&&!hot(a,b)&&!wisps.has(K(a,b));
       const roomy=(a,b)=>ok(a,b)&&DIRS.filter(([dx,dy])=>ok(a+dx,b+dy)).length>=3;
       if(Math.random()<.5){for(let t=0;t<60;t++){const a=2+R(W-4),b=5+R(2);if(roomy(a,b)){wisps.add(K(a,b));break}}}
@@ -838,11 +838,11 @@ function genMap(o={}){
       const[x,y]=q.pop();
       for(const[dx,dy] of DIRS){
         const nx=x+dx,ny=y+dy,k=nx+","+ny;
-        if(nx<0||ny<0||nx>=W||ny>=H||walls.has(k)||deep.has(k)||bars.has(k)||camps.has(k)||graves.has(k)||lava.has(k)||volc.has(k)||wisps.has(k)||seen.has(k))continue;
+        if(nx<0||ny<0||nx>=W||ny>=H||walls.has(k)||deep.has(k)||bars.has(k)||camps.has(k)||graves.has(k)||lava.has(k)||volc.has(k)||seen.has(k))continue;
         seen.add(k);q.push([nx,ny]);
       }
     }
-    if(seen.size===W*H-walls.size-deep.size-bars.size-camps.size-graves.size-lava.size-volc.size-wisps.size){ // every open tile connects: lava never cuts anyone off
+    if(seen.size===W*H-walls.size-deep.size-bars.size-camps.size-graves.size-lava.size-volc.size){ // every open tile connects: lava never cuts anyone off
       WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;SWAMP=swamp;MURKY=o.swamp>=3;GRAVES=graves;HAUNTED=!!o.graves;LAVA=lava;MAGMA=magma;VOLC=volc;WISP=wisps;VOLCANIC=!!o.lava;CHERRY=cherry;BARRELS=bars;XBAR=xbars;CAMPS=camps;WALLV=R(4);
       groupForts(()=>R(2));
       return;
@@ -1118,7 +1118,7 @@ const TERRAIN={
  xbarrel:{name:"Exploding Barrel",bg:"",art:()=>[XBAR_V],unlock:"xbarrels",desc:`Impassable. Breaking it deals ${XB_DMG} damage to every unit on the 8 tiles around it and sets off barrels in the blast. Each barrel has a 25% chance to be one.`},
  lava:{name:"Lava",bg:"background:#e2531a",art:()=>LAVA_V,unlock:"volcanic",desc:"Impassable. Units can't enter or cross it, but attacks can pass over it. Pools and flows in rivers, but never fully cuts off any part of the map."},
  magma:{name:"Magma Crust",bg:"background:#3b2722",art:()=>MAGMA_V,unlock:"volcanic",desc:"No movement penalty, but a unit that ends its turn on it takes 1 damage, ignoring armor."},
- wisp:{name:"Will-o'-the-Wisp",bg:"background:#3f3e2c",art:()=>WISP_V,unlock:"wisp",desc:"Impassable. A ghostly bog light found in swamps. At the end of each round it slows one random unit on the 8 tiles around it, friend or foe: that unit can move only 1 tile on its next turn."},
+ wisp:{name:"Will-o'-the-Wisp",bg:"background:#3f3e2c",art:()=>WISP_V,unlock:"wisp",desc:"A ghostly bog light found in swamps, and now and then in deep forest. Units can pass through it. At the end of each round it slows one random unit on it or the 8 tiles around it, friend or foe: that unit can move only 1 tile on its next turn."},
  volcano:{name:"Volcano",bg:"",art:()=>VOLC_V,unlock:"volcanic",desc:"Impassable. 1 to 3 per map. At the end of each turn it has a small chance to erupt, dealing 2 damage (ignoring armor) to any unit on 3 random tiles around it."},
  wall:{name:"Wall",bg:"background:var(--wall)",art:()=>[0,1,2,3].map(v=>wallArt(v,0)),desc:"Impassable. Units can't enter or cross it, but attacks can pass over it."},
  fort:{name:"Fortress",bg:FR,art:()=>[fortArt(0,0,true),fortArt(0,1,true)],desc:"Uncommon. A unit standing on one gets +1 armor."}};
@@ -1874,7 +1874,7 @@ function hazards(team,done){
 function wispsAct(){
   const hit=[];
   WISP.forEach(k=>{
-    const near=blastOf(k).map(([x,y])=>at(x,y)).filter(u=>u&&!u.slow&&!calm(u)&&!muled(u)&&!hit.includes(u));
+    const near=[...blastOf(k),pk(k)].map(([x,y])=>at(x,y)).filter(u=>u&&!u.slow&&!calm(u)&&!muled(u)&&!hit.includes(u));
     if(!near.length)return;
     const u=near[Math.floor(Math.random()*near.length)];u.slow=1;hit.push(u);floatText(u.x,u.y,"Slow","slow");
   });
@@ -1960,7 +1960,7 @@ function evalTile(u,x,y,D,foes,xv){
   const care=.5+(1-u.hp/T.hp)*.9; // wounded units value safety more
   let s=(threat+wt)*care+(WOODS(k)?(mods[u.team]==="FT"?-1.5:1.5):0)+(CHERRY.has(k)?.5-(1-u.hp/T.hp):0)+(FORT.has(k)?-2:0)+(SHALLOW.has(k)?1.5:0); // forests slow the next move, but Forest Tactics likes them
   s+=blastOf(k).filter(([a,b])=>XBAR.has(a+","+b)).length*2; // don't loiter beside exploding barrels
-  s+=(MAGMA.has(k)?3:0)+blastOf(k).filter(([a,b])=>VOLC.has(a+","+b)).length*.6+blastOf(k).filter(([a,b])=>WISP.has(a+","+b)).length*.4; // ...and wisps might slow // magma burns at turn end; volcanoes might erupt
+  s+=(MAGMA.has(k)?3:0)+blastOf(k).filter(([a,b])=>VOLC.has(a+","+b)).length*.6+([...blastOf(k),pk(k)].filter(([a,b])=>WISP.has(a+","+b)).length)*.4; // ...and wisps might slow // magma burns at turn end; volcanoes might erupt
   const atk=inR.length?20+Math.max(...inR.map(p=>{const c=combat(u,p,g),kill=c.dmg>=p.hp,r=kill?null:retaliation(u,p,g); // a kill avoids any retaliation
     return c.hit*(10*c.dmg/p.hp+(kill?12:0))+(VAL[p.t]||0)-(r?r.hit*(r.dmg*2.5+(r.dmg>=u.hp?15:0))*care:0)})):0;
   const bv=(xv||[]).reduce((m,[bk,v])=>{const[a,b]=pk(bk),dd=Math.abs(a-x)+Math.abs(b-y);return dd>=T.mn&&dd<=rg&&!(Math.abs(a-x)<=1&&Math.abs(b-y)<=1)?Math.max(m,14+v):m},0);
@@ -3028,7 +3028,7 @@ const CHALLENGES=[
   rows:["ff......ff","f..ff....f","...fff....","...ffff...","..fwwwwf..",".ffwFFwff.",".ffwFFwff.","..fwwwwf..","...ffff...","....fff...","f....ff..f","ff......ff"],
   units:[["E","f",4,0],["K","f",3,0],["K","f",6,0],["K","y",4,11],["K","y",5,11],["K","y",6,11]]},
  {id:"everglade",diff:2,reward:"wisp",hint:"a new tile",name:"Fortress at Everglade Swamp",desc:"A quiet fortress sits hidden in the Everglade Swamp. Prepare for a slow, grueling battle against well-trained knights.",biome:"swamp",mods:{y:"TP",f:"TP"},
-  rows:["mmFm..smmm","mFFm....sm","FFFm....ss","mmmmm....f","FF.mssmff.","bx.sssm.ff","xmsssm....","ssss......","sss.......","sm........","mm........",".........f"],
+  rows:["mmFm..smmm","mFFm....sm","FFFm....ss","mmmmm....f","FF.mssoff.","bx.sssm.ff","xmsssm....","ssss......","sss.......","sm........","mm........",".........f"],
   units:[["R","f",1,1],["K","f",0,2],["K","f",2,0],["A","f",2,2],["K","f",0,4],["A","y",8,10],["K","y",9,10],["K","y",8,11],["P","y",9,9],["E","y",7,11]]},
  {id:"wharton",diff:1,reward:"chicken",hint:"a relic",name:"Fort Wharton",desc:"A fortress with tight corridors.",biome:"forest",mods:{y:null,f:null},
   rows:["FwwwwwwwwF","Fw..ff..wF","fw..ww..wf","fw..fw..wf","fw..wf..wf","Fw..ww..wF","Fw..ww..wF","fw..ww..wf","fw..ww..wf","fw..ww..wf","Fw..ww..wF","FwwwwwwwwF"],
