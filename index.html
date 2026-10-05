@@ -657,7 +657,7 @@ const rel=(u,id)=>u.team==="y"&&RELIC.has(id);
 const BLESS_EV=.05;
 const blessed=u=>u.team==="y"&&u.blessUntil>=pturn; // Font of the Wise Ones: lasts through the enemy turn and your next one
 const canBless=(a,b)=>rel(a,"font")&&!a.blessUsed&&!a.acted&&b!==a&&b.team==="y"&&d(a,b)===1; // adjacent allies only
-const RALLY_EV=.05,RALLY_RANGE=2,FAN_EV=.1;
+const RALLY_EV=.05,RALLY_RANGE=2,FAN_EV=.1,SAKURA_WINS=5;
 const MULE_AR=2,muled=u=>u.team==="y"&&u.muleUntil>=pturn; // Mule Hair Potion: +2 armor, can't be pushed or slowed, through the enemy turn and your next one
 const DANDELION_CHANCE=.2,DANDELION_RANGE=2; // Immortal Dandelion: the chance to shrug off a lethal blow, and how near a support unit must be
 const dandelionSaves=(u,before)=>rel(u,"dandelion")&&before>=2&&units.some(s=>s!==u&&s.team==="y"&&(s.t==="P"||s.t==="E")&&d(s,u)<=DANDELION_RANGE)&&Math.random()<DANDELION_CHANCE;
@@ -788,11 +788,21 @@ function genMap(o={}){
     };
     if(o.graves)put(graves,5+R(3),false);
     put(walls,o.graves?2+R(2):3+R(3),true);put(forest,o.forest||4+R(4),false);
-    const cherry=new Set(); // a cherry grove: a little orchard of 2-5 joined tiles (mirrored), which plays exactly like forest
-    if((unlocks.cherry||o.sakura)&&!o.graves&&!o.lava&&!(o.swamp>=3)&&(o.sakura||Math.random()<(o.cherry===undefined?.3:o.cherry)))for(let g=o.sakura?3+R(2):1,t=0;g>0&&t<200;t++){ // Sakura Vale: 3-4 groves
+    const cherry=new Set(),DIRS8=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]; // a cherry grove: a little orchard of 2-5 joined tiles (mirrored), which plays exactly like forest
+    if(o.sakura){ // Sakura Vale: 3 to 5 separate groves, in mirrored pairs plus one on the middle rows when the count is odd
+      const want=3+R(3),apart=(a,b)=>free(a,b)&&!cherry.has(K(a,b))&&DIRS8.every(([dx,dy])=>!cherry.has(K(a+dx,b+dy)));
+      const put=(tl)=>tl.forEach(([a,b])=>{forest.add(K(a,b));cherry.add(K(a,b))});
+      if(want%2)for(let t=0;t<200;t++){const tl=grow(2+R(3),2+R(W-4),5+R(2));if(tl.every(([a,b])=>apart(a,b))){put(tl);break}}
+      for(let n=want>>1,t=0;n>0&&t<400;t++){
+        const tl=grow(2+R(4),1+R(W-2),3+R(H-6)),mir=tl.map(([a,b])=>[W-1-a,H-1-b]);
+        if(!tl.every(([a,b])=>apart(a,b))||!mir.every(([a,b])=>apart(a,b))||tl.some(([a,b])=>mir.some(([c,d])=>Math.abs(a-c)<=1&&Math.abs(b-d)<=1)))continue;
+        put(tl);put(mir);n--;
+      }
+    }
+    else if(unlocks.cherry&&!o.graves&&!o.lava&&!(o.swamp>=3)&&Math.random()<(o.cherry===undefined?.3:o.cherry))for(let t=0;t<60;t++){
       const tl=grow(2+R(4),1+R(W-2),3+R(H-6));
-      if(!tl.every(([a,b])=>free(a,b)&&free(W-1-a,H-1-b)&&!cherry.has(K(a,b)))||tl.some(([a,b])=>tl.some(([c,d])=>c===W-1-a&&d===H-1-b)))continue;
-      tl.forEach(([a,b])=>{both(forest,a,b);both(cherry,a,b)});g--;
+      if(!tl.every(([a,b])=>free(a,b)&&free(W-1-a,H-1-b))||tl.some(([a,b])=>tl.some(([c,d])=>c===W-1-a&&d===H-1-b)))continue;
+      tl.forEach(([a,b])=>{both(forest,a,b);both(cherry,a,b)});break;
     }
     const swamp=new Set(); // swamp patches: entering one ends a unit's move
     const SW=o.lava?{n:0,size:2}:o.swamp>=3?{n:5+R(3),size:3}:o.swamp?{n:Math.random()<.6?1+R(2):0,size:2}:{n:Math.random()<.12?1:0,size:2}; // patches (mirrored) and their size
@@ -1965,6 +1975,7 @@ function showEnd(win){
   const g=gid,nm=camp.battle?WORLD[camp.battle.node]:null;
   if(chal)return chalEnd(win);
   endMode=nm?(win?"cwin":"close"):"quick";
+  if(win&&CHERRY.size){unlocks.cg=(unlocks.cg||0)+1;saveU();if(unlocks.cg>=SAKURA_WINS)unlock("sakura")} // wins among the blossoms (campaign or quick battle) open the way to Sakura Vale
   if(nm&&win){ // record campaign progress right away
     if(!camp.cleared.includes(nm.id))camp.cleared.push(nm.id);
     campaignRecord(nm);
@@ -3302,7 +3313,7 @@ const UNLOCKS=[
  {id:"graveyard",biome:"graveyard",terrain:"grave",hint:"Our encouraging friend's home."},
  {id:"cherry",terrain:"cherry",hint:"Beauty blooms where none of your own fall."},
  {id:"wisp",terrain:"wisp",hint:"Conquer the Fortress at Everglade Swamp challenge."},
- {id:"sakura",biome:"sakura",terrain:"koi",hint:"Trigger to be decided."},
+ {id:"sakura",biome:"sakura",terrain:"koi",hint:"Walk among the blossoms long enough, and you'll find where they grow wild."},
  {id:"flowers",terrain:"flowers",hint:"Conquer the Wildflower Meadow challenge."},
  {id:"volcanic",biome:"volcanic",terrain:"lava",hint:"March on past your first conquest, and the land itself begins to burn."},
  {id:"drills",relic:"drills",hint:"Fall back from the long march often enough, and your troops learn to march faster."},
