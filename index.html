@@ -2148,7 +2148,7 @@ function seeded(sd,fn){
 function beginBattle(n){
   if(n.seed==null){n.seed=Math.floor(Math.random()*2147483647);saveCamp()} // each location's battle is fixed for the whole campaign, so losing or conceding can't reroll it
   seeded(n.seed,()=>{
-    resetBattle();chal=null;camp.battle={node:n.id};
+    resetBattle();chal=null;camp.battle={node:n.id,items0:camp.items.slice()}; // items0: the pack as the battle began, handed back if a saved battle is abandoned
     pick={x:camp.cfg.x.slice(),m:camp.cfg.m,c:camp.cfg.c};
     start(Object.assign({},BIOME[n.b]));
   });
@@ -3131,7 +3131,7 @@ $("phold").onclick=()=>{
   const A=x=>[...x],m=chal?"chal":camp.battle?"camp":"quick";
   const h={t:[WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS].map(A),
     f:{MURKY,HAUNTED,VOLCANIC,WALLV,seed,BIOME_KEY,herbertMet,firstTurn,pturn},fv:A(FORTV),fk:A(FORTK),
-    units,mods,col,tpUsed,relic:A(RELIC),relicUsed,pick,def:chal&&chal.def,node:camp.battle?camp.battle.node:null,biome:$("biome").textContent};
+    units,mods,col,tpUsed,relic:A(RELIC),relicUsed,pick,def:chal&&chal.def,node:camp.battle?camp.battle.node:null,items0:camp.battle&&camp.battle.items0,biome:$("biome").textContent};
   try{localStorage.setItem(HOLD(m),JSON.stringify(h))}catch(e){return}
   if(m==="camp")saveCamp();
   gid++;over=true;busy=false;panel("pheld");
@@ -3142,7 +3142,7 @@ function resumeHold(h){
   [WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS]=h.t.map(a=>new Set(a));
   ({MURKY,HAUNTED,VOLCANIC,WALLV,seed,BIOME_KEY,herbertMet,firstTurn,pturn}=h.f);
   FORTV=new Map(h.fv);FORTK=new Set(h.fk);units=h.units;mods=h.mods;col=h.col;tpUsed=h.tpUsed;RELIC=new Set(h.relic);relicUsed=h.relicUsed;pick=h.pick;
-  chal=h.def?{def:h.def,test:false}:null;camp.battle=h.node!=null?{node:h.node}:null;
+  chal=h.def?{def:h.def,test:false}:null;camp.battle=h.node!=null?{node:h.node,items0:h.items0}:null;
   $("biome").textContent=h.biome;show("game");say("Battle resumed. Your turn. Select one of your units.");render();
 }
 // opening a mode with a held battle asks first; abandoning it just drops the battle (no concede is counted)
@@ -3151,10 +3151,10 @@ function askHold(m,open){
   if(h&&m==="camp"&&!((camp.cfg||loadCamp())&&WORLD[h.node])){dropHold(m);h=null}
   if(!h)return open();
   $("homsg").textContent=(m==="camp"?`Your battle at ${WORLD[h.node].name} was saved partway through.`:m==="chal"?`Your attempt at ${h.def.name} was saved partway through.`:"Your Quick Battle was saved partway through.")
-    +" Abandoning it counts as a loss, and you'll start that battle over.";
+    +" Abandoning it counts as a loss, and you'll start that battle over"+(m==="camp"?" with any items you used in it back in your pack.":".");
   $("holdask").hidden=false;$("hoyes").focus();
   $("hoyes").onclick=()=>{$("holdask").hidden=true;dropHold(m);resumeHold(h)};
-  $("hono").onclick=()=>{$("holdask").hidden=true;dropHold(m);open()};
+  $("hono").onclick=()=>{$("holdask").hidden=true;dropHold(m);if(m==="camp"&&h.items0){camp.items=h.items0.slice();saveCamp()}open()}; // the battle starts over, so items used in it come back
 }
 pick={x:[],m:null,c:"blue"};show("menu");
 </script>
