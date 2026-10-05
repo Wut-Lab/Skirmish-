@@ -621,6 +621,7 @@ const RELICS={
  saddle:{name:"Parsnip's Saddlebags",r:1,src:"shop",max:2,desc:"Your pack holds one more item. Carry up to two; each adds a slot."},
  ledger:{name:"Tax Collector's Ledger",r:1,src:"shop",desc:"Each battle you win pays 5 extra gold."},
  horseshoe:{name:"Parsnip's Lucky Horseshoe",r:2,src:"shop",desc:"Once per battle, rub the horseshoe as you use an item, and the unit keeps its action."},
+ cross:{name:"Sacred Cross of the Wise Ones",r:2,src:"shop",desc:"Each of your units that falls in a battle you win has a 15% chance to be spared its wound."},
  token:{name:"Marcus's Loyalty Token",r:2,src:"shop",desc:"Everything at Marcus's wagon costs 20% less."},
  whet:{name:"Whetstones",r:0,src:"both",desc:"Archers deal +1 damage."},
  shield:{name:"Sturdy Shields",r:0,desc:"Knights get +1 armor."},
@@ -1691,11 +1692,12 @@ if(document.addEventListener){
   document.addEventListener("visibilitychange",()=>document.hidden?stopMusic():startMusic());
 }
 // Items from Marcus's wagon: using one takes the unit's action
-const itemPrompt=id=>id==="mule"?"Tap this unit to drink the potion.":id==="feather"?"Choose an ally within 2 tiles to swap places with.":id==="draught"?"Choose this unit or a wounded ally beside it.":id==="smoke"?"Choose a tile within 3 to throw the smoke bomb at.":"Choose an enemy within 3 to throw the fire flask at.";
+const itemPrompt=id=>id==="medkit"?"Choose this unit or a wounded ally beside it to mend.":id==="mule"?"Tap this unit to drink the potion.":id==="feather"?"Choose an ally within 2 tiles to swap places with.":id==="draught"?"Choose this unit or a wounded ally beside it.":id==="smoke"?"Choose a tile within 3 to throw the smoke bomb at.":"Choose an enemy within 3 to throw the fire flask at.";
 function itemTargets(u,id){
   const out=new Set();
   if(id==="draught")units.forEach(b=>{if(b.team==="y"&&d(u,b)<=1&&b.hp<maxHp(b))out.add(b.x+","+b.y)});
   else if(id==="mule")out.add(u.x+","+u.y);
+  else if(id==="medkit")units.forEach(b=>{if(b.team==="y"&&d(u,b)<=1&&b.wounds)out.add(b.x+","+b.y)});
   else if(id==="feather")units.forEach(b=>{if(b.team==="y"&&b!==u&&d(u,b)<=2)out.add(b.x+","+b.y)});
   else if(id==="fire")units.forEach(b=>{if(b.team!=="y"&&d(u,b)<=3)out.add(b.x+","+b.y)});
   else for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(Math.abs(x-u.x)+Math.abs(y-u.y)<=3)out.add(x+","+y);
@@ -1716,6 +1718,12 @@ function useItem(a,id,x,y,rub){
     say(`A gust of wind! Your ${NAME[a.t]} and ${NAME[b.t]} swapped places.`);return render();
   }
   if(!rub)a.acted=a.moved=1;sel=rub?a:null;mode=null;choice=null;lastMove=null;insp=null;
+  if(id==="medkit"){ // mends campaign wounds: max HP comes back now and stays back
+    const b=at(x,y),n=Math.min(b.wounds,a.t==="P"&&Math.random()<MEDKIT_DOUBLE?2:1);b.wounds-=n;if(!b.wounds)delete b.wounds;
+    if(b.ci!=null&&camp.wounds)camp.wounds[b.ci]=Math.max(0,woundsOf(b.ci)-n);saveCamp();
+    sfx("heal");floatText(b.x,b.y,n>1?"2 wounds mended":"Mended","heal");info=b;
+    say(`Your ${NAME[a.t]} used the Advanced Med Kit: ${n>1?"2 wounds":"1 wound"} mended${b===a?"":" for "+(camp.names&&b.ci!=null?camp.names[b.ci]:"your "+NAME[b.t])}. Max HP is now ${maxHp(b)}.`);return render();
+  }
   if(id==="mule"){a.muleUntil=pturn+1;a.slow=0;sfx("bray");floatText(a.x,a.y,"Stubborn!","slow");info=a;say(`Your ${NAME[a.t]} drank the Mule Hair Potion: +2 armor, and it can't be pushed or slowed until the end of your next turn.`);return render()}
   if(id==="draught"){const b=at(x,y),n=Math.min(DRAUGHT_HEAL,maxHp(b)-b.hp);b.hp+=n;sfx("heal");floatText(b.x,b.y,"+"+n,"heal");info=b;say(`Your ${NAME[a.t]} used a Healing Draught: +${n} HP${b===a?"":" for your "+NAME[b.t]}.`);return render()}
   if(id==="smoke"){
@@ -1887,7 +1895,7 @@ function wispsAct(){
 /* ---------- Wounds and honors: each campaign soldier has a name, a record and scars ---------- */
 // a unit that falls in a won campaign battle comes back wounded: 1 less max HP per wound, for the rest of the campaign.
 // Healing spots mend one wound per unit; Herbert's fire mends them all.
-const WOUND_MAX=3,maxHp=u=>TYPES[u.t].hp-(u.wounds||0);
+const WOUND_MAX=3,CROSS_SPARE=.15,MEDKIT_DOUBLE=.25,maxHp=u=>TYPES[u.t].hp-(u.wounds||0);
 const woundsOf=i=>(camp.wounds&&camp.wounds[i])||0,campMax=i=>TYPES[armyTypes()[i]].hp-woundsOf(i);
 const HERO_NAMES=["Aldric","Bertram","Cedric","Dunstan","Edmund","Fulk","Godfrey","Hugh","Ivo","Jocelyn","Kenric","Leofric","Maud","Nesta","Osric","Percival","Quentin","Roswitha","Sibyl","Tristan","Ulric","Wymond","Agnes","Beatrix","Ysolde","Gareth","Hawise","Odo","Rowena","Thurstan","Elfric","Mabel","Warin","Isolde","Baldwin","Edith","Ranulf","Alys","Gilbert","Petronella"];
 // honors are earned once each; a soldier goes by the latest one ("Aldric the Bold")
@@ -1909,7 +1917,8 @@ function campaignRecord(nm){
     const u=units.find(v=>v.team==="y"&&v.ci===i),nmI=camp.names[i];
     if(!u){
       (camp.falls[i]=camp.falls[i]||[]).push(nm.name);
-      if(woundsOf(i)<WOUND_MAX){camp.wounds[i]=woundsOf(i)+1;news.push(`${nmI} the ${cap(NAME[t])} fell and was wounded (max HP ${campMax(i)}).`)}
+      if(camp.relics.includes("cross")&&Math.random()<CROSS_SPARE)news.push(`${nmI} the ${cap(NAME[t])} fell, but the Sacred Cross spared them a wound.`);
+      else if(woundsOf(i)<WOUND_MAX){camp.wounds[i]=woundsOf(i)+1;news.push(`${nmI} the ${cap(NAME[t])} fell and was wounded (max HP ${campMax(i)}).`)}
       else news.push(`${nmI} the ${cap(NAME[t])} fell again, but can't be wounded any further.`);
     }
     const rec={kills:camp.kills[i]||0,falls:(camp.falls[i]||[]).length,lastStand:!!u&&u.hp===1,boss:!!u&&nm.type==="boss"},got=camp.honors[i]=camp.honors[i]||[];
@@ -2317,7 +2326,7 @@ function seeded(sd,fn){
 function beginBattle(n){
   if(n.seed==null){n.seed=Math.floor(Math.random()*2147483647);saveCamp()} // each location's battle is fixed for the whole campaign, so losing or conceding can't reroll it
   seeded(n.seed,()=>{
-    resetBattle();chal=null;camp.battle={node:n.id,items0:camp.items.slice()}; // items0: the pack as the battle began, handed back if a saved battle is abandoned
+    resetBattle();chal=null;camp.battle={node:n.id,items0:camp.items.slice(),wounds0:(camp.wounds||[]).slice()}; // items0: the pack as the battle began, handed back if a saved battle is abandoned
     pick={x:camp.cfg.x.slice(),m:camp.cfg.m,c:camp.cfg.c};
     start(Object.assign({},BIOME[n.b]));
   });
@@ -2905,6 +2914,7 @@ const RICON={ // small 32-unit relic icons
  saddle:'<path d="M5 10q11-6 22 0" stroke="#5a3a1c" stroke-width="2" fill="none"/><path d="M3 11h10v12q0 4-5 4t-5-4z" fill="#9a6a3a" stroke="#3a2412" stroke-width="1.100"/><path d="M19 11h10v12q0 4-5 4t-5-4z" fill="#8a5a2e" stroke="#3a2412" stroke-width="1.100"/><path d="M3 11h10l-1 6q-4 2-8 0zM19 11h10l-1 6q-4 2-8 0z" fill="#6a4420" stroke="#3a2412" stroke-width=".9"/><circle cx="8" cy="16.500" r="1.100" fill="#c9962a"/><circle cx="24" cy="16.500" r="1.100" fill="#c9962a"/><path d="M6 21h4M22 21h4" stroke="#c08a50" stroke-width=".8"/>',
  ledger:'<path d="M7 4h17q2 0 2 2v21q0 2-2 2H7z" fill="#4a2a3a" stroke="#1e1018" stroke-width="1.100"/><path d="M9 5h14v22H9z" fill="#efe6d2" stroke="#6a5a44" stroke-width=".7"/><path d="M11 9h10M11 12h8M11 15h10M11 18h7M11 21h9" stroke="#7a6a54" stroke-width=".8"/><path d="M18 9v14" stroke="#b8372d" stroke-width=".6" opacity=".7"/><path d="M5 4v25" stroke="#2a1420" stroke-width="2.400"/><circle cx="23" cy="25" r="4" fill="#c9962a" stroke="#6a4c10" stroke-width="1"/><path d="M22 25h2" stroke="#6a4c10" stroke-width="1.100"/>',
  horseshoe:'<path d="M9 26L7 15q-1-10 9-10t9 10l-2 11h-4l2-11q0-5-5-5t-5 5l2 11z" fill="#8f979e" stroke="#2e3338" stroke-width="1.200" stroke-linejoin="round"/><path d="M9 15q0-8 7-8" stroke="#d8dee4" stroke-width="1" fill="none" opacity=".8"/><g fill="#2e3338"><circle cx="9" cy="21" r=".9"/><circle cx="8.500" cy="14" r=".9"/><circle cx="23" cy="21" r=".9"/><circle cx="23.500" cy="14" r=".9"/></g><g fill="#ffd84a"><path d="M27 4l.8 2l2 .8l-2 .8l-.8 2l-.8-2l-2-.8l2-.8z"/><path d="M4 6l.6 1.400l1.400.6l-1.400.6l-.6 1.400l-.6-1.400l-1.400-.6l1.400-.6z"/></g>',
+ cross:'<circle cx="16" cy="14" r="12" fill="#ffe7a0" opacity=".22"/><path d="M13 3h6v7h7v6h-7v13h-6V16H6v-6h7z" fill="#d8b24a" stroke="#6a4c10" stroke-width="1.200" stroke-linejoin="round"/><path d="M14.500 4.500v7h-7M14.500 16v11.500" stroke="#f6e2a0" stroke-width="1" fill="none" opacity=".8"/><circle cx="16" cy="13" r="2.600" fill="#5ac8f0" stroke="#1e4a6a" stroke-width=".9"/><circle cx="15.300" cy="12.300" r=".8" fill="#e8faff"/>',
  token:'<circle cx="16" cy="16" r="12" fill="#d8b24a" stroke="#6a4c10" stroke-width="1.300"/><circle cx="16" cy="16" r="9" fill="none" stroke="#f4dc8a" stroke-width="1"/><circle cx="16" cy="14" r="3.600" fill="#f2ead8" stroke="#6a4c10" stroke-width=".9"/><circle cx="14.700" cy="13.600" r=".9" fill="#3a2a14"/><circle cx="17.300" cy="13.600" r=".9" fill="#3a2a14"/><path d="M14.600 16h2.800" stroke="#3a2a14" stroke-width=".7"/><path d="M11 22q5-3 10 0" stroke="#6a4c10" stroke-width="1.100" fill="none"/><path d="M10 9l2 2M22 9l-2 2" stroke="#f4dc8a" stroke-width=".8"/>',
  coin:'<circle cx="16" cy="16" r="12" fill="#b8693a" stroke="#5a2a10" stroke-width="1.300"/><circle cx="16" cy="16" r="9" fill="none" stroke="#e09a5a" stroke-width="1"/><g fill="#3f7a3a" stroke="#1e4a1c" stroke-width=".7"><circle cx="14" cy="13" r="2.400"/><circle cx="18" cy="13" r="2.400"/><circle cx="14" cy="17" r="2.400"/><circle cx="18" cy="17" r="2.400"/></g><path d="M16 17q1 4 3 6" stroke="#1e4a1c" stroke-width="1" fill="none"/><path d="M8 11q3-5 8-6" stroke="#f0c08a" stroke-width="1.200" fill="none" opacity=".7"/>',
  whet:'<path d="M5 21l17-12q4-2 5 1t-2 5L9 25q-4 2-5-1t1-3z" fill="#8f979e" stroke="#2e3338" stroke-width="1.200"/><path d="M8 21l15-10" stroke="#d2d8dd" stroke-width="1.300" opacity=".7"/><path d="M9 24l14-10" stroke="#5c646b" stroke-width="1" opacity=".6"/>',
@@ -2939,6 +2949,7 @@ const ITEMS={ // consumables, used in battle (campaign only); using one takes th
  smoke:{name:"Smoke Bomb",price:30,desc:"Throw at a tile within 3: your units on it and the 8 tiles around it get +20% evasion until your next turn."},
  fire:{name:"Fire Flask",price:35,desc:"Throw at an enemy within 3 for 3 damage, ignoring armor."},
  feather:{name:"Wind Elemental's Feather",price:40,r:1,free:1,desc:"Swap this unit with an ally within 2 tiles. Neither unit uses its move or action."},
+ medkit:{name:"Advanced Med Kit",price:45,r:1,desc:"Mend 1 wound on this unit or an adjacent ally (campaign wounds, restoring 1 max HP). An Apothecary using it has a 25% chance to mend 2."},
  mule:{name:"Mule Hair Potion",price:40,r:1,lock:"mule",desc:"The drinker turns stubborn as a mule: +2 armor, and it can't be pushed or slowed, until the end of your next turn. Brewed from genuine mule hair. Marcus swears Parsnip had nothing to do with it."}};
 // r: rarity (commons are always stocked; an uncommon turns up on about half of visits); free: using it costs the unit nothing; lock: the unlock it waits for
 const ITEM_CAP=3,LEDGER_GOLD=5,TOKEN_OFF=.2,ITEM_STOCK=[1,.5],MULE_BUYS=5,RELIC_PRICE=[40,70,110],SMOKE_EV=.2,DRAUGHT_HEAL=5,FIRE_DMG=3; // RELIC_PRICE by rarity: common, uncommon, rare
@@ -2947,6 +2958,7 @@ const priceOf=p=>camp.relics.includes("token")?Math.round(p*(1-TOKEN_OFF)):p; //
 const IICON={
  draught:'<path d="M14 4h4v4q7 3 7 10q0 7-9 7t-9-7q0-7 7-10z" fill="rgba(200,60,50,.55)" stroke="#2a1410" stroke-width="1.100"/><path d="M8.600 17q0 6 7.400 6.500q7.400-.5 7.400-6.500z" fill="#b8372d"/><rect x="13.400" y="2" width="5.200" height="3.400" rx="1" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M10 13q-1 4 0 7" stroke="#fff" stroke-width="1.100" fill="none" opacity=".6"/><path d="M14 16h4M16 14v4" stroke="#fff4f0" stroke-width="1.300" stroke-linecap="round"/>',
  smoke:'<circle cx="15" cy="19" r="9" fill="#26262a" stroke="#0a0a0c" stroke-width="1.100"/><circle cx="12" cy="16" r="2.600" fill="#fff" opacity=".25"/><path d="M20 12q3-6 8-5" stroke="#8a6a3a" stroke-width="1.600" fill="none"/><circle cx="28" cy="7" r="2" fill="#ffb347"/><circle cx="28" cy="7" r="4" fill="#ffb347" opacity=".25"/><g fill="#b8b4b0" opacity=".55"><circle cx="6" cy="9" r="3"/><circle cx="9" cy="6" r="2.400"/></g>',
+ medkit:'<path d="M12 8q0-4 4-4t4 4" stroke="#3a2412" stroke-width="1.800" fill="none"/><rect x="4" y="8" width="24" height="18" rx="3" fill="#8a5a2e" stroke="#3a2412" stroke-width="1.200"/><path d="M4 13h24" stroke="#6a4420" stroke-width="1"/><rect x="9" y="12" width="14" height="12" rx="2" fill="#efe6d2" stroke="#4a3a28" stroke-width=".9"/><path d="M16 14.500v7M12.500 18h7" stroke="#c8372d" stroke-width="2.600" stroke-linecap="round"/><path d="M6 10h3" stroke="#c08a50" stroke-width=".9"/>',
  mule:'<path d="M13 3h6v4h-6z" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M12 7h8v3q6 3 6 10q0 8-10 8T6 20q0-7 6-10z" fill="rgba(170,120,70,.5)" stroke="#2a1410" stroke-width="1.100"/><path d="M6.600 19q0 8 9.400 8.500q9.400-.5 9.400-8.500z" fill="#8a5a2e"/><path d="M11 14q-2 4-1 8" stroke="#fff" stroke-width="1" fill="none" opacity=".55"/><path d="M18 15q3 1 2 4M21 14q2 2 1 4M16 17q2 2 1 4" stroke="#3a2412" stroke-width=".9" fill="none" stroke-linecap="round"/><path d="M19 2q4-2 6 1" stroke="#6a4a2a" stroke-width="1.200" fill="none" stroke-linecap="round"/>',
  feather:'<path d="M6 27q3-12 13-19q5-4 9-4q0 4-4 9q-7 10-18 14z" fill="#eef6fb" stroke="#3a5a6a" stroke-width="1.100" stroke-linejoin="round"/><path d="M6 27L24 8" stroke="#5a7a8a" stroke-width="1.100"/><path d="M12 20l-2-5M15 17l-1-6M18 14l0-5M13 19l5 1M16 16l6 0M19 13l5-1" stroke="#9ab8c8" stroke-width=".8"/><path d="M3 12q4-3 8 0t8 0M1 18q3-2 6 0" stroke="#6ab0d8" stroke-width="1.300" fill="none" stroke-linecap="round" opacity=".8"/>',
  fire:'<path d="M10 28v-10q0-7 6-9q6 2 6 9v10z" fill="#e2531a" stroke="#2a1410" stroke-width="1.100"/><path d="M13.500 9h5V5h-5z" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><circle cx="16" cy="20" r="7" fill="#ff8a2a" opacity=".28"/><path d="M16 25q-4-4 0-10q4 6 0 10z" fill="#ffd27a"/><path d="M12 16q-1 5 0 9" stroke="#fff" stroke-width="1" opacity=".45" fill="none"/>'};
@@ -2954,6 +2966,8 @@ const itemIcon=(id,sz=32)=>`<svg viewBox="0 0 32 32" width="${sz}" height="${sz}
 const MARCUS={
  greet:["Ah, a customer! Mind Parsnip, he bites. Only on Tuesdays.","Wares for the weary! Every one of them one of a kind. Mostly.","Don't mind the bones, friend. Business has been dead lately. Ha!","Back from the fighting, eh? Gold spends the same whether you're alive or not. Trust me.","Herbert sends his regards. He still owes me for that mug."],
  buy:["Pleasure doing business!","Sold! No refunds. No exceptions. No questions.","Parsnip approves. I can tell. He's still asleep.","A fine choice for a fine customer."],
+ medkit:"The advanced kit! Bandages, splints, and a needle I've only used twice. On other people.",
+ cross:"The Sacred Cross of the Wise Ones. Fell off a cart. A holy cart. Don't ask which.",
  saddle:"Parsnip's spare saddlebags! He won't notice they're gone. He's asleep.",
  horseshoe:"Parsnip's lucky horseshoe. He threw it, I caught it. That's how luck works.",
  token:"A loyalty token! Don't tell my other customers. There aren't any, but still.",
@@ -3339,7 +3353,7 @@ $("phold").onclick=()=>{
   const A=x=>[...x],m=chal?"chal":camp.battle?"camp":"quick";
   const h={t:[WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS,WISP].map(A),
     f:{MURKY,HAUNTED,VOLCANIC,WALLV,seed,BIOME_KEY,herbertMet,firstTurn,pturn},fv:A(FORTV),fk:A(FORTK),
-    units,mods,col,tpUsed,relic:A(RELIC),relicUsed,pick,def:chal&&chal.def,node:camp.battle?camp.battle.node:null,items0:camp.battle&&camp.battle.items0,biome:$("biome").textContent};
+    units,mods,col,tpUsed,relic:A(RELIC),relicUsed,pick,def:chal&&chal.def,node:camp.battle?camp.battle.node:null,items0:camp.battle&&camp.battle.items0,wounds0:camp.battle&&camp.battle.wounds0,biome:$("biome").textContent};
   try{localStorage.setItem(HOLD(m),JSON.stringify(h))}catch(e){return}
   if(m==="camp")saveCamp();
   gid++;over=true;busy=false;panel("pheld");
@@ -3350,7 +3364,7 @@ function resumeHold(h){
   [WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS,WISP=new Set()]=h.t.map(a=>new Set(a));
   ({MURKY,HAUNTED,VOLCANIC,WALLV,seed,BIOME_KEY,herbertMet,firstTurn,pturn}=h.f);
   FORTV=new Map(h.fv);FORTK=new Set(h.fk);units=h.units;mods=h.mods;col=h.col;tpUsed=h.tpUsed;RELIC=new Set(h.relic);relicUsed=h.relicUsed;pick=h.pick;
-  chal=h.def?{def:h.def,test:false}:null;camp.battle=h.node!=null?{node:h.node,items0:h.items0}:null;
+  chal=h.def?{def:h.def,test:false}:null;camp.battle=h.node!=null?{node:h.node,items0:h.items0,wounds0:h.wounds0}:null;
   $("biome").textContent=h.biome;show("game");say("Battle resumed. Your turn. Select one of your units.");render();
 }
 // opening a mode with a held battle asks first; abandoning it just drops the battle (no concede is counted)
@@ -3362,7 +3376,7 @@ function askHold(m,open){
     +" Abandoning it counts as a loss, and you'll start that battle over"+(m==="camp"?" with any items you used in it back in your pack.":".");
   $("holdask").hidden=false;$("hoyes").focus();
   $("hoyes").onclick=()=>{$("holdask").hidden=true;dropHold(m);resumeHold(h)};
-  $("hono").onclick=()=>{$("holdask").hidden=true;dropHold(m);if(m==="camp"&&h.items0){camp.items=h.items0.slice();saveCamp()}open()}; // the battle starts over, so items used in it come back
+  $("hono").onclick=()=>{$("holdask").hidden=true;dropHold(m);if(m==="camp"&&h.items0){camp.items=h.items0.slice();if(h.wounds0)camp.wounds=h.wounds0.slice();saveCamp()}open()}; // the battle starts over, so items used in it come back
 }
 pick={x:[],m:null,c:"blue"};show("menu");
 </script>
