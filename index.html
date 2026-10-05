@@ -603,7 +603,7 @@ const MUSTER_USES=2,MUSTER_ALIVE=2,BANNER_RANGE=2; // Captain: musters per battl
 const RELICS={
  gauntlets:{name:"Spiked Gauntlets",r:0,src:"both",desc:"Your units deal +1 damage when they retaliate."},
  coin:{name:"Copper Coin of Good Fortune",r:2,src:"shop",max:2,desc:"Shows one extra relic to choose from after each battle. Carry up to two; each adds a choice."},
- whet:{name:"Whetstones",r:0,desc:"Archers deal +1 damage."},
+ whet:{name:"Whetstones",r:0,src:"both",desc:"Archers deal +1 damage."},
  shield:{name:"Sturdy Shields",r:0,desc:"Knights get +1 armor."},
  rations:{name:"Trail Rations",r:0,src:"both",desc:"Your units heal 1 extra HP after each battle."},
  bandages:{name:"Spare Bandages",r:0,desc:"Your units that fall in a battle return for the next one with 3 HP instead of 1."},
@@ -622,6 +622,7 @@ const RELICS={
  font:{name:"Font of the Wise Ones",r:2,lock:"font",find:1,desc:"Once per battle, each of your units can spend its action to bless an adjacent ally: the ally gets +5% evasion until the end of your next turn."},
  mercy:{name:"Mercy Blade",r:2,desc:"Your units deal +2 damage to enemies at half health or less."},
  horn:{name:"Hunter's Horn of the Old Wood",r:2,lock:"horn",find:1,desc:"Your units attacking from a forest tile deal +2 damage."},
+ dandelion:{name:"Immortal Dandelion",r:2,lock:"dandelion",find:1,desc:"Your units with 2 or more HP that are within 2 tiles of an ally Apothecary or Enchanter have a 20% chance to survive a lethal blow with 1 HP."},
  bluemagma:{name:"Blue Magma",r:2,lock:"bluemagma",find:1,desc:"Your units' attacks get +1 pierce. When used to fire a smith's furnace, the steel comes out with a faint blue glow."},
  mug:{name:"Herbert's Mug",r:2,desc:"Once per battle, the first of your units to fall survives with 1 HP instead."},
  cap:{name:"Herbert's Nightcap",r:2,desc:"Once per battle, the first of your units to drop to half HP or less (without falling) heals 2 HP."}};
@@ -632,6 +633,8 @@ const BLESS_EV=.05;
 const blessed=u=>u.team==="y"&&u.blessUntil>=pturn; // Font of the Wise Ones: lasts through the enemy turn and your next one
 const canBless=(a,b)=>rel(a,"font")&&!a.blessUsed&&!a.acted&&b!==a&&b.team==="y"&&d(a,b)===1; // adjacent allies only
 const RALLY_EV=.05,RALLY_RANGE=2;
+const DANDELION_CHANCE=.2,DANDELION_RANGE=2; // Immortal Dandelion: the chance to shrug off a lethal blow, and how near a support unit must be
+const dandelionSaves=(u,before)=>rel(u,"dandelion")&&before>=2&&units.some(s=>s!==u&&s.team==="y"&&(s.t==="P"||s.t==="E")&&d(s,u)<=DANDELION_RANGE)&&Math.random()<DANDELION_CHANCE;
 const rallied=u=>u.team==="y"&&u.rallyUntil>=pturn; // Trumpet of Encouragement: lasts through the enemy turn and your next one
 const canTrumpet=u=>rel(u,"trumpet")&&!relicUsed.trumpet&&!u.acted&&!u.auto&&units.some(b=>b!==u&&b.team==="y"&&d(u,b)<=RALLY_RANGE);
 // Cherry Grove, Moment of Calm: counts as forest only for movement; no forest combat bonuses, no slowing, no retaliation in or out
@@ -1185,7 +1188,7 @@ function muster(u){ // 1-2 militia appear beside the captain, nearest the enemy 
   const foes=units.filter(e=>e.team!==u.team&&e.team!=="w"),near=([x,y])=>foes.length?Math.min(...foes.map(e=>Math.abs(e.x-x)+Math.abs(e.y-y))):0;
   const spots=musterSpots(u).sort((a,b)=>near(a)-near(b)),n=Math.min(MUSTER_ALIVE-units.filter(m=>m.cap===u).length,1+(Math.random()<.5?1:0),spots.length);
   for(let i=0;i<n;i++){const[x,y]=spots[i];units.push({t:"M",team:u.team,x,y,hp:TYPES.M.hp,moved:1,acted:1,cap:u,spawn:1})}
-  u.musters=(u.musters||0)+1;u.acted=u.moved=1;
+  u.musters=(u.musters||0)+1;u.acted=u.moved=1;if(n)sfx("drum");
   return n;
 }
 const spent=u=>(!!u.acted&&!!u.moved)||!!u.auto||(u.team!=="w"&&!!u.moved&&!canMuster(u)&&!canTrumpet(u)&&!(u.team==="y"&&!u.acted&&camp.battle&&!chal&&camp.items&&camp.items.length)&&!targets(u).length&&!healTargets(u).length&&!(rel(u,"font")&&units.some(b=>canBless(u,b)))&&(u.team!=="y"||!breakables(u).length)&&!(mods.y==="PUSH"&&u.t==="K"&&units.some(b=>b.team==="y"&&pushable(u,b))));
@@ -1364,8 +1367,8 @@ function acts(){
   if(mods.y==="TP"&&!tpUsed.y&&!sel.moved)add("Teleport",()=>{mode="tp";say("Choose an open tile on the far edge.");render()});
   if(mods.y==="PUSH"&&sel.t==="K"&&!sel.acted&&units.some(b=>b.team==="y"&&pushable(sel,b)))add("Push Ally",()=>{mode="push";say("Choose an adjacent ally to push.");render()});
   if(!mode&&canTrumpet(sel))add("Sound Trumpet",()=>doTrumpet(sel));
-  if(!mode&&camp.battle&&!chal&&camp.items&&camp.items.length&&sel.team==="y"&&!sel.acted&&!sel.auto)add("Use Item",()=>{mode="items";say("Choose an item to use.");render()});
-  if(mode==="items")[...new Set(camp.items)].forEach(id=>{const k=camp.items.filter(i=>i===id).length;add(ITEMS[id].name+(k>1?" \u00d7"+k:""),()=>{mode="item:"+id;say(itemPrompt(id));render()})});
+  if(!mode&&camp.battle&&!chal&&camp.items&&camp.items.length&&sel.team==="y"&&(!sel.acted||camp.items.some(id=>ITEMS[id].free))&&!sel.auto)add("Use Item",()=>{mode="items";say("Choose an item to use.");render()});
+  if(mode==="items")[...new Set(camp.items)].filter(id=>!sel.acted||ITEMS[id].free).forEach(id=>{const k=camp.items.filter(i=>i===id).length;add(ITEMS[id].name+(k>1?" \u00d7"+k:""),()=>{mode="item:"+id;say(itemPrompt(id));render()})});
   if(!mode&&canMuster(sel))add("Muster Militia",()=>{const n=muster(sel);sel=null;insp=null;lastMove=null;say(`Mustered ${n} militia. They can act next turn.`);render()});
   if(mode)add("Cancel",()=>{mode=null;say("Move, attack, or pick another unit.");render()});
 }
@@ -1408,7 +1411,7 @@ function click(x,y){
   const u=at(x,y);
   if(mode==="tp"&&!u&&y===0){
     lastMove={u:sel,x:sel.x,y:sel.y,tp:1};
-    sel.x=x;sel.y=y;sel.moved=1;tpUsed.y=1;mode=null;
+    sel.x=x;sel.y=y;sel.moved=1;tpUsed.y=1;mode=null;sfx("warp");
     say("Teleported. Attack or pick another unit.");return render();
   }
   if(mode==="push"&&u&&pushable(sel,u)){choice=u;say("Choose an action next to the unit.");return render()}
@@ -1416,7 +1419,7 @@ function click(x,y){
   if(u&&u.auto){insp=null;info=u;say("The Angry Chicken answers to no one. It charges at the end of your turn.");return render()}
   if(u&&u.team==="y"){
     if(sel===u){sel=null;mode=null;info=null;say("Select one of your units.");return render()}
-    sel=u;mode=null;insp=null;info=u;
+    sel=u;mode=null;insp=null;info=u;sfx("step");
     say(u.acted&&u.moved?"That unit has finished.":u.acted?"Rallied: green shows where it can move again.":"Green: where it can move. Red: what it can hit."+(mods.y==="PUSH"&&u.t==="K"?" Tap an adjacent enemy to attack or push it.":""));return render();
   }
   if(u&&u.team!=="y"){
@@ -1459,8 +1462,8 @@ function detonate(k0,by){ // by: the unit that set it off (for kill credit)
   while(q.length){
     const k=q.shift();if(!BARRELS.has(k))continue;
     const[x,y]=pk(k),xb=XBAR.has(k);BARRELS.delete(k);XBAR.delete(k);n++;
-    if(!xb){floatText(x,y,"Broken");continue}
-    boom(x,y);floatText(x,y,"Boom!",true);
+    if(!xb){sfx("crack");floatText(x,y,"Broken");continue}
+    sfx("boom");boom(x,y);floatText(x,y,"Boom!",true);
     blastOf(k).forEach(([a,b])=>{const kk=a+","+b;if(BARRELS.has(kk))q.push(kk);const u=at(a,b);if(u)hit.push(u)});
   }
   hit.forEach(u=>{if(units.includes(u)&&hurt(u,blastDmg(u)))credit(by,u)});
@@ -1492,7 +1495,7 @@ function applyHeal(a,b){const n=Math.min(healOf(a),TYPES[b.t].hp-b.hp);b.hp+=n;s
 function doSlow(a,u){
   if(calm(u))return; // Moment of Calm
   a.acted=1;a.moved=1;sel=null;insp=null;locked=true;lastMove=null;
-  animAttack(a,u,()=>{u.slow=1;floatText(u.x,u.y,"Slow","slow");say("Slowed the "+NAME[u.t]+": movement reduced to 1 on its next turn.");locked=false;info=u;afterAction()});
+  animAttack(a,u,()=>{u.slow=1;sfx("slow");floatText(u.x,u.y,"Slow","slow");say("Slowed the "+NAME[u.t]+": movement reduced to 1 on its next turn.");locked=false;info=u;afterAction()});
 }
 function doBless(a,b){
   a.blessUsed=1;a.acted=a.moved=1;b.blessUntil=pturn+1;sel=null;mode=null;choice=null;info=b;lastMove=null;
@@ -1509,14 +1512,14 @@ function doTrumpet(a){ // Trumpet of Encouragement: nearby allies that have move
 // every effect and the music are synthesized on the fly and kept quiet; Sound and Music switch off separately (remembered per browser)
 const SKEY="skirmish_sound",MKEY="skirmish_music",pref=(k)=>{try{return localStorage.getItem(k)!=="off"}catch(e){return true}};
 let actx=null,sfxOn=pref(SKEY),musicOn=pref(MKEY),mus=null;const sfxLast={};
-const SFX_VOL=.07,MUSIC_VOL=.08;
+const SFX_VOL=.07,MUSIC_VOL=.08,SFX_GAIN={whisk:2.5,step:3,swing:3,charge:3.5,bawk:2,shove:2.5,warp:1.5,boom:.75}; // SFX_GAIN: per-effect boost over SFX_VOL
 function audio(){actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume();return actx}
 function sfx(name){
   if(!sfxOn)return;
   try{
     const now=performance.now();if(now-(sfxLast[name]||0)<70)return;sfxLast[name]=now; // a splash of hits plays once
     audio();
-    const t0=actx.currentTime+.01,out=actx.createGain(),vr=1+(Math.random()-.5)*.08;out.gain.value=SFX_VOL;out.connect(actx.destination); // vr: a little pitch variety so repeats don't grate
+    const t0=actx.currentTime+.01,out=actx.createGain(),vr=1+(Math.random()-.5)*.08;out.gain.value=SFX_VOL*(SFX_GAIN[name]||1);out.connect(actx.destination); // vr: a little pitch variety so repeats don't grate
     const env=(s,a,hold,rel,peak=1)=>{const g=actx.createGain();g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(peak,s+a);g.gain.setValueAtTime(peak,s+a+hold);g.gain.exponentialRampToValueAtTime(.001,s+a+hold+rel);return g};
     const tone=(type,f,s,len,peak=1,f2)=>{const o=actx.createOscillator(),g=env(s,.008,0,len,peak);o.type=type;o.frequency.setValueAtTime(f,s);if(f2)o.frequency.exponentialRampToValueAtTime(f2,s+len);o.connect(g);g.connect(out);o.start(s);o.stop(s+len+.05)};
     const noise=(s,len,ftype,f,q,peak=1,f2)=>{const n=actx.createBufferSource(),b=actx.createBuffer(1,Math.ceil(actx.sampleRate*(len+.05)),actx.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
@@ -1533,6 +1536,25 @@ function sfx(name){
       case "lose":[[392,0,.28],[349.23,.24,.28],[293.66,.48,.75]].forEach(([f,st,len])=>{tone("triangle",f,t0+st,len,.55);tone("sine",f/2,t0+st,len,.3)});break;
       case "coin":tone("sine",1318.5,t0,.12,.55);tone("sine",1760,t0+.07,.22,.5);tone("triangle",2637,t0+.07,.12,.12);break; // the clink of coins
       case "erupt":tone("sine",70,t0,.7,1.8,35);noise(t0,.55,"lowpass",320,.8,1.2,120);noise(t0+.05,.3,"bandpass",900,1,.35,300);break; // a deep rumble and hiss
+      // attacks: played as the blow starts; the hit, kill or evade sound follows on impact
+      case "swing":noise(t0,.13,"bandpass",700*vr,2.2,.75,2600);tone("triangle",1900*vr,t0+.09,.07,.08,1500);break; // a blade cutting the air
+      case "charge":[0,.07,.14].forEach((st,i)=>noise(t0+st,.04,"lowpass",420*vr,1,.5-i*.08,160));noise(t0+.12,.14,"bandpass",600*vr,2,.7,2400);break; // hooves, then the swing
+      case "bow":tone("triangle",196*vr,t0,.16,.7,170);tone("sine",392*vr,t0,.08,.2);noise(t0+.02,.18,"bandpass",3000,2,.32,1200);break; // a string's twang and the arrow's hiss
+      case "siege":tone("sine",95*vr,t0,.22,1.3,50);noise(t0,.08,"lowpass",900,.8,.6);noise(t0+.05,.12,"lowpass",300,1,.5,120);noise(t0+.09,.3,"bandpass",1400,1.5,.25,500);break; // the arm's thump and a stone's rush
+      case "zap":tone("sine",880*vr,t0,.22,.35,1760);tone("sine",1320*vr,t0+.03,.2,.18,2640);noise(t0,.16,"highpass",4000,.7,.12);break; // a bright magic flicker
+      case "growl":{const o=actx.createOscillator(),lp=actx.createBiquadFilter(),g=env(t0,.04,.12,.18,.9),lfo=actx.createOscillator(),lg=actx.createGain();o.type="sawtooth";o.frequency.value=85*vr;lp.type="lowpass";lp.frequency.value=520;lfo.frequency.value=28;lg.gain.value=14;lfo.connect(lg);lg.connect(o.frequency);o.connect(lp);lp.connect(g);g.connect(out);o.start(t0);lfo.start(t0);o.stop(t0+.4);lfo.stop(t0+.4);noise(t0,.3,"bandpass",350,1.2,.4);break} // a rough snarl
+      case "screech":tone("sine",2200*vr,t0,.2,.35,1300);tone("triangle",1650*vr,t0,.16,.15,1100);noise(t0,.12,"bandpass",3200,3,.18);break; // a hawk's cry
+      case "bawk":tone("square",520*vr,t0,.07,.22,760);tone("square",640*vr,t0+.09,.12,.22,480);break; // an indignant chicken
+      // abilities
+      case "shove":noise(t0,.08,"lowpass",500,.8,.9,200);noise(t0+.04,.24,"bandpass",320*vr,1.2,.45,180);break; // a heavy shove and a scrape
+      case "slow":tone("sine",620*vr,t0,.5,.32,180);tone("sine",930*vr,t0,.35,.12,270);break; // a sinking, sleepy fall
+      case "warp":tone("sine",300*vr,t0,.38,.3,1800);[1318.5,1760,2349.3].forEach((f,i)=>bell(f,t0+.08+i*.06,.3,.12));break; // a rising shimmer
+      case "drum":[0,.09,.18,.27,.4].forEach((st,i)=>{tone("sine",i===4?95:120,t0+st,.14,i===4?1.2:.7,60);noise(t0+st,.05,"bandpass",1800,1.5,i===4?.4:.25)});break; // a muster call on the war drum
+      case "crack":noise(t0,.05,"bandpass",1500*vr,2,.9);tone("triangle",210*vr,t0,.1,.35,140);noise(t0+.05,.12,"lowpass",900,1,.35,300);break; // splintering wood
+      case "boom":tone("sine",62,t0,.6,2,30);noise(t0,.5,"lowpass",900,.7,1.3,140);noise(t0,.1,"bandpass",2400,1,.4);break; // a barrel going up
+      case "whisk":noise(t0,.16,"bandpass",1400*vr,2.5,.8,5200);noise(t0+.12,.14,"bandpass",4800*vr,2.5,.45,1600);noise(t0,.3,"highpass",6000,.7,.12);break; // a quick, airy whisk there and back
+      case "smoke":noise(t0,.7,"highpass",1800,.6,.45,5200);noise(t0+.05,.6,"bandpass",600,.8,.3,300);break; // a hissing cloud
+      case "flame":noise(t0,.45,"bandpass",350,1,.9,1400);[.08,.17,.29].forEach(st=>noise(t0+st,.02,"highpass",3500,1,.3));break; // a whoomp of fire and a crackle
       case "trumpet":{ // a short brass call: two detuned sawtooth voices through a soft low-pass
         const lp=actx.createBiquadFilter();lp.type="lowpass";lp.frequency.value=1500;lp.Q.value=.7;lp.connect(out);
         [[392,0,.14],[523.25,.16,.14],[659.25,.32,.38]].forEach(([f,st,len])=>{
@@ -1542,43 +1564,83 @@ function sfx(name){
     }
   }catch(e){} // no audio available: stay silent
 }
-/* Ambient music: an endless, gently wandering tune in D dorian — plucked lute-like notes over a low drone, with a soft echo.
-   Notes are chosen as it plays (a random walk that leans on the chord of the moment), so it never loops exactly. */
+/* Music: endless generative tunes, so they never loop exactly. Notes are chosen as they play (a random walk that leans on the chord of the moment).
+   calm: D dorian, plucked lute-like notes over a low drone, a soft echo, and a faint brass choir that swells in now and then.
+   boss: D minor and twice as driving — galloping low strings, war drums and brass calls. Plays during campaign boss battles. */
 const SCALE=[0,2,3,5,7,9,10],CHORDS=[[0,2,4],[6,1,3],[2,4,6],[0,2,4],[4,6,1],[6,1,3],[0,2,4],[0,2,4]]; // scale degrees: i, VII, III, i, v, VII, i, i
-const deg=(n,base=62)=>440*Math.pow(2,(base+12*Math.floor(n/7)+SCALE[((n%7)+7)%7]-69)/12); // scale degree -> Hz (62 = D4)
+const BSCALE=[0,2,3,5,7,8,10],BCHORDS=[[0,2,4],[0,2,4],[5,0,2],[6,1,3],[0,2,4],[3,5,0],[4,6,1],[4,6,1]]; // boss: i, i, VI, VII, i, iv, v, v
+const deg=(n,base=62,sc=SCALE)=>440*Math.pow(2,(base+12*Math.floor(n/7)+sc[((n%7)+7)%7]-69)/12); // scale degree -> Hz (62 = D4)
+const musicStyle=()=>!$("game").hidden&&!over&&camp.battle&&!chal&&WORLD[camp.battle.node]&&WORLD[camp.battle.node].type==="boss"?"boss":"calm";
 function startMusic(){
   if(!musicOn||mus||document.hidden)return;
   try{
-    const a=audio(),out=a.createGain(),bus=a.createGain(),dl=a.createDelay(),fb=a.createGain(),lp=a.createBiquadFilter(),wet=a.createGain();
-    out.gain.setValueAtTime(0,a.currentTime);out.gain.linearRampToValueAtTime(MUSIC_VOL,a.currentTime+4);out.connect(a.destination);
-    dl.delayTime.value=.36;fb.gain.value=.3;lp.type="lowpass";lp.frequency.value=1600;wet.gain.value=.4;
+    const a=audio(),boss=musicStyle()==="boss",sc=boss?BSCALE:SCALE,CH=boss?BCHORDS:CHORDS;
+    const out=a.createGain(),bus=a.createGain(),dl=a.createDelay(),fb=a.createGain(),lp=a.createBiquadFilter(),wet=a.createGain();
+    out.gain.setValueAtTime(0,a.currentTime);out.gain.linearRampToValueAtTime(MUSIC_VOL*(boss?1.1:1),a.currentTime+(boss?2:4));out.connect(a.destination);
+    dl.delayTime.value=boss?.25:.36;fb.gain.value=boss?.22:.3;lp.type="lowpass";lp.frequency.value=1600;wet.gain.value=boss?.25:.4;
     bus.connect(out);bus.connect(dl);dl.connect(lp);lp.connect(fb);fb.connect(dl);lp.connect(wet);wet.connect(out);
     const drone=[73.42,110].map((f,i)=>{const o=a.createOscillator(),g=a.createGain(),f2=a.createBiquadFilter(),l=a.createOscillator(),lg=a.createGain();
-      o.type=i?"sine":"triangle";o.frequency.value=f;f2.type="lowpass";f2.frequency.value=380;g.gain.value=.16;l.frequency.value=.05+i*.03;lg.gain.value=.07;
+      o.type=boss?"sawtooth":i?"sine":"triangle";o.frequency.value=f;f2.type="lowpass";f2.frequency.value=boss?300:380;g.gain.value=boss?.12:.16;l.frequency.value=.05+i*.03;lg.gain.value=.07;
       l.connect(lg);lg.connect(g.gain);o.connect(f2);f2.connect(g);g.connect(bus);o.start();l.start();return[o,l]}).flat();
     const pluck=(f,t,len,vol)=>{const o=a.createOscillator(),o2=a.createOscillator(),g=a.createGain(),g2=a.createGain(),f2=a.createBiquadFilter();
       o.type="triangle";o.frequency.value=f;o2.type="sine";o2.frequency.value=f*2;g2.gain.value=.25;f2.type="lowpass";f2.frequency.setValueAtTime(2600,t);f2.frequency.exponentialRampToValueAtTime(700,t+len);
       g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.006);g.gain.exponentialRampToValueAtTime(.001,t+len);
       o.connect(f2);o2.connect(g2);g2.connect(f2);f2.connect(g);g.connect(bus);o.start(t);o2.start(t);o.stop(t+len+.05);o2.stop(t+len+.05)};
-    const st={next:a.currentTime+.3,step:0,mel:7,beat:.4};
-    const tick=()=>{
-      while(st.next<a.currentTime+.5){
-        const t=st.next,s=st.step,bar=Math.floor(s/8)%CHORDS.length,ch=CHORDS[bar],phrase=s%64;
-        if(phrase<60){ // the last few steps of each phrase are left to the drone, to breathe
-          if(s%8===0)pluck(deg(ch[0],38),t,2.6,.5); // the chord's root, low
-          if(s%2===0)pluck(deg(ch[(s/2)%3],50),t,1.1,.22); // a gentle arpeggio
-          if(Math.random()<(s%4===0?.85:.45)){ // the tune: a random walk that leans on chord tones on the strong beats
-            st.mel=Math.max(4,Math.min(13,st.mel+[-2,-1,-1,0,1,1,2][Math.floor(Math.random()*7)]));
-            if(s%4===0&&!ch.includes(((st.mel%7)+7)%7))st.mel+=ch.includes(((st.mel+1)%7+7)%7)?1:-1;
-            pluck(deg(st.mel),t,1.3,.32);
-          }
+    // a brass voice: detuned saws through a low-pass that opens as the note swells, like a horn warming up
+    const brass=(f,t,len,vol,att=.18)=>{const g=a.createGain(),fl=a.createBiquadFilter();fl.type="lowpass";fl.Q.value=.8;
+      fl.frequency.setValueAtTime(f*1.2,t);fl.frequency.linearRampToValueAtTime(f*(boss?5:3.2),t+att+.1);fl.frequency.linearRampToValueAtTime(f*2,t+len);
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+att);g.gain.setValueAtTime(vol,t+len*.7);g.gain.linearRampToValueAtTime(0,t+len);
+      fl.connect(g);g.connect(bus);for(const det of[-7,5]){const o=a.createOscillator();o.type="sawtooth";o.frequency.value=f;o.detune.value=det;o.connect(fl);o.start(t);o.stop(t+len+.05)}};
+    const drum=(t,vol,f=110)=>{const o=a.createOscillator(),g=a.createGain();o.type="sine";o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(45,t+.25);
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.005);g.gain.exponentialRampToValueAtTime(.001,t+.32);o.connect(g);g.connect(out);o.start(t);o.stop(t+.35);
+      const n=a.createBufferSource(),bf=a.createBuffer(1,a.sampleRate*.12|0,a.sampleRate),d=bf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*(1-i/d.length);
+      const nf=a.createBiquadFilter(),ng=a.createGain();nf.type="lowpass";nf.frequency.value=700;ng.gain.value=vol*.5;n.buffer=bf;n.connect(nf);nf.connect(ng);ng.connect(out);n.start(t)};
+    const st={next:a.currentTime+.3,step:0,mel:7,beat:boss?.2:.4,horn:0};
+    const calm=(t,s,ch,phrase)=>{
+      if(phrase<60){ // the last few steps of each phrase are left to the drone, to breathe
+        if(s%8===0)pluck(deg(ch[0],38),t,2.6,.5); // the chord's root, low
+        if(s%2===0)pluck(deg(ch[(s/2)%3],50),t,1.1,.22); // a gentle arpeggio
+        if(Math.random()<(s%4===0?.85:.45)){ // the tune: a random walk that leans on chord tones on the strong beats
+          st.mel=Math.max(4,Math.min(13,st.mel+[-2,-1,-1,0,1,1,2][Math.floor(Math.random()*7)]));
+          if(s%4===0&&!ch.includes(((st.mel%7)+7)%7))st.mel+=ch.includes(((st.mel+1)%7+7)%7)?1:-1;
+          pluck(deg(st.mel),t,1.3,.32);
         }
-        st.next+=st.beat*(s%2?.92:1.08);st.step++; // a slight lilt
+        // faint brass: a slow swell of the chord every so often, and now and then a short horn call
+        if(s%16===0&&Math.random()<.55)ch.forEach((n,i)=>brass(deg(n,i?50:38),t,st.beat*14,i?.035:.045,1.2));
+        if(phrase===32&&Math.random()<.5)[[0,0,2],[2,2,1],[4,3,4]].forEach(([n,o,l])=>brass(deg(ch[n%3]+(n>3?7:0),50),t+o*st.beat,st.beat*l,.05,.08));
       }
     };
-    tick();mus={out,drone,timer:setInterval(tick,120)};
+    const fight=(t,s,ch,phrase)=>{
+      const root=ch[0];
+      // galloping low strings: da-da-DUM on every beat
+      pluck(deg(root,s%4===2?38:26,sc),t,.35,s%4===2?.45:.3);
+      if(s%4===0)pluck(deg(root,38,sc),t,.5,.3);
+      // war drums: a heavy pattern with a roll into each phrase
+      if([0,6,8,12].includes(s%16))drum(t,s%16===0?.9:.55);
+      if(phrase>=60)drum(t,.4+(phrase-60)*.12,130);
+      if(phrase<60){
+        // brass: a stab on each chord change, and calls on the strong beats
+        if(s%8===0)ch.forEach((n,i)=>brass(deg(n,i?50:38,sc),t,st.beat*(s%16===0?6:3),i?.08:.1,.04));
+        if(phrase>=16&&s%2===0&&Math.random()<(s%4===0?.8:.35)){
+          st.horn=Math.max(2,Math.min(10,st.horn+[-2,-1,0,1,1,2][Math.floor(Math.random()*6)]));
+          if(s%4===0&&!ch.includes(((st.horn%7)+7)%7))st.horn+=ch.includes(((st.horn+1)%7+7)%7)?1:-1;
+          brass(deg(st.horn,50,sc),t,st.beat*(s%4===0?3:1.6),.09,.05);
+        }
+        if(Math.random()<.5)pluck(deg(ch[s%3],62,sc),t,.4,.12); // a quick high figure over it all
+      }
+    };
+    const tick=()=>{
+      while(st.next<a.currentTime+.5){
+        const t=st.next,s=st.step,ch=CH[Math.floor(s/8)%CH.length],phrase=s%64;
+        (boss?fight:calm)(t,s,ch,phrase);
+        st.next+=boss?st.beat:st.beat*(s%2?.92:1.08);st.step++; // the calm tune has a slight lilt
+      }
+    };
+    tick();mus={out,drone,timer:setInterval(tick,120),style:boss?"boss":"calm"};
   }catch(e){mus=null}
 }
+// switches tracks when the scene calls for the other one (a boss battle starting or ending)
+function syncMusic(){if(mus&&mus.style!==musicStyle()){stopMusic();startMusic()}}
 function stopMusic(){
   if(!mus)return;const m=mus;mus=null;clearInterval(m.timer);
   try{const t=actx.currentTime;m.out.gain.cancelScheduledValues(t);m.out.gain.setValueAtTime(m.out.gain.value,t);m.out.gain.linearRampToValueAtTime(0,t+1.2);setTimeout(()=>{m.drone.forEach(o=>{try{o.stop()}catch(e){}});m.out.disconnect()},1400)}catch(e){}
@@ -1588,23 +1650,28 @@ if(document.addEventListener){
   document.addEventListener("visibilitychange",()=>document.hidden?stopMusic():startMusic());
 }
 // Items from Marcus's wagon: using one takes the unit's action
-const itemPrompt=id=>id==="draught"?"Choose this unit or a wounded ally beside it.":id==="smoke"?"Choose a tile within 3 to throw the smoke bomb at.":"Choose an enemy within 3 to throw the fire flask at.";
+const itemPrompt=id=>id==="feather"?"Choose an ally within 2 tiles to swap places with.":id==="draught"?"Choose this unit or a wounded ally beside it.":id==="smoke"?"Choose a tile within 3 to throw the smoke bomb at.":"Choose an enemy within 3 to throw the fire flask at.";
 function itemTargets(u,id){
   const out=new Set();
   if(id==="draught")units.forEach(b=>{if(b.team==="y"&&d(u,b)<=1&&b.hp<TYPES[b.t].hp)out.add(b.x+","+b.y)});
+  else if(id==="feather")units.forEach(b=>{if(b.team==="y"&&b!==u&&d(u,b)<=2)out.add(b.x+","+b.y)});
   else if(id==="fire")units.forEach(b=>{if(b.team!=="y"&&d(u,b)<=3)out.add(b.x+","+b.y)});
   else for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(Math.abs(x-u.x)+Math.abs(y-u.y)<=3)out.add(x+","+y);
   return out;
 }
 function useItem(a,id,x,y){
   const i=camp.items.indexOf(id);if(i<0)return;camp.items.splice(i,1);saveCamp();
+  if(id==="feather"){ // a gust swaps the two; neither spends its move or action
+    const b=at(x,y);[a.x,a.y,b.x,b.y]=[b.x,b.y,a.x,a.y];sel=a;mode=null;choice=null;lastMove=null;insp=null;info=a;sfx("whisk");
+    say(`A gust of wind! Your ${NAME[a.t]} and ${NAME[b.t]} swapped places.`);return render();
+  }
   a.acted=a.moved=1;sel=null;mode=null;choice=null;lastMove=null;insp=null;
   if(id==="draught"){const b=at(x,y),n=Math.min(DRAUGHT_HEAL,TYPES[b.t].hp-b.hp);b.hp+=n;sfx("heal");floatText(b.x,b.y,"+"+n,"heal");info=b;say(`Your ${NAME[a.t]} used a Healing Draught: +${n} HP${b===a?"":" for your "+NAME[b.t]}.`);return render()}
   if(id==="smoke"){
-    blastOf(x+","+y).concat([[x,y]]).forEach(([cx,cy])=>SMOKE.add(cx+","+cy));sfx("evade");
+    blastOf(x+","+y).concat([[x,y]]).forEach(([cx,cy])=>SMOKE.add(cx+","+cy));sfx("smoke");
     say("Smoke billows across the field: your units in it get +20% evasion until your next turn.");return render();
   }
-  const b=at(x,y);sfx("hit");eruptFx(x,y);
+  const b=at(x,y);sfx("flame");eruptFx(x,y);
   if(hurt(b,FIRE_DMG)){credit(a,b);say(`Your ${NAME[a.t]}'s fire flask destroyed ${who(b)}.`)}else say(`Your ${NAME[a.t]}'s fire flask burned ${who(b)} for ${FIRE_DMG}.`);
   afterAction();
 }
@@ -1614,16 +1681,17 @@ function doHeal(a,b){
 }
 function doPush(a,u){
   const[nx,ny]=pushDest(a,u),n=Math.abs(nx-u.x)+Math.abs(ny-u.y);
-  u.x=nx;u.y=ny;a.acted=a.moved=1;sel=null;mode=null;choice=null;lastMove=null;
+  u.x=nx;u.y=ny;a.acted=a.moved=1;sel=null;mode=null;choice=null;lastMove=null;sfx("shove");
   say(n?"Pushed the "+NAME[u.t]+" "+n+" tile"+(n>1?"s":"")+".":"Blocked. The unit didn't move.");render();
 }
 const sent=w=>w[0].toUpperCase()+w.slice(1); // sentence case for status lines
 const who=u=>(u.team==="y"?"your ":u.team==="f"?"the enemy ":"the wild ")+NAME[u.t];
 // every point of damage goes through here, so Herbert's Mug and Nightcap see it all; returns true when u falls
 function hurt(u,n){
-  u.hp-=n;floatText(u.x,u.y,"-"+n);
+  const before=u.hp;u.hp-=n;floatText(u.x,u.y,"-"+n);
+  if(u.hp<=0&&dandelionSaves(u,before)){u.hp=1;later(()=>{if(units.includes(u)){floatText(u.x,u.y,"Resisted","heal");sfx("bless")}},250)}
   if(rel(u,"chicken")&&!relicUsed.chicken&&u.t!=="G")spawnChicken(u);
-  if(u.hp<=0&&rel(u,"mug")&&!relicUsed.mug){relicUsed.mug=1;u.hp=1;thanks(u)}
+  else if(u.hp<=0&&rel(u,"mug")&&!relicUsed.mug){relicUsed.mug=1;u.hp=1;thanks(u)}
   else if(u.hp>0&&u.hp<=TYPES[u.t].hp/2&&rel(u,"cap")&&!relicUsed.cap){relicUsed.cap=1;const h=Math.min(2,TYPES[u.t].hp-u.hp);u.hp+=h;later(()=>floatText(u.x,u.y,"+"+h,"heal"),250);thanks(u)}
   if(u.hp>0){sfx("hit");return false}
   sfx("kill");units=units.filter(v=>v!==u);return true;
@@ -1640,7 +1708,7 @@ function spawnChicken(u){
   if(!spot)return; // no room: it tries again the next time one of your units is hurt
   relicUsed.chicken=1;
   const c={t:"G",team:"y",auto:1,x:spot[0],y:spot[1],hp:TYPES.G.hp,moved:1,acted:1,spawn:1};units.push(c);
-  later(()=>{if(units.includes(c))floatText(c.x,c.y,"BAWK!","thanks")},300);
+  later(()=>{if(units.includes(c)){floatText(c.x,c.y,"BAWK!","thanks");sfx("bawk")}},300);
 }
 // at the end of your turn, each Angry Chicken charges: it heads for the nearest enemy and pecks the weakest one it can reach
 function chickensAct(done){
@@ -1693,8 +1761,9 @@ function burst(rb,bw){
   an.onfinish=()=>s.remove();
 }
 // melee units lunge at the target; ranged units fire a projectile
+const ATK_SFX={K:"swing",T:"swing",M:"swing",N:"swing",P:"swing",C:"charge",A:"bow",R:"siege",E:"zap",W:"growl",B:"growl",H:"screech",G:"bawk"};
 function animAttack(a,b,cb){
-  let fired=false;const fin=()=>{if(!fired){fired=true;cb()}};
+  let fired=false;const fin=()=>{if(!fired){fired=true;cb()}};sfx(ATK_SFX[a.t]||"swing");
   try{
     const ta=board.children[a.y*W+a.x],tb=board.children[b.y*W+b.x];
     if(!ta||!tb||!ta.animate||window.matchMedia("(prefers-reduced-motion: reduce)").matches)return fin();
@@ -1887,14 +1956,14 @@ function enemyTurn(note=""){
     }
     if(u.t==="E"&&ts.length&&!ts.some(p=>dmgTo(u,p)>=p.hp)){
       const sl=ts.filter(p=>!p.slow&&!calm(p)&&mvOf(p)>1).sort((a,b)=>TYPES[b.t].dmg-TYPES[a.t].dmg||TYPES[b.t].mv-TYPES[a.t].mv)[0];
-      if(sl){u.acted=1;animAttack(u,sl,()=>{sl.slow=1;floatText(sl.x,sl.y,"Slow","slow");say("Enemy "+NAME[u.t]+" slowed your "+NAME[sl.t]+".");fin()});return}
+      if(sl){u.acted=1;animAttack(u,sl,()=>{sl.slow=1;sfx("slow");floatText(sl.x,sl.y,"Slow","slow");say("Enemy "+NAME[u.t]+" slowed your "+NAME[sl.t]+".");fin()});return}
     }
     if(ts.length){
       u.acted=1;
       let pushed=false;
       if(mods.f==="PUSH"&&u.t==="K"){ // push a survivor into a forest to slow it down
         const c=ts.find(p=>pushable(u,p)&&dmgTo(u,p)<p.hp&&FOREST.has(pushDest(u,p)+"")&&pushDest(u,p)+""!==p.x+","+p.y);
-        if(c){[c.x,c.y]=pushDest(u,c);pushed=true;say("Enemy knight pushed your "+NAME[c.t]+" into a forest.")}
+        if(c){[c.x,c.y]=pushDest(u,c);pushed=true;sfx("shove");say("Enemy knight pushed your "+NAME[c.t]+" into a forest.")}
       }
       if(!pushed){attack(u,ts[0],fin);return}
     }
@@ -1913,7 +1982,7 @@ function enemyTurn(note=""){
         if(mv.length){p=mv.reduce((a,b)=>b.mS-b.s<a.mS-a.s?b:a);dest=p.mB;tp=p.mTp}
       }
       const u=p.u;done.add(u);
-      if(tp){tpUsed.f=1;say("Enemy teleported a "+NAME[u.t]+"!")}
+      if(tp){tpUsed.f=1;sfx("warp");say("Enemy teleported a "+NAME[u.t]+"!")}
       if(dest[0]!==u.x||dest[1]!==u.y){u.moved=1;movedAny=true}
       [u.x,u.y]=dest;render();
       later(()=>act(u),350);
@@ -2165,7 +2234,7 @@ $("wrestart").onclick=()=>{
 /* ---------- Screens & setup ---------- */
 const COLORS={red:["Red","#c8372d","#fff"],yellow:["Yellow","#e6b820","#2b2200"],blue:["Blue","#2f6fb5","#fff"],orange:["Orange","#e2812a","#fff"],green:["Green","#3b9a4e","#fff"],purple:["Purple","#7b4bb0","#fff"],black:["Black","#232a31","#fff"],wild:["Wild","#7a5a36","#fff"]};
 const CHOICES=["red","yellow","blue","orange","green","purple"];
-const show=n=>{["menu","pick","game","world","editor"].forEach(i=>$(i).hidden=i!==n);if(n==="menu"){$("rulesview").hidden=true;$("unlockview").hidden=true;$("chalview").hidden=true;$("mbtns").hidden=false}};
+const show=n=>{["menu","pick","game","world","editor"].forEach(i=>$(i).hidden=i!==n);syncMusic();if(n==="menu"){$("rulesview").hidden=true;$("unlockview").hidden=true;$("chalview").hidden=true;$("mbtns").hidden=false}};
 const disc=(t,c)=>`<div class="u" data-t="${t}" style="background:${c[1]};--tc:${c[1]};--ic:${c[2]}">${ICON[t]}</div>`;
 const foeColor=()=>pick.c==="red"?"black":"red";
 const cap=w=>w.replace(/\b\w/g,c=>c.toUpperCase()); // "banner bearer" -> "Banner Bearer"
@@ -2692,6 +2761,7 @@ $("haenter").onclick=()=>{
 const FINDS=[
  {relic:"font",when:n=>n.b==="swamp",story:who=>`Deep in the murky swamp, your ${who} pulled something strange from the dark water.`},
  {relic:"bluemagma",when:n=>n.b==="volcanic",story:who=>`At the edge of a cooling lava flow, your ${who} spotted a stone glowing a strange, cold blue.`},
+ {relic:"dandelion",when:n=>n.b==="plain",story:who=>`In a wind-swept meadow, your ${who} found a dandelion clock that would not lose a single seed, however hard the wind blew.`},
  {relic:"horn",when:n=>n.b==="forest",story:who=>`Beneath the roots of an ancient oak, your ${who} found a hunting horn, still warm as if just blown.`}
 ];
 function findRelics(nm){
@@ -2734,6 +2804,7 @@ const RICON={ // small 32-unit relic icons
  debris:'<circle cx="16" cy="16" r="4.500" fill="#5c5650" stroke="#24201c" stroke-width="1.100"/><path d="M16 16" /><g fill="#8a8178" stroke="#24201c" stroke-width=".9"><path d="M5 7l4 1l-1 3l-3-1z"/><path d="M25 5l3 3l-3 2l-2-2z"/><path d="M27 22l2 3l-4 1l-1-2z"/><path d="M6 24l3-1l1 3l-3 1z"/></g><path d="M11 11l-3-3M21 11l3-3M21 21l3 3M11 21l-3 3" stroke="#e8641e" stroke-width="1.400" stroke-linecap="round"/>',
  mercy:'<path d="M17 3l3 3l-9 15l-3-1z" fill="#c8ccd2" stroke="#2e3338" stroke-width="1.100" stroke-linejoin="round"/><path d="M18.500 4.500l-8.500 15" stroke="#f4f6f8" stroke-width=".9" opacity=".8"/><path d="M5 18l9 5" stroke="#5a3a1c" stroke-width="2.600" stroke-linecap="round"/><path d="M9 21l-3 6" stroke="#3a2412" stroke-width="2.600" stroke-linecap="round"/><path d="M7.500 24l2 1" stroke="#c9962a" stroke-width="1.200"/><circle cx="5.500" cy="28" r="1.700" fill="#c9962a" stroke="#3a2412" stroke-width=".8"/><path d="M14 13q2 1 1 3" stroke="#8a1a14" stroke-width="1.300" fill="none" stroke-linecap="round"/>',
  horn:'<path d="M6 8q2-5 10-4q8 1 10 9" fill="none" stroke="#5a3a1c" stroke-width="1.300"/><path d="M4 9Q6 26 25 25L25 13Q11 18 7 8z" fill="#e8dcbc" stroke="#3a2412" stroke-width="1.200" stroke-linejoin="round"/><path d="M8 11q2 8 12 9" fill="none" stroke="#fff8e6" stroke-width="1" opacity=".8"/><ellipse cx="25.500" cy="19" rx="3" ry="6.500" fill="#3a2a1a" stroke="#c9962a" stroke-width="1.600"/><path d="M19 16.500l.5 8M14 15l-.5 8" stroke="#c9962a" stroke-width="1.800"/><path d="M3 8.500l3-2l2 3l-3 1.500z" fill="#c9962a" stroke="#3a2412" stroke-width=".9"/><path d="M10 28q3-4 8-3q-3 3-8 3zM2 18q1-4 4-3q0 3-4 3z" fill="#3f7a3a" stroke="#1e4a1c" stroke-width=".9"/>',
+ dandelion:'<path d="M16 29q-1-8 0-15" stroke="#4a8a3a" stroke-width="1.600" fill="none" stroke-linecap="round"/><path d="M16 25q-5-1-7-5q4 0 7 3M16 23q4-2 6-6q-4 1-6 4" fill="#5a9a48" stroke="#2e5a24" stroke-width=".8"/><circle cx="16" cy="10" r="8" fill="#fff" opacity=".35"/><g stroke="#bab6aa" stroke-width=".7"><path d="M16 10l7.00 0.00"/><path d="M16 10l6.06 3.50"/><path d="M16 10l3.50 6.06"/><path d="M16 10l0.00 7.00"/><path d="M16 10l-3.50 6.06"/><path d="M16 10l-6.06 3.50"/><path d="M16 10l-7.00 0.00"/><path d="M16 10l-6.06 -3.50"/><path d="M16 10l-3.50 -6.06"/><path d="M16 10l-0.00 -7.00"/><path d="M16 10l3.50 -6.06"/><path d="M16 10l6.06 -3.50"/></g><g fill="#fff" stroke="#a8a498" stroke-width=".4"><circle cx="23.00" cy="10.00" r="1.300"/><circle cx="22.06" cy="13.50" r="1.300"/><circle cx="19.50" cy="16.06" r="1.300"/><circle cx="16.00" cy="17.00" r="1.300"/><circle cx="12.50" cy="16.06" r="1.300"/><circle cx="9.94" cy="13.50" r="1.300"/><circle cx="9.00" cy="10.00" r="1.300"/><circle cx="9.94" cy="6.50" r="1.300"/><circle cx="12.50" cy="3.94" r="1.300"/><circle cx="16.00" cy="3.00" r="1.300"/><circle cx="19.50" cy="3.94" r="1.300"/><circle cx="22.06" cy="6.50" r="1.300"/></g><circle cx="16" cy="10" r="1.800" fill="#c9a83a" stroke="#6a5a1a" stroke-width=".6"/><path d="M26 5l3-2M27 9l3-.5" stroke="#bab6aa" stroke-width=".6"/><circle cx="29.300" cy="2.800" r="1" fill="#fff" stroke="#a8a498" stroke-width=".4"/><circle cx="30.300" cy="8.500" r="1" fill="#fff" stroke="#a8a498" stroke-width=".4"/>',
  bluemagma:'<circle cx="16" cy="17" r="13" fill="#4ab8ff" opacity=".18"/><path d="M6 20l4-9l8-4l8 3l3 8l-4 8l-9 3l-8-3z" fill="#1e2a44" stroke="#0a1020" stroke-width="1.200" stroke-linejoin="round"/><path d="M18 7l8 3l3 8l-4 8l-6 2z" fill="#000" opacity=".2"/><path d="M9 14l5 3l4-5M14 17l1 7l6 2M18 12l6 4l3-2M21 16l-1 5" stroke="#6ad8ff" stroke-width="1.600" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 14l5 3l4-5M14 17l1 7" stroke="#e8fbff" stroke-width=".6" fill="none" stroke-linecap="round"/><path d="M10 11l5-3" stroke="#8aa4c8" stroke-width="1" opacity=".6"/>',
  mug:'<path d="M8 10h13l-1 16q-5.500 2-11 0z" fill="#c8c0aa" stroke="#1a120c" stroke-width="1.200"/><path d="M15 10h6l-1 16q-2.500 1-5 1z" fill="#000" opacity=".15"/><path d="M8 13.500h13" stroke="#2a3a5a" stroke-width="1.600"/><path d="M21 13q6 0 6 5t-6 5" fill="none" stroke="#1a120c" stroke-width="2.800"/><path d="M21 13q6 0 6 5t-6 5" fill="none" stroke="#c8c0aa" stroke-width="1.300"/><circle cx="11" cy="21" r="1.100" fill="#3a3028"/><path d="M12 7q-2-3 0-5M16 7q2-3 0-5" stroke="#9aa0aa" stroke-width="1.200" fill="none"/>',
  drills:'<path d="M10 6h8v13l6 3q2 1 2 4v2H10z" fill="#6a4a2a" stroke="#2a1a0c" stroke-width="1.200" stroke-linejoin="round"/><path d="M10 25h16" stroke="#2a1a0c" stroke-width="1"/><path d="M12 6v19" stroke="#9a7448" stroke-width="1" opacity=".7"/><path d="M10 10h8M10 13h8" stroke="#c9962a" stroke-width="1.100"/><path d="M2 12h5M3 17h5M2 22h5" stroke="#8a8f96" stroke-width="1.600" stroke-linecap="round"/>',
@@ -2753,11 +2824,14 @@ const SHOP_TEXT="Marcus the pedlar and his mule Parsnip have set up shop by the 
 const ITEMS={ // consumables, used in battle (campaign only); using one takes the unit's action
  draught:{name:"Healing Draught",price:25,desc:"Heal this unit or an adjacent ally for 5 HP."},
  smoke:{name:"Smoke Bomb",price:30,desc:"Throw at a tile within 3: your units on it and the 8 tiles around it get +20% evasion until your next turn."},
- fire:{name:"Fire Flask",price:35,desc:"Throw at an enemy within 3 for 3 damage, ignoring armor."}};
-const ITEM_CAP=3,RELIC_PRICE=[40,70,110],SMOKE_EV=.2,DRAUGHT_HEAL=5,FIRE_DMG=3; // RELIC_PRICE by rarity: common, uncommon, rare
+ fire:{name:"Fire Flask",price:35,desc:"Throw at an enemy within 3 for 3 damage, ignoring armor."},
+ feather:{name:"Wind Elemental's Feather",price:40,r:1,free:1,desc:"Swap this unit with an ally within 2 tiles. Neither unit uses its move or action."}};
+// r: rarity (commons are always stocked; an uncommon turns up on about half of visits); free: using it costs the unit nothing
+const ITEM_CAP=3,ITEM_STOCK=[1,.5],RELIC_PRICE=[40,70,110],SMOKE_EV=.2,DRAUGHT_HEAL=5,FIRE_DMG=3; // RELIC_PRICE by rarity: common, uncommon, rare
 const IICON={
  draught:'<path d="M14 4h4v4q7 3 7 10q0 7-9 7t-9-7q0-7 7-10z" fill="rgba(200,60,50,.55)" stroke="#2a1410" stroke-width="1.100"/><path d="M8.600 17q0 6 7.400 6.500q7.400-.5 7.400-6.500z" fill="#b8372d"/><rect x="13.400" y="2" width="5.200" height="3.400" rx="1" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M10 13q-1 4 0 7" stroke="#fff" stroke-width="1.100" fill="none" opacity=".6"/><path d="M14 16h4M16 14v4" stroke="#fff4f0" stroke-width="1.300" stroke-linecap="round"/>',
  smoke:'<circle cx="15" cy="19" r="9" fill="#26262a" stroke="#0a0a0c" stroke-width="1.100"/><circle cx="12" cy="16" r="2.600" fill="#fff" opacity=".25"/><path d="M20 12q3-6 8-5" stroke="#8a6a3a" stroke-width="1.600" fill="none"/><circle cx="28" cy="7" r="2" fill="#ffb347"/><circle cx="28" cy="7" r="4" fill="#ffb347" opacity=".25"/><g fill="#b8b4b0" opacity=".55"><circle cx="6" cy="9" r="3"/><circle cx="9" cy="6" r="2.400"/></g>',
+ feather:'<path d="M6 27q3-12 13-19q5-4 9-4q0 4-4 9q-7 10-18 14z" fill="#eef6fb" stroke="#3a5a6a" stroke-width="1.100" stroke-linejoin="round"/><path d="M6 27L24 8" stroke="#5a7a8a" stroke-width="1.100"/><path d="M12 20l-2-5M15 17l-1-6M18 14l0-5M13 19l5 1M16 16l6 0M19 13l5-1" stroke="#9ab8c8" stroke-width=".8"/><path d="M3 12q4-3 8 0t8 0M1 18q3-2 6 0" stroke="#6ab0d8" stroke-width="1.300" fill="none" stroke-linecap="round" opacity=".8"/>',
  fire:'<path d="M10 28v-10q0-7 6-9q6 2 6 9v10z" fill="#e2531a" stroke="#2a1410" stroke-width="1.100"/><path d="M13.500 9h5V5h-5z" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><circle cx="16" cy="20" r="7" fill="#ff8a2a" opacity=".28"/><path d="M16 25q-4-4 0-10q4 6 0 10z" fill="#ffd27a"/><path d="M12 16q-1 5 0 9" stroke="#fff" stroke-width="1" opacity=".45" fill="none"/>'};
 const itemIcon=(id,sz=32)=>`<svg viewBox="0 0 32 32" width="${sz}" height="${sz}" aria-hidden="true">${IICON[id]}</svg>`;
 const MARCUS={
@@ -2772,7 +2846,7 @@ const MARCUS={
 function shopStock(){
   const pool=shopRelics(),rel=[];
   while(rel.length<2&&pool.length){const tot=pool.reduce((t,id)=>t+RARITY_W[RELICS[id].r],0);let r=Math.random()*tot,i=0;while(r>=RARITY_W[RELICS[pool[i]].r]){r-=RARITY_W[RELICS[pool[i]].r];i++}rel.push(pool.splice(i,1)[0])}
-  return {relics:rel,sold:[]};
+  return {relics:rel,sold:[],items:Object.keys(ITEMS).filter(id=>Math.random()<ITEM_STOCK[ITEMS[id].r||0])};
 }
 let shopNode=null;
 const marcusSays=t=>{$("shline").textContent=t};
@@ -2782,7 +2856,7 @@ function renderShop(){
   $("shgold").innerHTML=`${PURSE}<b>${camp.gold}</b> gold<span class="shpack">Pack: ${camp.items.length} of ${ITEM_CAP}</span>`;
   const row=(kind,id,name,price,label,desc,icon,why,rc)=>`<button class="rcard shitem" data-kind="${kind}" data-id="${id}" style="--rc:${rc}"${why?" aria-disabled=\"true\"":""}><span class="ri">${icon}</span><span class="rr">${label}</span><b>${name}</b><small>${desc}</small><span class="shprice${why?" off":""}">${why||price+" gold"}</span></button>`;
   const need=p=>camp.gold<p?`Need ${p-camp.gold} more`:"";
-  $("shlist").innerHTML='<div class="shsec">Consumables</div>'+Object.entries(ITEMS).map(([id,I])=>row("item",id,I.name,I.price,"Consumable \u00b7 one use",I.desc,itemIcon(id,38),full?"Pack full":need(I.price),"#a08a64")).join("")
+  $("shlist").innerHTML='<div class="shsec">Consumables</div>'+(n.stock.items||Object.keys(ITEMS).filter(id=>!ITEMS[id].r)).map(id=>{const I=ITEMS[id];return row("item",id,I.name,I.price,(I.r?RARITY[I.r][0]+" consumable":"Consumable")+" \u00b7 one use",I.desc,itemIcon(id,38),full?"Pack full":need(I.price),I.r?RARITY[I.r][1]:"#a08a64")}).join("")
     +'<div class="shsec">Relics</div>'+(n.stock.relics.length?n.stock.relics.map(id=>{const R=RELICS[id],[rn,rc]=RARITY[R.r],pr=RELIC_PRICE[R.r];return row("relic",id,R.name,pr,rn+" relic",R.desc,relicIcon(id,38),n.stock.sold.includes(id)?"Sold":relicCount(id)>=(R.max||1)?"Owned":need(pr),rc)}).join(""):'<p class="rsub">Marcus has no relics for you today.</p>');
   $("shlist").querySelectorAll(".shitem").forEach(b=>b.onclick=()=>buy(b.dataset.kind,b.dataset.id));
 }
@@ -3026,6 +3100,7 @@ const UNLOCKS=[
  {id:"font",relic:"font",hint:"Darker realms can hide wonderful things."},
  {id:"horn",relic:"horn",hint:"The oldest trees remember the hunt."},
  {id:"bluemagma",relic:"bluemagma",hint:"Even fire has a colder heart."},
+ {id:"dandelion",relic:"dandelion",hint:"Even the humblest weed can refuse to fade."},
  {id:"pennant",relic:"pennant",hint:"Conquer the Dueling Fortresses challenge."},
  {id:"hatchet",relic:"hatchet",hint:"Conquer the Tanglewood challenge."},
  {id:"trumpet",relic:"trumpet",hint:"Conquer the Ford at Greywater challenge."},
