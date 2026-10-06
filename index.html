@@ -638,7 +638,7 @@ const RELICS={
  blossom:{name:"Cherry Blossom Blade",r:2,src:"boss",get desc(){return unlocks.cherry // the Cherry Grove reveals what the blade remembers
    ?"Last Bloom: when one of your units falls, your units beside it get +1 damage for the rest of the battle (+2 if it fell in a Cherry Grove). Forged beneath the cherry boughs, where every petal falls too soon. It remembers each one."
    :"Last Bloom: when one of your units falls, your units beside it get +1 damage for the rest of the battle (more, if it fell in a place the blade remembers). Its steel is etched with petals from a grove no map shows. Someday, perhaps, you'll walk beneath those trees."}},
- statue:{name:"Bleeding Statue",r:2,src:"both",desc:"At the start of each battle, one random unit on each side begins to bleed: it loses 1 HP at the end of each of its side's turns (never the last). Blood perpetually leaks from its eyes. The blood has to come from somewhere."},
+ statue:{name:"Bleeding Statue",r:2,src:"both",desc:"At the start of each battle, one random unit on each side begins to bleed: it loses 1 HP at the end of each of its side's turns (never the last). Your bleeding unit stops bleeding once it lands a kill. Blood perpetually leaks from its eyes. The blood has to come from somewhere."},
  eldritch:{name:"Weak Eldritch Token",r:0,src:"shop",desc:"First Blood Pact: your units deal +1 damage to enemies at full health, but take +1 damage while they are at full health themselves. Cold to the touch, and faintly humming. Whatever it bargains with is very small. For now."},
  token:{name:"Marcus's Loyalty Token",r:2,src:"shop",desc:"Everything at Marcus's wagon costs 20% less."},
  rock:{name:"Improvised Weapon (Rock)",r:0,need:["P","E","N"],desc:"Your Apothecaries, Enchanters and Banner Bearers deal +1 damage while at a third of their health or less. Desperate times."},
@@ -646,7 +646,7 @@ const RELICS={
  hide:{name:"Improvised Armor (Hide Behind Knight)",r:0,need:["P","E","N"],desc:"Your Apothecaries, Enchanters and Banner Bearers get +1 armor while at a third of their health or less and next to one of your Knights."},
  warm:{name:"Warm Mug",r:1,src:"both",lock:"campsite",desc:"Rested: the first time you leave Herbert's camp in a battle, all your units get +2% evasion until the end of the enemy's next turn. Still warm. It's always still warm."},
  spurs:{name:"Spurs",r:0,src:"shop",need:"C",desc:"Your Cavalry deal +1 damage when they attack after moving that turn."},
- grog:{name:"Flask of Liquid Courage",r:0,src:"both",desc:"Cursed. All your units deal +1 damage, and take +1 damage. Courage cuts both ways."},
+ grog:{name:"Flask of Liquid Courage",r:1,src:"both",desc:"Cursed. All your units deal +1 damage, and take +1 damage. Courage cuts both ways."},
  pebble:{name:"Lucky Pebble",r:0,desc:"All your units get +1% evasion. Found in a boot. Probably lucky."},
  warpaint:{name:"Berserker's Warpaint",r:1,src:"both",desc:"Cursed. All your units deal +1 damage, but they never retaliate. No time to parry when you're busy screaming."},
  whet:{name:"Whetstones",r:0,src:"both",desc:"Archers deal +1 damage."},
@@ -1920,6 +1920,7 @@ function hitFor(a,b,c,back){ // resolve one blow from a to b: dodge roll, damage
   if(b.team==="y"&&b.t==="A"&&a.team!=="y"&&TYPES[a.t].rg>1){unlocks.ah=(unlocks.ah||0)+1;saveU();if(unlocks.ah>=10)unlock("pavise")} // archers under arrow fire learn to raise a wall
   if(a.champ&&!back)a.champStep=1; // the Champion's Sword: a step after a landed blow
   if(hurt(b,c.dmg)){credit(a,b);
+    if(a.bleed&&rel(a,"statue")){delete a.bleed;later(()=>{if(units.includes(a))floatText(a.x,a.y,"Staunched","heal")},300)} // Bleeding Statue: a kill stops your own bleeding
     if(a.team==="y"&&units.some(v=>v!==a&&v.team==="y"&&d(v,b)===1)){unlocks.wp=(unlocks.wp||0)+1;saveU();if(unlocks.wp>=20)unlock("wolfpack")} // kills on a surrounded enemy teach the pack
     say(sent(who(a))+(back?" retaliated and destroyed ":" destroyed ")+who(b)+".")}
   else say(sent(who(a))+(back?" retaliated against ":" hit ")+who(b)+" for "+c.dmg+" damage.");
