@@ -646,6 +646,7 @@ const RELICS={
  hide:{name:"Improvised Armor (Hide Behind Knight)",r:0,need:["P","E","N"],desc:"Your Apothecaries, Enchanters and Banner Bearers get +1 armor while at a third of their health or less and next to one of your Knights."},
  warm:{name:"Warm Mug",r:1,src:"both",lock:"campsite",desc:"Rested: the first time you leave Herbert's camp in a battle, all your units get +2% evasion until the end of the enemy's next turn. Still warm. It's always still warm."},
  spurs:{name:"Spurs",r:0,src:"shop",need:"C",desc:"Your Cavalry deal +1 damage when they attack after moving that turn."},
+ grog:{name:"Flask of Liquid Courage",r:0,src:"both",desc:"Cursed. All your units deal +1 damage, and take +1 damage. Courage cuts both ways."},
  whet:{name:"Whetstones",r:0,src:"both",desc:"Archers deal +1 damage."},
  shield:{name:"Sturdy Shields",r:0,desc:"Knights get +1 armor."},
  rations:{name:"Trail Rations",r:0,src:"both",desc:"Your units heal 1 extra HP after each battle."},
@@ -1233,6 +1234,7 @@ function combat(a,b,from=a){
   add("Hollow King's Crown",rel(a,"crown")?1:0);
   add("Improvised Weapon",desperate(a,"rock")?1:0);
   add("Spurs",a.t==="C"&&rel(a,"spurs")&&turn===a.team&&(a.moved||from!==a)?1:0); // a charge: only on its own turn, after moving
+  add("Liquid Courage",(rel(a,"grog")?1:0)+(rel(b,"grog")?1:0)); // both ways: dealt and taken
   add("Elite",a.elite?1:0);
   const armor=[["Armor",B.ar||0],["Padded Armor",b.t==="A"&&mods[b.team]==="PAD"?1:0],["Forest Tactics",mods[b.team]==="FT"&&A.rg>1&&WOODS(k)?1:0],["Fortress",FORT.has(k)?1:0],["Sturdy Shields",b.t==="K"&&rel(b,"shield")?1:0],["Barding",b.t==="C"&&rel(b,"bard")?1:0],["Banner of the Fallen Keep",b.keep?1:0],["Stubborn as a Mule",muled(b)?MULE_AR:0],["Improvised Armor",desperate(b,"hide")&&units.some(v=>v.team===b.team&&v.t==="K"&&d(v,b)===1)?1:0]];
   armor.forEach(([l,v])=>add(l,-v));
@@ -2030,7 +2032,7 @@ function wispsAct(){
 const ELITE_HP=2,ELITE_MAX=3,elitesFor=r=>r>=3?Math.min(ELITE_MAX,Math.floor((r-1)/2)):0;
 const bossRelicsFor=r=>r<2?0:r<4?1:r<8?2:2+Math.floor((r-6)/2),bossItemsFor=r=>r<6?0:Math.min(3,1+Math.floor((r-6)/2));
 // relics an enemy army can make use of (no player-only actions, once-per-battle tricks or gold), and the unit each needs
-const FOE_OK={csword:"",cshield:"",whet:"A",shield:"K",bard:"C",luck:"",long:"A",debris:"R",wolfpack:"",mercy:"",gauntlets:"",pavise:"A",pennant:"",hatchet:"",keep:"",ram:"",blossom:"",crown:"",statue:"",spurs:"C"};
+const FOE_OK={csword:"",cshield:"",whet:"A",shield:"K",bard:"C",luck:"",long:"A",debris:"R",wolfpack:"",mercy:"",gauntlets:"",pavise:"A",pennant:"",hatchet:"",keep:"",ram:"",blossom:"",crown:"",statue:"",spurs:"C",grog:""};
 function foeLoadout(r){
   const army=units.filter(u=>u.team==="f").map(u=>u.t),ok=id=>id in FOE_OK&&(!FOE_OK[id]||army.includes(FOE_OK[id]))&&!FOE_RELIC.has(id);
   const boss=Object.keys(RELICS).filter(id=>RELICS[id].src==="boss"&&ok(id)),other=Object.keys(RELICS).filter(id=>RELICS[id].src!=="boss"&&ok(id));
@@ -3127,6 +3129,7 @@ const RICON={ // small 32-unit relic icons
  hide:'<path d="M17 4l10 3v8q0 9-10 13q-10-4-10-13V7z" fill="#a8b0ba" stroke="#2e3440" stroke-width="1.200" stroke-linejoin="round"/><path d="M17 4v24" stroke="#6a7480" stroke-width=".9"/><circle cx="8" cy="20" r="3.200" fill="#e8c8a0" stroke="#3a2a1c" stroke-width=".9"/><path d="M6.600 19.600h.6M9 19.600h.6" stroke="#2a1c10" stroke-width=".9" stroke-linecap="round"/><path d="M4 22q1-1 2 0M10.500 22.500q1-1 2 .3" stroke="#e8c8a0" stroke-width="1.400" stroke-linecap="round"/>',
  warm:'<path d="M12 9q-2-3 0-5M16 9q-2-3 0-6M20 9q-2-3 0-5" stroke="#d8d4cc" stroke-width="1.100" fill="none" stroke-linecap="round" opacity=".8"/><path d="M7 11h16v12q0 5-5 5h-6q-5 0-5-5z" fill="#9a6a3e" stroke="#3a2412" stroke-width="1.200"/><path d="M23 14q5 0 5 4t-5 4" stroke="#3a2412" stroke-width="2.400" fill="none"/><path d="M23 14q5 0 5 4t-5 4" stroke="#9a6a3e" stroke-width="1.100" fill="none"/><ellipse cx="15" cy="11" rx="8" ry="1.600" fill="#5a3418" stroke="#3a2412" stroke-width=".8"/><path d="M10 16v8" stroke="#c8925a" stroke-width="1.100" opacity=".6"/><circle cx="15" cy="17" r="7" fill="#ffb347" opacity=".14"/>',
  spurs:'<path d="M5 18q0-7 8-7h6" stroke="#8a8f96" stroke-width="2.600" fill="none" stroke-linecap="round"/><path d="M5 18q0 4 6 4h7" stroke="#8a8f96" stroke-width="2.600" fill="none" stroke-linecap="round"/><path d="M18 16.500h4" stroke="#6a6f76" stroke-width="2"/><circle cx="25" cy="16.500" r="3.400" fill="#d8b24a" stroke="#6a4c10" stroke-width=".9"/><path d="M25 11.500v-2M25 23.500v-2M30 16.500h-2M20 16.500h2M28.500 13l-1.400 1.400M21.500 20l1.400-1.400M28.500 20l-1.400-1.400M21.500 13l1.400 1.400" stroke="#6a4c10" stroke-width="1.100" stroke-linecap="round"/><circle cx="25" cy="16.500" r="1" fill="#6a4c10"/>',
+ grog:'<ellipse cx="16" cy="28" rx="9" ry="1.800" fill="rgba(0,0,0,.2)"/><rect x="13" y="3" width="6" height="4" rx="1" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M13.500 7h5v3q7 2 7 9v5q0 4-4 4H10.500q-4 0-4-4v-5q0-7 7-9z" fill="#7a6a4a" stroke="#2a1e12" stroke-width="1.200" stroke-linejoin="round"/><path d="M7 17h18v6H7z" fill="#a8402a" opacity=".85"/><path d="M7 17h18M7 23h18" stroke="#2a1e12" stroke-width=".9"/><path d="M12 20h8" stroke="#f0d8a0" stroke-width="1.300" stroke-linecap="round"/><path d="M10 12q1-2 3-2" stroke="#c8b890" stroke-width="1" fill="none" stroke-linecap="round" opacity=".7"/>',
  crown:'<circle cx="16" cy="17" r="13" fill="#5a1a6a" opacity=".25"/><path d="M5 24l-1-13l6 6l6-10l6 10l6-6l-1 13z" fill="#5a5048" stroke="#1e1a16" stroke-width="1.200" stroke-linejoin="round"/><path d="M5 24h22v3.500H5z" fill="#3e3630" stroke="#1e1a16" stroke-width="1.100"/><path d="M8 21l1.500-3M16 12v4M23 18l1.500 3" stroke="#2a2420" stroke-width=".9"/><circle cx="16" cy="20" r="2.200" fill="#a02a3a" stroke="#3a0a12" stroke-width=".8"/><circle cx="10" cy="25.700" r="1.100" fill="#7a2a8a"/><circle cx="22" cy="25.700" r="1.100" fill="#7a2a8a"/><path d="M13 27.500q0 2.500-1 3.500M19 27.500q.5 2 1.500 2.800" stroke="#a02a3a" stroke-width="1" fill="none" stroke-linecap="round"/>',
  csword:'<circle cx="16" cy="16" r="13" fill="#fff6c8" opacity=".35"/><path d="M16 2l3 4v15h-6V6z" fill="#e8eef4" stroke="#3a4450" stroke-width="1.100" stroke-linejoin="round"/><path d="M16 3v18" stroke="#fff" stroke-width=".8"/><path d="M9 21h14v2.600H9z" fill="#d8b24a" stroke="#6a4c10" stroke-width=".9"/><path d="M14.500 23.600h3v5h-3z" fill="#5a3a1c" stroke="#2a1a0c" stroke-width=".8"/><circle cx="16" cy="30" r="1.600" fill="#d8b24a" stroke="#6a4c10" stroke-width=".7"/><g fill="#fff"><path d="M24 6l.7 1.800l1.800.7l-1.800.7l-.7 1.800l-.7-1.800l-1.800-.7l1.800-.7z"/><path d="M7 9l.5 1.300l1.300.5l-1.300.5l-.5 1.300l-.5-1.300l-1.300-.5l1.300-.5z"/></g>',
  cshield:'<circle cx="16" cy="16" r="13" fill="#fff6c8" opacity=".35"/><path d="M16 3l11 4v8q0 9-11 14q-11-5-11-14V7z" fill="#cfd8e2" stroke="#3a4450" stroke-width="1.200" stroke-linejoin="round"/><path d="M16 6l8 3v6q0 6.500-8 10.500q-8-4-8-10.500V9z" fill="#3a5a8a" stroke="#d8b24a" stroke-width="1.100"/><path d="M16 10l1.800 3.700l4 .6l-2.900 2.800l.7 4l-3.600-1.900l-3.600 1.900l.7-4l-2.900-2.800l4-.6z" fill="#f2d27a" stroke="#8a6418" stroke-width=".6"/><g fill="#fff"><path d="M26 21l.6 1.500l1.500.6l-1.500.6l-.6 1.500l-.6-1.500l-1.500-.6l1.500-.6z"/></g>',
@@ -3194,6 +3197,7 @@ const MARCUS={
  saddle:"Parsnip's spare saddlebags! He won't notice they're gone. He's asleep.",
  horseshoe:"Parsnip's lucky horseshoe. He threw it, I caught it. That's how luck works.",
  token:"A loyalty token! Don't tell my other customers. There aren't any, but still.",
+ grog:"Liquid courage! Two sips and you'll fight a bear. Three sips and you'll lose to one.",
  spurs:"Spurs! Parsnip hates them. Which is how you know they work.",
  warm:"Herbert left this here. It's still warm. It's always still warm. I've stopped asking.",
  statue:"Don't mind the eyes. It does that. I keep a rag on it, but the rag... well. Just don't leave it facing the wagon.",
