@@ -2497,21 +2497,28 @@ function openWorld(){camp.battle=null;camp.sel=camp.pos;if(camp.cfg&&!camp.names
 const ROAD_EVENTS=[
  {t:"A Broken-Down Cart",go:()=>{camp.gold+=15;sfx("coin");renderGold();return "Someone left in a hurry. Among the spilled crates, your army finds 15 gold."}},
  {t:"Abandoned Supplies",go:()=>{const k=["draught","smoke","fire"][Math.floor(Math.random()*3)];if(camp.items.length<itemCap()){camp.items.push(k);renderItems();return `A soldier's pack lies by the trail. Inside: a ${ITEMS[k].name}.`}camp.gold+=10;sfx("coin");renderGold();return "A soldier's pack lies by the trail. Your own packs are full, so you take the 10 gold inside."}},
+ {t:"The Beggar",go:to=>{const seat={graveyard:"leans against a crooked cemetery fence",volcanic:"huddles on a smouldering rock",sakura:"sits beneath a cherry tree, petals settling on his skull",swamp:"perches on a rotting log",wetlands:"sits on a mossy stone by the water",fort:"slumps against a broken wall",wild:"crouches on a boulder",forest:"sits on a mossy stump"}[WORLD[to].b]||"sits upon a stump";
+   return {text:`A lonely, sorry-looking skeleton ${seat} at the side of the road. It holds out a cracked bowl.`,opts:[ // no reward yet: kindness may matter later
+    {label:"Give 5 gold",cost:5,go:()=>"You drop 5 gold in the bowl. The skeleton's jaw clacks softly. It might have been a thank-you."},
+    {label:"Give 10 gold",cost:10,go:()=>"You drop 10 gold in the bowl. The skeleton bows so low you worry it might come apart."},
+    {label:"Give nothing and quietly move on",go:()=>"You keep your eyes on the road. Behind you, the bowl rattles in the wind."}]}}},
  {t:"Rockfall",go:()=>{const hp=campHps(),c=hp.map((h,i)=>h>1?i:-1).filter(i=>i>=0);if(!c.length)return "Stones clatter down the slope, but your army slips past unharmed.";const i=c[Math.floor(Math.random()*c.length)];hp[i]=Math.max(1,hp[i]-2);camp.hp=hp;return `Stones clatter down the slope. ${heroName(i)} is struck and loses 2 HP.`}}];
 const campHps=()=>armyTypes().map((t,i)=>camp.hp&&camp.hp[i]!=null?camp.hp[i]:campMax(i));
 let riAfter=null;
-function roadEvent(done){
-  const E=ROAD_EVENTS[Math.floor(Math.random()*ROAD_EVENTS.length)],text=E.go();saveCamp();
-  $("rititle").textContent=E.t;
-  $("ribody").innerHTML=`<div class="rcard" style="--rc:#a08a64"><span class="rr">On the road</span><small>${text}</small></div>`;
-  relinfoFrom=null;riAfter=done;$("relinfo").hidden=false;$("riclose").focus();
+function roadEvent(to,done){
+  const E=ROAD_EVENTS[Math.floor(Math.random()*ROAD_EVENTS.length)],r=E.go(to),card=t=>`<div class="rcard" style="--rc:#a08a64"><span class="rr">On the road</span><small>${t}</small></div>`;saveCamp();
+  $("rititle").textContent=E.t;relinfoFrom=null;riAfter=done;$("relinfo").hidden=false;
+  if(typeof r==="string"){$("ribody").innerHTML=card(r);$("riclose").hidden=false;$("riclose").focus();return}
+  $("ribody").innerHTML=card(r.text)+`<div class="menubtns">${r.opts.map((o,i)=>`<button class="b" data-i="${i}"${o.cost>camp.gold?" disabled":""}>${o.label}</button>`).join("")}</div>`;$("riclose").hidden=true; // a choice: pick one to carry on
+  $("ribody").querySelectorAll("button").forEach(b=>b.onclick=()=>{const o=r.opts[+b.dataset.i];if(o.cost){camp.gold-=o.cost;sfx("coin");renderGold()}saveCamp();$("ribody").innerHTML=card(o.go());$("riclose").hidden=false;$("riclose").focus()});
+  $("ribody").querySelector("button:not([disabled])").focus();
 }
 function travel(id){
   if(worldLock)return;
   const e=edgeOf(camp.pos,id);
   if(e&&e[2]&&!e[3]){e[3]=1;saveCamp(); // a one-way path: sometimes, something happens along the way
     if(Math.random()<ROAD_EVENT){const A=WORLD[camp.pos],B=WORLD[id];worldLock=true;camp.sel=id;$("wm").style.transform=`translate(${Math.round((A.x+B.x)/2)}px,${Math.round((A.y+B.y)/2)-28}px)`;
-      setTimeout(()=>roadEvent(()=>{worldLock=false;renderWorld();travel(id)}),700);return}}
+      setTimeout(()=>roadEvent(id,()=>{worldLock=false;renderWorld();travel(id)}),700);return}}
   const n=WORLD[id];worldLock=true;camp.sel=id;
   $("wm").style.transform=`translate(${n.x}px,${n.y-28}px)`;
   setTimeout(()=>{
@@ -3321,7 +3328,7 @@ function showRelicInfo(id,from){
 }
 function closeRelicInfo(){$("relinfo").hidden=true;if(relinfoFrom&&relinfoFrom.isConnected)relinfoFrom.focus();relinfoFrom=null;if(riAfter){const f=riAfter;riAfter=null;f()}}
 $("riclose").onclick=closeRelicInfo;
-$("relinfo").onclick=e=>{if(e.target===$("relinfo"))closeRelicInfo()}; // tapping outside the window closes it
+$("relinfo").onclick=e=>{if(e.target===$("relinfo")&&!$("riclose").hidden)closeRelicInfo()}; // a road event awaiting a choice stays open // tapping outside the window closes it
 function showRelicOffer(){
   if(camp.found.length){ // relics picked up during the battle come first, one screen each
     const f=camp.found[0],R=RELICS[f.id],[rn,rc]=RARITY[R.r],F=FINDS.find(x=>x.relic===f.id);
