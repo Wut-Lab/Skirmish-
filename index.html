@@ -3148,7 +3148,7 @@ const ITEMS={ // consumables, used in battle (campaign only); using one takes th
  koijar:{name:"Jar of Koi",price:50,r:1,lock:"sakura",desc:"Pour it out on an empty tile next to this unit to make a Koi Pond: it blocks movement, and each side's units beside it recover 1 HP at the end of their turn. Can't go on impassable terrain, or where it would cut off part of the field."},
  medkit:{name:"Advanced Med Kit",price:45,r:1,desc:"Mend 1 wound on this unit or an adjacent ally (campaign wounds, restoring 1 max HP). An Apothecary using it has a 25% chance to mend 2."},
  mule:{name:"Mule Hair Potion",price:40,r:1,lock:"mule",desc:"The drinker turns stubborn as a mule: +2 armor, and it can't be pushed or slowed, until the end of your next turn. Brewed from genuine mule hair. Marcus swears Parsnip had nothing to do with it."}};
-// r: rarity (commons are always stocked; an uncommon turns up on about half of visits); free: using it costs the unit nothing; lock: the unlock it waits for
+// r: rarity (an uncommon is drawn half as often as a common); free: using it costs the unit nothing; lock: the unlock it waits for
 const BOSS_GOLD_STEP=10,ITEM_CAP=3,TONIC_MV=2,LEDGER_GOLD=5,TOKEN_OFF=.2,CHEST_OFF=.1,CHEST_GOLD=50,ITEM_STOCK=[1,.5],SHOP_ITEMS=3,MULE_BUYS=5,RELIC_PRICE=[40,70,110],SMOKE_EV=.2,DRAUGHT_HEAL=5,FIRE_DMG=3; // RELIC_PRICE by rarity: common, uncommon, rare
 const itemCap=()=>ITEM_CAP+relicCount("saddle"); // Parsnip's Saddlebags: a slot each
 const priceOf=p=>Math.round(p*(camp.relics.includes("token")?1-TOKEN_OFF:1)*(camp.relics.includes("chest")?1-CHEST_OFF:1)); // Marcus's Loyalty Token, Boss's War Chest
@@ -3181,7 +3181,7 @@ const MARCUS={
  poor:"Ah. Your purse is lighter than my conscience. Come back with more coin.",
  full:"Your pack's full, friend! Use something first. Next time, perhaps.",
  bye:"Safe roads! And if you see Herbert, tell him I'm still waiting for my mug money."};
-// what a Merchant stocks on your visit: the three consumables, always, and two relics drawn by rarity from the shop list
+// what a Merchant stocks on your visit: 3 consumables and 2 or 3 relics, drawn by rarity
 function shopStock(){
   const pool=shopRelics(),rel=[];
   const want=2+Math.floor(Math.random()*2); // 2 or 3 relics, and 3 consumables
