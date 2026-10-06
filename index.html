@@ -641,9 +641,9 @@ const RELICS={
  statue:{name:"Bleeding Statue",r:2,src:"both",desc:"At the start of each battle, one random unit on each side begins to bleed: it loses 1 HP at the end of each of its side's turns (never the last). Blood perpetually leaks from its eyes. The blood has to come from somewhere."},
  eldritch:{name:"Weak Eldritch Token",r:0,src:"shop",desc:"First Blood Pact: your units deal +1 damage to enemies at full health, but take +1 damage while they are at full health themselves. Cold to the touch, and faintly humming. Whatever it bargains with is very small. For now."},
  token:{name:"Marcus's Loyalty Token",r:2,src:"shop",desc:"Everything at Marcus's wagon costs 20% less."},
- rock:{name:"Improvised Weapon (Rock)",r:0,need:["P","E","N"],desc:"Your Apothecaries, Enchanters and Banner Bearers deal +1 damage while below 25% health. Desperate times."},
- stick:{name:"Improvised Weapon (Long Stick)",r:0,need:["P","E","N"],desc:"Your Apothecaries, Enchanters and Banner Bearers get +1 range (to a maximum of 2) while below 25% health. Poke it from a distance."},
- hide:{name:"Improvised Armor (Hide Behind Knight)",r:0,need:["P","E","N"],desc:"Your Apothecaries, Enchanters and Banner Bearers get +1 armor while below 25% health and next to one of your Knights."},
+ rock:{name:"Improvised Weapon (Rock)",r:0,need:["P","E","N"],desc:"Your Apothecaries, Enchanters and Banner Bearers deal +1 damage while at a third of their health or less. Desperate times."},
+ stick:{name:"Improvised Weapon (Long Stick)",r:0,need:["P","E","N"],desc:"Your Apothecaries, Enchanters and Banner Bearers get +1 range (to a maximum of 2) while at a third of their health or less. Poke it from a distance."},
+ hide:{name:"Improvised Armor (Hide Behind Knight)",r:0,need:["P","E","N"],desc:"Your Apothecaries, Enchanters and Banner Bearers get +1 armor while at a third of their health or less and next to one of your Knights."},
  warm:{name:"Warm Mug",r:1,src:"both",lock:"campsite",desc:"Rested: the first time you leave Herbert's camp in a battle, all your units get +2% evasion until the end of the enemy's next turn. Still warm. It's always still warm."},
  spurs:{name:"Spurs",r:0,src:"shop",need:"C",desc:"Your Cavalry deal +1 damage when they attack after moving that turn."},
  whet:{name:"Whetstones",r:0,src:"both",desc:"Archers deal +1 damage."},
@@ -676,7 +676,7 @@ const rel=(u,id)=>u.team==="y"?RELIC.has(id):u.team==="f"&&FOE_RELIC.has(id); //
 const BLESS_EV=.05;
 const blessed=u=>u.team==="y"&&u.blessUntil>=pturn; // Font of the Wise Ones: lasts through the enemy turn and your next one
 const canBless=(a,b)=>rel(a,"font")&&!a.blessUsed&&!a.acted&&b!==a&&b.team==="y"&&d(a,b)===1; // adjacent allies only
-const NONCOMBAT=["P","E","N"],LOW_HP=.25,REST_EV=.02,low=u=>u.hp<maxHp(u)*LOW_HP,desperate=(u,id)=>rel(u,id)&&NONCOMBAT.includes(u.t)&&low(u); // the Improvised relics: non-combat units below 25% health
+const NONCOMBAT=["P","E","N"],LOW_HP=1/3,REST_EV=.02,low=u=>u.hp<=maxHp(u)*LOW_HP,desperate=(u,id)=>rel(u,id)&&NONCOMBAT.includes(u.t)&&low(u); // the Improvised relics: non-combat units at or below a third of their health
 const rested=u=>u.team==="y"&&RELIC.has("warm")&&(relicUsed.warm===pturn||relicUsed.warm===pturn-1&&turn==="f"); // Warm Mug: through the enemy turn after you leave Herbert's camp (pturn ticks when you end your turn)
 const RALLY_EV=.05,RALLY_RANGE=2,FAN_EV=.1,TRIO_EV=.05,SAKURA_WINS=5;
 const MULE_AR=2,muled=u=>u.team==="y"&&u.muleUntil>=pturn; // Mule Hair Potion: +2 armor, can't be pushed or slowed, through the enemy turn and your next one
@@ -1402,7 +1402,7 @@ function renderInfo(){
   if(u.slow)notes.push("Slowed: it can move only 1 tile (always at least 1, even out of a forest or into shallow water) until the end of its next turn.");
   if(blessed(u))notes.push("Blessed: +5% evasion until the end of your next turn.");
   if(rested(u))notes.push("Rested (Warm Mug): +2% evasion until the end of the enemy's next turn.");
-  if(["rock","stick","hide"].some(id=>desperate(u,id)))notes.push("Desperate: below 25% health, so its Improvised relics are in play.");
+  if(["rock","stick","hide"].some(id=>desperate(u,id)))notes.push("Desperate: at a third of its health or less, so its Improvised relics are in play.");
   if(rallied(u))notes.push("Rallied: +5% evasion until the end of your next turn.");
   if(u.wounds)notes.push(`Wounded ${u.wounds===1?"once":u.wounds+" times"}: max HP ${maxHp(u)} instead of ${T.hp}.`);
   if(u.bleed)notes.push("Bleeding Statue: loses 1 HP at the end of each of its side's turns (never the last).");
