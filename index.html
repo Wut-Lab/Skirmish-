@@ -641,6 +641,11 @@ const RELICS={
  statue:{name:"Bleeding Statue",r:2,src:"both",desc:"At the start of each battle, one random unit on each side begins to bleed: it loses 1 HP at the end of each of its side's turns (never the last). Blood perpetually leaks from its eyes. The blood has to come from somewhere."},
  eldritch:{name:"Weak Eldritch Token",r:0,src:"shop",desc:"First Blood Pact: your units deal +1 damage to enemies at full health, but take +1 damage while they are at full health themselves. Cold to the touch, and faintly humming. Whatever it bargains with is very small. For now."},
  token:{name:"Marcus's Loyalty Token",r:2,src:"shop",desc:"Everything at Marcus's wagon costs 20% less."},
+ rock:{name:"Improvised Weapon (Rock)",r:0,need:["P","E","N"],desc:"Your Apothecaries, Enchanters and Banner Bearers deal +1 damage while below 25% health. Desperate times."},
+ stick:{name:"Improvised Weapon (Long Stick)",r:0,need:["P","E","N"],desc:"Your Apothecaries, Enchanters and Banner Bearers get +1 range (to a maximum of 2) while below 25% health. Poke it from a distance."},
+ hide:{name:"Improvised Armor (Hide Behind Knight)",r:0,need:["P","E","N"],desc:"Your Apothecaries, Enchanters and Banner Bearers get +1 armor while below 25% health and next to one of your Knights."},
+ warm:{name:"Warm Mug",r:1,src:"both",lock:"campsite",desc:"Rested: the first time you leave Herbert's camp in a battle, all your units get +2% evasion until the end of the enemy's next turn. Still warm. It's always still warm."},
+ spurs:{name:"Spurs",r:0,src:"shop",need:"C",desc:"Your Cavalry deal +1 damage when they attack after moving that turn."},
  whet:{name:"Whetstones",r:0,src:"both",desc:"Archers deal +1 damage."},
  shield:{name:"Sturdy Shields",r:0,desc:"Knights get +1 armor."},
  rations:{name:"Trail Rations",r:0,src:"both",desc:"Your units heal 1 extra HP after each battle."},
@@ -671,6 +676,8 @@ const rel=(u,id)=>u.team==="y"?RELIC.has(id):u.team==="f"&&FOE_RELIC.has(id); //
 const BLESS_EV=.05;
 const blessed=u=>u.team==="y"&&u.blessUntil>=pturn; // Font of the Wise Ones: lasts through the enemy turn and your next one
 const canBless=(a,b)=>rel(a,"font")&&!a.blessUsed&&!a.acted&&b!==a&&b.team==="y"&&d(a,b)===1; // adjacent allies only
+const NONCOMBAT=["P","E","N"],LOW_HP=.25,REST_EV=.02,low=u=>u.hp<maxHp(u)*LOW_HP,desperate=(u,id)=>rel(u,id)&&NONCOMBAT.includes(u.t)&&low(u); // the Improvised relics: non-combat units below 25% health
+const rested=u=>u.team==="y"&&RELIC.has("warm")&&(relicUsed.warm===pturn||relicUsed.warm===pturn-1&&turn==="f"); // Warm Mug: through the enemy turn after you leave Herbert's camp (pturn ticks when you end your turn)
 const RALLY_EV=.05,RALLY_RANGE=2,FAN_EV=.1,TRIO_EV=.05,SAKURA_WINS=5;
 const MULE_AR=2,muled=u=>u.team==="y"&&u.muleUntil>=pturn; // Mule Hair Potion: +2 armor, can't be pushed or slowed, through the enemy turn and your next one
 const DANDELION_CHANCE=.2,DANDELION_RANGE=2; // Immortal Dandelion: the chance to shrug off a lethal blow, and how near a support unit must be
@@ -680,7 +687,7 @@ const canTrumpet=u=>rel(u,"trumpet")&&!relicUsed.trumpet&&!u.acted&&!u.auto&&uni
 // Cherry Grove, Moment of Calm: counts as forest only for movement; no forest combat bonuses, no slowing, no retaliation in or out
 const WOODS=k=>FOREST.has(k)&&!CHERRY.has(k),calm=u=>CHERRY.has(u.x+","+u.y);
 const healOf=u=>TYPES[u.t].heal+(rel(u,"salts")?1:0); // how much a healer restores, with relics
-const rgOf=u=>TYPES[u.t].rg+(u.t==="A"&&rel(u,"long")?1:0); // a unit's attack range, with relics
+const rgOf=u=>TYPES[u.t].rg+(u.t==="A"&&rel(u,"long")?1:0)+(desperate(u,"stick")&&TYPES[u.t].rg<2?1:0); // Long Stick: up to range 2 // a unit's attack range, with relics
 const DEBRIS_DMG=1; // Debris Shot splash: small, so it softens clusters without replacing a second attack
 const NAME={G:"angry chicken",K:"knight",A:"archer",R:"artillery",W:"wolf",B:"bear",H:"hawk",C:"cavalry",P:"apothecary",E:"enchanter",T:"captain",N:"banner bearer",M:"militia"};
 const MODS={
@@ -1224,12 +1231,14 @@ function combat(a,b,from=a){
   add("Champion's Sword",a.champ?1:0);
   add("War Drum",a.team==="y"&&turn==="y"&&a.drum===pturn?1:0);
   add("Hollow King's Crown",rel(a,"crown")?1:0);
+  add("Improvised Weapon",desperate(a,"rock")?1:0);
+  add("Spurs",a.t==="C"&&rel(a,"spurs")&&turn===a.team&&(a.moved||from!==a)?1:0); // a charge: only on its own turn, after moving
   add("Elite",a.elite?1:0);
-  const armor=[["Armor",B.ar||0],["Padded Armor",b.t==="A"&&mods[b.team]==="PAD"?1:0],["Forest Tactics",mods[b.team]==="FT"&&A.rg>1&&WOODS(k)?1:0],["Fortress",FORT.has(k)?1:0],["Sturdy Shields",b.t==="K"&&rel(b,"shield")?1:0],["Barding",b.t==="C"&&rel(b,"bard")?1:0],["Banner of the Fallen Keep",b.keep?1:0],["Stubborn as a Mule",muled(b)?MULE_AR:0]];
+  const armor=[["Armor",B.ar||0],["Padded Armor",b.t==="A"&&mods[b.team]==="PAD"?1:0],["Forest Tactics",mods[b.team]==="FT"&&A.rg>1&&WOODS(k)?1:0],["Fortress",FORT.has(k)?1:0],["Sturdy Shields",b.t==="K"&&rel(b,"shield")?1:0],["Barding",b.t==="C"&&rel(b,"bard")?1:0],["Banner of the Fallen Keep",b.keep?1:0],["Stubborn as a Mule",muled(b)?MULE_AR:0],["Improvised Armor",desperate(b,"hide")&&units.some(v=>v.team===b.team&&v.t==="K"&&d(v,b)===1)?1:0]];
   armor.forEach(([l,v])=>add(l,-v));
   add("Pierce",Math.min(Math.max(0,(A.pi||0)+(rel(a,"bluemagma")?1:0)+(a.champ?1:0)-(b.cshield?1:0)),armor.reduce((t,x)=>t+x[1],0))); // Blue Magma and the Champion's Sword add pierce; the Champion's Shield turns 1 aside
   add("Pavise",b.t==="A"&&A.rg>1&&rel(b,"pavise")?-1:0); // a shield wall, not armor: pierce can't get past it
-  const ev=Math.min(EV_CAP,(B.ev||0)+(rel(b,"luck")?.05:0)+(b.trio?TRIO_EV:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(rel(b,"sakurafan")&&[...blastOf(k),[b.x,b.y]].some(([x,y])=>CHERRY.has(x+","+y))?FAN_EV:0)+(blessed(b)?BLESS_EV:0)+(rallied(b)?RALLY_EV:0)+(b.team==="y"&&SMOKE.has(k)?SMOKE_EV:0)+(WOODS(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0));
+  const ev=Math.min(EV_CAP,(B.ev||0)+(rel(b,"luck")?.05:0)+(b.trio?TRIO_EV:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(rel(b,"sakurafan")&&[...blastOf(k),[b.x,b.y]].some(([x,y])=>CHERRY.has(x+","+y))?FAN_EV:0)+(blessed(b)?BLESS_EV:0)+(rested(b)?REST_EV:0)+(rallied(b)?RALLY_EV:0)+(b.team==="y"&&SMOKE.has(k)?SMOKE_EV:0)+(WOODS(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0));
   return {dmg:Math.max(1,parts.reduce((t,p)=>t+p[1],0)),hit:1-ev,parts}; // every hit deals at least 1
 }
 // a unit with `ret` retaliates against an attacker within its own range for half damage, at least 1 (the attacker may evade it); null when it can't
@@ -1338,7 +1347,7 @@ function render(){
     html+=`<button class="${cls}" data-x="${x}" data-y="${y}"${pd&&pd.k===k?` data-arrow="${pd.a}"`:""} aria-label="${label.replace(/"/g,"&quot;")}">`
       +'<i class="lt"></i>'+tileArt(x,y)+(fr?'<i class="tint"></i>':"")+(SMOKE.has(k)?'<i class="smoke"></i>':"")+joins(x,y); // fortress art covers its tile, so highlights go on a see-through layer above it
     if(u){
-      let uc="u "+u.team+(spent(u)?" done":"")+(u.slow?" slow":"")+(inspired(u)?" insp":"")+(blessed(u)?" blessed":"")+(rallied(u)?" rallied":"")+(muled(u)?" mule":"")+(u.elite?" elite":"")+(u.champ||u.cshield?" champ":"")+(u===sel||u===insp?" sel":""),mvs="";
+      let uc="u "+u.team+(spent(u)?" done":"")+(u.slow?" slow":"")+(inspired(u)?" insp":"")+(blessed(u)||rested(u)?" blessed":"")+(rallied(u)?" rallied":"")+(muled(u)?" mule":"")+(u.elite?" elite":"")+(u.champ||u.cshield?" champ":"")+(u===sel||u===insp?" sel":""),mvs="";
       if(u.spawn){uc+=" tpin";delete u.spawn}
       const pp=prevPos.get(u);prevPos.set(u,[x,y]);
       if(pp&&(pp[0]!==x||pp[1]!==y)){ // slide in from where it was last drawn (a long jump fades in instead)
@@ -1392,6 +1401,8 @@ function renderInfo(){
   if(inspired(u))notes.push("Inspired by a nearby Banner Bearer: deals +1 damage.");
   if(u.slow)notes.push("Slowed: it can move only 1 tile (always at least 1, even out of a forest or into shallow water) until the end of its next turn.");
   if(blessed(u))notes.push("Blessed: +5% evasion until the end of your next turn.");
+  if(rested(u))notes.push("Rested (Warm Mug): +2% evasion until the end of the enemy's next turn.");
+  if(["rock","stick","hide"].some(id=>desperate(u,id)))notes.push("Desperate: below 25% health, so its Improvised relics are in play.");
   if(rallied(u))notes.push("Rallied: +5% evasion until the end of your next turn.");
   if(u.wounds)notes.push(`Wounded ${u.wounds===1?"once":u.wounds+" times"}: max HP ${maxHp(u)} instead of ${T.hp}.`);
   if(u.bleed)notes.push("Bleeding Statue: loses 1 HP at the end of each of its side's turns (never the last).");
@@ -2018,7 +2029,7 @@ function wispsAct(){
 const ELITE_HP=2,ELITE_MAX=3,elitesFor=r=>r>=3?Math.min(ELITE_MAX,Math.floor((r-1)/2)):0;
 const bossRelicsFor=r=>r<2?0:r<4?1:r<8?2:2+Math.floor((r-6)/2),bossItemsFor=r=>r<6?0:Math.min(3,1+Math.floor((r-6)/2));
 // relics an enemy army can make use of (no player-only actions, once-per-battle tricks or gold), and the unit each needs
-const FOE_OK={csword:"",cshield:"",whet:"A",shield:"K",bard:"C",luck:"",long:"A",debris:"R",wolfpack:"",mercy:"",gauntlets:"",pavise:"A",pennant:"",hatchet:"",keep:"",ram:"",blossom:"",crown:"",statue:""};
+const FOE_OK={csword:"",cshield:"",whet:"A",shield:"K",bard:"C",luck:"",long:"A",debris:"R",wolfpack:"",mercy:"",gauntlets:"",pavise:"A",pennant:"",hatchet:"",keep:"",ram:"",blossom:"",crown:"",statue:"",spurs:"C"};
 function foeLoadout(r){
   const army=units.filter(u=>u.team==="f").map(u=>u.t),ok=id=>id in FOE_OK&&(!FOE_OK[id]||army.includes(FOE_OK[id]))&&!FOE_RELIC.has(id);
   const boss=Object.keys(RELICS).filter(id=>RELICS[id].src==="boss"&&ok(id)),other=Object.keys(RELICS).filter(id=>RELICS[id].src!=="boss"&&ok(id));
@@ -3027,7 +3038,10 @@ function openCamp(bk,line,btn,meal,done){
 function visitCamp(){ // from the Mysterious Camp Site in battle
   let i;do i=Math.floor(Math.random()*HERBERT.length);while(i===herbertLast&&HERBERT.length>1);herbertLast=i;
   paused=true;say("You visited Herbert's camp.");
-  openCamp(BIOME_KEY,HERBERT[i],"Thank Herbert and Leave Camp",false,()=>{paused=false;say("Move, attack, or pick another unit.");render()});
+  const by=sel;
+  openCamp(BIOME_KEY,HERBERT[i],"Thank Herbert and Leave Camp",false,()=>{paused=false;
+    if(RELIC.has("warm")&&!relicUsed.warm){relicUsed.warm=pturn;sfx("bless");units.filter(u=>u.team==="y").forEach(u=>floatText(u.x,u.y,"Rested","bless"));if(by)thanks(by);say("Rested: the Warm Mug gives your units +2% evasion until the end of the enemy's next turn.");render();return} // Warm Mug, once per battle
+    say("Move, attack, or pick another unit.");render()});
 }
 $("cleave").onclick=()=>{$("campv").hidden=true;const f=campDone;campDone=null;if(f)f()};
 // a healing spot where Herbert is camped: a rest and a meal heal the whole army
@@ -3065,9 +3079,10 @@ const goldFor=n=>(n.type==="boss"?25+BOSS_GOLD_STEP*((camp.region||1)-1):10)+2*u
 // 2 or 3 relics the army doesn't have yet, drawn by rarity weight
 const relicCount=id=>camp.relics.filter(r=>r===id).length;
 // relics the shop may stock right now: sold there, unlocked, useful to this army, and not already carried as many times as allowed
-const shopRelics=()=>{const army=armyTypes();return Object.keys(RELICS).filter(id=>{const R=RELICS[id];return (R.src==="shop"||R.src==="both")&&(!R.lock||unlocks[R.lock])&&(!R.need||army.includes(R.need))&&relicCount(id)<(R.max||1)})};
+const needOk=(R,army)=>!R.need||[].concat(R.need).some(t=>army.includes(t)); // need: a unit type (or list of types) the army must have
+const shopRelics=()=>{const army=armyTypes();return Object.keys(RELICS).filter(id=>{const R=RELICS[id];return (R.src==="shop"||R.src==="both")&&(!R.lock||unlocks[R.lock])&&needOk(R,army)&&relicCount(id)<(R.max||1)})};
 function relicOffer(){
-  const army=armyTypes(),pool=Object.keys(RELICS).filter(id=>!camp.relics.includes(id)&&!RELICS[id].find&&RELICS[id].src!=="shop"&&RELICS[id].src!=="boss"&&(!RELICS[id].lock||unlocks[RELICS[id].lock])&&(!RELICS[id].need||army.includes(RELICS[id].need))),out=[];
+  const army=armyTypes(),pool=Object.keys(RELICS).filter(id=>!camp.relics.includes(id)&&!RELICS[id].find&&RELICS[id].src!=="shop"&&RELICS[id].src!=="boss"&&(!RELICS[id].lock||unlocks[RELICS[id].lock])&&needOk(RELICS[id],army)),out=[];
   for(let n=2+(Math.random()<.5?1:0)+relicCount("coin");n>0&&pool.length;n--){ // each Copper Coin of Good Fortune adds a choice
     const tot=pool.reduce((t,id)=>t+RARITY_W[RELICS[id].r],0);let roll=Math.random()*tot,i=0;
     while(roll>=RARITY_W[RELICS[pool[i]].r]){roll-=RARITY_W[RELICS[pool[i]].r];i++}
@@ -3079,7 +3094,7 @@ function relicOffer(){
 // (including the shop-and-battle list) and from consumables, weighted toward rarer finds, at most 2 of them consumables
 const BOSS_W=[35,40,25];
 function bossOffer(){
-  const army=armyTypes(),ok=R=>(!R.lock||unlocks[R.lock])&&(!R.need||army.includes(R.need));
+  const army=armyTypes(),ok=R=>(!R.lock||unlocks[R.lock])&&needOk(R,army);
   const have=id=>relicCount(id)>=(RELICS[id].max||1),rar=e=>e.startsWith("item:")?(ITEMS[e.slice(5)].r||0):RELICS[e].r;
   const pick=list=>{const tot=list.reduce((t,e)=>t+BOSS_W[rar(e)],0);let roll=Math.random()*tot,i=0;while(roll>=BOSS_W[rar(list[i])]){roll-=BOSS_W[rar(list[i])];i++}return list[i]};
   const bossList=Object.keys(RELICS).filter(id=>RELICS[id].src==="boss"&&ok(RELICS[id])&&!have(id)),out=bossList.length?[pick(bossList)]:[];
@@ -3106,6 +3121,11 @@ const RICON={ // small 32-unit relic icons
  muster:'<path d="M7 5h16q2 0 2 2v18q0 2-2 2H7z" fill="#efe2c4" stroke="#5a4630" stroke-width="1.100"/><ellipse cx="7" cy="16" rx="2.600" ry="11" fill="#d8c8a4" stroke="#5a4630" stroke-width="1"/><path d="M11 9h10M11 12h8M11 15h10M11 18h7M11 21h9" stroke="#6a5a44" stroke-width=".9"/><path d="M9 9l.8.8l1.400-1.600M9 12l.8.8l1.400-1.600M9 15l.8.8l1.400-1.600" stroke="#2f8f4e" stroke-width=".8" fill="none"/><circle cx="22" cy="25" r="3.400" fill="#b8372d" stroke="#6a1a14" stroke-width=".9"/><path d="M20.600 25h2.800M22 23.600v2.800" stroke="#f2c4b8" stroke-width=".8"/>',
  eldritch:'<circle cx="16" cy="16" r="12" fill="#3a4a3e" stroke="#141c16" stroke-width="1.300"/><circle cx="16" cy="16" r="9" fill="none" stroke="#6a8a6e" stroke-width=".9" stroke-dasharray="2 1.500"/><path d="M16 8q4 4 0 8t0 8M10 12q6 2 12 0M10 20q6-2 12 0" stroke="#9fe0b0" stroke-width="1.200" fill="none" stroke-linecap="round"/><circle cx="16" cy="16" r="1.800" fill="#c8ffd8"/><circle cx="16" cy="16" r="5" fill="#9fe0b0" opacity=".15"/>',
  statue:'<ellipse cx="16" cy="29" rx="10" ry="1.800" fill="rgba(0,0,0,.2)"/><path d="M8 29v-4h16v4z" fill="#8a8a86" stroke="#3a3a38" stroke-width="1.100"/><path d="M10 25q-1-5 3-7q-4-3-3-8q1-6 6-6t6 6q1 5-3 8q4 2 3 7z" fill="#b4b2aa" stroke="#3a3a38" stroke-width="1.100" stroke-linejoin="round"/><path d="M12.500 11.500q1.300-1 2.400 0M17.100 11.500q1.300-1 2.400 0" stroke="#3a3a38" stroke-width=".9" fill="none" stroke-linecap="round"/><path d="M13.700 12.300q-.6 3 .2 6.500l-.5 2M18.300 12.300q.6 3-.2 6.500l.5 2" stroke="#b0182a" stroke-width="1.200" fill="none" stroke-linecap="round"/><circle cx="13.400" cy="21.400" r=".9" fill="#b0182a"/><circle cx="18.600" cy="21.400" r=".9" fill="#b0182a"/>',
+ rock:'<ellipse cx="16" cy="27" rx="11" ry="2" fill="rgba(0,0,0,.2)"/><path d="M6 21q-2-7 4-11q5-4 11-2q6 2 6 9q0 7-8 8q-10 2-13-4z" fill="#8f8a80" stroke="#3a3632" stroke-width="1.200" stroke-linejoin="round"/><path d="M10 13q4-3 9-2M9 19l4-2l3 3" stroke="#b8b2a6" stroke-width="1.100" fill="none" stroke-linecap="round"/><path d="M20 20l3-1M15 23l2 1" stroke="#5a5650" stroke-width=".9" stroke-linecap="round"/>',
+ stick:'<path d="M5 28L26 5" stroke="#6a4424" stroke-width="3.200" stroke-linecap="round"/><path d="M5 28L26 5" stroke="#9a6a3a" stroke-width="1.600" stroke-linecap="round"/><path d="M15 17l-4-3M19 13l1-4" stroke="#6a4424" stroke-width="1.600" stroke-linecap="round"/><path d="M11 14l-2 1" stroke="#4a7a3a" stroke-width="2" stroke-linecap="round"/>',
+ hide:'<path d="M17 4l10 3v8q0 9-10 13q-10-4-10-13V7z" fill="#a8b0ba" stroke="#2e3440" stroke-width="1.200" stroke-linejoin="round"/><path d="M17 4v24" stroke="#6a7480" stroke-width=".9"/><circle cx="8" cy="20" r="3.200" fill="#e8c8a0" stroke="#3a2a1c" stroke-width=".9"/><path d="M6.600 19.600h.6M9 19.600h.6" stroke="#2a1c10" stroke-width=".9" stroke-linecap="round"/><path d="M4 22q1-1 2 0M10.500 22.500q1-1 2 .3" stroke="#e8c8a0" stroke-width="1.400" stroke-linecap="round"/>',
+ warm:'<path d="M12 9q-2-3 0-5M16 9q-2-3 0-6M20 9q-2-3 0-5" stroke="#d8d4cc" stroke-width="1.100" fill="none" stroke-linecap="round" opacity=".8"/><path d="M7 11h16v12q0 5-5 5h-6q-5 0-5-5z" fill="#9a6a3e" stroke="#3a2412" stroke-width="1.200"/><path d="M23 14q5 0 5 4t-5 4" stroke="#3a2412" stroke-width="2.400" fill="none"/><path d="M23 14q5 0 5 4t-5 4" stroke="#9a6a3e" stroke-width="1.100" fill="none"/><ellipse cx="15" cy="11" rx="8" ry="1.600" fill="#5a3418" stroke="#3a2412" stroke-width=".8"/><path d="M10 16v8" stroke="#c8925a" stroke-width="1.100" opacity=".6"/><circle cx="15" cy="17" r="7" fill="#ffb347" opacity=".14"/>',
+ spurs:'<path d="M5 18q0-7 8-7h6" stroke="#8a8f96" stroke-width="2.600" fill="none" stroke-linecap="round"/><path d="M5 18q0 4 6 4h7" stroke="#8a8f96" stroke-width="2.600" fill="none" stroke-linecap="round"/><path d="M18 16.500h4" stroke="#6a6f76" stroke-width="2"/><circle cx="25" cy="16.500" r="3.400" fill="#d8b24a" stroke="#6a4c10" stroke-width=".9"/><path d="M25 11.500v-2M25 23.500v-2M30 16.500h-2M20 16.500h2M28.500 13l-1.400 1.400M21.500 20l1.400-1.400M28.500 20l-1.400-1.400M21.500 13l1.400 1.400" stroke="#6a4c10" stroke-width="1.100" stroke-linecap="round"/><circle cx="25" cy="16.500" r="1" fill="#6a4c10"/>',
  crown:'<circle cx="16" cy="17" r="13" fill="#5a1a6a" opacity=".25"/><path d="M5 24l-1-13l6 6l6-10l6 10l6-6l-1 13z" fill="#5a5048" stroke="#1e1a16" stroke-width="1.200" stroke-linejoin="round"/><path d="M5 24h22v3.500H5z" fill="#3e3630" stroke="#1e1a16" stroke-width="1.100"/><path d="M8 21l1.500-3M16 12v4M23 18l1.500 3" stroke="#2a2420" stroke-width=".9"/><circle cx="16" cy="20" r="2.200" fill="#a02a3a" stroke="#3a0a12" stroke-width=".8"/><circle cx="10" cy="25.700" r="1.100" fill="#7a2a8a"/><circle cx="22" cy="25.700" r="1.100" fill="#7a2a8a"/><path d="M13 27.500q0 2.500-1 3.500M19 27.500q.5 2 1.500 2.800" stroke="#a02a3a" stroke-width="1" fill="none" stroke-linecap="round"/>',
  csword:'<circle cx="16" cy="16" r="13" fill="#fff6c8" opacity=".35"/><path d="M16 2l3 4v15h-6V6z" fill="#e8eef4" stroke="#3a4450" stroke-width="1.100" stroke-linejoin="round"/><path d="M16 3v18" stroke="#fff" stroke-width=".8"/><path d="M9 21h14v2.600H9z" fill="#d8b24a" stroke="#6a4c10" stroke-width=".9"/><path d="M14.500 23.600h3v5h-3z" fill="#5a3a1c" stroke="#2a1a0c" stroke-width=".8"/><circle cx="16" cy="30" r="1.600" fill="#d8b24a" stroke="#6a4c10" stroke-width=".7"/><g fill="#fff"><path d="M24 6l.7 1.800l1.800.7l-1.800.7l-.7 1.800l-.7-1.800l-1.800-.7l1.800-.7z"/><path d="M7 9l.5 1.300l1.300.5l-1.300.5l-.5 1.300l-.5-1.300l-1.300-.5l1.300-.5z"/></g>',
  cshield:'<circle cx="16" cy="16" r="13" fill="#fff6c8" opacity=".35"/><path d="M16 3l11 4v8q0 9-11 14q-11-5-11-14V7z" fill="#cfd8e2" stroke="#3a4450" stroke-width="1.200" stroke-linejoin="round"/><path d="M16 6l8 3v6q0 6.500-8 10.500q-8-4-8-10.500V9z" fill="#3a5a8a" stroke="#d8b24a" stroke-width="1.100"/><path d="M16 10l1.800 3.700l4 .6l-2.900 2.800l.7 4l-3.600-1.900l-3.600 1.900l.7-4l-2.900-2.800l4-.6z" fill="#f2d27a" stroke="#8a6418" stroke-width=".6"/><g fill="#fff"><path d="M26 21l.6 1.500l1.500.6l-1.500.6l-.6 1.500l-.6-1.500l-1.500-.6l1.500-.6z"/></g>',
@@ -3173,6 +3193,8 @@ const MARCUS={
  saddle:"Parsnip's spare saddlebags! He won't notice they're gone. He's asleep.",
  horseshoe:"Parsnip's lucky horseshoe. He threw it, I caught it. That's how luck works.",
  token:"A loyalty token! Don't tell my other customers. There aren't any, but still.",
+ spurs:"Spurs! Parsnip hates them. Which is how you know they work.",
+ warm:"Herbert left this here. It's still warm. It's always still warm. I've stopped asking.",
  statue:"Don't mind the eyes. It does that. I keep a rag on it, but the rag... well. Just don't leave it facing the wagon.",
  ledger:"A tax collector's ledger. He won't be needing it. Long story. Don't ask.",
  mule:"Genuine mule hair. Sourced from a very distant mule. Not Parsnip. Don't look at Parsnip.",
