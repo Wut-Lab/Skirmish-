@@ -2376,14 +2376,23 @@ function genWorld(){
   const far=(x,y)=>nodes.every(n=>Math.hypot(n.x-x,n.y-y)>52);
   const scatter=c=>{const out=[];for(let t=0;t<300&&out.length<c;t++){const x=rr(20,380),y=rr(30,500);if(far(x,y))out.push([Math.round(x),Math.round(y)])}return out};
   const ry=()=>Math.round(rr(330,400));
-  WORLD=nodes;EDGES=[...es].map(e=>e.split("-").map(Number));
+  const E=[...es].map(e=>e.split("-").map(Number)); // [lower id, upper id]: ids rise row by row toward the boss
+  for(let k=0;k<layers.length-2;k++){ // about a third of the paths in each gap become one-way (upward); never the paths into the boss
+    const gap=E.filter(e=>layers[k].includes(e[0])&&layers[k+1].includes(e[1])).sort(()=>Math.random()-.5);
+    gap.slice(0,Math.max(1,Math.round(gap.length*ONEWAY_SHARE))).forEach(e=>e[2]=1);
+  }
+  WORLD=nodes;EDGES=E;
+  if(nodes.some(n=>!reachFrom(n.id).has(nodes.length-1)))E.forEach(e=>e.length=2); // safety net: the boss must stay reachable from everywhere
   DECO={trees:scatter(12),rocks:scatter(5),river:`M-10 ${ry()} C 70 ${ry()} 120 ${ry()} 220 ${ry()} S 340 ${ry()} 420 ${ry()}`};
 }
 const BIOME_NAME={forest:"Forest",plain:"Plains",fort:"Stronghold",wild:"Wilds",wetlands:"Wetlands",swamp:"Murky Swamp",graveyard:"Haunted Graveyard",volcanic:"Molten Wastes",sakura:"Sakura Vale",boss:"Enemy Stronghold"};
 // a Quick Battle map has no biome of its own, so name it from what was generated
 const guessBiome=()=>VALE||KOI.size?"sakura":LAVA.size||VOLC.size?"volcanic":GRAVES.size?"graveyard":SWAMP.size>=10?"swamp":DEEP.size+SHALLOW.size>=20?"wetlands":FORT.size?"fort":units.some(u=>u.team==="w")?"wild":FOREST.size>=16?"forest":"plain";
 const BIOME={mixed:{},sakura:{sakura:1,forest:2,flowers:1},forest:{forest:9,flowers:1},plain:{forest:2,flowers:1},fort:{fort:1},wild:{wild:1,flowers:1},boss:{fort:1,boss:1},wetlands:{water:1,forest:3,swamp:1},swamp:{swamp:3,pond:1,forest:6},graveyard:{graves:1,forest:5},volcanic:{lava:1,forest:3}};
-const adj=(a,b)=>EDGES.some(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a));
+const ONEWAY_SHARE=1/3,ROAD_EVENT=.5;
+const edgeOf=(a,b)=>EDGES.find(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a)); // e[2]: one-way (only from e[0] up to e[1]); e[3]: its road event has been rolled
+const canGo=(a,b)=>{const e=edgeOf(a,b);return !!e&&(!e[2]||b===e[1])};
+function reachFrom(id){const seen=new Set([id]),q=[id];while(q.length){const a=q.shift();WORLD.forEach(n=>{if(!seen.has(n.id)&&canGo(a,n.id)){seen.add(n.id);q.push(n.id)}})}return seen}
 const SAVE="skirmish-campaign";
 function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,items:camp.items,offer:camp.offer,offerBoss:camp.offerBoss,found:camp.found,kills:camp.kills,names:camp.names,wounds:camp.wounds,honors:camp.honors,falls:camp.falls,news:camp.news,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
 function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],items:d.items||[],offer:d.offer||null,offerBoss:!!d.offerBoss,found:Array.isArray(d.found)?d.found:d.found?[d.found]:[],kills:d.kills||[],names:d.names||null,wounds:d.wounds||[],honors:d.honors||[],falls:d.falls||[],news:d.news||null,region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
@@ -2417,12 +2426,17 @@ function mapArt(){
 function renderWorld(){
   const done=new Set(camp.cleared),cur=WORLD[camp.pos],pc=COLORS[camp.cfg.c];
   if(camp.sel==null)camp.sel=camp.pos;
-  const stOf=n=>n.type==="camp"||done.has(n.id)?"cleared":adj(camp.pos,n.id)?"open":"locked";
+  const stOf=n=>n.type==="camp"||done.has(n.id)?"cleared":canGo(camp.pos,n.id)?"open":"locked",reach=reachFrom(camp.pos);
   const label={cleared:"Cleared",open:"Battle ahead",locked:"Out of reach"},lab=n=>stOf(n)==="open"?(n.type==="heal"?"Healing spot":n.type==="shop"?"Merchant":n.b==="wetlands"?"Wetlands battle":n.b==="swamp"?"Swamp battle":n.b==="graveyard"?"Graveyard battle":n.b==="volcanic"?"Volcanic battle":n.b==="sakura"?"Sakura battle":label.open):label[stOf(n)];
   let s='<svg viewBox="0 0 400 520" role="img" aria-label="World map">'+mapArt();
   EDGES.forEach(([a,b])=>{
     const A=WORLD[a],B=WORLD[b],both=stOf(A)==="cleared"&&stOf(B)==="cleared",hot=a===camp.pos||b===camp.pos;
     s+=`<line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke="${both?"#4f7d3a":hot?"#3b2a14":"#8b6b3e"}" stroke-width="${hot?5:4}" stroke-linecap="round"${both?"":` stroke-dasharray="${hot?"9 6":"2 8"}"`}/>`;
+  });
+  EDGES.forEach(([a,b,one])=>{if(!one)return; // one-way paths: worn, hand-inked chevrons pointing toward the boss
+    const A=WORLD[a],B=WORLD[b],ang=Math.atan2(B.y-A.y,B.x-A.x)*180/Math.PI,j=i=>((a*37+b*17+i*11)%10)/10;
+    const mx=(A.x+B.x)/2+(j(1)-.5)*1.6,my=(A.y+B.y)/2+(j(4)-.5)*1.6;
+    s+=`<g transform="translate(${mx.toFixed(1)} ${my.toFixed(1)}) rotate(${(ang+(j(6)-.5)*6).toFixed(1)})">`+[-4.500,4.500].map((o,i)=>`<g transform="translate(${o} 0)" opacity="${(.68+j(i+7)*.25).toFixed(2)}"><path d="M-5 -8L3 0L-5 8" fill="none" stroke="#f4ead0" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" opacity=".7"/><path d="M-5 -8L3 0L-5 8" fill="none" stroke="#4a2e14" stroke-width="3.200" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="${i?"6 1.600 9 1.200":"8 1.400 5 1.800 9"}"/><path d="M-3.600 -6.200L1.400 -1" stroke="#f4ead0" stroke-width=".9" opacity=".55"/></g>`).join("")+"</g>";
   });
   WORLD.forEach(n=>{
     const st=stOf(n),cl=st==="cleared"&&n.type!=="camp",r=n.type==="boss"?21:17,S=n.type==="boss"?30:24;
@@ -2460,12 +2474,12 @@ function renderWorld(){
     g.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();g.onclick()}};
   });
   $("warmy").innerHTML=armyTypes().map((t,i)=>{const mx=campMax(i),h=Math.min(mx,camp.hp&&camp.hp[i]!=null?camp.hp[i]:mx),w=woundsOf(i);return `<span class="stat" title="${heroName(i)}">${camp.names?camp.names[i]:cap(NAME[t])} <small>${cap(NAME[t])}</small> <b style="color:${h<=mx*.25?"#d64b3a":"inherit"}">${h}/${mx}</b>${w?`<i class="wnd" aria-label="${w} wound${w>1?"s":""}">${"\u2020".repeat(w)}</i>`:""}</span>`}).join("");
-  const total=WORLD.filter(n=>n.type!=="camp").length;
+  const total=WORLD.filter(n=>n.type!=="camp"&&(done.has(n.id)||reach.has(n.id))).length,lost=WORLD.filter(n=>n.type!=="camp"&&!done.has(n.id)&&!reach.has(n.id)).length;
   $("wtitle").textContent=camp.region>1?`World Map \u00b7 Region ${camp.region}`:"World Map";
-  $("wprog").textContent=camp.done?"Campaign complete! You cleared every location.":`Locations cleared: ${camp.cleared.length} of ${total}. Tap a glowing location to travel there.`;
-  const n=WORLD[camp.sel],st=stOf(n),here=n.id===camp.pos,can=!here&&adj(camp.pos,n.id);
+  $("wprog").textContent=camp.done?"Campaign complete! You defeated the boss.":`Locations cleared: ${camp.cleared.length} of ${total}${lost?` (${lost} cut off)`:""}. Tap a glowing location to travel there.`;
+  const n=WORLD[camp.sel],st=stOf(n),here=n.id===camp.pos,can=!here&&canGo(camp.pos,n.id),e=can&&edgeOf(camp.pos,n.id),cut=!here&&!done.has(n.id)&&!reach.has(n.id);
   const btn=can?(st==="cleared"?"Travel Here":n.type==="heal"?"Rest Here":n.type==="shop"?"Visit the Merchant":"Travel to Battle"):"";
-  $("winfo").innerHTML=`<div class="lbl">Location</div><div class="ib"><div class="nm"><strong>${n.name}</strong><span>${here?"You are here":lab(n)}</span></div><small>${n.text}</small>${here||can?"":"<small>Not connected to your location. Travel along the paths.</small>"}</div>${btn?`<div class="bar"><button class="b pri" id="wgo">${btn}</button></div>`:""}`;
+  $("winfo").innerHTML=`<div class="lbl">Location</div><div class="ib"><div class="nm"><strong>${n.name}</strong><span>${here?"You are here":lab(n)}</span></div><small>${n.text}</small>${e&&e[2]?"<small><b>One-way path:</b> there's no coming back this way.</small>":""}${here||can?"":cut?"<small>Cut off: no path from here leads there anymore.</small>":"<small>Not connected to your location. Travel along the paths.</small>"}</div>${btn?`<div class="bar"><button class="b pri" id="wgo">${btn}</button></div>`:""}`;
   if(can)$("wgo").onclick=()=>travel(n.id);
 }
 function healFx(n){ // a gentle glow at the healing spot: rings drift outward and little crosses float up
@@ -2479,8 +2493,26 @@ function healFx(n){ // a gentle glow at the healing spot: rings drift outward an
 }
 function openWorld(){camp.battle=null;camp.sel=camp.pos;if(camp.cfg&&!camp.names){rollNames();saveCamp()} // campaigns from before names existed
   renderWorld();if(camp.news){$("wprog").textContent=camp.news;camp.news=null;saveCamp()}show("world");renderGold();renderRelics();renderItems();showRelicOffer()}
+// things that can happen on a one-way path (rolled once per path)
+const ROAD_EVENTS=[
+ {t:"A Broken-Down Cart",go:()=>{camp.gold+=15;sfx("coin");renderGold();return "Someone left in a hurry. Among the spilled crates, your army finds 15 gold."}},
+ {t:"Abandoned Supplies",go:()=>{const k=["draught","smoke","fire"][Math.floor(Math.random()*3)];if(camp.items.length<itemCap()){camp.items.push(k);renderItems();return `A soldier's pack lies by the trail. Inside: a ${ITEMS[k].name}.`}camp.gold+=10;sfx("coin");renderGold();return "A soldier's pack lies by the trail. Your own packs are full, so you take the 10 gold inside."}},
+ {t:"Rockfall",go:()=>{const hp=campHps(),c=hp.map((h,i)=>h>1?i:-1).filter(i=>i>=0);if(!c.length)return "Stones clatter down the slope, but your army slips past unharmed.";const i=c[Math.floor(Math.random()*c.length)];hp[i]=Math.max(1,hp[i]-2);camp.hp=hp;return `Stones clatter down the slope. ${heroName(i)} is struck and loses 2 HP.`}},
+ {t:"A Quiet Spring",go:()=>{camp.hp=campHps().map((h,i)=>h>0?Math.min(campMax(i),h+2):h);return "A cold, clear spring bubbles beside the path. Every unit recovers 2 HP."}}];
+const campHps=()=>armyTypes().map((t,i)=>camp.hp&&camp.hp[i]!=null?camp.hp[i]:campMax(i));
+let riAfter=null;
+function roadEvent(done){
+  const E=ROAD_EVENTS[Math.floor(Math.random()*ROAD_EVENTS.length)],text=E.go();saveCamp();
+  $("rititle").textContent=E.t;
+  $("ribody").innerHTML=`<div class="rcard" style="--rc:#a08a64"><span class="rr">On the road</span><small>${text}</small></div>`;
+  relinfoFrom=null;riAfter=done;$("relinfo").hidden=false;$("riclose").focus();
+}
 function travel(id){
   if(worldLock)return;
+  const e=edgeOf(camp.pos,id);
+  if(e&&e[2]&&!e[3]){e[3]=1;saveCamp(); // a one-way path: half the time, something happens along the way
+    if(Math.random()<ROAD_EVENT){const A=WORLD[camp.pos],B=WORLD[id];worldLock=true;camp.sel=id;$("wm").style.transform=`translate(${Math.round((A.x+B.x)/2)}px,${Math.round((A.y+B.y)/2)-28}px)`;
+      setTimeout(()=>roadEvent(()=>{worldLock=false;renderWorld();travel(id)}),700);return}}
   const n=WORLD[id];worldLock=true;camp.sel=id;
   $("wm").style.transform=`translate(${n.x}px,${n.y-28}px)`;
   setTimeout(()=>{
@@ -2689,7 +2721,7 @@ const HOWTO=[
         :k==="boss"?nest(FORT_ICON[1],x-14,y-14,28)
         :`<path d="M${x-6} ${y-6}L${x+6} ${y+6}M${x+6} ${y-6}L${x-6} ${y+6}" stroke="#3b2a14" stroke-width="3" stroke-linecap="round"/>`});
     return s+"</svg>"},
-  body:()=>`<p>Travel along the paths on the world map. Each new location starts a battle, and winning clears it. Every campaign uses a new random map. Defeat the boss at the top to finish, or travel on to new lands: a fresh map in a new region, with your army, relics and gold carried over.</p><p>You choose your extra units, modifier, and color once. Your units keep their health between battles. After each win, surviving units recover ${Math.round(CAMP_HEAL*100)}% of their max health, and a unit that falls returns with 1 HP. But if your whole army falls, or you concede, the campaign ends there: choose your battles carefully.</p><p>Each new region is tougher than the last. From region 2, the boss's garrison carries relics of its own, and later consumables it isn't shy about using. From region 3, Elite enemies (ringed in gold, with +2 HP and +1 damage) lead every army, and more join them as you travel on.</p><p>Every soldier has a name. A unit that falls in a battle you win comes back wounded, with 1 less max HP for the rest of the campaign (up to ${WOUND_MAX} wounds, marked \u2020 on the world map). The healing space mends one wound per unit, and Herbert's fire mends them all. Brave deeds earn honors, like "the Bold" or "the Unbroken", and the roll of honor remembers it all when you conquer a region.</p><p>Each victory also earns gold, shown by the coin purse on the world map, and lets you choose one of two or three relics. Relics last for the rest of the campaign: rarer ones are stronger.</p><p>Teal wave spaces are wetlands: battles fought across lakes, ponds and rivers. One or two appear on each map. Dark reed spaces are murky swamps, thick with mud that stops units in their tracks.</p><p>Each map has one healing space (a green cross). Visiting it restores 70% of each unit's health, once.</p><p>Each map also has one Merchant (a gold coin purse), where Marcus sells potions, bombs and relics for gold. You can visit once. Your pack holds up to ${ITEM_CAP} items: in battle, select a unit and tap <b>Use Item</b>. Using an item takes that unit's action.</p>`},
+  body:()=>`<p>Travel along the paths on the world map. Each new location starts a battle, and winning clears it. Paths marked with arrows are one-way: there's no coming back, so places you skip may be cut off for good, and something may happen along the way. Every campaign uses a new random map. Defeat the boss at the top to finish, or travel on to new lands: a fresh map in a new region, with your army, relics and gold carried over.</p><p>You choose your extra units, modifier, and color once. Your units keep their health between battles. After each win, surviving units recover ${Math.round(CAMP_HEAL*100)}% of their max health, and a unit that falls returns with 1 HP. But if your whole army falls, or you concede, the campaign ends there: choose your battles carefully.</p><p>Each new region is tougher than the last. From region 2, the boss's garrison carries relics of its own, and later consumables it isn't shy about using. From region 3, Elite enemies (ringed in gold, with +2 HP and +1 damage) lead every army, and more join them as you travel on.</p><p>Every soldier has a name. A unit that falls in a battle you win comes back wounded, with 1 less max HP for the rest of the campaign (up to ${WOUND_MAX} wounds, marked \u2020 on the world map). The healing space mends one wound per unit, and Herbert's fire mends them all. Brave deeds earn honors, like "the Bold" or "the Unbroken", and the roll of honor remembers it all when you conquer a region.</p><p>Each victory also earns gold, shown by the coin purse on the world map, and lets you choose one of two or three relics. Relics last for the rest of the campaign: rarer ones are stronger.</p><p>Teal wave spaces are wetlands: battles fought across lakes, ponds and rivers. One or two appear on each map. Dark reed spaces are murky swamps, thick with mud that stops units in their tracks.</p><p>Each map has one healing space (a green cross). Visiting it restores 70% of each unit's health, once.</p><p>Each map also has one Merchant (a gold coin purse), where Marcus sells potions, bombs and relics for gold. You can visit once. Your pack holds up to ${ITEM_CAP} items: in battle, select a unit and tap <b>Use Item</b>. Using an item takes that unit's action.</p>`},
  {id:"scout",title:"Scouting",art:()=>{const m=[];for(let y=0;y<7;y++){let r="";for(let x=0;x<7;x++){const d=Math.abs(x-3)+Math.abs(y-3);r+=d===0?".":d<=2?"g":d===3?"p":"."}m.push(r)}return hBoard(7,7,m,[["K","f",3,3]],38)},
   body:()=>"<p>Tap any unit to see its details, including its health. Tap an enemy to see where it can move (gray) and hit (red). Tap it again to hide.</p>"}
 ];
@@ -3288,7 +3320,7 @@ function showRelicInfo(id,from){
   $("ribody").innerHTML=`<div class="rcard" style="--rc:${rc}"><span class="ri">${relicIcon(id,38)}</span><span class="rr">${rn} relic</span><small>${R.desc}</small></div>`;
   $("relinfo").hidden=false;$("riclose").focus();
 }
-function closeRelicInfo(){$("relinfo").hidden=true;if(relinfoFrom&&relinfoFrom.isConnected)relinfoFrom.focus();relinfoFrom=null}
+function closeRelicInfo(){$("relinfo").hidden=true;if(relinfoFrom&&relinfoFrom.isConnected)relinfoFrom.focus();relinfoFrom=null;if(riAfter){const f=riAfter;riAfter=null;f()}}
 $("riclose").onclick=closeRelicInfo;
 $("relinfo").onclick=e=>{if(e.target===$("relinfo"))closeRelicInfo()}; // tapping outside the window closes it
 function showRelicOffer(){
