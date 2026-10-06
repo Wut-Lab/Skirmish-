@@ -353,6 +353,7 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .u.champ::before{content:"\2726";position:absolute;bottom:-5px;left:-5px;width:16px;height:16px;border-radius:50%;background:#fff6c8;color:#8a6418;font-size:.7rem;font-weight:800;line-height:16px;text-align:center;box-shadow:0 0 0 1.5px #8a6418,0 0 8px 2px rgba(255,236,150,.8);z-index:3}
 .gchip span{display:flex;gap:3px;flex-wrap:wrap;margin-top:2px}.gci{width:26px;height:26px;padding:0;border:0;border-radius:50%;background:#f4ead2;display:grid;place-items:center;cursor:pointer;box-shadow:0 0 0 1px rgba(0,0,0,.35)}
 .u.elite{box-shadow:0 0 0 2.500px #e8c050,0 0 0 4px rgba(90,60,10,.85),0 0 10px 3px rgba(240,200,80,.55)}
+.u.redglow svg{filter:drop-shadow(0 0 3px rgba(225,40,40,.85))}
 .u.blessed{box-shadow:0 0 0 2px rgba(255,255,255,.9),0 0 10px 3px rgba(120,210,255,.75)}
 .pop.thanks{color:#ffd68a;font-size:.95rem;font-style:italic;animation:thanks 2.3s ease-out forwards}
 @keyframes thanks{0%{opacity:0;transform:translate(-50%,-80%)}15%{opacity:1;transform:translate(-50%,-120%)}75%{opacity:1}100%{opacity:0;transform:translate(-50%,-200%)}}
@@ -638,7 +639,7 @@ const RELICS={
  blossom:{name:"Cherry Blossom Blade",r:2,src:"boss",get desc(){return unlocks.cherry // the Cherry Grove reveals what the blade remembers
    ?"Last Bloom: when one of your units falls, your units beside it get +1 damage for the rest of the battle (+2 if it fell in a Cherry Grove). Forged beneath the cherry boughs, where every petal falls too soon. It remembers each one."
    :"Last Bloom: when one of your units falls, your units beside it get +1 damage for the rest of the battle (more, if it fell in a place the blade remembers). Its steel is etched with petals from a grove no map shows. Someday, perhaps, you'll walk beneath those trees."}},
- statue:{name:"Bleeding Statue",r:2,src:"both",desc:"At the start of each battle, one random unit on each side begins to bleed: it loses 1 HP at the end of each of its side's turns (never the last). Blood perpetually leaks from its eyes. The blood has to come from somewhere."},
+ statue:{name:"Bleeding Statue",r:2,src:"both",desc:"At the start of each battle, one random unit on each side begins to bleed: it loses 1 HP at the end of each of its side's turns (never the last). Your bleeding unit stops bleeding once it lands a kill. Blood perpetually leaks from its eyes. The blood has to come from somewhere."},
  eldritch:{name:"Weak Eldritch Token",r:0,src:"shop",desc:"First Blood Pact: your units deal +1 damage to enemies at full health, but take +1 damage while they are at full health themselves. Cold to the touch, and faintly humming. Whatever it bargains with is very small. For now."},
  token:{name:"Marcus's Loyalty Token",r:2,src:"shop",desc:"Everything at Marcus's wagon costs 20% less."},
  rock:{name:"Improvised Weapon (Rock)",r:0,need:["P","E","N"],desc:"Your Apothecaries, Enchanters and Banner Bearers deal +1 damage while at a third of their health or less. Desperate times."},
@@ -646,9 +647,12 @@ const RELICS={
  hide:{name:"Improvised Armor (Hide Behind Knight)",r:0,need:["P","E","N"],desc:"Your Apothecaries, Enchanters and Banner Bearers get +1 armor while at a third of their health or less and next to one of your Knights."},
  warm:{name:"Warm Mug",r:1,src:"both",lock:"campsite",desc:"Rested: the first time you leave Herbert's camp in a battle, all your units get +2% evasion until the end of the enemy's next turn. Still warm. It's always still warm."},
  spurs:{name:"Spurs",r:0,src:"shop",need:"C",desc:"Your Cavalry deal +1 damage when they attack after moving that turn."},
- grog:{name:"Flask of Liquid Courage",r:0,src:"both",desc:"Cursed. All your units deal +1 damage, and take +1 damage. Courage cuts both ways."},
+ grog:{name:"Flask of Liquid Courage",r:1,src:"both",desc:"Cursed. All your units deal +1 damage, and take +1 damage. Courage cuts both ways."},
  pebble:{name:"Lucky Pebble",r:0,desc:"All your units get +1% evasion. Found in a boot. Probably lucky."},
  warpaint:{name:"Berserker's Warpaint",r:1,src:"both",desc:"Cursed. All your units deal +1 damage, but they never retaliate. No time to parry when you're busy screaming."},
+ keen:{name:"Keen Eye Charm",r:0,desc:"Your ranged attacks (range 2 or more) ignore 3% of the target's evasion."},
+ redtome:{name:"Tome of the Red Mages' College",r:1,src:"both",need:"E",desc:"Your Enchanters glow a faint red. Their attacks deal +1 damage, but cost them 1 HP each (never the last). Slowing is unaffected."},
+ blacktome:{name:"Tome of the Black Mages' College",r:1,src:"both",need:"E",desc:"Your Enchanters siphon life: a landed attack heals them 1 HP, and they deal +1 damage to a target that is already slowed."},
  whet:{name:"Whetstones",r:0,src:"both",desc:"Archers deal +1 damage."},
  shield:{name:"Sturdy Shields",r:0,desc:"Knights get +1 armor."},
  rations:{name:"Trail Rations",r:0,src:"both",desc:"Your units heal 1 extra HP after each battle."},
@@ -679,7 +683,7 @@ const rel=(u,id)=>u.team==="y"?RELIC.has(id):u.team==="f"&&FOE_RELIC.has(id); //
 const BLESS_EV=.05;
 const blessed=u=>u.team==="y"&&u.blessUntil>=pturn; // Font of the Wise Ones: lasts through the enemy turn and your next one
 const canBless=(a,b)=>rel(a,"font")&&!a.blessUsed&&!a.acted&&b!==a&&b.team==="y"&&d(a,b)===1; // adjacent allies only
-const PEBBLE_EV=.01,NONCOMBAT=["P","E","N"],LOW_HP=1/3,REST_EV=.02,low=u=>u.hp<=maxHp(u)*LOW_HP,desperate=(u,id)=>rel(u,id)&&NONCOMBAT.includes(u.t)&&low(u); // the Improvised relics: non-combat units at or below a third of their health
+const PEBBLE_EV=.01,KEEN_EV=.03,NONCOMBAT=["P","E","N"],LOW_HP=1/3,REST_EV=.02,low=u=>u.hp<=maxHp(u)*LOW_HP,desperate=(u,id)=>rel(u,id)&&NONCOMBAT.includes(u.t)&&low(u); // the Improvised relics: non-combat units at or below a third of their health
 const rested=u=>u.team==="y"&&RELIC.has("warm")&&(relicUsed.warm===pturn||relicUsed.warm===pturn-1&&turn==="f"); // Warm Mug: through the enemy turn after you leave Herbert's camp (pturn ticks when you end your turn)
 const RALLY_EV=.05,RALLY_RANGE=2,FAN_EV=.1,TRIO_EV=.05,SAKURA_WINS=5;
 const MULE_AR=2,muled=u=>u.team==="y"&&u.muleUntil>=pturn; // Mule Hair Potion: +2 armor, can't be pushed or slowed, through the enemy turn and your next one
@@ -1238,12 +1242,14 @@ function combat(a,b,from=a){
   add("Spurs",a.t==="C"&&rel(a,"spurs")&&turn===a.team&&(a.moved||from!==a)?1:0); // a charge: only on its own turn, after moving
   add("Berserker's Warpaint",rel(a,"warpaint")?1:0);
   add("Liquid Courage",(rel(a,"grog")?1:0)+(rel(b,"grog")?1:0)); // both ways: dealt and taken
+  add("Tome of the Red Mages",a.t==="E"&&rel(a,"redtome")?1:0);
+  add("Tome of the Black Mages",a.t==="E"&&rel(a,"blacktome")&&b.slow?1:0); // preying on the slowed
   add("Elite",a.elite?1:0);
   const armor=[["Armor",B.ar||0],["Padded Armor",b.t==="A"&&mods[b.team]==="PAD"?1:0],["Forest Tactics",mods[b.team]==="FT"&&A.rg>1&&WOODS(k)?1:0],["Fortress",FORT.has(k)?1:0],["Sturdy Shields",b.t==="K"&&rel(b,"shield")?1:0],["Barding",b.t==="C"&&rel(b,"bard")?1:0],["Banner of the Fallen Keep",b.keep?1:0],["Stubborn as a Mule",muled(b)?MULE_AR:0],["Improvised Armor",desperate(b,"hide")&&units.some(v=>v.team===b.team&&v.t==="K"&&d(v,b)===1)?1:0]];
   armor.forEach(([l,v])=>add(l,-v));
   add("Pierce",Math.min(Math.max(0,(A.pi||0)+(rel(a,"bluemagma")?1:0)+(rel(a,"crown")?1:0)+(a.champ?1:0)-(b.cshield?1:0)),armor.reduce((t,x)=>t+x[1],0))); // Blue Magma and the Champion's Sword add pierce; the Champion's Shield turns 1 aside
   add("Pavise",b.t==="A"&&A.rg>1&&rel(b,"pavise")?-1:0); // a shield wall, not armor: pierce can't get past it
-  const ev=Math.min(EV_CAP,(B.ev||0)+(rel(b,"luck")?.05:0)+(b.trio?TRIO_EV:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(rel(b,"sakurafan")&&[...blastOf(k),[b.x,b.y]].some(([x,y])=>CHERRY.has(x+","+y))?FAN_EV:0)+(blessed(b)?BLESS_EV:0)+(rested(b)?REST_EV:0)+(rel(b,"pebble")?PEBBLE_EV:0)+(rallied(b)?RALLY_EV:0)+(b.team==="y"&&SMOKE.has(k)?SMOKE_EV:0)+(WOODS(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0));
+  const ev=Math.max(0,-(rel(a,"keen")&&rgOf(a)>1?KEEN_EV:0)+Math.min(EV_CAP,(B.ev||0)+(rel(b,"luck")?.05:0)+(b.trio?TRIO_EV:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(rel(b,"sakurafan")&&[...blastOf(k),[b.x,b.y]].some(([x,y])=>CHERRY.has(x+","+y))?FAN_EV:0)+(blessed(b)?BLESS_EV:0)+(rested(b)?REST_EV:0)+(rel(b,"pebble")?PEBBLE_EV:0)+(rallied(b)?RALLY_EV:0)+(b.team==="y"&&SMOKE.has(k)?SMOKE_EV:0)+(WOODS(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0))); // Keen Eye Charm: ranged attacks see through a little of it
   return {dmg:Math.max(1,parts.reduce((t,p)=>t+p[1],0)),hit:1-ev,parts}; // every hit deals at least 1
 }
 // a unit with `ret` retaliates against an attacker within its own range for half damage, at least 1 (the attacker may evade it); null when it can't
@@ -1352,7 +1358,7 @@ function render(){
     html+=`<button class="${cls}" data-x="${x}" data-y="${y}"${pd&&pd.k===k?` data-arrow="${pd.a}"`:""} aria-label="${label.replace(/"/g,"&quot;")}">`
       +'<i class="lt"></i>'+tileArt(x,y)+(fr?'<i class="tint"></i>':"")+(SMOKE.has(k)?'<i class="smoke"></i>':"")+joins(x,y); // fortress art covers its tile, so highlights go on a see-through layer above it
     if(u){
-      let uc="u "+u.team+(spent(u)?" done":"")+(u.slow?" slow":"")+(inspired(u)?" insp":"")+(blessed(u)||rested(u)?" blessed":"")+(rallied(u)?" rallied":"")+(muled(u)?" mule":"")+(u.elite?" elite":"")+(u.champ||u.cshield?" champ":"")+(u===sel||u===insp?" sel":""),mvs="";
+      let uc="u "+u.team+(spent(u)?" done":"")+(u.slow?" slow":"")+(inspired(u)?" insp":"")+(blessed(u)||rested(u)?" blessed":"")+(u.t==="E"&&rel(u,"redtome")?" redglow":"")+(rallied(u)?" rallied":"")+(muled(u)?" mule":"")+(u.elite?" elite":"")+(u.champ||u.cshield?" champ":"")+(u===sel||u===insp?" sel":""),mvs="";
       if(u.spawn){uc+=" tpin";delete u.spawn}
       const pp=prevPos.get(u);prevPos.set(u,[x,y]);
       if(pp&&(pp[0]!==x||pp[1]!==y)){ // slide in from where it was last drawn (a long jump fades in instead)
@@ -1920,6 +1926,7 @@ function hitFor(a,b,c,back){ // resolve one blow from a to b: dodge roll, damage
   if(b.team==="y"&&b.t==="A"&&a.team!=="y"&&TYPES[a.t].rg>1){unlocks.ah=(unlocks.ah||0)+1;saveU();if(unlocks.ah>=10)unlock("pavise")} // archers under arrow fire learn to raise a wall
   if(a.champ&&!back)a.champStep=1; // the Champion's Sword: a step after a landed blow
   if(hurt(b,c.dmg)){credit(a,b);
+    if(a.bleed&&rel(a,"statue")){delete a.bleed;later(()=>{if(units.includes(a))floatText(a.x,a.y,"Staunched","heal")},300)} // Bleeding Statue: a kill stops your own bleeding
     if(a.team==="y"&&units.some(v=>v!==a&&v.team==="y"&&d(v,b)===1)){unlocks.wp=(unlocks.wp||0)+1;saveU();if(unlocks.wp>=20)unlock("wolfpack")} // kills on a surrounded enemy teach the pack
     say(sent(who(a))+(back?" retaliated and destroyed ":" destroyed ")+who(b)+".")}
   else say(sent(who(a))+(back?" retaliated against ":" hit ")+who(b)+" for "+c.dmg+" damage.");
@@ -1927,8 +1934,13 @@ function hitFor(a,b,c,back){ // resolve one blow from a to b: dodge roll, damage
 }
 function applyAttack(a,b){
   const bx=b.x,by=b.y;
-  if(hitFor(a,b,combat(a,b))&&a.t==="R"&&rel(a,"debris")) // Debris Shot: shrapnel hits enemies around the target
+  const landed=hitFor(a,b,combat(a,b));
+  if(landed&&a.t==="R"&&rel(a,"debris")) // Debris Shot: shrapnel hits enemies around the target
     blastOf(bx+","+by).forEach(([x,y])=>{const v=at(x,y);if(v&&v.team!==a.team&&hurt(v,DEBRIS_DMG))credit(a,v)});
+  if(a.t==="E"&&units.includes(a)){ // the mages' tomes
+    if(landed&&rel(a,"blacktome")&&a.hp<maxHp(a)){a.hp+=1;later(()=>{if(units.includes(a))floatText(a.x,a.y,"+1","heal")},250)}
+    if(rel(a,"redtome")&&a.hp>1){a.hp-=1;later(()=>{if(units.includes(a))floatText(a.x,a.y,"-1")},400)}
+  }
 }
 function attack(a,b,done){
   const g=gid,fin=()=>{if(done)done()};
@@ -3135,6 +3147,9 @@ const RICON={ // small 32-unit relic icons
  grog:'<ellipse cx="16" cy="28" rx="9" ry="1.800" fill="rgba(0,0,0,.2)"/><rect x="13" y="3" width="6" height="4" rx="1" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M13.500 7h5v3q7 2 7 9v5q0 4-4 4H10.500q-4 0-4-4v-5q0-7 7-9z" fill="#7a6a4a" stroke="#2a1e12" stroke-width="1.200" stroke-linejoin="round"/><path d="M7 17h18v6H7z" fill="#a8402a" opacity=".85"/><path d="M7 17h18M7 23h18" stroke="#2a1e12" stroke-width=".9"/><path d="M12 20h8" stroke="#f0d8a0" stroke-width="1.300" stroke-linecap="round"/><path d="M10 12q1-2 3-2" stroke="#c8b890" stroke-width="1" fill="none" stroke-linecap="round" opacity=".7"/>',
  pebble:'<ellipse cx="16" cy="25" rx="9" ry="1.800" fill="rgba(0,0,0,.18)"/><ellipse cx="16" cy="19" rx="9" ry="6.500" fill="#9aa0a6" stroke="#3a3e44" stroke-width="1.200"/><path d="M10 17q4-3 10-2" stroke="#d8dce0" stroke-width="1.300" fill="none" stroke-linecap="round"/><path d="M14.200 20.800l1.200-1.600l1.600 1.200l-.6 1.800z" fill="#5a8a5a" opacity=".85"/>',
  warpaint:'<path d="M9 5h14q3 0 3 4v8q0 9-10 12Q6 26 6 17V9q0-4 3-4z" fill="#e8d4b8" stroke="#3a2412" stroke-width="1.200" stroke-linejoin="round"/><path d="M8 12l6 2M24 12l-6 2" stroke="#2a1a10" stroke-width="1.800" stroke-linecap="round"/><path d="M8 16l5 6M24 16l-5 6M16 6v8" stroke="#b0182a" stroke-width="2.200" stroke-linecap="round"/><path d="M12 24q4 2 8 0" stroke="#3a2412" stroke-width="1.200" fill="none" stroke-linecap="round"/>',
+ keen:'<path d="M3 16q13-12 26 0q-13 12-26 0z" fill="#f4efe2" stroke="#2a2a30" stroke-width="1.200"/><circle cx="16" cy="16" r="5.200" fill="#3a7a9a" stroke="#1a2a3a" stroke-width="1"/><circle cx="16" cy="16" r="2.200" fill="#0e1418"/><circle cx="14.300" cy="14.300" r="1.100" fill="#fff"/><path d="M16 2v4M16 26v4" stroke="#c9962a" stroke-width="1.600" stroke-linecap="round"/>',
+ redtome:'<path d="M6 5h17q3 0 3 3v19H9q-3 0-3-3z" fill="#8a1a22" stroke="#2a0a0c" stroke-width="1.200" stroke-linejoin="round"/><path d="M6 24q0-3 3-3h17" stroke="#e8d8c0" stroke-width="1.600" fill="none"/><path d="M10 5v16" stroke="#5a0c12" stroke-width="1"/><path d="M17 9l2.500 4.500l-2.500 4.500l-2.500-4.500z" fill="#ffb0a0" stroke="#d8b24a" stroke-width=".8"/><circle cx="17" cy="13.500" r="6" fill="#ff4030" opacity=".18"/>',
+ blacktome:'<path d="M6 5h17q3 0 3 3v19H9q-3 0-3-3z" fill="#24202a" stroke="#0a080c" stroke-width="1.200" stroke-linejoin="round"/><path d="M6 24q0-3 3-3h17" stroke="#c8c0d0" stroke-width="1.600" fill="none"/><path d="M10 5v16" stroke="#0e0c12" stroke-width="1"/><path d="M14 10q3-3 6 0q-1 2-3 2q2 0 3 3q-3 3-6 0q1-2 3-2q-2 0-3-3z" fill="#8a6ab0" stroke="#d8d0e8" stroke-width=".7"/><path d="M17 15v3" stroke="#b0182a" stroke-width="1.300" stroke-linecap="round"/><circle cx="17" cy="19" r=".9" fill="#b0182a"/>',
  crown:'<circle cx="16" cy="17" r="13" fill="#5a1a6a" opacity=".25"/><path d="M5 24l-1-13l6 6l6-10l6 10l6-6l-1 13z" fill="#5a5048" stroke="#1e1a16" stroke-width="1.200" stroke-linejoin="round"/><path d="M5 24h22v3.500H5z" fill="#3e3630" stroke="#1e1a16" stroke-width="1.100"/><path d="M8 21l1.500-3M16 12v4M23 18l1.500 3" stroke="#2a2420" stroke-width=".9"/><circle cx="16" cy="20" r="2.200" fill="#a02a3a" stroke="#3a0a12" stroke-width=".8"/><circle cx="10" cy="25.700" r="1.100" fill="#7a2a8a"/><circle cx="22" cy="25.700" r="1.100" fill="#7a2a8a"/><path d="M13 27.500q0 2.500-1 3.500M19 27.500q.5 2 1.500 2.800" stroke="#a02a3a" stroke-width="1" fill="none" stroke-linecap="round"/>',
  csword:'<circle cx="16" cy="16" r="13" fill="#fff6c8" opacity=".35"/><path d="M16 2l3 4v15h-6V6z" fill="#e8eef4" stroke="#3a4450" stroke-width="1.100" stroke-linejoin="round"/><path d="M16 3v18" stroke="#fff" stroke-width=".8"/><path d="M9 21h14v2.600H9z" fill="#d8b24a" stroke="#6a4c10" stroke-width=".9"/><path d="M14.500 23.600h3v5h-3z" fill="#5a3a1c" stroke="#2a1a0c" stroke-width=".8"/><circle cx="16" cy="30" r="1.600" fill="#d8b24a" stroke="#6a4c10" stroke-width=".7"/><g fill="#fff"><path d="M24 6l.7 1.800l1.800.7l-1.800.7l-.7 1.800l-.7-1.800l-1.800-.7l1.800-.7z"/><path d="M7 9l.5 1.300l1.300.5l-1.300.5l-.5 1.300l-.5-1.300l-1.300-.5l1.300-.5z"/></g>',
  cshield:'<circle cx="16" cy="16" r="13" fill="#fff6c8" opacity=".35"/><path d="M16 3l11 4v8q0 9-11 14q-11-5-11-14V7z" fill="#cfd8e2" stroke="#3a4450" stroke-width="1.200" stroke-linejoin="round"/><path d="M16 6l8 3v6q0 6.500-8 10.500q-8-4-8-10.500V9z" fill="#3a5a8a" stroke="#d8b24a" stroke-width="1.100"/><path d="M16 10l1.800 3.700l4 .6l-2.900 2.800l.7 4l-3.600-1.900l-3.600 1.900l.7-4l-2.900-2.800l4-.6z" fill="#f2d27a" stroke="#8a6418" stroke-width=".6"/><g fill="#fff"><path d="M26 21l.6 1.500l1.500.6l-1.500.6l-.6 1.500l-.6-1.500l-1.500-.6l1.500-.6z"/></g>',
