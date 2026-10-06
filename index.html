@@ -2377,7 +2377,7 @@ function genWorld(){
   const scatter=c=>{const out=[];for(let t=0;t<300&&out.length<c;t++){const x=rr(20,380),y=rr(30,500);if(far(x,y))out.push([Math.round(x),Math.round(y)])}return out};
   const ry=()=>Math.round(rr(330,400));
   const E=[...es].map(e=>e.split("-").map(Number)); // [lower id, upper id]: ids rise row by row toward the boss
-  for(let k=0;k<layers.length-2;k++){ // half the paths in each gap (rounded down) become one-way (upward); never the paths into the boss
+  for(let k=0;k<layers.length-2;k++){ // two-thirds of the paths in each gap (rounded down) become one-way (upward); never the paths into the boss
     const gap=E.filter(e=>layers[k].includes(e[0])&&layers[k+1].includes(e[1])).sort(()=>Math.random()-.5);
     gap.slice(0,Math.floor(gap.length*ONEWAY_SHARE)).forEach(e=>e[2]=1);
   }
@@ -2389,7 +2389,7 @@ const BIOME_NAME={forest:"Forest",plain:"Plains",fort:"Stronghold",wild:"Wilds",
 // a Quick Battle map has no biome of its own, so name it from what was generated
 const guessBiome=()=>VALE||KOI.size?"sakura":LAVA.size||VOLC.size?"volcanic":GRAVES.size?"graveyard":SWAMP.size>=10?"swamp":DEEP.size+SHALLOW.size>=20?"wetlands":FORT.size?"fort":units.some(u=>u.team==="w")?"wild":FOREST.size>=16?"forest":"plain";
 const BIOME={mixed:{},sakura:{sakura:1,forest:2,flowers:1},forest:{forest:9,flowers:1},plain:{forest:2,flowers:1},fort:{fort:1},wild:{wild:1,flowers:1},boss:{fort:1,boss:1},wetlands:{water:1,forest:3,swamp:1},swamp:{swamp:3,pond:1,forest:6},graveyard:{graves:1,forest:5},volcanic:{lava:1,forest:3}};
-const ONEWAY_SHARE=.5,ROAD_EVENT=.25;
+const ONEWAY_SHARE=2/3,ROAD_EVENT=.25;
 const edgeOf=(a,b)=>EDGES.find(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a)); // e[2]: one-way (only from e[0] up to e[1]); e[3]: its road event has been rolled
 const canGo=(a,b)=>{const e=edgeOf(a,b);return !!e&&(!e[2]||b===e[1])};
 function reachFrom(id){const seen=new Set([id]),q=[id];while(q.length){const a=q.shift();WORLD.forEach(n=>{if(!seen.has(n.id)&&canGo(a,n.id)){seen.add(n.id);q.push(n.id)}})}return seen}
