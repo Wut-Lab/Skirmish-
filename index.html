@@ -1256,6 +1256,7 @@ const say=s=>$("status").textContent=s;
 function notify(t){const o=$("fx").querySelector(".banner");if(o)o.remove();const n=document.createElement("div");n.className="banner";n.textContent=t;$("fx").append(n);setTimeout(()=>n.remove(),1650)}
 
 function reach(u){ // entering shallow water costs 2; leaving a forest costs 1 extra; entering a swamp ends the move
+  if((u.slow&&!muled(u))||u.stepOnly)return DIRS.map(([dx,dy])=>[u.x+dx,u.y+dy]).filter(([x,y])=>x>=0&&y>=0&&x<W&&y<H&&!solid(x+","+y)&&!at(x,y)).map(([x,y])=>x+","+y); // a slow (or the champion's step) always allows 1 tile, whatever the terrain costs
   const nimble=u.t==="G",bud=mvOf(u)-(!nimble&&!rel(u,"hatchet")&&FOREST.has(u.x+","+u.y)?1:0),k0=u.x+","+u.y; // leaving a forest costs 1 extra (the Angry Chicken skips both of these costs)
   const cost=new Map([[k0,0]]),q=[[u.x,u.y]];
   while(q.length){
@@ -1388,7 +1389,7 @@ function renderInfo(){
   if(ABILITY[u.t])notes.push(ABILITY[u.t]);
   if(u.t==="T")notes.push(`Musters left this battle: ${musterUses(u)-(u.musters||0)}.`);
   if(inspired(u))notes.push("Inspired by a nearby Banner Bearer: deals +1 damage.");
-  if(u.slow)notes.push("Slowed: movement reduced to 1 until the end of its next turn.");
+  if(u.slow)notes.push("Slowed: it can move only 1 tile (always at least 1, even out of a forest or into shallow water) until the end of its next turn.");
   if(blessed(u))notes.push("Blessed: +5% evasion until the end of your next turn.");
   if(rallied(u))notes.push("Rallied: +5% evasion until the end of your next turn.");
   if(u.wounds)notes.push(`Wounded ${u.wounds===1?"once":u.wounds+" times"}: max HP ${maxHp(u)} instead of ${T.hp}.`);
