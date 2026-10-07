@@ -182,6 +182,7 @@ button.b.sm2{padding:8px 12px;font-size:.85rem}
 .turnrow button.pri{padding:0 24px}
 .pb .row{display:flex;gap:12px;align-items:center}
 .foot{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.wfoot>button{flex:1 1 0;justify-content:center;text-align:center}
 #tomenu{flex:1}
 /* highlights on fortress tiles: same colours as other tiles, laid over the art so the castle shows through */
 .t.fr>.tint{position:absolute;inset:0;pointer-events:none;opacity:.6}
@@ -450,14 +451,14 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 <textarea id="ecode" rows="4" hidden aria-label="Map code" placeholder="Paste a map code here, then press Load Map Code again."></textarea>
 </section>
 <section id="world" hidden>
-<div class="hd"><button class="b" id="wback">Menu</button><h2 id="wtitle">World Map</h2><div class="gold" id="wgold" aria-live="polite"></div></div>
+<div class="hd"><h2 id="wtitle" class="sr">World Map</h2><div class="gold" id="wgold" aria-live="polite"></div></div>
 <p class="hint" id="wprog"></p>
 <div class="stats" id="warmy" aria-label="Army health"></div>
 <div class="relics" id="wrelics" aria-label="Relics"></div>
 <div class="relics" id="witems" aria-label="Items"></div>
 <div class="wmap" id="wmap"></div>
 <div id="winfo"></div>
-<div class="foot"><button class="b sm2" id="wrestart">Restart Campaign</button></div>
+<div class="foot wfoot"><button class="b" id="wback">Menu</button><button class="b" id="wrestart">Restart Campaign</button></div>
 <div class="ov" id="relicv" hidden>
 <div class="panel cpan rpan" role="dialog" aria-labelledby="rtitle">
 <h2 id="rtitle">Choose a Relic</h2>
@@ -2402,7 +2403,7 @@ function mapArt(){
   let g='<defs><radialGradient id="pg" cx=".5" cy=".4" r=".85"><stop offset="0" stop-color="#eadfb8"/><stop offset="1" stop-color="#cbb78a"/></radialGradient><filter id="wsh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="1.200" dy="2.400" stdDeviation="1.600" flood-color="#3a2810" flood-opacity=".45"/></filter><radialGradient id="wnode" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></radialGradient><filter id="wblur"><feGaussianBlur stdDeviation="6"/></filter><filter id="wblur2" x="-50%" y="-100%" width="200%" height="300%"><feGaussianBlur stdDeviation="2.500"/></filter><linearGradient id="wmt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a7656"/><stop offset=".6" stop-color="#9c8762" stop-opacity=".9"/><stop offset="1" stop-color="#b8a27a" stop-opacity="0"/></linearGradient></defs><rect width="400" height="520" fill="url(#pg)"/>';
   g+='<g filter="url(#wblur)" fill="#a07a40" opacity=".12"><ellipse cx="318" cy="96" rx="34" ry="22"/><ellipse cx="86" cy="388" rx="28" ry="18"/><ellipse cx="236" cy="470" rx="40" ry="14"/></g>'; // age stains
   g+=`<path d="${DECO.river}" stroke="#6a8a7a" stroke-width="20" fill="none" stroke-linecap="round" opacity=".35"/><path d="${DECO.river}" stroke="#8ec0d8" stroke-width="15" fill="none" stroke-linecap="round" opacity=".62"/><path d="${DECO.river}" stroke="#d8f0f8" stroke-width="2" fill="none" stroke-dasharray="14 22" opacity=".45" transform="translate(0 -3)"/>`;
-  const clear=([x,y])=>Math.hypot(x-44,y-48)>46; // keep scenery off the compass rose
+  const clear=([x,y])=>Math.hypot(x-50,y-56)>58&&!(y<74&&Math.abs(x-200)<150); // keep scenery off the compass rose and the title
   // mountain ranges drawn like old-map ink: 2-3 overlapping peaks in sepia, lit on the left, hatched on the right, snow-capped, fading into the paper at the foot
   const peak=(px,py,w,h,k)=>{const f=v=>v.toFixed(1),tx=px+(k%2?1.5:-1.5);
     return `<path d="M${f(px-w)} ${f(py)}L${f(tx)} ${f(py-h)}L${f(px+w)} ${f(py)}z" fill="url(#wmt)"/>`
@@ -2421,7 +2422,14 @@ function mapArt(){
   g+='<g stroke="rgba(120,90,50,.07)" stroke-width="1" fill="none"><path d="M0 120q120-14 240 6t160-8"/><path d="M0 300q90 12 200-4t200 10"/><path d="M0 430q140-10 260 8t140-6"/></g>';
   g+='<defs><radialGradient id="vg" cx=".5" cy=".5" r=".72"><stop offset=".62" stop-color="#6b4a20" stop-opacity="0"/><stop offset="1" stop-color="#5a3a14" stop-opacity=".48"/></radialGradient></defs><rect width="400" height="520" fill="url(#vg)"/>';
   g+='<rect x="7" y="7" width="386" height="506" rx="4" fill="none" stroke="#7a5c33" stroke-width="1.5" opacity=".55"/><rect x="11" y="11" width="378" height="498" rx="3" fill="none" stroke="#7a5c33" stroke-width=".7" opacity=".4"/>';
-  g+='<g transform="translate(44 48)" opacity=".75"><circle r="17" fill="rgba(255,248,225,.45)" stroke="#6b4a26" stroke-width="1.2"/><circle r="12.5" fill="none" stroke="#6b4a26" stroke-width=".6"/><path d="M0 -15L3.2 -3.2L15 0L3.2 3.2L0 15L-3.2 3.2L-15 0L-3.2 -3.2z" fill="#8b6b3e"/><path d="M0 -15L3.2 -3.2L0 0zM15 0L3.2 3.2L0 0zM0 15L-3.2 3.2L0 0zM-15 0L-3.2 -3.2L0 0z" fill="#4a3216"/><text y="-19.5" text-anchor="middle" font-size="8" font-weight="800" fill="#4a3216">N</text></g>';
+  g+='<g transform="translate(50 56)" opacity=".8"><circle r="26" fill="rgba(255,248,225,.45)" stroke="#6b4a26" stroke-width="1.500"/><circle r="19" fill="none" stroke="#6b4a26" stroke-width=".7"/>'
+   +[45,135,225,315].map(a=>`<path d="M0 -17L2 -2L0 0z M0 -17L-2 -2L0 0z" fill="#a8885a" transform="rotate(${a})"/>`).join("")
+   +'<path d="M0 -23L4.800 -4.800L23 0L4.800 4.800L0 23L-4.800 4.800L-23 0L-4.800 -4.800z" fill="#8b6b3e"/><path d="M0 -23L4.800 -4.800L0 0zM23 0L4.800 4.800L0 0zM0 23L-4.800 4.800L0 0zM-23 0L-4.800 -4.800L0 0z" fill="#4a3216"/><circle r="2" fill="#f2e6c4" stroke="#4a3216" stroke-width=".8"/><text y="-29" text-anchor="middle" font-size="11" font-weight="800" font-family="Georgia,serif" fill="#4a3216">N</text></g>';
+  // the title, inked by hand: a slightly ragged, bled-in serif with a flourish beneath
+  const tt=`World Map \u2013 Region ${camp.region||1}`,tw=tt.length*4.6;
+  g+=`<defs><filter id="ink" x="-5%" y="-30%" width="110%" height="160%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="1.300"/><feGaussianBlur stdDeviation=".25"/></filter></defs>`
+   +`<g filter="url(#ink)" fill="#3e2810" style="mix-blend-mode:multiply"><text x="200" y="40" text-anchor="middle" font-family="'Palatino Linotype','Book Antiqua',Palatino,Georgia,serif" font-style="italic" font-weight="700" font-size="20" letter-spacing=".5" opacity=".88">${tt}</text>`
+   +`<path d="M${200-tw} 49q${tw*.5} -5 ${tw} 0t${tw} 0" fill="none" stroke="#3e2810" stroke-width="1.100" stroke-linecap="round" opacity=".6"/><path d="M196 49.500l4 -3l4 3l-4 3z" opacity=".65"/></g>`;
   return g;
 }
 function renderWorld(){
@@ -2476,7 +2484,7 @@ function renderWorld(){
   });
   $("warmy").innerHTML=armyTypes().map((t,i)=>{const mx=campMax(i),h=Math.min(mx,camp.hp&&camp.hp[i]!=null?camp.hp[i]:mx),w=woundsOf(i);return `<span class="stat" title="${heroName(i)}">${camp.names?camp.names[i]:cap(NAME[t])} <small>${cap(NAME[t])}</small> <b style="color:${h<=mx*.25?"#d64b3a":"inherit"}">${h}/${mx}</b>${w?`<i class="wnd" aria-label="${w} wound${w>1?"s":""}">${"\u2020".repeat(w)}</i>`:""}</span>`}).join("");
   const total=WORLD.filter(n=>n.type!=="camp"&&(done.has(n.id)||reach.has(n.id))).length,lost=WORLD.filter(n=>n.type!=="camp"&&!done.has(n.id)&&!reach.has(n.id)).length;
-  $("wtitle").textContent=camp.region>1?`World Map \u00b7 Region ${camp.region}`:"World Map";
+  $("wtitle").textContent=`World Map \u2013 Region ${camp.region||1}`;
   $("wprog").textContent=camp.done?"Campaign complete! You defeated the boss.":`Locations cleared: ${camp.cleared.length} of ${total}${lost?` (${lost} cut off)`:""}. Tap a glowing location to travel there.`;
   const n=WORLD[camp.sel],st=stOf(n),here=n.id===camp.pos,can=!here&&canGo(camp.pos,n.id),e=can&&edgeOf(camp.pos,n.id),cut=!here&&!done.has(n.id)&&!reach.has(n.id);
   const btn=can?(st==="cleared"?"Travel Here":n.type==="heal"?"Rest Here":n.type==="shop"?"Visit the Merchant":"Travel to Battle"):"";
