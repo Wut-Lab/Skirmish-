@@ -33,8 +33,8 @@ h1{font-size:1.4rem;margin:0 0 4px}
 .volcanic .t.fo{background-image:linear-gradient(rgba(40,24,18,.25),rgba(40,24,18,.25))} /* charred woods */
 .erupt{position:absolute;pointer-events:none;border-radius:30%;background:radial-gradient(circle,#fff3b0 0,#ff8a2a 40%,rgba(226,83,26,.6) 65%,rgba(226,83,26,0) 75%);z-index:7}
 .t.fo{background-image:linear-gradient(rgba(60,140,80,.25),rgba(60,140,80,.25))}
-.t.bsh1{--bk:.24}.t.bsh2{--bk:.12}.t:is(.bsh1,.bsh2){--bc:240,160,190;background-image:linear-gradient(rgba(var(--bc),var(--bk)),rgba(var(--bc),var(--bk)))} /* Sakura Vale: blossom-tinted ground near the groves, deeper beside them (move and attack highlights still win) */
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .t.bsh1{--bk:.3}:root:not([data-theme="light"]) .t.bsh2{--bk:.16}}:root[data-theme="dark"] .t.bsh1{--bk:.3}:root[data-theme="dark"] .t.bsh2{--bk:.16}
+.t.bsh1{--bk:.34}.t.bsh2{--bk:.17}.t:is(.bsh1,.bsh2){--bc:240,160,190;background-image:linear-gradient(rgba(var(--bc),var(--bk)),rgba(var(--bc),var(--bk)))} /* Sakura Vale: blossom-tinted groves and the ground around them, deeper beside them (move and attack highlights still win) */
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .t.bsh1{--bk:.4}:root:not([data-theme="light"]) .t.bsh2{--bk:.21}}:root[data-theme="dark"] .t.bsh1{--bk:.4}:root[data-theme="dark"] .t.bsh2{--bk:.21}
 .t.fo:where(.bsh1,.bsh2){background-image:linear-gradient(rgba(var(--bc),var(--bk)),rgba(var(--bc),var(--bk))),linear-gradient(rgba(60,140,80,.25),rgba(60,140,80,.25))}
 .haunted .t.fo,.pb.haunted .tsw[style*="140,80"]{background-image:linear-gradient(rgba(70,60,50,.22),rgba(70,60,50,.22))} /* dead woods in graveyards */
 .t.ir{background:var(--atk)}
@@ -698,7 +698,7 @@ const rallied=u=>u.team==="y"&&u.rallyUntil>=pturn; // Trumpet of Encouragement:
 const canTrumpet=u=>rel(u,"trumpet")&&!relicUsed.trumpet&&!u.acted&&!u.auto&&units.some(b=>b!==u&&b.team==="y"&&d(u,b)<=RALLY_RANGE);
 // Cherry Grove, Moment of Calm: counts as forest only for movement; no forest combat bonuses, no slowing, no retaliation in or out
 const WOODS=k=>FOREST.has(k)&&!CHERRY.has(k),calm=u=>CHERRY.has(u.x+","+u.y);
-const BLUSH_R=2,blush=(x,y)=>{if(!VALE||!/^(ground|forest)$/.test(terrainKey(x+","+y)))return"";let m=9;CHERRY.forEach(c=>{const[a,b]=pk(c);m=Math.min(m,Math.abs(a-x)+Math.abs(b-y))});return m<2?" bsh1":m<=BLUSH_R?" bsh2":""}; // Sakura Vale: open ground and woods within a diamond of a cherry grove take a pink tint, deeper beside it
+const BLUSH_R=2,blush=(x,y)=>{if(!VALE||!/^(ground|forest|cherry|flowers|koi)$/.test(terrainKey(x+","+y)))return"";let m=9;CHERRY.forEach(c=>{const[a,b]=pk(c);m=Math.min(m,Math.abs(a-x)+Math.abs(b-y))});return m<2?" bsh1":m<=BLUSH_R?" bsh2":""}; // Sakura Vale: the groves and the open ground, woods, wildflowers and koi ponds within a diamond of a cherry grove take a pink tint, deeper beside it
 const healOf=u=>TYPES[u.t].heal+(rel(u,"salts")?1:0); // how much a healer restores, with relics
 const rgOf=u=>TYPES[u.t].rg+(u.t==="A"&&rel(u,"long")?1:0); // a unit's attack range, with relics
 const DEBRIS_DMG=1; // Debris Shot splash: small, so it softens clusters without replacing a second attack
