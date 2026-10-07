@@ -59,6 +59,12 @@ h1{font-size:1.4rem;margin:0 0 4px}
 .u.slow::after{content:"\2193";position:absolute;top:-5px;left:-5px;width:17px;height:17px;border-radius:50%;background:#4a7fd1;color:#fff;font-size:.8rem;font-weight:800;line-height:17px;text-align:center;box-shadow:0 0 0 1.5px #fff}
 .u svg{width:90%;height:90%}
 .u.done{opacity:.55;filter:saturate(.25) brightness(1.35)}
+/* mercenaries: a heater shield, the one shape no regular unit uses; the shadow and rim follow its outline */
+.u.merc{inset:6% 7% 5%;background:none!important;box-shadow:none!important;filter:drop-shadow(0 0 1.200px rgba(255,255,255,.85)) drop-shadow(0 3px 0 rgba(0,0,0,.45)) drop-shadow(0 5px 4px rgba(0,0,0,.25));padding-bottom:12%}
+.u.merc:not(.slow)::after{display:none}
+.u.merc .ms{position:absolute;inset:0;clip-path:polygon(4% 3%,96% 3%,96% 44%,90% 66%,76% 85%,50% 100%,24% 85%,10% 66%,4% 44%);background:radial-gradient(circle at 34% 24%,rgba(255,255,255,.34),rgba(255,255,255,0) 50%),linear-gradient(rgba(0,0,0,0) 55%,rgba(0,0,0,.28)),var(--tc)}
+.u.merc .ms::after{content:"";position:absolute;inset:7% 8% 9%;clip-path:polygon(4% 3%,96% 3%,96% 44%,90% 66%,76% 85%,50% 100%,24% 85%,10% 66%,4% 44%);box-shadow:inset 0 0 0 1.500px rgba(255,255,255,.45)}
+.u.merc>svg{position:relative;z-index:1}
 .hp{position:absolute;left:14%;right:14%;bottom:2%;height:4px;background:rgba(0,0,0,.4);border-radius:2px}
 .hp i{display:block;height:100%;background:#f2f2f2;border-radius:2px}
 .bar{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
@@ -303,7 +309,7 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 #shscene{width:100%;border-radius:6px;overflow:hidden;box-shadow:0 0 0 3px #1a0f07,0 0 0 5px #7a5532,0 0 0 7px #1a0f07,0 6px 14px rgba(0,0,0,.5)}#shscene svg{display:block;width:100%;height:auto}
 #shline::before{left:30%}#shline::after{left:calc(30% + 2px)}
 .shgold{display:flex;align-items:center;gap:6px;width:100%;font-weight:700;color:#f3d9a0}.shgold svg{width:24px;height:24px}.shgold b{font-size:1.15rem}.shpack{margin-left:auto;font-weight:600;color:#e8d6b0;font-size:.9rem}
-.mdisc{display:block;width:38px;height:38px}.mdisc .u{position:static;width:38px;height:38px;filter:saturate(.7) brightness(1.15)}
+.mdisc{display:block;width:38px;height:38px}.mdisc .u{position:relative;inset:auto;width:38px;height:38px}
 .shsec{width:100%;font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#d8b878;margin-top:4px}
 #shlist{display:grid;gap:8px;width:100%}.shitem{grid-template-columns:52px 1fr auto;width:100%}.shitem .ri{grid-row:span 3}
 .shprice{grid-column:3;grid-row:1/span 3;align-self:center;font-weight:800;font-size:.85rem;padding:6px 10px;border-radius:8px;background:#7a4c22;color:#fff3da;white-space:nowrap;box-shadow:0 2px 0 #1a0f07}.shprice.off{background:#8a7f70;color:#f1ead8;font-weight:700}
@@ -363,6 +369,9 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .evart svg{display:block;width:100%;height:auto;border-radius:8px;border:2px solid #1a0f07;box-shadow:0 2px 0 #1a0f07;margin-bottom:10px}
 .u.redglow svg{filter:drop-shadow(0 0 3px rgba(225,40,40,.85))}
 .u.blessed{box-shadow:0 0 0 2px rgba(255,255,255,.9),0 0 10px 3px rgba(120,210,255,.75)}
+/* on your side, but not yours to command (mercenaries, the Angry Chicken): an orange rim */
+.u.free{box-shadow:0 3px 0 rgba(0,0,0,.45),0 7px 6px rgba(0,0,0,.3),0 0 0 2.500px #f39a2b,0 0 0 3.800px rgba(70,35,0,.75)}
+.u.merc.free{filter:drop-shadow(1.600px 0 0 #f39a2b) drop-shadow(-1.600px 0 0 #f39a2b) drop-shadow(0 1.600px 0 #f39a2b) drop-shadow(0 -1.600px 0 #f39a2b) drop-shadow(0 0 .800px rgba(70,35,0,.9)) drop-shadow(0 3px 0 rgba(0,0,0,.4))}
 .pop.thanks{color:#ffd68a;font-size:.95rem;font-style:italic;animation:thanks 2.3s ease-out forwards}
 @keyframes thanks{0%{opacity:0;transform:translate(-50%,-80%)}15%{opacity:1;transform:translate(-50%,-120%)}75%{opacity:1}100%{opacity:0;transform:translate(-50%,-200%)}}
 @media (prefers-reduced-motion:reduce){.gold .gplus{animation:none;opacity:0}@keyframes thanks{0%,100%{opacity:0;transform:translate(-50%,-120%)}15%,80%{opacity:1;transform:translate(-50%,-120%)}}}
@@ -1410,7 +1419,7 @@ function render(){
     html+=`<button class="${cls}" data-x="${x}" data-y="${y}"${pd&&pd.k===k?` data-arrow="${pd.a}"`:""} aria-label="${label.replace(/"/g,"&quot;")}">`
       +'<i class="lt"></i>'+tileArt(x,y)+(fr?'<i class="tint"></i>':"")+(SMOKE.has(k)?'<i class="smoke"></i>':"")+(CALTROPS.has(k)?CALT_ART:"")+joins(x,y); // fortress art covers its tile, so highlights go on a see-through layer above it
     if(u){
-      let uc="u "+u.team+(spent(u)?" done":"")+(u.slow?" slow":"")+(inspired(u)?" insp":"")+(blessed(u)||rested(u)?" blessed":"")+(u.t==="E"&&rel(u,"redtome")?" redglow":"")+(rallied(u)?" rallied":"")+(muled(u)?" mule":"")+(u.elite?" elite":"")+(u.champ||u.cshield?" champ":"")+(u===sel||u===insp?" sel":""),mvs="";
+      let uc="u "+u.team+(u.merc?" merc":"")+(u.auto&&u.team==="y"?" free":spent(u)?" done":"")+(u.slow?" slow":"")+(inspired(u)?" insp":"")+(blessed(u)||rested(u)?" blessed":"")+(u.t==="E"&&rel(u,"redtome")?" redglow":"")+(rallied(u)?" rallied":"")+(muled(u)?" mule":"")+(u.elite?" elite":"")+(u.champ||u.cshield?" champ":"")+(u===sel||u===insp?" sel":""),mvs="";
       if(u.spawn){uc+=" tpin";delete u.spawn}
       const pp=prevPos.get(u);prevPos.set(u,[x,y]);
       if(pp&&(pp[0]!==x||pp[1]!==y)){ // slide in from where it was last drawn (a long jump fades in instead)
@@ -1418,8 +1427,8 @@ function render(){
         if(dist>6)uc+=" tpin";
         else{uc+=" mv";stepped=1;mvs=`;--dx:${ddx*122}%;--dy:${ddy*122}%;--dur:${.1+.06*dist}s`}
       }
-      const c=COLORS[col[u.team]],hr=u.hp/maxHp(u),bg=u.auto||u.merc?`color-mix(in srgb,${c[1]} 55%,#fff)`:c[1]; // units that act on their own wear a lighter shade
-      html+=`<div class="${uc}" data-t="${u.t}" data-team="${u.team}" style="background:${bg};--tc:${bg};--ic:${c[2]}${mvs}">${u.trio?CHAMP_ICON:ICON[u.t]}</div>`
+      const c=COLORS[col[u.team]],hr=u.hp/maxHp(u),bg=u.auto&&!u.merc?`color-mix(in srgb,${c[1]} 55%,#fff)`:c[1]; // units that act on their own wear a lighter shade
+      html+=`<div class="${uc}" data-t="${u.t}" data-team="${u.team}" style="background:${bg};--tc:${bg};--ic:${c[2]}${mvs}">${u.merc?'<b class="ms"></b>':""}${u.trio?CHAMP_ICON:ICON[u.t]}</div>`
         +`<div class="hp"><i style="width:${100*hr}%;background-color:${hr>.5?"#5fd068":hr>.25?"#f0c33a":"#ee5a45"}"></i></div>`;
     }
     html+="</button>";
@@ -1493,7 +1502,7 @@ function renderInfo(){
   if(u.bloom)notes.push(`Last Bloom: +${u.bloom} damage this battle, for a fallen comrade.`);
   const stats=[["Move",mvOf(u)],["Range",rangeTxt({...T,rg:rgOf(u)})],["Damage",T.dmg+(u.t==="A"&&rel(u,"whet")?1:0)+(u.bloom||0)+(u.champ?1:0)+(inspired(u)?"+1":"")],...(T.heal?[["Heal",healOf(u)]]:[]),...(arm?[["Armor",arm]]:[]),...(T.pi?[["Pierce",T.pi]]:[]),...(T.ev?[["Evasion",pct(T.ev)]]:[])].map(([k,v])=>`<span class="stat">${k} <b>${v}</b></span>`).join("");
   el.className="pb";el.style.borderLeft=`8px solid ${c[1]}`;
-  el.innerHTML=`<div class="lbl">Unit</div><div class="row"><div class="pv">${u.trio?disc(u.t,c).replace(ICON[u.t],CHAMP_ICON):disc(u.t,c)}</div><div class="ib"><div class="nm"><strong>${u.merc?u.mname:hero?heroName(u.ci):cap(NAME[u.t])}</strong><span>${u.trio?"The Champion":u.merc?(u.team==="y"?"Your mercenary ":"Enemy mercenary ")+NAME[u.t]:hero?cap(NAME[u.t]):u.team==="y"?"Your unit":u.team==="w"?"Wild":"Enemy"}</span></div><div class="hprow"><span>HP</span><b>${u.hp} / ${maxHp(u)}</b></div><div class="hpb"><i style="width:${100*r}%;background:${r>.5?"#4caf50":r>.25?"#e0b21c":"#d64b3a"}"></i></div><div class="stats">${stats}</div>${notes.map(n=>`<small>${n}</small>`).join("")}</div></div>`;
+  el.innerHTML=`<div class="lbl">Unit</div><div class="row"><div class="pv">${u.trio?disc(u.t,c).replace(ICON[u.t],CHAMP_ICON):disc(u.t,c,u.merc,u.auto&&u.team==="y")}</div><div class="ib"><div class="nm"><strong>${u.merc?u.mname:hero?heroName(u.ci):cap(NAME[u.t])}</strong><span>${u.trio?"The Champion":u.merc?(u.team==="y"?"Your mercenary ":"Enemy mercenary ")+NAME[u.t]:hero?cap(NAME[u.t]):u.team==="y"?"Your unit":u.team==="w"?"Wild":"Enemy"}</span></div><div class="hprow"><span>HP</span><b>${u.hp} / ${maxHp(u)}</b></div><div class="hpb"><i style="width:${100*r}%;background:${r>.5?"#4caf50":r>.25?"#e0b21c":"#d64b3a"}"></i></div><div class="stats">${stats}</div>${notes.map(n=>`<small>${n}</small>`).join("")}</div></div>`;
 }
 function floatText(x,y,t,miss){
   const p=document.createElement("div");p.className="pop"+(miss===true?" miss":miss==="heal"?" heal":miss==="slow"?" slow":miss==="thanks"?" thanks":miss==="bless"?" bless":miss==="rally"?" rally":"");p.textContent=t;
@@ -2799,7 +2808,7 @@ $("wrestart").onclick=()=>{
 const COLORS={red:["Red","#c8372d","#fff"],yellow:["Yellow","#e6b820","#2b2200"],blue:["Blue","#2f6fb5","#fff"],orange:["Orange","#e2812a","#fff"],green:["Green","#3b9a4e","#fff"],purple:["Purple","#7b4bb0","#fff"],black:["Black","#232a31","#fff"],wild:["Wild","#7a5a36","#fff"]};
 const CHOICES=["red","yellow","blue","orange","green","purple"];
 const show=n=>{["menu","pick","game","world","editor"].forEach(i=>$(i).hidden=i!==n);syncMusic();if(n==="menu"){$("maud").hidden=true;$("rulesview").hidden=true;$("unlockview").hidden=true;$("chalview").hidden=true;$("mbtns").hidden=false}};
-const disc=(t,c)=>`<div class="u" data-t="${t}" style="background:${c[1]};--tc:${c[1]};--ic:${c[2]}">${ICON[t]}</div>`;
+const disc=(t,c,merc,free)=>`<div class="u${merc?" merc":""}${free?" free":""}" data-t="${t}" style="background:${c[1]};--tc:${c[1]};--ic:${c[2]}">${merc?'<b class="ms"></b>':""}${ICON[t]}</div>`;
 const foeColor=()=>pick.c==="red"?"black":"red";
 const cap=w=>w.replace(/\b\w/g,c=>c.toUpperCase()); // "banner bearer" -> "Banner Bearer"
 function mk(parent,cls,html,on,pressed){
@@ -3540,7 +3549,7 @@ function renderShop(){
   const row=(kind,id,name,price,label,desc,icon,why,rc)=>`<button class="rcard shitem" data-kind="${kind}" data-id="${id}" style="--rc:${rc}"${why?" aria-disabled=\"true\"":""}><span class="ri">${icon}</span><span class="rr">${label}</span><b>${name}</b><small>${desc}</small><span class="shprice${why?" off":""}">${why||price+" gold"}</span></button>`;
   const need=p=>camp.gold<p?`Need ${p-camp.gold} more`:"";
   $("shlist").innerHTML='<div class="shsec">Consumables</div>'+(n.stock.items||Object.keys(ITEMS).filter(id=>!ITEMS[id].r)).map(id=>{const I=ITEMS[id],pr=priceOf(I.price);return row("item",id,I.name,pr,(I.r?RARITY[I.r][0]+" consumable":"Consumable")+" \u00b7 one use",I.desc,itemIcon(id,38),full?"Pack full":need(pr),I.r?RARITY[I.r][1]:"#a08a64")}).join("")
-    +((n.stock.mercs||[]).length?'<div class="shsec">Mercenary contracts</div>'+n.stock.mercs.map((m,i)=>{const pr=priceOf(m.price);return row("merc",i,m.name,pr,"Contract \u00b7 "+MERC_TERM+" battles",mercDesc(m),`<span class="mdisc">${disc(m.t,COLORS[camp.cfg.c])}</span>`,m.hired?"Hired":need(pr),"#6a7f8f")}).join(""):"")
+    +((n.stock.mercs||[]).length?'<div class="shsec">Mercenary contracts</div>'+n.stock.mercs.map((m,i)=>{const pr=priceOf(m.price);return row("merc",i,m.name,pr,"Contract \u00b7 "+MERC_TERM+" battles",mercDesc(m),`<span class="mdisc">${disc(m.t,COLORS[camp.cfg.c],1,1)}</span>`,m.hired?"Hired":need(pr),"#6a7f8f")}).join(""):"")
     +'<div class="shsec">Relics</div>'+(n.stock.relics.length?n.stock.relics.map(id=>{const R=RELICS[id],[rn,rc]=RARITY[R.r],pr=priceOf(RELIC_PRICE[R.r]);return row("relic",id,R.name,pr,rn+" relic",R.desc,relicIcon(id,38),n.stock.sold.includes(id)?"Sold":relicCount(id)>=(R.max||1)?"Owned":need(pr),rc)}).join(""):'<p class="rsub">Marcus has no relics for you today.</p>');
   $("shlist").querySelectorAll(".shitem").forEach(b=>b.onclick=()=>buy(b.dataset.kind,b.dataset.id));
 }
@@ -3876,7 +3885,7 @@ function buildGuide(){
   const grp=(title,items)=>`<div class="tentry"><strong>${title}</strong>${items.map(([st,inner,t,d])=>`<div class="hli">${sw(inner,st)}<div><b>${t}</b><small>${d}</small></div></div>`).join("")}</div>`;
   $("tlist").innerHTML="<h3>Terrain</h3>"+terrainRows()
    +"<h3>Highlights</h3>"
-   +grp("Allies",[["background:var(--move)","","Green","Where your selected unit can move."],["background:color-mix(in srgb,#4cc38a 55%,var(--tile));box-shadow:inset 0 0 0 4px #2f9e6a",'<i class="plus">+</i>',"Green Border With a Plus","An ally your selected healer can heal right now."]])
+   +grp("Allies",[["background:var(--move)","","Green","Where your selected unit can move."],["background:color-mix(in srgb,#4cc38a 55%,var(--tile));box-shadow:inset 0 0 0 4px #2f9e6a",'<i class="plus">+</i>',"Green Border With a Plus","An ally your selected healer can heal right now."],["background:var(--tile)",'<span class="u y free" style="inset:14%;background:#3a6fc4;--tc:#3a6fc4"></span>',"Orange Rim on a Unit","Fights on your side but acts on its own at the end of your turn, like a mercenary or the Angry Chicken. It can't be given orders."]])
    +grp("Enemies",[["background:#e9b8a6;background:color-mix(in srgb,var(--atk) 42%,var(--tile))","","Pale Red","Everything your selected unit could hit after moving."],["background:var(--atk)",'<i class="rg"></i>',"Red Ring","An enemy you can attack right now."],["background:#8d98a2","","Gray","Where a tapped enemy can move."],["background:#8d98a2;box-shadow:inset 0 0 0 4px var(--atk)","","Gray With a Red Border","Tiles an enemy can both move to and attack."]]);
 }
 const closeGuide=()=>{$("tguide").hidden=true};
