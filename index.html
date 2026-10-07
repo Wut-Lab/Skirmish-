@@ -303,6 +303,7 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 #shscene{width:100%;border-radius:6px;overflow:hidden;box-shadow:0 0 0 3px #1a0f07,0 0 0 5px #7a5532,0 0 0 7px #1a0f07,0 6px 14px rgba(0,0,0,.5)}#shscene svg{display:block;width:100%;height:auto}
 #shline::before{left:30%}#shline::after{left:calc(30% + 2px)}
 .shgold{display:flex;align-items:center;gap:6px;width:100%;font-weight:700;color:#f3d9a0}.shgold svg{width:24px;height:24px}.shgold b{font-size:1.15rem}.shpack{margin-left:auto;font-weight:600;color:#e8d6b0;font-size:.9rem}
+.mdisc{display:block;width:38px;height:38px}.mdisc .u{position:static;width:38px;height:38px;filter:saturate(.7) brightness(1.15)}
 .shsec{width:100%;font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#d8b878;margin-top:4px}
 #shlist{display:grid;gap:8px;width:100%}.shitem{grid-template-columns:52px 1fr auto;width:100%}.shitem .ri{grid-row:span 3}
 .shprice{grid-column:3;grid-row:1/span 3;align-self:center;font-weight:800;font-size:.85rem;padding:6px 10px;border-radius:8px;background:#7a4c22;color:#fff3da;white-space:nowrap;box-shadow:0 2px 0 #1a0f07}.shprice.off{background:#8a7f70;color:#f1ead8;font-weight:700}
@@ -614,6 +615,20 @@ const DIRS=[[1,0],[-1,0],[0,1],[0,-1]],pk=k=>k.split(",").map(Number); // the fo
 const W=10,H=12,
 // hp, mv move, rg/mn range, dmg damage; ar armor, pi pierce, ev evasion (dodge chance); who retaliates: CAN_RETALIATE / CANT_RETALIATE below
 TYPES={K:{hp:12,mv:3,rg:1,mn:1,dmg:5,ar:2},A:{hp:8,mv:3,rg:3,mn:1,dmg:4,pi:1,ev:.1},R:{hp:10,mv:2,rg:4,mn:2,dmg:4,pi:2},W:{hp:8,mv:2,rg:1,mn:1,dmg:4,ev:.15},B:{hp:16,mv:1,rg:1,mn:1,dmg:6,ar:1},H:{hp:5,mv:3,rg:2,mn:1,dmg:3,ev:.25},C:{hp:9,mv:5,rg:1,mn:1,dmg:4,ar:1,ev:.1},P:{hp:7,mv:3,rg:2,mn:1,dmg:1,heal:3,ev:.1},E:{hp:6,mv:3,rg:3,mn:1,dmg:2,slow:1,ev:.15},T:{hp:9,mv:3,rg:1,mn:1,dmg:3,ar:1},N:{hp:8,mv:3,rg:1,mn:1,dmg:2,ev:.05},M:{hp:4,mv:2,rg:1,mn:1,dmg:2},G:{hp:3,mv:4,rg:1,mn:1,dmg:2,ev:.15}}; // G: the Angry Chicken (Chicken Suit relic)
+const ST=u=>u.st?{...TYPES[u.t],...u.st}:TYPES[u.t]; // a unit's stats: its type's, unless it carries its own (mercenaries)
+// Mercenaries: a weaker, slightly randomized take on a unit type that fights on its own. One at a time, for MERC_TERM campaign battles.
+const MERC_TYPES="KARC",MERC_PRICE={K:70,A:65,R:70,C:75},MERC_TERM=4,MERC_SHOP=1/3,MERC_ROAD=.1,MERC_FOE=r=>r>=6?.4:r>=3?.25:0; // MERC_FOE: the chance an enemy army (from region 3) hires one; a boss rolls twice
+const MERC_QUIRKS=[["Swift",{mv:1},"+1 move"],["Stout",{ar:1},"+1 armor"],["Nimble",{ev:.05},"+5% evasion"],["Hardy",{hp:2},"+2 HP"],["Keen",{pi:1},"+1 pierce"]];
+const MERC_NAMES=["Bruno","Garrick","Vasco","Ingrid","Rurik","Sabine","Dario","Helga","Tobias","Mirela","Corvin","Ottilie","Brennan","Zora","Lothar","Greta","Anselm","Kasia","Pell","Ysgrim"];
+function rollMerc(t){
+  const rnd=l=>l[Math.floor(Math.random()*l.length)];t=t||rnd(MERC_TYPES);
+  const T=TYPES[t],q=rnd(MERC_QUIRKS),st={hp:T.hp-2-Math.floor(Math.random()*2),dmg:T.dmg-1}; // 2-3 less HP and 1 less damage than the real thing...
+  for(const k in q[1])st[k]=(st[k]!=null?st[k]:T[k]||0)+q[1][k]; // ...and one small knack
+  return {t,name:rnd(MERC_NAMES)+" the "+q[0],q:q[0],qt:q[2],st,price:MERC_PRICE[t]+5*Math.floor(Math.random()*3)};
+}
+const mercLine=m=>{const T={...TYPES[m.t],...m.st};return `${cap(NAME[m.t])}: HP ${T.hp}, move ${T.mv}, damage ${T.dmg}`+(T.ar?`, armor ${T.ar}`:"")+(T.pi?`, pierce ${T.pi}`:"")+(T.ev?`, evasion ${pct(T.ev)}`:"")+`. ${m.q}: ${m.qt}.`};
+const mercDesc=m=>mercLine(m)+` Serves ${MERC_TERM} battles, fighting on its own after your turn.`+(camp.merc?` Hiring dismisses ${camp.merc.name}.`:"");
+function hireMerc(m){const old=camp.merc;camp.merc={t:m.t,name:m.name,q:m.q,qt:m.qt,st:m.st,hp:m.st.hp,left:MERC_TERM};camp.mercNote="";return old}
 const LIMIT1="PETN"; // one of each per army
 const UNIT_UNLOCK={T:"captain",N:"banner"}; // unlockable units and the unlock each needs
 const poolNow=()=>"KARCPE"+Object.keys(UNIT_UNLOCK).filter(t=>unlocks[UNIT_UNLOCK[t]]).join(""); // units an army may pick right now
@@ -702,8 +717,8 @@ const canTrumpet=u=>rel(u,"trumpet")&&!relicUsed.trumpet&&!u.acted&&!u.auto&&uni
 // Cherry Grove, Moment of Calm: counts as forest only for movement; no forest combat bonuses, no slowing, no retaliation in or out
 const WOODS=k=>FOREST.has(k)&&!CHERRY.has(k),calm=u=>CHERRY.has(u.x+","+u.y);
 const BLUSH_R=2,blush=(x,y)=>{if(!VALE||!/^(ground|forest|cherry|flowers|koi)$/.test(terrainKey(x+","+y)))return"";let m=9;CHERRY.forEach(c=>{const[a,b]=pk(c);m=Math.min(m,Math.abs(a-x)+Math.abs(b-y))});return m<2?" bsh1":m<=BLUSH_R?" bsh2":""}; // Sakura Vale: the groves and the open ground, woods, wildflowers and koi ponds within a diamond of a cherry grove take a pink tint, deeper beside it
-const healOf=u=>TYPES[u.t].heal+(rel(u,"salts")?1:0); // how much a healer restores, with relics
-const rgOf=u=>TYPES[u.t].rg+(u.t==="A"&&rel(u,"long")?1:0); // a unit's attack range, with relics
+const healOf=u=>ST(u).heal+(rel(u,"salts")?1:0); // how much a healer restores, with relics
+const rgOf=u=>ST(u).rg+(u.t==="A"&&rel(u,"long")?1:0); // a unit's attack range, with relics
 const DEBRIS_DMG=1; // Debris Shot splash: small, so it softens clusters without replacing a second attack
 const NAME={G:"angry chicken",K:"knight",A:"archer",R:"artillery",W:"wolf",B:"bear",H:"hawk",C:"cavalry",P:"apothecary",E:"enchanter",T:"captain",N:"banner bearer",M:"militia"};
 const MODS={
@@ -1228,14 +1243,14 @@ const prevPos=new WeakMap();
 const $=id=>document.getElementById(id),board=$("board");
 const d=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 const at=(x,y)=>units.find(u=>u.x===x&&u.y===y);
-const mvOf=u=>{const m=TYPES[u.t].mv-(u.t==="A"&&mods[u.team]==="PAD"?1:0)-(u.t==="C"&&rel(u,"bard")?1:0)+(firstTurn&&rel(u,"drills")?1:0)+(u.haste||0);if(u.stepOnly)return 1;return u.slow?Math.min(m,TYPES.E.slow):m};
+const mvOf=u=>{const m=ST(u).mv-(u.t==="A"&&mods[u.team]==="PAD"?1:0)-(u.t==="C"&&rel(u,"bard")?1:0)+(firstTurn&&rel(u,"drills")?1:0)+(u.haste||0);if(u.stepOnly)return 1;return u.slow?Math.min(m,TYPES.E.slow):m};
 const inspired=(u,at=u)=>units.some(b=>b.t==="N"&&b.team===u.team&&b!==u&&d(b,at)<=BANNER_RANGE); // within a Banner Bearer's aura (at: where u would stand)
 /* ---------- Combat: the one place an attack's damage and hit chance are worked out ----------
    Every modifier is a labelled line in `parts`, so the attack menu, the game and the AI always agree.
    A new stat or effect = one more add(...) line here. `from` = where the attacker would stand (default: where it is).
    Armor = the target's own plus terrain and modifiers; the attacker's pierce cancels up to that much of it. */
 function combat(a,b,from=a){
-  const k=b.x+","+b.y,A=TYPES[a.t],B=TYPES[b.t],parts=[["Base",A.dmg]],add=(label,v)=>{if(v)parts.push([label,v])};
+  const k=b.x+","+b.y,A=ST(a),B=ST(b),parts=[["Base",A.dmg]],add=(label,v)=>{if(v)parts.push([label,v])};
   add("Banner",inspired(a,from)?1:0);
   add("Whetstones",a.t==="A"&&rel(a,"whet")?1:0);
   add("Wolfpack Banner",rel(a,"wolfpack")&&units.some(v=>v!==a&&v.team===a.team&&d(v,b)===1)?1:0); // ganging up on a pinned enemy
@@ -1263,7 +1278,7 @@ function combat(a,b,from=a){
 }
 // a unit with `ret` retaliates against an attacker within its own range for half damage, at least 1 (the attacker may evade it); null when it can't
 function retaliation(att,def,from=att){
-  const T=TYPES[def.t],dd=d(def,from);
+  const T=ST(def),dd=d(def,from);
   if(!canRetaliate(def.t)||dd<T.mn||dd>rgOf(def)||rel(def,"warpaint"))return null; // Berserker's Warpaint: no parrying
   if(calm(def)||CHERRY.has(from.x+","+from.y))return null; // Moment of Calm: nobody fights back under the blossoms // e.g. Artillery firing from 4 tiles outranges an Archer
   const c=combat(def,{...att,x:from.x,y:from.y});
@@ -1331,9 +1346,9 @@ function walk(u,x,y){
   if(u.team==="y"&&units.includes(u))later(()=>{if(units.includes(u))floatText(u.x,u.y-.55,"You know better...","thanks")},300);
   return hits;
 }
-const canBreak=(a,x,y)=>{const dd=d(a,{x,y}),T=TYPES[a.t];return dd>=T.mn&&dd<=rgOf(a)};
+const canBreak=(a,x,y)=>{const dd=d(a,{x,y}),T=ST(a);return dd>=T.mn&&dd<=rgOf(a)};
 const breakables=u=>[...BARRELS].filter(k=>{const[x,y]=pk(k);return canBreak(u,x,y)});
-const healable=(a,b)=>!!TYPES[a.t].heal&&b!==a&&b.team===a.team&&b.hp<maxHp(b)&&d(a,b)<=TYPES[a.t].rg&&d(a,b)>=TYPES[a.t].mn;
+const healable=(a,b)=>!!ST(a).heal&&b!==a&&b.team===a.team&&b.hp<maxHp(b)&&d(a,b)<=ST(a).rg&&d(a,b)>=ST(a).mn;
 const healTargets=u=>units.filter(b=>healable(u,b));
 const musterSpots=u=>DIRS.map(([dx,dy])=>[u.x+dx,u.y+dy]).filter(([x,y])=>open(x,y));
 const musterUses=u=>MUSTER_USES+(rel(u,"muster")?1:0); // Muster Roll: one more
@@ -1346,11 +1361,11 @@ function muster(u){ // 1-2 militia appear beside the captain, nearest the enemy 
   return n;
 }
 const spent=u=>(!!u.acted&&!!u.moved)||!!u.auto||(u.team!=="w"&&!!u.moved&&!canMuster(u)&&!canTrumpet(u)&&!(u.team==="y"&&!u.acted&&camp.battle&&!chal&&camp.items&&camp.items.length)&&!targets(u).length&&!healTargets(u).length&&!(rel(u,"font")&&units.some(b=>canBless(u,b)))&&(u.team!=="y"||!breakables(u).length)&&!(mods.y==="PUSH"&&u.t==="K"&&units.some(b=>b.team==="y"&&pushable(u,b))));
-const targets=u=>units.filter(e=>e.team!==u.team&&(u.team!=="f"||e.team!=="w")&&d(u,e)<=rgOf(u)&&d(u,e)>=TYPES[u.t].mn);
+const targets=u=>units.filter(e=>e.team!==u.team&&(u.team!=="f"||e.team!=="w")&&d(u,e)<=rgOf(u)&&d(u,e)>=ST(u).mn);
 
 const spotsOf=(u,rc)=>[[u.x,u.y],...rc.map(k=>pk(k))];
 function atkZone(u,spots,set,bar){
-  const{mn}=TYPES[u.t],rg=rgOf(u);
+  const{mn}=ST(u),rg=rgOf(u);
   spots.forEach(([px,py])=>{
     for(let y=0;y<H;y++)for(let x=0;x<W;x++){
       const dd=Math.abs(x-px)+Math.abs(y-py);
@@ -1403,7 +1418,7 @@ function render(){
         if(dist>6)uc+=" tpin";
         else{uc+=" mv";stepped=1;mvs=`;--dx:${ddx*122}%;--dy:${ddy*122}%;--dur:${.1+.06*dist}s`}
       }
-      const c=COLORS[col[u.team]],hr=u.hp/maxHp(u),bg=u.auto?`color-mix(in srgb,${c[1]} 55%,#fff)`:c[1]; // units that act on their own wear a lighter shade
+      const c=COLORS[col[u.team]],hr=u.hp/maxHp(u),bg=u.auto||u.merc?`color-mix(in srgb,${c[1]} 55%,#fff)`:c[1]; // units that act on their own wear a lighter shade
       html+=`<div class="${uc}" data-t="${u.t}" data-team="${u.team}" style="background:${bg};--tc:${bg};--ic:${c[2]}${mvs}">${u.trio?CHAMP_ICON:ICON[u.t]}</div>`
         +`<div class="hp"><i style="width:${100*hr}%;background-color:${hr>.5?"#5fd068":hr>.25?"#f0c33a":"#ee5a45"}"></i></div>`;
     }
@@ -1443,8 +1458,9 @@ function renderInfo(){
   const el=$("info");
   if(info&&!units.includes(info))info=null;
   if(!info){el.className="pb empty";el.style.borderLeft="";el.innerHTML='<div class="lbl">Unit</div><div class="ph">Tap a unit to see its details.</div>';return}
-  const u=info,T=TYPES[u.t],c=COLORS[col[u.team]],fo=WOODS(u.x+","+u.y),r=u.hp/maxHp(u),notes=[],hero=camp.battle&&!chal&&u.team==="y"&&u.ci!=null&&camp.names;
+  const u=info,T=ST(u),c=COLORS[col[u.team]],fo=WOODS(u.x+","+u.y),r=u.hp/maxHp(u),notes=[],hero=camp.battle&&!chal&&u.team==="y"&&u.ci!=null&&camp.names;
   if(u.team==="w")notes.push("Wild: wanders at random and attacks any unit in range.");
+  if(u.merc)notes.push(u.team==="y"?`Mercenary: fights on its own at the end of your turn.${camp.merc?` ${camp.merc.left} battle${camp.merc.left>1?"s":""} left on its contract.`:""}`:"Mercenary: hired by the enemy, a little weaker than the real thing.");
   if(ABILITY[u.t])notes.push(ABILITY[u.t]);
   if(u.t==="T")notes.push(`Musters left this battle: ${musterUses(u)-(u.musters||0)}.`);
   if(inspired(u))notes.push("Inspired by a nearby Banner Bearer: deals +1 damage.");
@@ -1465,7 +1481,7 @@ function renderInfo(){
   if(u.t==="A"&&mods[u.team]==="PAD")notes.push("Padded Armor: +1 armor.");
   if(u.t==="A"&&rel(u,"pavise"))notes.push("Pavise: takes 1 less damage from ranged attacks.");
   if(mods[u.team]==="FT"&&fo)notes.push("Forest Tactics: +1 armor against ranged attacks here.");
-  if(u.team==="y"&&u.acted&&!u.moved)notes.push("Rallied: can move again, but has already acted.");else if(u.team==="y"&&u.acted)notes.push("Finished for this turn.");else if(u.team==="y"&&u.moved)notes.push("Has moved this turn.");
+  if(u.auto);else if(u.team==="y"&&u.acted&&!u.moved)notes.push("Rallied: can move again, but has already acted.");else if(u.team==="y"&&u.acted)notes.push("Finished for this turn.");else if(u.team==="y"&&u.moved)notes.push("Has moved this turn.");
   const arm=(T.ar||0)+(u.t==="A"&&mods[u.team]==="PAD"?1:0)+(u.t==="K"&&rel(u,"shield")?1:0)+(u.t==="C"&&rel(u,"bard")?1:0)+(u.keep?1:0);
   if(u.keep)notes.push("Banner of the Fallen Keep: +1 armor this battle.");
   if(u.team==="y"&&u.drum===pturn&&turn==="y")notes.push("War Drum: +1 damage this turn.");
@@ -1477,7 +1493,7 @@ function renderInfo(){
   if(u.bloom)notes.push(`Last Bloom: +${u.bloom} damage this battle, for a fallen comrade.`);
   const stats=[["Move",mvOf(u)],["Range",rangeTxt({...T,rg:rgOf(u)})],["Damage",T.dmg+(u.t==="A"&&rel(u,"whet")?1:0)+(u.bloom||0)+(u.champ?1:0)+(inspired(u)?"+1":"")],...(T.heal?[["Heal",healOf(u)]]:[]),...(arm?[["Armor",arm]]:[]),...(T.pi?[["Pierce",T.pi]]:[]),...(T.ev?[["Evasion",pct(T.ev)]]:[])].map(([k,v])=>`<span class="stat">${k} <b>${v}</b></span>`).join("");
   el.className="pb";el.style.borderLeft=`8px solid ${c[1]}`;
-  el.innerHTML=`<div class="lbl">Unit</div><div class="row"><div class="pv">${u.trio?disc(u.t,c).replace(ICON[u.t],CHAMP_ICON):disc(u.t,c)}</div><div class="ib"><div class="nm"><strong>${hero?heroName(u.ci):cap(NAME[u.t])}</strong><span>${u.trio?"The Champion":hero?cap(NAME[u.t]):u.team==="y"?"Your unit":u.team==="w"?"Wild":"Enemy"}</span></div><div class="hprow"><span>HP</span><b>${u.hp} / ${maxHp(u)}</b></div><div class="hpb"><i style="width:${100*r}%;background:${r>.5?"#4caf50":r>.25?"#e0b21c":"#d64b3a"}"></i></div><div class="stats">${stats}</div>${notes.map(n=>`<small>${n}</small>`).join("")}</div></div>`;
+  el.innerHTML=`<div class="lbl">Unit</div><div class="row"><div class="pv">${u.trio?disc(u.t,c).replace(ICON[u.t],CHAMP_ICON):disc(u.t,c)}</div><div class="ib"><div class="nm"><strong>${u.merc?u.mname:hero?heroName(u.ci):cap(NAME[u.t])}</strong><span>${u.trio?"The Champion":u.merc?(u.team==="y"?"Your mercenary ":"Enemy mercenary ")+NAME[u.t]:hero?cap(NAME[u.t]):u.team==="y"?"Your unit":u.team==="w"?"Wild":"Enemy"}</span></div><div class="hprow"><span>HP</span><b>${u.hp} / ${maxHp(u)}</b></div><div class="hpb"><i style="width:${100*r}%;background:${r>.5?"#4caf50":r>.25?"#e0b21c":"#d64b3a"}"></i></div><div class="stats">${stats}</div>${notes.map(n=>`<small>${n}</small>`).join("")}</div></div>`;
 }
 function floatText(x,y,t,miss){
   const p=document.createElement("div");p.className="pop"+(miss===true?" miss":miss==="heal"?" heal":miss==="slow"?" slow":miss==="thanks"?" thanks":miss==="bless"?" bless":miss==="rally"?" rally":"");p.textContent=t;
@@ -1556,7 +1572,7 @@ function acts(){
 const pendingMove=()=>choiceMv&&sel&&choice&&choiceMv.u===choice&&units.includes(choice)?choiceMv:null;
 // the best tile to attack t from: fortress first, ranged units as far back as they can, then the shortest walk
 function attackSpot(a,t){
-  const T=TYPES[a.t];let best=null,bs=1e9;
+  const T=ST(a);let best=null,bs=1e9;
   reach(a).forEach(k=>{
     const[x,y]=pk(k),dd=Math.abs(x-t.x)+Math.abs(y-t.y);
     if(dd<T.mn||dd>rgOf(a))return;
@@ -1595,7 +1611,7 @@ function click(x,y){
   }
   if(mode==="push"&&u&&pushable(sel,u)){choice=u;say("Choose an action next to the unit.");return render()}
   if(u&&u.team==="y"&&sel&&sel!==u&&!mode&&!sel.acted&&(healable(sel,u)||canBless(sel,u)||(mods.y==="PUSH"&&pushable(sel,u)))){choice=u;say("Choose an action next to the unit.");return render()}
-  if(u&&u.auto){insp=null;info=u;say("The Angry Chicken answers to no one. It charges at the end of your turn.");return render()}
+  if(u&&u.auto){insp=null;info=u;say(u.merc?`${u.mname} fights for pay, not orders. It acts at the end of your turn.`:"The Angry Chicken answers to no one. It charges at the end of your turn.");return render()}
   if(u&&u.team==="y"){
     if(sel===u){sel=null;mode=null;info=null;say("Select one of your units.");return render()}
     sel=u;mode=null;insp=null;info=u;sfx("step");
@@ -1972,12 +1988,13 @@ function chickensAct(done){
     const c=cs.shift();if(!c)return done();
     if(!units.includes(c))return next();
     const foes=units.filter(e=>e.team==="f");if(!foes.length)return done();
-    const D=distMap(foes),score=([x,y])=>{const adj=foes.filter(e=>Math.abs(e.x-x)+Math.abs(e.y-y)===1);return adj.length?-100+Math.min(...adj.map(e=>e.hp)):D[y][x]};
+    const D=distMap(foes),score=c.merc?([x,y])=>evalTile(c,x,y,D,foes)+(CALTROPS.size&&routes(c).get(x+","+y)?routes(c).get(x+","+y).n*CALTROP_AVOID:0):([x,y])=>{const adj=foes.filter(e=>Math.abs(e.x-x)+Math.abs(e.y-y)===1);return adj.length?-100+Math.min(...adj.map(e=>e.hp)):D[y][x]};
     const best=[[c.x,c.y],...reach(c).map(pk)].reduce((a,b)=>score(b)<score(a)?b:a);
     if(best[0]!==c.x||best[1]!==c.y){walk(c,best[0],best[1]);render();if(!units.includes(c))return later(next,300)}
     later(()=>{
       if(g!==gid||over)return;
-      const ts=targets(c).filter(e=>e.team==="f").sort((a,b)=>a.hp-b.hp);
+      const pri=p=>(dmgTo(c,p)>=p.hp?100:0)+(VAL[p.t]||0)-p.hp*.5; // a mercenary takes the sure kill, then the soft, valuable target
+      const ts=c.merc?targets(c).filter(e=>e.team==="f"&&!(dmgTo(c,e)<e.hp&&(r=>r&&r.dmg>=c.hp&&r.hit>.5)(retaliation(c,e)))).sort((a,b)=>pri(b)-pri(a)):targets(c).filter(e=>e.team==="f").sort((a,b)=>a.hp-b.hp);
       if(!ts.length)return later(next,150);
       attack(c,ts[0],()=>{if(!checkEnd()){render();later(next,300)}});
     },350);
@@ -1987,7 +2004,7 @@ function chickensAct(done){
 function thanks(u){later(()=>{if(units.includes(u))floatText(u.x,u.y,"Thanks Herbert","thanks")},450)} // a small, warm note that fades
 function hitFor(a,b,c,back){ // resolve one blow from a to b: dodge roll, damage, removal; true when it landed
   if(Math.random()<1-c.hit){floatText(b.x,b.y,"Evade",true);sfx("evade");say(sent(who(b))+" evaded "+(back?"the retaliation.":"the attack."));return false}
-  if(b.team==="y"&&b.t==="A"&&a.team!=="y"&&TYPES[a.t].rg>1){unlocks.ah=(unlocks.ah||0)+1;saveU();if(unlocks.ah>=10)unlock("pavise")} // archers under arrow fire learn to raise a wall
+  if(b.team==="y"&&b.t==="A"&&a.team!=="y"&&ST(a).rg>1){unlocks.ah=(unlocks.ah||0)+1;saveU();if(unlocks.ah>=10)unlock("pavise")} // archers under arrow fire learn to raise a wall
   if(a.champ&&!back)a.champStep=1; // the Champion's Sword: a step after a landed blow
   if(hurt(b,c.dmg)){credit(a,b);
     if(a.bleed&&rel(a,"statue")){delete a.bleed;later(()=>{if(units.includes(a))floatText(a.x,a.y,"Staunched","heal")},300)} // Bleeding Statue: a kill stops your own bleeding
@@ -2030,7 +2047,7 @@ function animAttack(a,b,cb){
     if(!ta||!tb||!ta.animate||window.matchMedia("(prefers-reduced-motion: reduce)").matches)return fin();
     const ea=ta.querySelector(".u"),ra=ta.getBoundingClientRect(),rb=tb.getBoundingClientRect(),bw=$("bw").getBoundingClientRect();
     const dx=rb.left-ra.left,dy=rb.top-ra.top;
-    if(TYPES[a.t].rg>1){
+    if(ST(a).rg>1){
       const p=document.createElement("div");p.className="proj"+(a.t==="R"?" big":"");
       p.style.left=(ra.left-bw.left+ra.width/2)+"px";p.style.top=(ra.top-bw.top+ra.height/2)+"px";$("fx").append(p);
       const an=p.animate([{transform:"translate(-50%,-50%)"},{transform:`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`}],{duration:Math.min(140+Math.hypot(dx,dy)*.8,420),easing:"ease-in"});
@@ -2157,7 +2174,7 @@ function foeUseItems(){
   }
   return msg.join(" ");
 }
-const WOUND_MAX=3,CROSS_SPARE=.15,MEDKIT_DOUBLE=.25,maxHp=u=>TYPES[u.t].hp-(u.wounds||0)+(u.elite?ELITE_HP:0);
+const WOUND_MAX=3,CROSS_SPARE=.15,MEDKIT_DOUBLE=.25,maxHp=u=>ST(u).hp-(u.wounds||0)+(u.elite?ELITE_HP:0);
 const woundsOf=i=>(camp.wounds&&camp.wounds[i])||0,campMax=i=>TYPES[armyTypes()[i]].hp-woundsOf(i);
 const HERO_NAMES=["Aldric","Bertram","Cedric","Dunstan","Edmund","Fulk","Godfrey","Hugh","Ivo","Jocelyn","Kenric","Leofric","Maud","Nesta","Osric","Percival","Quentin","Roswitha","Sibyl","Tristan","Ulric","Wymond","Agnes","Beatrix","Ysolde","Gareth","Hawise","Odo","Rowena","Thurstan","Elfric","Mabel","Warin","Isolde","Baldwin","Edith","Ranulf","Alys","Gilbert","Petronella"];
 // honors are earned once each; a soldier goes by the latest one ("Aldric the Bold")
@@ -2201,7 +2218,7 @@ function showEnd(win){
     if(!camp.cleared.includes(nm.id))camp.cleared.push(nm.id);
     campaignRecord(nm);
     camp.hp=armyTypes().map((t,i)=>{const u=units.find(v=>v.team==="y"&&v.ci===i);return u?Math.min(campMax(i),u.hp+campHeal(t)+(camp.relics.includes("rations")?1:0)):Math.min(campMax(i),camp.relics.includes("bandages")?3:1)}); // survivors patch up; fallen units return at 1 HP (3 with Spare Bandages)
-    findRelics(nm);
+    findRelics(nm);mercAfter();
     const earned=goldFor(nm);camp.gold+=earned;camp.lastGold=earned; // spoils of war
     camp.offer=nm.type==="boss"?bossOffer():relicOffer();camp.offerBoss=nm.type==="boss"; // pick a reward back on the map (a boss's spoils wait for the next region)
     camp.pos=nm.id;if(nm.type==="boss")camp.done=true;saveCamp();
@@ -2226,10 +2243,17 @@ function showEnd(win){
     $("defeat").hidden=false;$("dagain").focus();
   },900); // let the final hit play out first
 }
+function mercAfter(){ // a won campaign battle: one less on the contract, or it ends
+  const m=camp.merc;if(!m)return;
+  if(m.hp<=0){camp.merc=null;camp.mercNote=`${m.name} fell in battle, ending the contract.`;return}
+  if(--m.left<=0){camp.merc=null;camp.mercNote=`${m.name}'s contract is up. They collect their pay and head off down the road.`;return}
+  m.hp=Math.min(m.st.hp,m.hp+Math.ceil(m.st.hp*CAMP_HEAL));
+}
 function checkEnd(){
   const y=units.some(u=>u.team==="y"&&!u.auto),f=units.some(u=>u.team==="f"); // the chicken alone can't hold the field
   if(y&&f)return false;
   over=true;
+  if(camp.battle&&!chal&&camp.merc){const mu=units.find(u=>u.merc&&u.team==="y");camp.merc.hp=mu?mu.hp:0} // how your mercenary came through
   for(const c of units.filter(u=>u.auto))floatText(c.x,c.y,"poof","thanks"); // summoned units leave when the battle does
   units=units.filter(u=>!u.auto);render();
   sfx(y?"win":"lose");
@@ -2264,8 +2288,8 @@ const VAL={P:4,E:3,R:3,A:2,N:4,T:3}; // targets worth focusing first: healers, e
 const blastPlan=()=>[...XBAR].map(k=>[k,blastValue(k)]).filter(e=>e[1]>=4);
 // lower is better
 function evalTile(u,x,y,D,foes,xv){
-  const g={x,y},k=x+","+y,T=TYPES[u.t],rg=T.rg,inR=foes.filter(p=>d(g,p)<=rg&&d(g,p)>=T.mn);
-  const gh={...u,x,y},threat=foes.reduce((s,p)=>s+(d(g,p)<=mvOf(p)+rgOf(p)?dmgTo(p,gh):0),0),wt=units.filter(w=>w.team==="w").reduce((n,w)=>n+(d(g,w)<=TYPES[w.t].rg?dmgTo(w,gh)*1.5:d(g,w)<=TYPES[w.t].rg+TYPES[w.t].mv?dmgTo(w,gh)*.5:0),0);
+  const g={x,y},k=x+","+y,T=ST(u),rg=T.rg,inR=foes.filter(p=>d(g,p)<=rg&&d(g,p)>=T.mn);
+  const gh={...u,x,y},threat=foes.reduce((s,p)=>s+(d(g,p)<=mvOf(p)+rgOf(p)?dmgTo(p,gh):0),0),wt=units.filter(w=>w.team==="w").reduce((n,w)=>n+(d(g,w)<=ST(w).rg?dmgTo(w,gh)*1.5:d(g,w)<=ST(w).rg+ST(w).mv?dmgTo(w,gh)*.5:0),0);
   const care=.5+(1-u.hp/T.hp)*.9; // wounded units value safety more
   let s=(threat+wt)*care+(WOODS(k)?(mods[u.team]==="FT"?-1.5:1.5):0)+(CHERRY.has(k)?.5-(1-u.hp/T.hp):0)+(FORT.has(k)?-2:0)+(SHALLOW.has(k)?1.5:0); // forests slow the next move, but Forest Tactics likes them
   s+=blastOf(k).filter(([a,b])=>XBAR.has(a+","+b)).length*2; // don't loiter beside exploding barrels
@@ -2311,7 +2335,7 @@ function enemyTurn(note=""){
     const pri=p=>{const c=combat(u,p),kill=c.dmg>=p.hp,r=kill?null:retaliation(u,p);return (kill?100*c.hit:0)+(VAL[p.t]||0)-p.hp*.5-(r?r.hit*r.dmg*2:0)}; // likely kills first, then soft, valuable targets that won't hit back hard
     const ts=targets(u).filter(p=>{const r=dmgTo(u,p)<p.hp&&retaliation(u,p);return !(r&&r.dmg>=u.hp&&r.hit>.5)}).sort((a,b)=>pri(b)-pri(a)); // never trade itself for nothing
     const hs=healTargets(u).sort((a,b)=>a.hp/maxHp(a)-b.hp/maxHp(b));
-    if(hs.length&&(hs[0].hp<=TYPES[hs[0].t].hp-2||!ts.length)){u.acted=1;applyHeal(u,hs[0]);say("Enemy "+NAME[u.t]+" healed an ally.");render();return later(step,600)}
+    if(hs.length&&(hs[0].hp<=ST(hs[0]).hp-2||!ts.length)){u.acted=1;applyHeal(u,hs[0]);say("Enemy "+NAME[u.t]+" healed an ally.");render();return later(step,600)}
     if(canMuster(u)&&!ts.some(p=>dmgTo(u,p)>=p.hp)){const n=muster(u);say(`Enemy captain mustered ${n} militia.`);render();return later(step,600)} // muster unless a kill is on offer
     // set off an exploding barrel when it beats the best plain attack
     const atkV=ts.length?Math.min(dmgTo(u,ts[0]),ts[0].hp)+(dmgTo(u,ts[0])>=ts[0].hp?8:0)+(VAL[ts[0].t]||0)*.5:0;
@@ -2326,7 +2350,7 @@ function enemyTurn(note=""){
       animAttack(u,{x:cx,y:cy},()=>{CAMPS.delete(cs);floatText(cx,cy,"Broken");say("Enemy "+NAME[u.t]+" wrecked the camp site.");fin()});return;
     }
     if(u.t==="E"&&ts.length&&!ts.some(p=>dmgTo(u,p)>=p.hp)){
-      const sl=ts.filter(p=>!p.slow&&!calm(p)&&!muled(p)&&mvOf(p)>1).sort((a,b)=>TYPES[b.t].dmg-TYPES[a.t].dmg||TYPES[b.t].mv-TYPES[a.t].mv)[0];
+      const sl=ts.filter(p=>!p.slow&&!calm(p)&&!muled(p)&&mvOf(p)>1).sort((a,b)=>ST(b).dmg-ST(a).dmg||ST(b).mv-ST(a).mv)[0];
       if(sl){u.acted=1;animAttack(u,sl,()=>{sl.slow=1;sfx("slow");floatText(sl.x,sl.y,"Slow","slow");say("Enemy "+NAME[u.t]+" slowed your "+NAME[sl.t]+".");fin()});return}
     }
     if(ts.length){
@@ -2484,8 +2508,8 @@ const edgeOf=(a,b)=>EDGES.find(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a)); /
 const canGo=(a,b)=>{const e=edgeOf(a,b);return !!e&&(!e[2]||b===e[1])};
 function reachFrom(id){const seen=new Set([id]),q=[id];while(q.length){const a=q.shift();WORLD.forEach(n=>{if(!seen.has(n.id)&&canGo(a,n.id)){seen.add(n.id);q.push(n.id)}})}return seen}
 const SAVE="skirmish-campaign";
-function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,items:camp.items,offer:camp.offer,offerBoss:camp.offerBoss,found:camp.found,kills:camp.kills,names:camp.names,wounds:camp.wounds,honors:camp.honors,falls:camp.falls,news:camp.news,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
-function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],items:d.items||[],offer:d.offer||null,offerBoss:!!d.offerBoss,found:Array.isArray(d.found)?d.found:d.found?[d.found]:[],kills:d.kills||[],names:d.names||null,wounds:d.wounds||[],honors:d.honors||[],falls:d.falls||[],news:d.news||null,region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
+function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,items:camp.items,offer:camp.offer,offerBoss:camp.offerBoss,found:camp.found,kills:camp.kills,names:camp.names,wounds:camp.wounds,honors:camp.honors,falls:camp.falls,news:camp.news,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,merc:camp.merc||null,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
+function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],items:d.items||[],offer:d.offer||null,offerBoss:!!d.offerBoss,found:Array.isArray(d.found)?d.found:d.found?[d.found]:[],kills:d.kills||[],names:d.names||null,wounds:d.wounds||[],honors:d.honors||[],falls:d.falls||[],news:d.news||null,region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},merc:d.merc||null,mercNote:"",lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
 const nest=(str,x,y,w,style="")=>str.replace(/<svg[^>]*>/,`<svg x="${x}" y="${y}" width="${w}" height="${w}" viewBox="0 0 40 40" style="${style}">`);
 function mapArt(){
   let g='<defs><radialGradient id="pg" cx=".5" cy=".4" r=".85"><stop offset="0" stop-color="#eadfb8"/><stop offset="1" stop-color="#cbb78a"/></radialGradient><filter id="wsh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="1.200" dy="2.400" stdDeviation="1.600" flood-color="#3a2810" flood-opacity=".45"/></filter><radialGradient id="wnode" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></radialGradient><filter id="wblur"><feGaussianBlur stdDeviation="6"/></filter><filter id="wblur2" x="-50%" y="-100%" width="200%" height="300%"><feGaussianBlur stdDeviation="2.500"/></filter><linearGradient id="wmt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a7656"/><stop offset=".6" stop-color="#9c8762" stop-opacity=".9"/><stop offset="1" stop-color="#b8a27a" stop-opacity="0"/></linearGradient></defs><rect width="400" height="520" fill="url(#pg)"/>';
@@ -2570,10 +2594,11 @@ function renderWorld(){
     g.onclick=()=>{if(!worldLock){camp.sel=+g.dataset.id;renderWorld()}};
     g.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();g.onclick()}};
   });
-  $("warmy").innerHTML=armyTypes().map((t,i)=>{const mx=campMax(i),h=Math.min(mx,camp.hp&&camp.hp[i]!=null?camp.hp[i]:mx),w=woundsOf(i);return `<span class="stat" title="${heroName(i)}">${camp.names?camp.names[i]:cap(NAME[t])} <small>${cap(NAME[t])}</small> <b style="color:${h<=mx*.25?"#d64b3a":"inherit"}">${h}/${mx}</b>${w?`<i class="wnd" aria-label="${w} wound${w>1?"s":""}">${"\u2020".repeat(w)}</i>`:""}</span>`}).join("");
+  $("warmy").innerHTML=armyTypes().map((t,i)=>{const mx=campMax(i),h=Math.min(mx,camp.hp&&camp.hp[i]!=null?camp.hp[i]:mx),w=woundsOf(i);return `<span class="stat" title="${heroName(i)}">${camp.names?camp.names[i]:cap(NAME[t])} <small>${cap(NAME[t])}</small> <b style="color:${h<=mx*.25?"#d64b3a":"inherit"}">${h}/${mx}</b>${w?`<i class="wnd" aria-label="${w} wound${w>1?"s":""}">${"\u2020".repeat(w)}</i>`:""}</span>`}).join("")
+    +(camp.merc?`<span class="stat" title="${mercLine(camp.merc)}">${camp.merc.name} <small>Mercenary ${NAME[camp.merc.t]}, ${camp.merc.left} battle${camp.merc.left>1?"s":""} left</small> <b>${camp.merc.hp}/${camp.merc.st.hp}</b></span>`:"");
   const total=WORLD.filter(n=>n.type!=="camp"&&(done.has(n.id)||reach.has(n.id))).length,lost=WORLD.filter(n=>n.type!=="camp"&&!done.has(n.id)&&!reach.has(n.id)).length;
   $("wtitle").textContent=`World Map \u2013 Region ${camp.region||1}`;
-  $("wprog").textContent=camp.done?"Campaign complete! You defeated the boss.":`Locations cleared: ${camp.cleared.length} of ${total}${lost?` (${lost} cut off)`:""}. Tap a glowing location to travel there.`;
+  $("wprog").textContent=camp.done?"Campaign complete! You defeated the boss.":`Locations cleared: ${camp.cleared.length} of ${total}${lost?` (${lost} cut off)`:""}. Tap a glowing location to travel there.`+(camp.mercNote?" "+camp.mercNote:"");
   const n=WORLD[camp.sel],st=stOf(n),here=n.id===camp.pos,can=!here&&canGo(camp.pos,n.id),e=can&&edgeOf(camp.pos,n.id),cut=!here&&!done.has(n.id)&&!reach.has(n.id);
   const btn=can?(st==="cleared"?"Travel Here":n.type==="heal"?"Rest Here":n.type==="shop"?"Visit the Merchant":"Travel to Battle"):"";
   $("winfo").innerHTML=`<div class="lbl">Location</div><div class="ib"><div class="nm"><strong>${n.name}</strong><span>${here?"You are here":lab(n)}</span></div><small>${n.text}</small>${e&&e[2]?"<small><b>One-way path:</b> there's no coming back this way.</small>":""}${here||can?"":cut?"<small>Cut off: no path from here leads there anymore.</small>":"<small>Not connected to your location. Travel along the paths.</small>"}</div>${btn?`<div class="bar"><button class="b pri" id="wgo">${btn}</button></div>`:""}`;
@@ -2710,8 +2735,12 @@ const ROAD_EVENTS=[
  {t:"Rockfall",go:()=>{const hp=campHps(),c=hp.map((h,i)=>h>1?i:-1).filter(i=>i>=0);if(!c.length)return "Stones clatter down the slope, but your army slips past unharmed.";const i=c[Math.floor(Math.random()*c.length)];hp[i]=Math.max(1,hp[i]-2);camp.hp=hp;return `Stones clatter down the slope. ${heroName(i)} is struck and loses 2 HP.`}}];
 const campHps=()=>armyTypes().map((t,i)=>camp.hp&&camp.hp[i]!=null?camp.hp[i]:campMax(i));
 let riAfter=null;
-function roadEvent(to,done){
-  const E=ROAD_EVENTS[Math.floor(Math.random()*ROAD_EVENTS.length)],r=E.go(to),card=t=>(r.art?`<div class="evart">${r.art}</div>`:"")+`<div class="rcard" style="--rc:#a08a64"><span class="rr">On the road</span><small>${t}</small></div>`;saveCamp();
+const SELLSWORD={t:"A Sellsword",go:()=>{const m=rollMerc();
+  return {text:`${{K:"A knight",A:"An archer",R:"An artillerist with a battered cannon",C:"A rider"}[m.t]} in mismatched armor leans on a milestone, idly flipping a coin. \u201cLooking for a sword arm? ${m.price} gold, and I'm yours for ${MERC_TERM} battles.\u201d ${mercDesc(m)}`,opts:[
+   {label:`Hire ${m.name} (${m.price} gold)`,cost:m.price,go:()=>{const old=hireMerc(m);return `${m.name} pockets the coin and falls in at the back of your column.`+(old?` ${old.name} shrugs and wanders off.`:"")}},
+   {label:"Decline and move on",go:()=>"The sellsword shrugs and goes back to flipping the coin."}]}}};
+function roadEvent(to,done,ev){
+  const E=ev||ROAD_EVENTS[Math.floor(Math.random()*ROAD_EVENTS.length)],r=E.go(to),card=t=>(r.art?`<div class="evart">${r.art}</div>`:"")+`<div class="rcard" style="--rc:#a08a64"><span class="rr">On the road</span><small>${t}</small></div>`;saveCamp();
   $("rititle").textContent=E.t;relinfoFrom=null;riAfter=done;$("relinfo").hidden=false;
   if(typeof r==="string"){$("ribody").innerHTML=card(r);$("riclose").hidden=false;$("riclose").focus();return}
   $("ribody").innerHTML=card(r.text)+`<div class="menubtns">${r.opts.map((o,i)=>`<button class="b" data-i="${i}"${o.cost>camp.gold?" disabled":""}>${o.label}</button>`).join("")}</div>`;$("riclose").hidden=true; // a choice: pick one to carry on
@@ -2720,7 +2749,10 @@ function roadEvent(to,done){
 }
 function travel(id){
   if(worldLock)return;
-  const e=edgeOf(camp.pos,id);
+  const e=edgeOf(camp.pos,id);camp.mercNote="";
+  if(e&&!e[4]){e[4]=1;saveCamp(); // any path, the first time you take it: sometimes a sellsword waits along the way
+    if(Math.random()<MERC_ROAD){e[3]=1;const A=WORLD[camp.pos],B=WORLD[id];worldLock=true;camp.sel=id;$("wm").style.transform=`translate(${Math.round((A.x+B.x)/2)}px,${Math.round((A.y+B.y)/2)-28}px)`;
+      setTimeout(()=>roadEvent(id,()=>{worldLock=false;renderWorld();travel(id)},SELLSWORD),700);return}}
   if(e&&e[2]&&!e[3]){e[3]=1;saveCamp(); // a one-way path: sometimes, something happens along the way
     if(Math.random()<ROAD_EVENT){const A=WORLD[camp.pos],B=WORLD[id];worldLock=true;camp.sel=id;$("wm").style.transform=`translate(${Math.round((A.x+B.x)/2)}px,${Math.round((A.y+B.y)/2)-28}px)`;
       setTimeout(()=>roadEvent(id,()=>{worldLock=false;renderWorld();travel(id)}),700);return}}
@@ -2731,6 +2763,7 @@ function travel(id){
     if(n.type==="heal"&&!camp.cleared.includes(id)){
       camp.cleared.push(id);camp.pos=id;const mended=(camp.wounds||[]).filter(w=>w>0).length;camp.wounds=(camp.wounds||[]).map(w=>Math.max(0,(w||0)-1)); // a healing spot mends one wound per unit
       camp.hp=armyTypes().map((t,i)=>{const mx=campMax(i),h=camp.hp&&camp.hp[i]!=null?camp.hp[i]:mx;return Math.min(mx,h+Math.ceil(TYPES[t].hp*HEAL_SPOT))});
+      if(camp.merc)camp.merc.hp=Math.min(camp.merc.st.hp,camp.merc.hp+Math.ceil(camp.merc.st.hp*HEAL_SPOT));
       saveCamp();renderWorld();$("wprog").textContent="Your army rested and recovered some health."+(mended?` ${mended===1?"One wound was":mended+" wounds were"} mended.`:"");healFx(n);
       if(n.herb)setTimeout(()=>{if(!$("world").hidden){$("herbask").hidden=false;$("haenter").focus()}},1400); // a familiar campfire...
     }
@@ -2849,9 +2882,12 @@ function start(o={}){
     units.push({t:foe[i],team:"f",x:W-1-x,y:0,hp:TYPES[foe[i]].hp,moved:0,acted:0});
   });
   if(o.boss){const t=rnd(foe);units.push({t,team:"f",x:5,y:1,hp:TYPES[t].hp,moved:0,acted:0})}
+  const spot=(rows,xs)=>{for(const y of rows)for(const x of xs)if(!solid(x+","+y)&&!at(x,y))return [x,y];return null};
+  if(camp.battle&&!chal&&camp.merc&&camp.merc.hp>0){const m=camp.merc,sp=spot([H-1,H-2],[5,2,7,0,9,4,6,1,3,8]);if(sp)units.push({t:m.t,team:"y",auto:1,merc:1,mname:m.name,st:m.st,x:sp[0],y:sp[1],hp:Math.min(m.hp,m.st.hp),moved:1,acted:1})} // your hired sword
   FOE_RELIC=new Set();FOE_ITEMS=[];
   if(camp.battle&&!chal){const fs=units.filter(u=>u.team==="f").sort(()=>Math.random()-.5);fs.slice(0,elitesFor(camp.region||1)).forEach(u=>{u.elite=1;u.hp+=ELITE_HP}); // Elite enemies (see elitesFor)
-    if(o.boss)foeLoadout(camp.region||1)}
+    if(o.boss)foeLoadout(camp.region||1);
+    const ch=MERC_FOE(camp.region||1);for(let i=0;i<(o.boss?2:1);i++)if(Math.random()<ch){const m=rollMerc(),sp=spot([0,1],[4,2,7,0,9,5,3,6,1,8]);if(sp)units.push({t:m.t,team:"f",merc:1,mname:m.name,st:m.st,x:sp[0],y:sp[1],hp:m.st.hp,moved:0,acted:0})}} // the enemy hires help too
   if(FOE_RELIC.has("keep")){const fs=units.filter(u=>u.team==="f");fs[Math.floor(Math.random()*fs.length)].keep=1}
   ["y","f"].forEach(team=>{ // the Shimmering Sword and Shield of the Champion choose a bearer (the same one, when both are carried)
     const has=id=>team==="y"?RELIC.has(id):FOE_RELIC.has(id);if(!has("csword")&&!has("cshield")&&!has("ccloak"))return;
@@ -2871,10 +2907,10 @@ function start(o={}){
       if(!solid(x+","+y)&&!at(x,y)){wild={t,team:"w",x,y,hp:TYPES[t].hp,moved:0,acted:0};units.push(wild)}
     }
   }
-  const loc=camp.battle?WORLD[camp.battle.node].name+(o.boss?" (boss battle). ":". "):"";
+  const loc=camp.battle?WORLD[camp.battle.node].name+(o.boss?" (boss battle). ":". "):"",fm=units.filter(u=>u.merc&&u.team==="f");
   BIOME_KEY=camp.battle?WORLD[camp.battle.node].b:guessBiome();$("biome").textContent=BIOME_NAME[BIOME_KEY];
   const el=units.filter(u=>u.elite),carry=[...FOE_RELIC].map(id=>RELICS[id].name).concat(FOE_ITEMS.map(id=>ITEMS[id].name));
-  show("game");say(loc+(carry.length?"The boss comes well equipped! ":"")+"Your turn. Select one of your units."+(el.length?` Elite enemy ${listAnd(el.map(u=>cap(NAME[u.t])))} ${el.length>1?"lead":"leads"} their army.`:"")+(wild?" A wild "+NAME[wild.t]+" roams the map.":""));render();
+  show("game");say(loc+(carry.length?"The boss comes well equipped! ":"")+"Your turn. Select one of your units."+(el.length?` Elite enemy ${listAnd(el.map(u=>cap(NAME[u.t])))} ${el.length>1?"lead":"leads"} their army.`:"")+(wild?" A wild "+NAME[wild.t]+" roams the map.":"")+(fm.length?` The enemy has hired ${fm.length>1?"mercenaries":"a mercenary "+NAME[fm[0].t]}.`:""));render();
 }
 $("hero").innerHTML=[["K","blue"],["C","green"],["R","yellow"],["A","red"]].map(([t,c])=>`<div class="pv">${disc(t,COLORS[c])}</div>`).join("");
 $("play").onclick=()=>askHold("quick",init);
@@ -3310,7 +3346,7 @@ $("haleave").onclick=()=>{$("herbask").hidden=true};
 $("haenter").onclick=()=>{
   $("herbask").hidden=true;herbertMet=false; // a new place: this visit counts toward his home
   openCamp("heal",HERBERT_MEAL[Math.floor(Math.random()*HERBERT_MEAL.length)],"Rest and Share a Meal",true,()=>{
-    const mended=(camp.wounds||[]).reduce((a,w)=>a+(w||0),0);camp.wounds=[];camp.hp=null;saveCamp();renderWorld();$("wprog").textContent="A hot meal and a good rest by Herbert's fire restored your army to full health"+(mended?" and mended every wound.":".");healFx(WORLD[camp.pos]);
+    const mended=(camp.wounds||[]).reduce((a,w)=>a+(w||0),0);camp.wounds=[];camp.hp=null;if(camp.merc)camp.merc.hp=camp.merc.st.hp;saveCamp();renderWorld();$("wprog").textContent="A hot meal and a good rest by Herbert's fire restored your army to full health"+(mended?" and mended every wound.":".");healFx(WORLD[camp.pos]);
   });
 };
 /* ---------- Relics found in battle ----------
@@ -3478,6 +3514,8 @@ const MARCUS={
  lightning:"Jar of Lightning. Caught it myself in a thunderstorm. Don't shake it. Parsnip shook it once. Once.",
  tangle:"Tanglefoot Bag. Throw it at their feet, not yours. Ask me how I know.",
  coin:"A genuine Copper Coin of Good Fortune! I've only got... well, a few.",
+ merc:"A fine sword arm, at a fair price. They'll fight their own way, mind. Don't take it personally.",
+ mercSwap:"Done. I'll let % know their services are no longer required. They'll take it well. Probably.",
  poor:"Ah. Your purse is lighter than my conscience. Come back with more coin.",
  full:"Your pack's full, friend! Use something first. Next time, perhaps.",
  bye:"Safe roads! And if you see Herbert, tell him I'm still waiting for my mug money."};
@@ -3486,7 +3524,7 @@ function shopStock(){
   const pool=shopRelics(),rel=[];
   const want=2+Math.floor(Math.random()*2); // 2 or 3 relics, and 3 consumables
   while(rel.length<want&&pool.length){const tot=pool.reduce((t,id)=>t+RARITY_W[RELICS[id].r],0);let r=Math.random()*tot,i=0;while(r>=RARITY_W[RELICS[pool[i]].r]){r-=RARITY_W[RELICS[pool[i]].r];i++}rel.push(pool.splice(i,1)[0])}
-  return {relics:rel,sold:[],items:shopItems()};
+  return {relics:rel,sold:[],items:shopItems(),mercs:Math.random()<MERC_SHOP?Array.from({length:1+Math.floor(Math.random()*2)},()=>rollMerc()):[]};
 }
 function shopItems(){ // SHOP_ITEMS picks, weighted by ITEM_STOCK (uncommon items turn up half as often)
   const pool=Object.keys(ITEMS).filter(id=>!ITEMS[id].lock||unlocks[ITEMS[id].lock]),out=[],w=id=>ITEM_STOCK[ITEMS[id].r||0];
@@ -3502,6 +3540,7 @@ function renderShop(){
   const row=(kind,id,name,price,label,desc,icon,why,rc)=>`<button class="rcard shitem" data-kind="${kind}" data-id="${id}" style="--rc:${rc}"${why?" aria-disabled=\"true\"":""}><span class="ri">${icon}</span><span class="rr">${label}</span><b>${name}</b><small>${desc}</small><span class="shprice${why?" off":""}">${why||price+" gold"}</span></button>`;
   const need=p=>camp.gold<p?`Need ${p-camp.gold} more`:"";
   $("shlist").innerHTML='<div class="shsec">Consumables</div>'+(n.stock.items||Object.keys(ITEMS).filter(id=>!ITEMS[id].r)).map(id=>{const I=ITEMS[id],pr=priceOf(I.price);return row("item",id,I.name,pr,(I.r?RARITY[I.r][0]+" consumable":"Consumable")+" \u00b7 one use",I.desc,itemIcon(id,38),full?"Pack full":need(pr),I.r?RARITY[I.r][1]:"#a08a64")}).join("")
+    +((n.stock.mercs||[]).length?'<div class="shsec">Mercenary contracts</div>'+n.stock.mercs.map((m,i)=>{const pr=priceOf(m.price);return row("merc",i,m.name,pr,"Contract \u00b7 "+MERC_TERM+" battles",mercDesc(m),`<span class="mdisc">${disc(m.t,COLORS[camp.cfg.c])}</span>`,m.hired?"Hired":need(pr),"#6a7f8f")}).join(""):"")
     +'<div class="shsec">Relics</div>'+(n.stock.relics.length?n.stock.relics.map(id=>{const R=RELICS[id],[rn,rc]=RARITY[R.r],pr=priceOf(RELIC_PRICE[R.r]);return row("relic",id,R.name,pr,rn+" relic",R.desc,relicIcon(id,38),n.stock.sold.includes(id)?"Sold":relicCount(id)>=(R.max||1)?"Owned":need(pr),rc)}).join(""):'<p class="rsub">Marcus has no relics for you today.</p>');
   $("shlist").querySelectorAll(".shitem").forEach(b=>b.onclick=()=>buy(b.dataset.kind,b.dataset.id));
 }
@@ -3511,6 +3550,9 @@ function buy(kind,id){
   if(kind==="item"){
     const I=ITEMS[id],pr=priceOf(I.price);if(camp.items.length>=itemCap())return marcusSays(MARCUS.full);if(camp.gold<pr)return marcusSays(MARCUS.poor);
     camp.gold-=pr;camp.items.push(id);boughtFromMarcus();marcusSays(typeof MARCUS[id]==="string"?MARCUS[id]:MARCUS.buy[Math.floor(Math.random()*MARCUS.buy.length)]);
+  }else if(kind==="merc"){
+    const m=n.stock.mercs[+id],pr=priceOf(m.price);if(m.hired)return;if(camp.gold<pr)return marcusSays(MARCUS.poor);
+    camp.gold-=pr;m.hired=1;const old=hireMerc(m);boughtFromMarcus();marcusSays(old?MARCUS.mercSwap.replace("%",old.name):MARCUS.merc);
   }else{
     const R=RELICS[id],pr=priceOf(RELIC_PRICE[R.r]);if(n.stock.sold.includes(id)||relicCount(id)>=(R.max||1))return;if(camp.gold<pr)return marcusSays(MARCUS.poor);
     camp.gold-=pr;camp.relics.push(id);boughtFromMarcus();n.stock.sold.push(id);marcusSays(MARCUS[id]||MARCUS.buy[Math.floor(Math.random()*MARCUS.buy.length)]);renderRelics();
@@ -3811,7 +3853,7 @@ $("unl").onclick=()=>{$("mbtns").hidden=true;$("unlockview").hidden=false;unlock
 $("how").onclick=()=>{$("mbtns").hidden=true;$("rulesview").hidden=false;howView(howMain,null)};
 $("back").onclick=()=>show("menu");
 $("go").onclick=()=>{
-  if(campSetup){dropHold("camp");camp.cfg={x:pick.x.slice(),m:pick.m,c:pick.c};camp.pos=0;camp.cleared=[];camp.done=false;camp.hp=null;camp.gold=0;camp.relics=[];camp.items=[];camp.offer=null;camp.found=[];camp.lastGold=0;camp.kills=[];rollNames();camp.region=1;camp.mapsPrior=0;camp.bossUsed={loc:[],name:[]};camp.sel=0;genWorld();saveCamp();openWorld()}
+  if(campSetup){dropHold("camp");camp.cfg={x:pick.x.slice(),m:pick.m,c:pick.c};camp.pos=0;camp.cleared=[];camp.done=false;camp.hp=null;camp.gold=0;camp.relics=[];camp.items=[];camp.merc=null;camp.mercNote="";camp.offer=null;camp.found=[];camp.lastGold=0;camp.kills=[];rollNames();camp.region=1;camp.mapsPrior=0;camp.bossUsed={loc:[],name:[]};camp.sel=0;genWorld();saveCamp();openWorld()}
   else start();
 };
 $("end").onclick=()=>{
