@@ -306,6 +306,7 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .ipack{align-self:center;font-size:.8rem;font-weight:700;opacity:.75}
 .t.it{box-shadow:inset 0 0 0 3px #e0b21c,inset 0 0 14px rgba(224,178,28,.5)}
 .smoke{position:absolute;inset:-6%;pointer-events:none;border-radius:40%;background:radial-gradient(circle at 35% 40%,rgba(225,225,230,.55),rgba(200,200,210,0) 55%),radial-gradient(circle at 68% 62%,rgba(210,210,220,.5),rgba(200,200,210,0) 52%),radial-gradient(circle at 50% 50%,rgba(190,190,200,.35),rgba(190,190,200,0) 70%);animation:smokedrift 4s ease-in-out infinite}
+.calt{position:absolute;inset:0;pointer-events:none}.calt svg{width:100%;height:100%;display:block} /* Bag of Caltrops: iron spikes on the tile */
 @keyframes smokedrift{50%{transform:translate(2%,-3%) scale(1.04)}}@media (prefers-reduced-motion:reduce){.smoke{animation:none}}
 .cbub{position:relative;background:#f3e6c4;color:#3a2a1a;border:2px solid #1a0f07;box-shadow:inset 0 0 12px rgba(120,80,30,.25);border-radius:14px;padding:10px 14px;font-weight:600;text-align:center;line-height:1.35;margin-top:6px}
 .cbub::before{content:"";position:absolute;top:-10px;left:68%;border:8px solid transparent;border-bottom-color:#1a0f07;border-top:0}
@@ -678,6 +679,7 @@ const RELICS={
  bluemagma:{name:"Blue Magma",r:2,lock:"bluemagma",find:1,desc:"Your units' attacks get +1 pierce. When used to fire a smith's furnace, the steel comes out with a faint blue glow."},
  mug:{name:"Herbert's Mug",r:2,desc:"Once per battle, the first of your units to fall survives with 1 HP instead."},
  cap:{name:"Herbert's Nightcap",r:2,desc:"Once per battle, the first of your units to drop to half HP or less (without falling) heals 2 HP."}};
+const CALT_ART='<i class="calt"><svg viewBox="0 0 40 40" aria-hidden="true">'+[[11,12,0],[27,9,40],[19,22,20],[8,30,65],[31,28,10],[23,34,50]].map(([x,y,r])=>`<g transform="translate(${x} ${y}) rotate(${r})"><path d="M0 0L0-4.500M0 0L3.900 2.200M0 0L-3.900 2.200" stroke="#26262c" stroke-width="1.700" stroke-linecap="round"/><path d="M0 0L0-4.500" stroke="#b8bcc4" stroke-width=".6" stroke-linecap="round"/><circle r="1.100" fill="#4a4a52"/></g>`).join("")+'</svg></i>';
 const RARITY=[["Common","#8a8f96"],["Uncommon","#3f9a5a"],["Rare","#c9962a"]],RARITY_W=[60,30,10];
 let RELIC=new Set(),FOE_RELIC=new Set(),FOE_ITEMS=[],relicUsed={},firstTurn=true,pturn=1; // relics active in the current battle (campaign only), which once-per-battle ones have fired, and whether it is still your opening turn (Boots of a Forced March); pturn: your turn number (Font of the Wise Ones blessings)
 const rel=(u,id)=>u.team==="y"?RELIC.has(id):u.team==="f"&&FOE_RELIC.has(id); // the enemy can carry relics too (boss battles)
@@ -704,7 +706,7 @@ const MODS={
  FT:{name:"Forest Tactics",desc:"Your units in a forest get +1 armor against ranged attacks. Enemies in a forest only get +5% evasion against your attacks, instead of +10%."},
  PAD:{name:"Padded Armor",desc:"Archers get +1 armor but have 1 less movement."},
  REST:{name:"Field Rest",desc:"At the end of your turn, each of your units that neither moved nor attacked that turn recovers 2 HP."}};
-let MURKY=false,HAUNTED=false,VOLCANIC=false,CHERRY=new Set(),SMOKE=new Set(),LAVA=new Set(),MAGMA=new Set(),VOLC=new Set(),WISP=new Set(),FLOWERS=new Set(),KOI=new Set(),VALE=false,GRAVES=new Set(),WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set(),SWAMP=new Set();
+let MURKY=false,HAUNTED=false,VOLCANIC=false,CHERRY=new Set(),SMOKE=new Set(),CALTROPS=new Set(),LAVA=new Set(),MAGMA=new Set(),VOLC=new Set(),WISP=new Set(),FLOWERS=new Set(),KOI=new Set(),VALE=false,GRAVES=new Set(),WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set(),SWAMP=new Set();
 // Bump PROGRESS_EPOCH to wipe unlocks and the campaign save once on next load (editor drafts and sound settings stay).
 const PROGRESS_EPOCH=2;try{if(+localStorage.getItem("skirmish_epoch")!==PROGRESS_EPOCH){localStorage.removeItem("skirmish_unlocks_v1");localStorage.removeItem("skirmish-campaign");["quick","camp","chal"].forEach(m=>localStorage.removeItem("skirmish_hold_"+m));localStorage.setItem("skirmish_epoch",PROGRESS_EPOCH)}}catch(e){}
 const UKEY="skirmish_unlocks_v1",unlocks=(()=>{try{return JSON.parse(localStorage.getItem(UKEY)||"{}")||{}}catch(e){return{}}})();
@@ -1296,6 +1298,33 @@ function reach(u){ // entering shallow water costs 2; leaving a forest costs 1 e
   cost.delete(k0);
   return[...cost.keys()].filter(k=>{const[x,y]=pk(k);return !at(x,y)}); // can pass through allies, but not stop on them
 }
+// Bag of Caltrops: the route a unit takes to each tile it can reach, crossing as few caltrops as its movement allows (same costs as reach)
+function routes(u){
+  const k0=u.x+","+u.y,out=new Map();
+  if((u.slow&&!muled(u))||u.stepOnly){reach(u).forEach(k=>out.set(k,{n:CALTROPS.has(k)?1:0,path:[k]}));return out}
+  const nimble=u.t==="G",bud=mvOf(u)-(!nimble&&!rel(u,"hatchet")&&FOREST.has(k0)?1:0),best=new Map([[k0+"|0",{n:0,prev:null,k:k0}]]); // states: tile and movement spent
+  for(let c=0;c<=bud;c++)for(const[sk,st] of [...best])if(+sk.split("|")[1]===c){
+    if(SWAMP.has(st.k)&&st.k!==k0)continue; // entering a swamp ends the move
+    const[x,y]=pk(st.k);
+    for(const[dx,dy] of DIRS){
+      const nx=x+dx,ny=y+dy,k=nx+","+ny,o=at(nx,ny);if(nx<0||ny<0||nx>=W||ny>=H||solid(k)||(o&&o.team!==u.team))continue;
+      const nc=c+1+(!nimble&&SHALLOW.has(k)?1:0),key=k+"|"+nc,n=st.n+(CALTROPS.has(k)?1:0);
+      if(nc>bud||(best.has(key)&&best.get(key).n<=n))continue;
+      best.set(key,{n,prev:sk,k});
+    }
+  }
+  best.forEach((st,sk)=>{if(st.k===k0)return;const o=out.get(st.k);if(o&&o.n<=st.n)return;const path=[];for(let q=sk;q&&best.get(q).k!==k0;q=best.get(q).prev)path.unshift(best.get(q).k);out.set(st.k,{n:st.n,path})});
+  return out;
+}
+// moves u to (x,y) along its route and springs any caltrops on the way; returns how many hurt it (u may have fallen: check units)
+function walk(u,x,y){
+  const r=routes(u).get(x+","+y),hits=r?r.path.filter(k=>CALTROPS.has(k)&&(u.team!=="y"||Math.random()<CALTROP_ALLY)).length:0;
+  u.x=x;u.y=y;if(!hits)return 0;
+  sfx("caltrops");
+  for(let i=0;i<hits&&units.includes(u);i++)hurt(u,CALTROP_DMG); // ignores armor, like magma
+  if(u.team==="y"&&units.includes(u))later(()=>{if(units.includes(u))floatText(u.x,u.y-.55,"You know better...","thanks")},300);
+  return hits;
+}
 const canBreak=(a,x,y)=>{const dd=d(a,{x,y}),T=TYPES[a.t];return dd>=T.mn&&dd<=rgOf(a)};
 const breakables=u=>[...BARRELS].filter(k=>{const[x,y]=pk(k);return canBreak(u,x,y)});
 const healable=(a,b)=>!!TYPES[a.t].heal&&b!==a&&b.team===a.team&&b.hp<maxHp(b)&&d(a,b)<=TYPES[a.t].rg&&d(a,b)>=TYPES[a.t].mn;
@@ -1340,6 +1369,7 @@ function render(){
   if(sel&&turn==="y"&&!over&&!mode)CAMPS.forEach(k=>{const[x,y]=pk(k);if(d(sel,{x,y})===1)cv.add(k)});
   const cm=pendingMove(),bl=new Set();
   if(bchoice&&XBAR.has(bchoice.x+","+bchoice.y))blastOf(bchoice.x+","+bchoice.y).forEach(([a,b])=>bl.add(a+","+b));
+  if(bchoice&&bchoice.calt)calLine(bchoice.x,bchoice.y,bchoice.dir).forEach(k=>bl.add(k)); // where the caltrops would land
   let pd=null;
   if(!cm&&choice&&sel&&units.includes(choice)&&!over&&mods.y==="PUSH"&&sel.t==="K"&&d(sel,choice)===1){
     const[px,py]=pushDest(sel,choice),ax=Math.sign(choice.x-sel.x),ay=Math.sign(choice.y-sel.y);
@@ -1357,7 +1387,7 @@ function render(){
     const cls="t"+(bar?" brl":"")+(w?" w"+(wallMask(x,y)&1?" jn":"")+(wallMask(x,y)&4?" js":""):"")+(dp?" dp":"")+(sh?" sh":"")+(SWAMP.has(k)?" sw":"")+(LAVA.has(k)?" lv":"")+(MAGMA.has(k)?" mg":"")+(VOLC.has(k)?" vo":"")+(WISP.has(k)?" wo":"")+(KOI.has(k)?" ko":"")+(f?" fo":"")+(fr?" fr":"")+(tile&&tile.x===x&&tile.y===y?" ts":"")+(ig.has(k)?" ig":"")+(ir.has(k)?" ir":"")+(pr.has(k)?" pr":"")+(mv.has(k)?" m":"")+((u&&tg.has(u))||bt.has(k)?" a":"")+(u&&tg.has(u)&&mods.y==="PUSH"&&sel&&pushable(sel,u)?" pp":"")+(u&&hs.has(u)?" hl":"")+(u&&u===choice?" ch":"")+(pd&&pd.k===k?" pd":"")+(cm&&cm.x===x&&cm.y===y?" mt":"")+(bl.has(k)?" bl":"")+(CAMPS.has(k)?" cmp":"")+(cv.has(k)?" cv":"")+(it.has(k)?" it":"");
     const label=u?(u.team==="y"?"Your ":u.team==="w"?"Wild ":"Enemy ")+NAME[u.t]+", "+u.hp+" health"+(u.slow?", slowed":""):(mv.has(k)?"Move here, ":"")+TERRAIN[terrainKey(k)].name;
     html+=`<button class="${cls}" data-x="${x}" data-y="${y}"${pd&&pd.k===k?` data-arrow="${pd.a}"`:""} aria-label="${label.replace(/"/g,"&quot;")}">`
-      +'<i class="lt"></i>'+tileArt(x,y)+(fr?'<i class="tint"></i>':"")+(SMOKE.has(k)?'<i class="smoke"></i>':"")+joins(x,y); // fortress art covers its tile, so highlights go on a see-through layer above it
+      +'<i class="lt"></i>'+tileArt(x,y)+(fr?'<i class="tint"></i>':"")+(SMOKE.has(k)?'<i class="smoke"></i>':"")+(CALTROPS.has(k)?CALT_ART:"")+joins(x,y); // fortress art covers its tile, so highlights go on a see-through layer above it
     if(u){
       let uc="u "+u.team+(spent(u)?" done":"")+(u.slow?" slow":"")+(inspired(u)?" insp":"")+(blessed(u)||rested(u)?" blessed":"")+(u.t==="E"&&rel(u,"redtome")?" redglow":"")+(rallied(u)?" rallied":"")+(muled(u)?" mule":"")+(u.elite?" elite":"")+(u.champ||u.cshield?" champ":"")+(u===sel||u===insp?" sel":""),mvs="";
       if(u.spawn){uc+=" tpin";delete u.spawn}
@@ -1398,6 +1428,7 @@ function renderTile(){
   if(f&&mods.y==="FT")lines.push(`Forest Tactics: your units here get +1 armor against ranged attacks, and enemies here only get +${pct(FT_FOREST_EV)} evasion against you.`);
   if(f&&mods.f==="FT")lines.push("The enemy has Forest Tactics: its units here get +1 armor against ranged attacks.");
   if(SMOKE.has(k))lines.push("Smoke: your units here get +20% evasion until your next turn.");
+  if(CALTROPS.has(k))lines.push("Caltrops: an enemy that crosses this tile takes 1 damage, ignoring armor. Your own units should know better, but 50% of the time they don't.");
   if(u)lines.push("Occupied by "+(u.team==="y"?"your ":u.team==="f"?"an enemy ":"a wild ")+NAME[u.t]+".");
   el.className="pb"+(MURKY?" murky":"")+(HAUNTED?" haunted":"")+(VOLCANIC?" volcanic":""); // murky water on Murky Swamp maps, ashen ground in graveyards
   el.innerHTML=`<div class="lbl">Terrain</div><div class="row">${terrainSwatch(key,tileArt(x,y))}<div class="ib"><div class="nm"><strong>${T.name}</strong><span>Tile ${String.fromCharCode(65+x)}${y+1}</span></div>${lines.map(l=>`<small>${l}</small>`).join("")}</div></div>`;
@@ -1459,6 +1490,12 @@ function buildMenu(){
   if(bchoice&&sel&&!over&&turn==="y"){ // barrels: just Break and Cancel; a camp site: Visit and Cancel
     const t=bchoice,m=document.createElement("div");m.className="pmenu";
     const opt=(html,fn)=>{const b=document.createElement("button");b.innerHTML=html;b.onclick=fn;m.append(b)};
+    if(t.calt){ // Bag of Caltrops: pick the line's direction; pointing at a choice previews it
+      const show=dir=>{t.dir=dir;board.querySelectorAll(".t.bl").forEach(e=>e.classList.remove("bl"));calLine(t.x,t.y,dir).forEach(k=>{const[x,y]=pk(k),e=board.querySelector(`.t[data-x="${x}"][data-y="${y}"]`);if(e)e.classList.add("bl")})};
+      [["h","Across \u2194"],["v","Down \u2195"]].forEach(([dir,nm])=>{opt(`<b>${nm}</b><small>Uses this unit's action</small>`,()=>{bchoice=null;useItem(sel,"caltrops",t.x,t.y,undefined,dir)});const b=m.lastChild;b.onmouseenter=b.onfocus=()=>show(dir)});
+      opt("<b>Cancel</b>",()=>{bchoice=null;say(itemPrompt("caltrops"));render()});
+      menuAt(m,t);$("fx").append(m);return;
+    }
     if(t.camp)opt("<b>Visit</b><small>Doesn't use an action</small>",()=>{bchoice=null;render();visitCamp()});
     else if(XBAR.has(t.x+","+t.y))opt(`<b>Detonate</b><small>${XB_DMG} damage to all nearby</small>`,()=>{bchoice=null;doBreak(sel,t)});
     else opt("<b>Break</b><small>Uses this unit's action</small>",()=>{bchoice=null;doBreak(sel,t)});
@@ -1524,8 +1561,8 @@ function attackSpot(a,t){
 }
 function moveThen(a,cm,fn){
   const dist=Math.abs(a.x-cm.x)+Math.abs(a.y-cm.y),g=gid;
-  a.x=cm.x;a.y=cm.y;a.moved=1;choiceMv=null;lastMove=null;locked=true;render();
-  later(()=>{if(g!==gid)return;locked=false;if(units.includes(a))fn();else render()},Math.round((.1+.06*dist)*1000)+60); // let the slide finish first
+  walk(a,cm.x,cm.y);a.moved=1;choiceMv=null;lastMove=null;locked=true;render();
+  later(()=>{if(g!==gid)return;locked=false;if(units.includes(a))fn();else afterAction()},Math.round((.1+.06*dist)*1000)+60); // let the slide finish first
 }
 function undoMove(){
   const m=lastMove;lastMove=null;
@@ -1540,7 +1577,7 @@ function click(x,y){
   bchoice=null;choiceMv=null;
   tile={x,y};
   if(over||busy||turn!=="y"||!units.length)return render();
-  if(mode&&mode.startsWith("item:")&&sel){const id=mode.slice(5);if(itemTargets(sel,id).has(x+","+y))return useItem(sel,id,x,y);mode=null;say("Put the item away. Move, attack, or pick another unit.");return render()}
+  if(mode&&mode.startsWith("item:")&&sel){const id=mode.slice(5);if(itemTargets(sel,id).has(x+","+y)){if(id!=="caltrops")return useItem(sel,id,x,y);bchoice={x,y,calt:1,dir:"h"};say("Throw the caltrops across or down?");return render()}mode=null;say("Put the item away. Move, attack, or pick another unit.");return render()}
   if(CAMPS.has(x+","+y)&&sel&&!mode&&d(sel,{x,y})===1){bchoice={x,y,camp:1};say("Choose an action next to the camp site.");return render()}
   if(BARRELS.has(x+","+y)&&sel&&!mode&&!sel.acted&&canBreak(sel,x,y)){bchoice={x,y};say("Choose an action next to the barrels.");return render()}
   if(solid(x+","+y))return render();
@@ -1573,7 +1610,8 @@ function click(x,y){
   if(!sel)return render();
   if(!u&&!sel.moved&&!mode&&reach(sel).includes(x+","+y)){
     lastMove={u:sel,x:sel.x,y:sel.y};
-    sel.x=x;sel.y=y;sel.moved=1;delete sel.stepOnly;
+    if(walk(sel,x,y)){lastMove=null;if(!units.includes(sel)){sel=null;info=null;say("Your unit fell on the caltrops.");return afterAction()}} // stepping on caltrops can't be undone
+    sel.moved=1;delete sel.stepOnly;
     say(sel.acted?"Moved. This unit has already acted this turn.":targets(sel).length?"Tap a red enemy to attack.":healTargets(sel).length?"Tap a marked ally to heal it.":breakables(sel).length?"Tap the barrels to break them.":"No enemy in range. Pick another unit, undo the move, or end turn.");
     return render();
   }
@@ -1702,6 +1740,7 @@ function sfx(name){
         [[620,0,.22,520],[300,.26,.34,230]].forEach(([f,st,len,f2])=>{const o=actx.createOscillator(),g=env(t0+st,.03,len*.4,len*.6,.5);o.type="sawtooth";o.frequency.setValueAtTime(f*vr,t0+st);o.frequency.linearRampToValueAtTime(f2*vr,t0+st+len);o.connect(g);g.connect(lp);o.start(t0+st);o.stop(t0+st+len+.05)});break}
       case "wisp":{const o=actx.createOscillator(),g=env(t0,.12,.2,.6,.4),l=actx.createOscillator(),lg=actx.createGain();o.type="sine";o.frequency.setValueAtTime(700*vr,t0);o.frequency.exponentialRampToValueAtTime(1150*vr,t0+.5);l.frequency.value=7;lg.gain.value=18;l.connect(lg);lg.connect(o.frequency);o.connect(g);g.connect(out);o.start(t0);l.start(t0);o.stop(t0+1);l.stop(t0+1);bell(1760,t0+.15,.6,.08);break} // an eerie, wavering hum
       case "whisk":noise(t0,.16,"bandpass",1400*vr,2.5,.8,5200);noise(t0+.12,.14,"bandpass",4800*vr,2.5,.45,1600);noise(t0,.3,"highpass",6000,.7,.12);break; // a quick, airy whisk there and back
+      case "caltrops":[0,.05,.1,.17,.23].forEach((st,i)=>{tone("triangle",(2100+i*260)*vr,t0+st,.05,.22);noise(t0+st,.02,"highpass",5200,1,.2)});break; // iron spikes skittering
       case "smoke":noise(t0,.7,"highpass",1800,.6,.45,5200);noise(t0+.05,.6,"bandpass",600,.8,.3,300);break; // a hissing cloud
       case "flame":noise(t0,.45,"bandpass",350,1,.9,1400);[.08,.17,.29].forEach(st=>noise(t0+st,.02,"highpass",3500,1,.3));break; // a whoomp of fire and a crackle
       case "trumpet":{ // a short brass call: two detuned sawtooth voices through a soft low-pass
@@ -1799,7 +1838,7 @@ if(document.addEventListener){
   document.addEventListener("visibilitychange",()=>document.hidden?stopMusic():startMusic());
 }
 // Items from Marcus's wagon: using one takes the unit's action
-const itemPrompt=id=>id==="tonic"?"Tap this unit to drink the tonic.":id==="koijar"?"Choose an empty tile next to this unit for the koi pond.":id==="medkit"?"Choose this unit or a wounded ally beside it to mend.":id==="mule"?"Tap this unit to drink the potion.":id==="feather"?"Choose an ally within 2 tiles to swap places with.":id==="draught"?"Choose this unit or a wounded ally beside it.":id==="smoke"?"Choose a tile within 3 to throw the smoke bomb at.":"Choose an enemy within 3 to throw the fire flask at.";
+const itemPrompt=id=>id==="caltrops"?"Choose a tile within 2 to throw the caltrops at.":id==="tonic"?"Tap this unit to drink the tonic.":id==="koijar"?"Choose an empty tile next to this unit for the koi pond.":id==="medkit"?"Choose this unit or a wounded ally beside it to mend.":id==="mule"?"Tap this unit to drink the potion.":id==="feather"?"Choose an ally within 2 tiles to swap places with.":id==="draught"?"Choose this unit or a wounded ally beside it.":id==="smoke"?"Choose a tile within 3 to throw the smoke bomb at.":"Choose an enemy within 3 to throw the fire flask at.";
 // would blocking tile k cut a stretch of open ground off from the rest? (fields that are already split stay allowed)
 function areas(skip){
   const seen=new Set();let n=0;
@@ -1810,6 +1849,7 @@ function areas(skip){
   return n;
 }
 const splits=k=>areas(k)>areas(null);
+const calLine=(x,y,dir)=>[-1,0,1].map(i=>dir==="v"?[x,y+i]:[x+i,y]).filter(([a,b])=>a>=0&&b>=0&&a<W&&b<H&&!solid(a+","+b)).map(([a,b])=>a+","+b); // Bag of Caltrops: 3 tiles, across (h) or down (v)
 function itemTargets(u,id){
   const out=new Set();
   if(id==="draught")units.forEach(b=>{if(b.team==="y"&&d(u,b)<=1&&b.hp<maxHp(b))out.add(b.x+","+b.y)});
@@ -1819,6 +1859,7 @@ function itemTargets(u,id){
   else if(id==="medkit")units.forEach(b=>{if(b.team==="y"&&d(u,b)<=1&&b.wounds)out.add(b.x+","+b.y)});
   else if(id==="feather")units.forEach(b=>{if(b.team==="y"&&b!==u&&d(u,b)<=2)out.add(b.x+","+b.y)});
   else if(id==="fire")units.forEach(b=>{if(b.team!=="y"&&d(u,b)<=3)out.add(b.x+","+b.y)});
+  else if(id==="caltrops"){for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(Math.abs(x-u.x)+Math.abs(y-u.y)<=2&&!solid(x+","+y))out.add(x+","+y)}
   else for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(Math.abs(x-u.x)+Math.abs(y-u.y)<=3)out.add(x+","+y);
   return out;
 }
@@ -1828,8 +1869,8 @@ function askRub(then){
   const done=ok=>{$("rubask").hidden=true;locked=false;then(ok)};
   $("rbyes").onclick=()=>done(true);$("rbno").onclick=()=>done(false);
 }
-function useItem(a,id,x,y,rub){
-  if(rub===undefined&&rel(a,"horseshoe")&&!relicUsed.horseshoe&&!ITEMS[id].free&&!a.acted)return askRub(ok=>useItem(a,id,x,y,ok));
+function useItem(a,id,x,y,rub,dir){
+  if(rub===undefined&&rel(a,"horseshoe")&&!relicUsed.horseshoe&&!ITEMS[id].free&&!a.acted)return askRub(ok=>useItem(a,id,x,y,ok,dir));
   const i=camp.items.indexOf(id);if(i<0)return;camp.items.splice(i,1);saveCamp();
   if(rub){relicUsed.horseshoe=1;sfx("coin");later(()=>{if(units.includes(a))floatText(a.x,a.y,"Lucky!","thanks")},450)} // the unit keeps its move and action
   if(id==="tonic"){ // a burst of speed this turn; the unit keeps its action
@@ -1842,7 +1883,7 @@ function useItem(a,id,x,y,rub){
   }
   if(!rub)a.acted=a.moved=1;sel=rub?a:null;mode=null;choice=null;lastMove=null;insp=null;
   if(id==="koijar"){ // a koi pond where the jar is poured; whatever grew there is washed away
-    const k=x+","+y;[FOREST,CHERRY,SWAMP,SHALLOW,MAGMA,FLOWERS,WISP,FORT,FORTK,SMOKE].forEach(st=>st.delete(k));FORTV.delete(k);KOI.add(k);
+    const k=x+","+y;[FOREST,CHERRY,SWAMP,SHALLOW,MAGMA,FLOWERS,WISP,FORT,FORTK,SMOKE,CALTROPS].forEach(st=>st.delete(k));FORTV.delete(k);KOI.add(k);
     sfx("whisk");sfx("heal");info=null;say(`Your ${NAME[a.t]} poured out the Jar of Koi: a new koi pond ripples beside it.`);return render();
   }
   if(id==="medkit"){ // mends campaign wounds: max HP comes back now and stays back
@@ -1853,6 +1894,10 @@ function useItem(a,id,x,y,rub){
   }
   if(id==="mule"){a.muleUntil=pturn+1;a.slow=0;sfx("bray");floatText(a.x,a.y,"Stubborn!","slow");info=a;say(`Your ${NAME[a.t]} drank the Mule Hair Potion: +2 armor, and it can't be pushed or slowed until the end of your next turn.`);return render()}
   if(id==="draught"){const b=at(x,y),n=Math.min(DRAUGHT_HEAL,maxHp(b)-b.hp);b.hp+=n;sfx("heal");floatText(b.x,b.y,"+"+n,"heal");info=b;say(`Your ${NAME[a.t]} used a Healing Draught: +${n} HP${b===a?"":" for your "+NAME[b.t]}.`);return render()}
+  if(id==="caltrops"){
+    calLine(x,y,dir).forEach(k=>CALTROPS.add(k));sfx("caltrops");info=null;
+    say(`Your ${NAME[a.t]} scattered caltrops. Enemies that cross them take ${CALTROP_DMG} damage.`);return render();
+  }
   if(id==="smoke"){
     blastOf(x+","+y).concat([[x,y]]).forEach(([cx,cy])=>SMOKE.add(cx+","+cy));sfx("smoke");
     say("Smoke billows across the field: your units in it get +20% evasion until your next turn.");return render();
@@ -1911,7 +1956,7 @@ function chickensAct(done){
     const foes=units.filter(e=>e.team==="f");if(!foes.length)return done();
     const D=distMap(foes),score=([x,y])=>{const adj=foes.filter(e=>Math.abs(e.x-x)+Math.abs(e.y-y)===1);return adj.length?-100+Math.min(...adj.map(e=>e.hp)):D[y][x]};
     const best=[[c.x,c.y],...reach(c).map(pk)].reduce((a,b)=>score(b)<score(a)?b:a);
-    if(best[0]!==c.x||best[1]!==c.y){c.x=best[0];c.y=best[1];render()}
+    if(best[0]!==c.x||best[1]!==c.y){walk(c,best[0],best[1]);render();if(!units.includes(c))return later(next,300)}
     later(()=>{
       if(g!==gid||over)return;
       const ts=targets(c).filter(e=>e.team==="f").sort((a,b)=>a.hp-b.hp);
@@ -2202,9 +2247,9 @@ function enemyTurn(note=""){
     // a healer heads for wounded allies while keeping out of danger; otherwise it acts like any other unit
     const sc=hurt.length?(x,y)=>{const q={x,y},th=pl.reduce((n,p)=>n+(d(q,p)<=mvOf(p)+rgOf(p)?dmgTo(p,{...u,x,y}):0),0);return th*.5+(hurt.some(p=>d(q,p)<=TYPES.P.rg)?-10:Math.min(...hurt.map(p=>d(q,p))))}:u.t==="N"?(x,y)=>evalTile(u,x,y,D,pl,xv)-3*units.filter(a=>a.team==="f"&&a!==u&&Math.abs(a.x-x)+Math.abs(a.y-y)<=BANNER_RANGE).length // the bearer stays close to its allies
       :(x,y)=>evalTile(u,x,y,D,pl,xv);
-    const p={u,s:sc(u.x,u.y),best:[u.x,u.y],tp:false,mS:1e9,mB:null,mTp:false};
+    const p={u,s:sc(u.x,u.y),best:[u.x,u.y],tp:false,mS:1e9,mB:null,mTp:false},rt=CALTROPS.size?routes(u):null;
     for(const k of reach(u)){
-      const[x,y]=pk(k),s=sc(x,y);
+      const[x,y]=pk(k),s=sc(x,y)+(rt&&rt.get(k)?rt.get(k).n*CALTROP_AVOID:0); // caltrops on the way hurt
       if(s<p.s){p.s=s;p.best=[x,y]}
       if(s<p.mS){p.mS=s;p.mB=[x,y]}
     }
@@ -2267,7 +2312,8 @@ function enemyTurn(note=""){
       const u=p.u;done.add(u);
       if(tp){tpUsed.f=1;sfx("warp");say("Enemy teleported a "+NAME[u.t]+"!")}
       if(dest[0]!==u.x||dest[1]!==u.y){u.moved=1;movedAny=true}
-      [u.x,u.y]=dest;render();
+      if(tp)[u.x,u.y]=dest;else if(walk(u,dest[0],dest[1])&&!units.includes(u)){say(`The enemy ${NAME[u.t]} fell on the caltrops.`);if(checkEnd())return;render();return later(step,500)}
+      render();
       later(()=>act(u),350);
       return;
     }
@@ -2276,7 +2322,7 @@ function enemyTurn(note=""){
       if(!units.includes(u))return step();
       if(Math.random()<.6){ // wander to a random reachable tile; never chases anyone
         const opts=reach(u).map(k=>pk(k));
-        if(opts.length){[u.x,u.y]=opts[Math.floor(Math.random()*opts.length)];render()}
+        if(opts.length){walk(u,...opts[Math.floor(Math.random()*opts.length)]);if(!units.includes(u)){if(checkEnd())return;render();return later(step,500)}render()}
       }
       later(()=>{
         if(g!==gid)return;
@@ -2605,7 +2651,7 @@ ${seat}${cape}${legs}${body}${arms}${pauldron}${sack}${skull}${helm}
 // things that can happen on a one-way path (rolled once per path)
 const ROAD_EVENTS=[
  {t:"A Broken-Down Cart",go:()=>{camp.gold+=15;sfx("coin");renderGold();return "Someone left in a hurry. Among the spilled crates, your army finds 15 gold."}},
- {t:"Abandoned Supplies",go:()=>{const k=["draught","smoke","fire"][Math.floor(Math.random()*3)];if(camp.items.length<itemCap()){camp.items.push(k);renderItems();return `A soldier's pack lies by the trail. Inside: a ${ITEMS[k].name}.`}camp.gold+=10;sfx("coin");renderGold();return "A soldier's pack lies by the trail. Your own packs are full, so you take the 10 gold inside."}},
+ {t:"Abandoned Supplies",go:()=>{const k=["draught","smoke","fire","caltrops"][Math.floor(Math.random()*4)];if(camp.items.length<itemCap()){camp.items.push(k);renderItems();return `A soldier's pack lies by the trail. Inside: a ${ITEMS[k].name}.`}camp.gold+=10;sfx("coin");renderGold();return "A soldier's pack lies by the trail. Your own packs are full, so you take the 10 gold inside."}},
  {t:"The Beggar",go:to=>{const seat={graveyard:"leans against a crooked cemetery fence",volcanic:"huddles on a smouldering rock",sakura:"sits beneath a cherry tree, petals settling on his skull",swamp:"perches on a rotting log",wetlands:"sits on a mossy stone by the water",fort:"slumps against a broken wall",wild:"crouches on a boulder",forest:"sits on a mossy stump"}[WORLD[to].b]||"sits upon a stump";
    return {art:beggarScene(WORLD[to].b),text:`A lonely, sorry-looking skeleton ${seat} at the side of the road. It holds an old sack open with gloved hands, and its eyes glow a faint, tired red.`,opts:[ // no reward yet: kindness may matter later
     {label:"Give 5 gold",cost:5,go:()=>"You drop 5 gold in the sack. The skeleton's jaw clacks softly. It might have been a thank-you."},
@@ -2726,7 +2772,7 @@ $("rand").onclick=()=>{pick.x=[];const P=poolNow();for(let i=0;i<EXTRAS;i++){let
 $("clr").onclick=()=>{pick.x=[];renderSetup()};
 $("randm").onclick=()=>{const k=Object.keys(MODS);pick.m=k[Math.floor(Math.random()*k.length)];renderSetup()};
 function resetBattle(){
-  SMOKE=new Set();FOE_RELIC=new Set();FOE_ITEMS=[];gid++;$("defeat").hidden=true;tile=null;units=[];sel=null;mode=null;choice=null;choiceMv=null;bchoice=null;lastMove=null;insp=null;info=null;turn="y";over=false;busy=false;locked=false;tpUsed={y:0,f:0};
+  SMOKE=new Set();CALTROPS=new Set();FOE_RELIC=new Set();FOE_ITEMS=[];gid++;$("defeat").hidden=true;tile=null;units=[];sel=null;mode=null;choice=null;choiceMv=null;bchoice=null;lastMove=null;insp=null;info=null;turn="y";over=false;busy=false;locked=false;tpUsed={y:0,f:0};
   const keys=Object.keys(MODS);mods={y:null,f:keys[Math.floor(Math.random()*keys.length)]};
 }
 function init(){
@@ -3334,13 +3380,14 @@ const ITEMS={ // consumables, used in battle (campaign only); using one takes th
  draught:{name:"Healing Draught",price:25,desc:"Heal this unit or an adjacent ally for 5 HP."},
  smoke:{name:"Smoke Bomb",price:30,desc:"Throw at a tile within 3: your units on it and the 8 tiles around it get +20% evasion until your next turn."},
  fire:{name:"Fire Flask",price:35,desc:"Throw at an enemy within 3 for 3 damage, ignoring armor."},
+ caltrops:{name:"Bag of Caltrops",price:30,desc:"Throw at a tile within 2: a line of caltrops 3 tiles long (across or down, centred there) that lasts the battle. An enemy that crosses one takes 1 damage, ignoring armor. Your own units know better, but half the time they step on one anyway."},
  feather:{name:"Wind Elemental's Feather",price:40,r:1,free:1,desc:"Swap this unit with an ally within 2 tiles. Neither unit uses its move or action."},
  tonic:{name:"Courier's Tonic",price:40,r:1,free:1,desc:"Drink before moving: this unit gets +2 movement this turn. Drinking it doesn't use the unit's action."},
  koijar:{name:"Jar of Koi",price:50,r:1,lock:"sakura",desc:"Pour it out on an empty tile next to this unit to make a Koi Pond: it blocks movement, and each side's units beside it recover 1 HP at the end of their turn. Can't go on impassable terrain, or where it would cut off part of the field."},
  medkit:{name:"Advanced Med Kit",price:45,r:1,desc:"Mend 1 wound on this unit or an adjacent ally (campaign wounds, restoring 1 max HP). An Apothecary using it has a 25% chance to mend 2."},
  mule:{name:"Mule Hair Potion",price:40,r:1,lock:"mule",desc:"The drinker turns stubborn as a mule: +2 armor, and it can't be pushed or slowed, until the end of your next turn. Brewed from genuine mule hair. Marcus swears Parsnip had nothing to do with it."}};
 // r: rarity (an uncommon is drawn half as often as a common); free: using it costs the unit nothing; lock: the unlock it waits for
-const BOSS_GOLD_STEP=10,ITEM_CAP=3,TONIC_MV=2,LEDGER_GOLD=5,TOKEN_OFF=.2,CHEST_OFF=.1,CHEST_GOLD=50,ITEM_STOCK=[1,.5],SHOP_ITEMS=3,MULE_BUYS=5,RELIC_PRICE=[40,70,110],SMOKE_EV=.2,DRAUGHT_HEAL=5,FIRE_DMG=3; // RELIC_PRICE by rarity: common, uncommon, rare
+const BOSS_GOLD_STEP=10,ITEM_CAP=3,TONIC_MV=2,LEDGER_GOLD=5,TOKEN_OFF=.2,CHEST_OFF=.1,CHEST_GOLD=50,ITEM_STOCK=[1,.5],SHOP_ITEMS=3,MULE_BUYS=5,RELIC_PRICE=[40,70,110],SMOKE_EV=.2,DRAUGHT_HEAL=5,FIRE_DMG=3,CALTROP_DMG=1,CALTROP_ALLY=.5,CALTROP_AVOID=2.5; // CALTROP_ALLY: the chance your own unit steps on one; CALTROP_AVOID: how much the enemy minds crossing one // RELIC_PRICE by rarity: common, uncommon, rare
 const itemCap=()=>ITEM_CAP+relicCount("saddle"); // Parsnip's Saddlebags: a slot each
 const priceOf=p=>Math.round(p*(camp.relics.includes("token")?1-TOKEN_OFF:1)*(camp.relics.includes("chest")?1-CHEST_OFF:1)); // Marcus's Loyalty Token, Boss's War Chest
 const IICON={
@@ -3351,6 +3398,7 @@ const IICON={
  medkit:'<path d="M12 8q0-4 4-4t4 4" stroke="#3a2412" stroke-width="1.800" fill="none"/><rect x="4" y="8" width="24" height="18" rx="3" fill="#8a5a2e" stroke="#3a2412" stroke-width="1.200"/><path d="M4 13h24" stroke="#6a4420" stroke-width="1"/><rect x="9" y="12" width="14" height="12" rx="2" fill="#efe6d2" stroke="#4a3a28" stroke-width=".9"/><path d="M16 14.500v7M12.500 18h7" stroke="#c8372d" stroke-width="2.600" stroke-linecap="round"/><path d="M6 10h3" stroke="#c08a50" stroke-width=".9"/>',
  mule:'<path d="M13 3h6v4h-6z" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M12 7h8v3q6 3 6 10q0 8-10 8T6 20q0-7 6-10z" fill="rgba(170,120,70,.5)" stroke="#2a1410" stroke-width="1.100"/><path d="M6.600 19q0 8 9.400 8.500q9.400-.5 9.400-8.500z" fill="#8a5a2e"/><path d="M11 14q-2 4-1 8" stroke="#fff" stroke-width="1" fill="none" opacity=".55"/><path d="M18 15q3 1 2 4M21 14q2 2 1 4M16 17q2 2 1 4" stroke="#3a2412" stroke-width=".9" fill="none" stroke-linecap="round"/><path d="M19 2q4-2 6 1" stroke="#6a4a2a" stroke-width="1.200" fill="none" stroke-linecap="round"/>',
  feather:'<path d="M6 27q3-12 13-19q5-4 9-4q0 4-4 9q-7 10-18 14z" fill="#eef6fb" stroke="#3a5a6a" stroke-width="1.100" stroke-linejoin="round"/><path d="M6 27L24 8" stroke="#5a7a8a" stroke-width="1.100"/><path d="M12 20l-2-5M15 17l-1-6M18 14l0-5M13 19l5 1M16 16l6 0M19 13l5-1" stroke="#9ab8c8" stroke-width=".8"/><path d="M3 12q4-3 8 0t8 0M1 18q3-2 6 0" stroke="#6ab0d8" stroke-width="1.300" fill="none" stroke-linecap="round" opacity=".8"/>',
+ caltrops:'<ellipse cx="15" cy="28.500" rx="13" ry="2" fill="rgba(0,0,0,.18)"/><path d="M9 5q2 2 4 1q2 1 4-1l-1 5h-6z" fill="#b8a47a" stroke="#3a2e1a" stroke-width="1" stroke-linejoin="round"/><path d="M9.500 10q-7 4-7 10q0 7 9.500 7t9.500-7q0-6-7-10z" fill="#9a8a68" stroke="#3a2e1a" stroke-width="1.100" stroke-linejoin="round"/><path d="M8.500 9.600h7" stroke="#6a3a22" stroke-width="2" stroke-linecap="round"/><path d="M6 17q-1 4 1 7" stroke="#d8c8a0" stroke-width="1" fill="none" opacity=".6"/><g transform="translate(25 20) rotate(15)"><path d="M0 0V-4M0 0L3.500 2M0 0L-3.500 2" stroke="#2a2a30" stroke-width="1.600" stroke-linecap="round"/><circle r="1" fill="#8a8e96"/></g><g transform="translate(26.5 27) rotate(50)"><path d="M0 0V-4M0 0L3.500 2M0 0L-3.500 2" stroke="#2a2a30" stroke-width="1.600" stroke-linecap="round"/><circle r="1" fill="#8a8e96"/></g><g transform="translate(19.5 27.5) rotate(0)"><path d="M0 0V-4M0 0L3.500 2M0 0L-3.500 2" stroke="#2a2a30" stroke-width="1.600" stroke-linecap="round"/><circle r="1" fill="#8a8e96"/></g>',
  fire:'<path d="M10 28v-10q0-7 6-9q6 2 6 9v10z" fill="#e2531a" stroke="#2a1410" stroke-width="1.100"/><path d="M13.500 9h5V5h-5z" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><circle cx="16" cy="20" r="7" fill="#ff8a2a" opacity=".28"/><path d="M16 25q-4-4 0-10q4 6 0 10z" fill="#ffd27a"/><path d="M12 16q-1 5 0 9" stroke="#fff" stroke-width="1" opacity=".45" fill="none"/>'};
 const itemIcon=(id,sz=32)=>`<svg viewBox="0 0 32 32" width="${sz}" height="${sz}" aria-hidden="true">${IICON[id]}</svg>`;
 const MARCUS={
@@ -3372,6 +3420,7 @@ const MARCUS={
  ledger:"A tax collector's ledger. He won't be needing it. Long story. Don't ask.",
  mule:"Genuine mule hair. Sourced from a very distant mule. Not Parsnip. Don't look at Parsnip.",
  fire:"Fire Flask? Excellent choice. Point it away from the wagon, please.",
+ caltrops:"Caltrops! Scatter them, then remember where you scattered them. Parsnip didn't.",
  coin:"A genuine Copper Coin of Good Fortune! I've only got... well, a few.",
  poor:"Ah. Your purse is lighter than my conscience. Come back with more coin.",
  full:"Your pack's full, friend! Use something first. Next time, perhaps.",
@@ -3787,7 +3836,7 @@ const getHold=m=>{try{return JSON.parse(localStorage.getItem(HOLD(m))||"null")}c
 $("phold").onclick=()=>{
   if(turn!=="y"||busy||over)return;
   const A=x=>[...x],m=chal?"chal":camp.battle?"camp":"quick";
-  const h={t:[WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS,WISP,FLOWERS,KOI].map(A),
+  const h={t:[WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS,WISP,FLOWERS,KOI,CALTROPS].map(A),
     f:{MURKY,HAUNTED,VOLCANIC,VALE,WALLV,seed,BIOME_KEY,herbertMet,firstTurn,pturn},fv:A(FORTV),fk:A(FORTK),
     units,mods,col,tpUsed,relic:A(RELIC),foeRelic:A(FOE_RELIC),foeItems:FOE_ITEMS.slice(),relicUsed,pick,def:chal&&chal.def,node:camp.battle?camp.battle.node:null,items0:camp.battle&&camp.battle.items0,wounds0:camp.battle&&camp.battle.wounds0,biome:$("biome").textContent};
   try{localStorage.setItem(HOLD(m),JSON.stringify(h))}catch(e){return}
@@ -3797,7 +3846,7 @@ $("phold").onclick=()=>{
 };
 function resumeHold(h){
   resetBattle();
-  [WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS,WISP=new Set(),FLOWERS=new Set(),KOI=new Set()]=h.t.map(a=>new Set(a));
+  [WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS,WISP=new Set(),FLOWERS=new Set(),KOI=new Set(),CALTROPS=new Set()]=h.t.map(a=>new Set(a));
   ({MURKY,HAUNTED,VOLCANIC,VALE=false,WALLV,seed,BIOME_KEY,herbertMet,firstTurn,pturn}=h.f);
   FORTV=new Map(h.fv);FORTK=new Set(h.fk);units=h.units;mods=h.mods;col=h.col;tpUsed=h.tpUsed;RELIC=new Set(h.relic);FOE_RELIC=new Set(h.foeRelic||[]);FOE_ITEMS=(h.foeItems||[]).slice();relicUsed=h.relicUsed;pick=h.pick;
   chal=h.def?{def:h.def,test:false}:null;camp.battle=h.node!=null?{node:h.node,items0:h.items0,wounds0:h.wounds0}:null;
