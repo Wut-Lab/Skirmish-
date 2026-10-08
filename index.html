@@ -665,9 +665,9 @@ const RELICS={
  keep:{name:"Banner of the Fallen Keep",r:2,src:"boss",desc:"At the start of each battle, one of your units, chosen at random, gets +1 armor for the whole battle."},
  ram:{name:"Siege Ram",r:1,src:"boss",desc:"Your units deal +2 damage to enemies standing on fortress tiles."},
  chest:{name:"Boss's War Chest",r:1,src:"boss",desc:"50 gold right away, and everything at Marcus's wagon costs 10% less."},
- csword:{name:"Shimmering Sword of the Champion",r:2,src:"boss",desc:"At the start of each battle, a random unit above half health becomes the champion: +1 damage, +1 pierce, and after a blow lands it can step 1 tile."},
- cshield:{name:"Shimmering Shield of the Champion",r:1,src:"both",desc:"At the start of each battle, a random unit above half health takes up the shield: attacks against it have 1 less pierce, and it heals 1 HP. With the Sword in play, the champion carries both."},
- ccloak:{name:"Shimmering Cloak of the Champion",r:2,src:"both",desc:"At the start of each battle, a random unit dons the cloak: once per battle it can teleport to an open tile on the far edge instead of moving. With the Sword in play, the champion wears it. A unit with the Sword, Shield and Cloak becomes The Champion (+5% evasion)."},
+ csword:{name:"Shimmering Sword of the Champion",r:2,src:"boss",desc:"At the start of each battle, a random unit above half health becomes the champion: +1 damage, +1 pierce, and after a blow lands it can step 1 tile. Every Champion piece you carry goes to the same unit."},
+ cshield:{name:"Shimmering Shield of the Champion",r:1,src:"both",desc:"At the start of each battle, a random unit above half health takes up the shield: attacks against it have 1 less pierce, and it heals 1 HP. Every Champion piece you carry goes to the same unit."},
+ ccloak:{name:"Shimmering Cloak of the Champion",r:2,src:"both",desc:"At the start of each battle, a random unit dons the cloak: once per battle it can teleport to an open tile on the far edge instead of moving. Every Champion piece you carry goes to the same unit, and one with the Sword, Shield and Cloak becomes The Champion (+5% evasion)."},
  crown:{name:"Hollow King's Crown",r:2,src:"boss",desc:"Cursed. Your units deal +1 damage with +1 pierce, but at the end of each of your turns the crown feeds: one of your units, chosen at random, loses 1 HP (it never takes the last). It was a king's once. The king is still in there, somewhere, and he is so very hungry."},
  blossom:{name:"Cherry Blossom Blade",r:2,src:"boss",get desc(){return unlocks.cherry // the Cherry Grove reveals what the blade remembers
    ?"Last Bloom: when one of your units falls, your units beside it get +1 damage for the rest of the battle (+2 if it fell in a Cherry Grove). Forged beneath the cherry boughs, where every petal falls too soon. It remembers each one."
@@ -2900,13 +2900,14 @@ function start(o={}){
     if(o.boss)foeLoadout(camp.region||1);
     const ch=MERC_FOE(camp.region||1);for(let i=0;i<(o.boss?2:1);i++)if(Math.random()<ch){const m=rollMerc(),sp=spot([0,1],[4,2,7,0,9,5,3,6,1,8]);if(sp)units.push({t:m.t,team:"f",merc:1,mname:m.name,st:m.st,x:sp[0],y:sp[1],hp:m.st.hp,moved:0,acted:0})}} // the enemy hires help too
   if(FOE_RELIC.has("keep")){const fs=units.filter(u=>u.team==="f");fs[Math.floor(Math.random()*fs.length)].keep=1}
-  ["y","f"].forEach(team=>{ // the Shimmering Sword and Shield of the Champion choose a bearer (the same one, when both are carried)
+  ["y","f"].forEach(team=>{ // the Shimmering Champion pieces: one random unit (above half health when it can) takes every piece its side carries
     const has=id=>team==="y"?RELIC.has(id):FOE_RELIC.has(id);if(!has("csword")&&!has("cshield")&&!has("ccloak"))return;
-    const any=units.filter(u=>u.team===team&&!u.auto),hi=any.filter(u=>u.hp>maxHp(u)/2),pick=l=>l[Math.floor(Math.random()*l.length)];
-    const bearer=has("csword")?pick(hi):null;if(bearer)bearer.champ=1;
-    if(has("cshield")){const u=bearer||pick(hi);if(u){u.cshield=1;if(u.hp<maxHp(u))u.hp+=1}}
-    if(has("ccloak")){const u=bearer||pick(any);if(u)u.cloak=1}
-    any.forEach(u=>{if(u.champ&&u.cshield&&u.cloak)u.trio=1}); // all three: The Champion
+    const any=units.filter(u=>u.team===team&&!u.auto&&!u.merc),hi=any.filter(u=>u.hp>maxHp(u)/2),pick=l=>l[Math.floor(Math.random()*l.length)];
+    const u=pick(hi.length?hi:any);if(!u)return;
+    if(has("csword"))u.champ=1;
+    if(has("cshield")){u.cshield=1;if(u.hp<maxHp(u))u.hp+=1}
+    if(has("ccloak"))u.cloak=1;
+    if(u.champ&&u.cshield&&u.cloak)u.trio=1; // all three: The Champion
   });
   if(RELIC.has("statue")||FOE_RELIC.has("statue"))["y","f"].forEach(team=>{const l=units.filter(u=>u.team===team&&!u.auto);if(l.length)l[Math.floor(Math.random()*l.length)].bleed=1}); // the Bleeding Statue picks one unit per side
   if(camp.battle&&RELIC.has("keep")){const ys=units.filter(u=>u.team==="y"&&u.ci!=null);ys[Math.floor(Math.random()*ys.length)].keep=1} // Banner of the Fallen Keep
