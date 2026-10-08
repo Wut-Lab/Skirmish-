@@ -2512,7 +2512,21 @@ function genWorld(){
   }
   WORLD=nodes;EDGES=E;
   if(nodes.some(n=>!reachFrom(n.id).has(nodes.length-1)))E.forEach(e=>e.length=2); // safety net: the boss must stay reachable from everywhere
-  DECO={trees:scatter(12),rocks:scatter(5),river:`M-10 ${ry()} C 70 ${ry()} 120 ${ry()} 220 ${ry()} S 340 ${ry()} 420 ${ry()}`};
+  const Y=[0,0,0,0,0,0].map(ry),bz=(a,b,c,d,t)=>(1-t)**3*a+3*(1-t)**2*t*b+3*(1-t)*t*t*c+t**3*d;
+  const riv=[];for(let i=0;i<=40;i++){const t=(i%20)/20,s=i>=20;if(i===40){riv.push([420,Y[5]]);break}riv.push(s?[bz(220,320,340,420,t),bz(Y[3],2*Y[3]-Y[2],Y[4],Y[5],t)]:[bz(-10,70,120,220,t),bz(Y[0],Y[1],Y[2],Y[3],t)])} // the river sampled along its curve
+  const segD=(x,y,ax,ay,bx,by)=>{const dx=bx-ax,dy=by-ay,t=Math.max(0,Math.min(1,((x-ax)*dx+(y-ay)*dy)/(dx*dx+dy*dy||1)));return Math.hypot(x-ax-t*dx,y-ay-t*dy)};
+  const open=(x,y,r)=>x>14&&x<386&&y>40&&y<508&&Math.hypot(x-50,y-56)>58&&!(y<74&&Math.abs(x-200)<150)&&nodes.every(n=>Math.hypot(n.x-x,n.y-y)>44&&!(Math.abs(n.x-x)<half(n)+6&&y>n.y&&y<n.y+44))
+    &&E.every(([a,b])=>segD(x,y,nodes[a].x,nodes[a].y,nodes[b].x,nodes[b].y)>r)&&riv.every(([rx,ry2])=>Math.hypot(rx-x,ry2-y)>r+8); // clear of locations, their labels, the paths, the river, the compass and the title
+  const ranges=[];
+  for(let t=0;t<200&&ranges.length<3;t++){ // mountain chains: 4-7 peaks marching along a gentle line, tallest in the middle
+    const n=4+R(4),a=rr(-.5,.5)+(Math.random()<.5?0:Math.PI),st=rr(13,16);let x=rr(30,370),y=rr(90,500);const ch=[];
+    for(let i=0;i<n;i++){const h=18+16*Math.sin(Math.PI*(i+.5)/n)+rr(-3,3);if(!open(x,y,16))break;ch.push([Math.round(x),Math.round(y),Math.round(rr(11,15)),Math.round(h)]);x+=Math.cos(a)*st;y+=Math.sin(a)*st+rr(-3,3)}
+    if(ch.length>=4&&ranges.every(r=>r.every(([px,py])=>ch.every(([qx,qy])=>Math.hypot(px-qx,py-qy)>40))))ranges.push(ch);
+  }
+  const bare=(x,y)=>ranges.every(c=>c.every(([a,b])=>Math.hypot(a-x,b-y)>30)),dry=([x,y])=>bare(x,y)&&riv.every(([a,b])=>Math.hypot(a-x,b-y)>22); // other scenery keeps off the mountain chains and the river
+  const spot=(c,r)=>{const out=[];for(let t=0;t<400&&out.length<c;t++){const x=rr(20,380),y=rr(40,500);if(open(x,y,r)&&bare(x,y)&&out.every(([p,q])=>Math.hypot(p-x,q-y)>24))out.push([Math.round(x),Math.round(y)])}return out};
+  const reeds=[];for(let t=0;t<30&&reeds.length<6;t++){const[x,y]=riv[2+R(37)],o=Math.random()<.5?-12:12;if(x>20&&x<380&&nodes.every(n=>Math.hypot(n.x-x,n.y-y-o)>34))reeds.push([Math.round(x),Math.round(y+o)])}
+  DECO={trees:scatter(12).filter(dry).concat(spot(6,12)),rocks:scatter(5).filter(dry),ranges,hills:spot(7,12),grass:spot(14,6),reeds,river:`M-10 ${Y[0]} C 70 ${Y[1]} 120 ${Y[2]} 220 ${Y[3]} S 340 ${Y[4]} 420 ${Y[5]}`};
 }
 const BIOME_NAME={forest:"Forest",plain:"Plains",fort:"Stronghold",wild:"Wilds",wetlands:"Wetlands",swamp:"Murky Swamp",graveyard:"Haunted Graveyard",volcanic:"Molten Wastes",sakura:"Sakura Vale",boss:"Enemy Stronghold"};
 // a Quick Battle map has no biome of its own, so name it from what was generated
@@ -2529,7 +2543,11 @@ const nest=(str,x,y,w,style="")=>str.replace(/<svg[^>]*>/,`<svg x="${x}" y="${y}
 function mapArt(){
   let g='<defs><radialGradient id="pg" cx=".5" cy=".4" r=".85"><stop offset="0" stop-color="#eadfb8"/><stop offset="1" stop-color="#cbb78a"/></radialGradient><filter id="wsh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="1.200" dy="2.400" stdDeviation="1.600" flood-color="#3a2810" flood-opacity=".45"/></filter><radialGradient id="wnode" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></radialGradient><filter id="wblur"><feGaussianBlur stdDeviation="6"/></filter><filter id="wblur2" x="-50%" y="-100%" width="200%" height="300%"><feGaussianBlur stdDeviation="2.500"/></filter><linearGradient id="wmt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a7656"/><stop offset=".6" stop-color="#9c8762" stop-opacity=".9"/><stop offset="1" stop-color="#b8a27a" stop-opacity="0"/></linearGradient></defs><rect width="400" height="520" fill="url(#pg)"/>';
   g+='<g filter="url(#wblur)" fill="#a07a40" opacity=".12"><ellipse cx="318" cy="96" rx="34" ry="22"/><ellipse cx="86" cy="388" rx="28" ry="18"/><ellipse cx="236" cy="470" rx="40" ry="14"/></g>'; // age stains
-  g+=`<path d="${DECO.river}" stroke="#6a8a7a" stroke-width="20" fill="none" stroke-linecap="round" opacity=".35"/><path d="${DECO.river}" stroke="#8ec0d8" stroke-width="15" fill="none" stroke-linecap="round" opacity=".62"/><path d="${DECO.river}" stroke="#d8f0f8" stroke-width="2" fill="none" stroke-dasharray="14 22" opacity=".45" transform="translate(0 -3)"/>`;
+  // the river in map ink: a soft shadow, inked banks, a washed blue-green bed lit along its middle, and hatched ripples; reeds on the banks
+  const rv=DECO.river,rp=(w,c,o,x="")=>`<path d="${rv}" stroke="${c}" stroke-width="${w}" fill="none" stroke-linecap="round" opacity="${o}"${x}/>`;
+  g+=`<g style="mix-blend-mode:multiply">${rp(24,"#6a5430",".2",' filter="url(#wblur2)"')+rp(17,"#4a3a26",".72")+rp(15,"#8cb2b4","1")+rp(7,"#bfd8d4",".75",' transform="translate(-1 -1.5)"')
+   +rp(.9,"#3e4e48",".5",' stroke-dasharray="5 9 3 15" transform="translate(0 -3.5)"')+rp(.9,"#3e4e48",".42",' stroke-dasharray="3 14 6 10" stroke-dashoffset="9" transform="translate(0 3)"')}`
+   +(DECO.reeds||[]).map(([x,y])=>`<path d="M${x-3} ${y+3}q1-6-1-9M${x} ${y+3}v-10M${x+3} ${y+3}q-1-6 2-8" stroke="#4a5a32" stroke-width="1" fill="none" stroke-linecap="round" opacity=".75"/><ellipse cx="${x}" cy="${y-8}" rx="1" ry="2.200" fill="#5a3e20" opacity=".8"/>`).join("")+`</g>`;
   const clear=([x,y])=>Math.hypot(x-50,y-56)>58&&!(y<74&&Math.abs(x-200)<150); // keep scenery off the compass rose and the title
   // mountain ranges drawn like old-map ink: 2-3 overlapping peaks in sepia, lit on the left, hatched on the right, snow-capped, fading into the paper at the foot
   const peak=(px,py,w,h,k)=>{const f=v=>v.toFixed(1),tx=px+(k%2?1.5:-1.5);
@@ -2539,6 +2557,13 @@ function mapArt(){
      +[.25,.45,.65].map(t=>`<path d="M${f(tx+w*t*.6)} ${f(py-h*(1-t)+1)}l${f(-w*.18)} ${f(h*.32)}" stroke="#4a3a26" stroke-width=".8" opacity=".55"/>`).join("")
      +`<path d="M${f(tx-w*.32)} ${f(py-h*.66)}L${f(tx)} ${f(py-h)}L${f(tx+w*.3)} ${f(py-h*.7)}L${f(tx+w*.1)} ${f(py-h*.62)}L${f(tx-w*.08)} ${f(py-h*.7)}z" fill="#fbf6e8" stroke="#6a5638" stroke-width=".6" stroke-linejoin="round"/>`
      +`<path d="M${f(px-w)} ${f(py)}L${f(tx)} ${f(py-h)}L${f(px+w)} ${f(py)}" fill="none" stroke="#4a3a26" stroke-width="1.100" stroke-linejoin="round" opacity=".75"/>`;};
+  // rolling hills: low inked humps, hatched on the shaded side; tufts of grass between
+  (DECO.hills||[]).forEach(([x,y],i)=>{const hump=(hx,w,h)=>`<path d="M${hx-w} ${y}Q${hx} ${y-h*2} ${hx+w} ${y}z" fill="url(#wmt)" opacity=".75"/><path d="M${hx-w} ${y}Q${hx} ${y-h*2} ${hx+w} ${y}" fill="none" stroke="#4a3a26" stroke-width=".9" opacity=".65"/>`+[.3,.55].map(t=>`<path d="M${hx+w*t} ${y-h*(1-t*t)*.9}l-2 ${h*.35}" stroke="#4a3a26" stroke-width=".7" opacity=".45"/>`).join("");
+    g+=`<g style="mix-blend-mode:multiply">${i%2?hump(x-8,12,6)+hump(x+7,10,4.5):hump(x+6,13,7)+hump(x-9,9,4)}</g>`});
+  g+=`<g stroke="#5a6a3a" stroke-width=".9" fill="none" stroke-linecap="round" opacity=".6">${(DECO.grass||[]).map(([x,y])=>`<path d="M${x-3} ${y}l-1-4M${x} ${y}v-5M${x+3} ${y}l1-4"/>`).join("")}</g>`;
+  // mountain chains: peaks drawn back to front, each tall peak with a lower foothill stepping out in front
+  (DECO.ranges||[]).forEach(ch=>{const ps=[];ch.forEach(([x,y,w,h],i)=>{ps.push([x,y,w,h,i]);if(i%2&&i<ch.length-1)ps.push([x+7,y+7,w*.75,h*.55,i+1])});
+    g+=`<g style="mix-blend-mode:multiply">${ps.sort((a,b)=>a[1]-b[1]).map(([x,y,w,h,k])=>peak(x,y,w,h,k)).join("")}</g>`});
   DECO.rocks.filter(clear).forEach(([x,y],i)=>{g+=`<g style="mix-blend-mode:multiply">`+(i%2?peak(x-15,y+9,13,20,1)+peak(x+14,y+9,14,24,2)+peak(x,y+11,17,32,3):peak(x+15,y+9,13,19,2)+peak(x-7,y+11,18,33,1)+peak(x+6,y+12,10,14,3))+`</g>`});
   // tree clumps: 4-6 trees of mixed sizes and greens on a soft shadow, in map ink
   const CL=[[-8,2,.85],[0,-3,1],[8,1,.9],[-3,6,.75],[5,7,.8],[-12,7,.65],[12,8,.6]],TC=["#3d6a3e","#4d7a46","#36593a","#56824a"];
