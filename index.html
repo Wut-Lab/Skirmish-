@@ -2458,7 +2458,7 @@ function fresh(list,used){
 // Builds a new random map: camp at the bottom, three rows of battles, a boss at the top.
 function genWorld(){
   const R=n=>Math.floor(Math.random()*n),rr=(a,b)=>a+Math.random()*(b-a),used=new Set();
-  const nodes=[{id:0,name:"Harrow Camp",x:Math.round(rr(50,350)),y:466,type:"camp",text:"Your starting camp. Nothing to fight here."}];
+  const nodes=[{id:0,name:"Camp",x:Math.round(rr(50,350)),y:466,type:"camp",text:"Your starting camp. Nothing to fight here."}];
   const layers=[[0]];let bag=[];
   const nextBiome=()=>{if(!bag.length)bag=["forest","plain","fort","wild","swamp",...(unlocks.graveyard?["graveyard"]:[]),...(unlocks.volcanic?["volcanic"]:[]),...(unlocks.sakura?["sakura"]:[])].sort(()=>Math.random()-.5);return bag.pop()};
   [378,292,206].forEach(y0=>{
