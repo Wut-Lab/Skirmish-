@@ -706,6 +706,7 @@ const RELICS={
  bard:{name:"Barding",r:0,desc:"Cavalry get +1 armor but 1 less movement."},
  luck:{name:"Lucky Charm",r:1,desc:"All your units get +5% evasion."},
  long:{name:"Long Bows",r:1,desc:"Archers get +1 range."},
+ splinter:{name:"Splinter Shells",r:1,src:"both",need:"R",desc:"Your Artillery's shells burst on impact: every hit also deals 1 damage to any unit, friend or foe, on the 3 tiles just behind the target. Stacks with Debris Shot."},
  debris:{name:"Debris Shot",r:1,need:"R",desc:"When your Artillery hits, every enemy on the 8 tiles around the target takes 1 damage."},
  drills:{name:"Boots of a Forced March",r:0,lock:"drills",desc:"Well-worn boots that set a brisk pace: your units get +1 movement on your first turn of each battle."},
  salts:{name:"Smelling Salts",r:0,lock:"salts",need:"P",desc:"Apothecaries heal 1 extra HP."},
@@ -751,7 +752,7 @@ const WOODS=k=>FOREST.has(k)&&!CHERRY.has(k),calm=u=>CHERRY.has(u.x+","+u.y);
 const BLUSH_R=2,blush=(x,y)=>{if(!VALE||!/^(ground|forest|cherry|flowers|koi|meadow|greenwood)$/.test(terrainKey(x+","+y)))return"";let m=9;CHERRY.forEach(c=>{const[a,b]=pk(c);m=Math.min(m,Math.abs(a-x)+Math.abs(b-y))});return m<2?" bsh1":m<=BLUSH_R?" bsh2":""}; // Sakura Vale: the groves and the open ground, woods, wildflowers and koi ponds within a diamond of a cherry grove take a pink tint, deeper beside it
 const healOf=u=>ST(u).heal+(rel(u,"salts")?1:0); // how much a healer restores, with relics
 const rgOf=u=>ST(u).rg+(u.t==="A"&&rel(u,"long")?1:0); // a unit's attack range, with relics
-const DEBRIS_DMG=1; // Debris Shot splash: small, so it softens clusters without replacing a second attack
+const DEBRIS_DMG=1,SPLINTER_DMG=1; // Debris Shot splash: small, so it softens clusters without replacing a second attack
 const NAME={G:"angry chicken",K:"knight",A:"archer",R:"artillery",W:"wolf",B:"bear",H:"hawk",C:"cavalry",P:"apothecary",E:"enchanter",T:"captain",N:"banner bearer",M:"militia"};
 const MODS={
  TP:{name:"Teleport",desc:"Once per battle, one unit may teleport to any open tile on the far edge (replaces its move)."},
@@ -2125,11 +2126,15 @@ function hitFor(a,b,c,back){ // resolve one blow from a to b: dodge roll, damage
   if(b.ubulwark&&adj&&a.team!==b.team&&units.includes(a)){later(()=>sfx("hit"),150);if(hurt(a,1))credit(b,a)} // the Usurper's Bulwark: thorns
   return true;
 }
+const splinterTiles=(a,bx,by)=>{const sx=Math.sign(bx-a.x),sy=Math.sign(by-a.y); // the far side of the target, seen from the shooter
+  return (sx&&sy?[[sx,sy],[sx,0],[0,sy]]:sx?[[sx,-1],[sx,0],[sx,1]]:[[-1,sy],[0,sy],[1,sy]]).map(([dx,dy])=>[bx+dx,by+dy])};
 function applyAttack(a,b){
   const bx=b.x,by=b.y;
   const landed=hitFor(a,b,combat(a,b));
   if(landed&&a.t==="R"&&rel(a,"debris")) // Debris Shot: shrapnel hits enemies around the target
     blastOf(bx+","+by).forEach(([x,y])=>{const v=at(x,y);if(v&&v.team!==a.team&&hurt(v,DEBRIS_DMG))credit(a,v)});
+  if(landed&&a.t==="R"&&rel(a,"splinter")) // Splinter Shells: the shot carries through, hitting anyone on the 3 tiles behind the target
+    splinterTiles(a,bx,by).forEach(([x,y])=>{const v=at(x,y);if(v&&hurt(v,SPLINTER_DMG)&&v.team!==a.team)credit(a,v)});
   if(a.t==="E"&&units.includes(a)){ // the mages' tomes
     if(landed&&rel(a,"blacktome")&&a.hp<maxHp(a)){a.hp+=1;later(()=>{if(units.includes(a))floatText(a.x,a.y,"+1","heal")},250)}
     if(rel(a,"redtome")&&a.hp>1){a.hp-=1;later(()=>{if(units.includes(a))floatText(a.x,a.y,"-1")},400)}
@@ -3607,6 +3612,7 @@ const RICON={ // small 32-unit relic icons
  bard:'<path d="M9 27V16q0-8 8-11l2-2l1 4q6 4 6 10l-3 2l-4-3l-2 2v9z" fill="#e2d6c0" stroke="#3a3024" stroke-width="1.200" stroke-linejoin="round"/><path d="M9 18h11v9H9z" fill="#8a2a24" stroke="#3a1210" stroke-width="1"/><path d="M9 20h11M9 24h11" stroke="#d9b84a" stroke-width="1.100"/><path d="M14 9l9 6l-3 2l-6-4z" fill="#7f8a95" stroke="#262b31" stroke-width="1"/><circle cx="21" cy="11" r="1" fill="#3a3024"/>',
  luck:'<g fill="#3f9a5a" stroke="#1e5a30" stroke-width="1.100"><path d="M16 15q-6-1-6-6q0-4 3.500-3.500q2.500 1 2.500 4q0-3 2.500-4q3.500-.5 3.500 3.500q0 5-6 6z"/><path d="M16 15q-6 1-6 6q0 4 3.500 3.500q2.500-1 2.500-4q0 3 2.500 4q3.500.5 3.500-3.500q0-5-6-6z" transform="rotate(90 16 15)"/></g><path d="M16 15q1 7 4 12" stroke="#1e5a30" stroke-width="1.600" fill="none" stroke-linecap="round"/><circle cx="16" cy="15" r="1.400" fill="#d9e8a0"/>',
  long:'<path d="M9 3q14 13 0 26" fill="none" stroke="#7a4a22" stroke-width="2.600" stroke-linecap="round"/><path d="M9 3v26" stroke="#e8e0cc" stroke-width=".8"/><path d="M4 16h24" stroke="#5a3a1c" stroke-width="1.400"/><path d="M28 16l-4-2.500v5z" fill="#8f979e" stroke="#2e3338" stroke-width=".8"/><path d="M4 16l-1.500-2.500M4 16l-1.500 2.500M6 16l-1.500-2.500M6 16l-1.500 2.500" stroke="#c8372d" stroke-width="1.100"/>',
+ splinter:'<path d="M3 26L14 15" stroke="#8a6a40" stroke-width="1.200" stroke-dasharray="2 2" opacity=".7"/><circle cx="16" cy="13" r="5" fill="#4a4540" stroke="#1e1a16" stroke-width="1.200"/><path d="M13.500 11q1-1.500 2.500-1.500" stroke="#fff" stroke-width="1" fill="none" opacity=".5"/><path d="M19.500 9.500l5-4.500l-1.500 4zM21 13.500l7-.5l-6 2.500zM19.500 17l5 4.500l-6-2.500z" fill="#c8a060" stroke="#5a3a1c" stroke-width=".8" stroke-linejoin="round"/><path d="M23 4l1-2M28.500 12l2.500-.5M25 22.500l1.500 2" stroke="#e8a030" stroke-width="1.100" stroke-linecap="round"/><path d="M16 18.500v2M11 14.500h-1.500" stroke="#c8a060" stroke-width=".9" stroke-linecap="round" opacity=".8"/>',
  debris:'<circle cx="16" cy="16" r="4.500" fill="#5c5650" stroke="#24201c" stroke-width="1.100"/><path d="M16 16" /><g fill="#8a8178" stroke="#24201c" stroke-width=".9"><path d="M5 7l4 1l-1 3l-3-1z"/><path d="M25 5l3 3l-3 2l-2-2z"/><path d="M27 22l2 3l-4 1l-1-2z"/><path d="M6 24l3-1l1 3l-3 1z"/></g><path d="M11 11l-3-3M21 11l3-3M21 21l3 3M11 21l-3 3" stroke="#e8641e" stroke-width="1.400" stroke-linecap="round"/>',
  mercy:'<path d="M17 3l3 3l-9 15l-3-1z" fill="#c8ccd2" stroke="#2e3338" stroke-width="1.100" stroke-linejoin="round"/><path d="M18.500 4.500l-8.500 15" stroke="#f4f6f8" stroke-width=".9" opacity=".8"/><path d="M5 18l9 5" stroke="#5a3a1c" stroke-width="2.600" stroke-linecap="round"/><path d="M9 21l-3 6" stroke="#3a2412" stroke-width="2.600" stroke-linecap="round"/><path d="M7.500 24l2 1" stroke="#c9962a" stroke-width="1.200"/><circle cx="5.500" cy="28" r="1.700" fill="#c9962a" stroke="#3a2412" stroke-width=".8"/><path d="M14 13q2 1 1 3" stroke="#8a1a14" stroke-width="1.300" fill="none" stroke-linecap="round"/>',
  horn:'<path d="M6 8q2-5 10-4q8 1 10 9" fill="none" stroke="#5a3a1c" stroke-width="1.300"/><path d="M4 9Q6 26 25 25L25 13Q11 18 7 8z" fill="#e8dcbc" stroke="#3a2412" stroke-width="1.200" stroke-linejoin="round"/><path d="M8 11q2 8 12 9" fill="none" stroke="#fff8e6" stroke-width="1" opacity=".8"/><ellipse cx="25.500" cy="19" rx="3" ry="6.500" fill="#3a2a1a" stroke="#c9962a" stroke-width="1.600"/><path d="M19 16.500l.5 8M14 15l-.5 8" stroke="#c9962a" stroke-width="1.800"/><path d="M3 8.500l3-2l2 3l-3 1.500z" fill="#c9962a" stroke="#3a2412" stroke-width=".9"/><path d="M10 28q3-4 8-3q-3 3-8 3zM2 18q1-4 4-3q0 3-4 3z" fill="#3f7a3a" stroke="#1e4a1c" stroke-width=".9"/>',
