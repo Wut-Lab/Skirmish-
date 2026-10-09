@@ -369,6 +369,7 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .u.mule:not(.blessed):not(.rallied){box-shadow:0 0 0 2px rgba(240,220,190,.9),0 0 9px 3px rgba(150,95,45,.8),var(--bev)}
 .u.champ::before{content:"\2726";position:absolute;bottom:-5px;left:-5px;width:16px;height:16px;border-radius:50%;background:#fff6c8;color:#8a6418;font-size:.7rem;font-weight:800;line-height:16px;text-align:center;box-shadow:0 0 0 1.5px #8a6418,0 0 8px 2px rgba(255,236,150,.8);z-index:3}
 .gchip span{display:flex;gap:3px;flex-wrap:wrap;margin-top:2px}.gci{width:26px;height:26px;padding:0;border:0;border-radius:50%;background:#f4ead2;display:grid;place-items:center;cursor:pointer;box-shadow:0 0 0 1px rgba(0,0,0,.35)}
+.u.usurp::before{content:"\265B";position:absolute;bottom:-5px;left:-5px;width:16px;height:16px;border-radius:50%;background:#2a1a26;color:#e0a0b0;font-size:.62rem;line-height:16px;text-align:center;box-shadow:0 0 0 1.5px #b0182a,0 0 8px 2px rgba(120,30,60,.7);z-index:3} /* a Usurper piece: a dark crown */
 .u.elite{box-shadow:0 0 0 2.500px #e8c050,0 0 0 4px rgba(90,60,10,.85),0 0 10px 3px rgba(240,200,80,.55),var(--bev)}
 .evart svg{display:block;width:100%;height:auto;border-radius:8px;border:2px solid #1a0f07;box-shadow:0 2px 0 #1a0f07;margin-bottom:10px}
 .u.redglow svg{filter:drop-shadow(0 0 3px rgba(225,40,40,.85))}
@@ -667,9 +668,12 @@ const RELICS={
  keep:{name:"Banner of the Fallen Keep",r:2,src:"boss",desc:"At the start of each battle, one of your units, chosen at random, gets +1 armor for the whole battle."},
  ram:{name:"Siege Ram",r:1,src:"boss",desc:"Your units deal +2 damage to enemies standing on fortress tiles."},
  chest:{name:"Boss's War Chest",r:1,src:"boss",desc:"50 gold right away, and everything at Marcus's wagon costs 10% less."},
- csword:{name:"Shimmering Sword of the Champion",r:2,src:"boss",desc:"At the start of each battle, a random unit above half health becomes the champion: +1 damage, +1 pierce, and after a blow lands it can step 1 tile. Every Champion piece you carry goes to the same unit."},
- cshield:{name:"Shimmering Shield of the Champion",r:1,src:"both",desc:"At the start of each battle, a random unit above half health takes up the shield: attacks against it have 1 less pierce, and it heals 1 HP. Every Champion piece you carry goes to the same unit."},
- ccloak:{name:"Shimmering Cloak of the Champion",r:2,src:"both",desc:"At the start of each battle, a random unit dons the cloak: once per battle it can teleport to an open tile on the far edge instead of moving. Every Champion piece you carry goes to the same unit, and one with the Sword, Shield and Cloak becomes The Champion (+5% evasion)."},
+ csword:{name:"Shimmering Sword of the Champion",r:2,src:"boss",set:"champion",desc:"At the start of each battle, a random unit above half health becomes the champion: +1 damage, +1 pierce, and after a blow lands it can step 1 tile. Every Champion piece you carry goes to the same unit."},
+ cshield:{name:"Shimmering Shield of the Champion",r:1,src:"both",set:"champion",desc:"At the start of each battle, a random unit above half health takes up the shield: attacks against it have 1 less pierce, and it heals 1 HP. Every Champion piece you carry goes to the same unit."},
+ ccloak:{name:"Shimmering Cloak of the Champion",r:2,src:"both",set:"champion",desc:"At the start of each battle, a random unit dons the cloak: once per battle it can teleport to an open tile on the far edge instead of moving. Every Champion piece you carry goes to the same unit, and one with the Sword, Shield and Cloak becomes The Champion (+5% evasion)."},
+ ublade:{name:"Tarnished Blade of the Usurper",r:2,src:"boss",set:"usurper",lock:"ublade",excl:"csword",desc:"At the start of each battle, your most wounded unit takes up the blade: +1 damage, and +1 pierce against enemies above half health. Each blow it lands heals it 1 HP, and after a blow lands you can shove the target 1 tile in any open direction. Every Usurper piece you carry goes to the same unit. It can't be carried alongside the Champion's Sword."},
+ ubulwark:{name:"Tarnished Bulwark of the Usurper",r:1,src:"both",set:"usurper",desc:"At the start of each battle, your most wounded unit takes up the bulwark: it heals 1 HP, and an adjacent enemy that lands a blow on it takes 1 damage, ignoring armor. Every Usurper piece you carry goes to the same unit."},
+ ushroud:{name:"Tarnished Shroud of the Usurper",r:2,src:"both",set:"usurper",desc:"At the start of each battle, your most wounded unit wraps itself in the shroud: once per battle, when it would fall, it melts into shadow instead, surviving with 1 HP on an open tile at your back edge. Every Usurper piece you carry goes to the same unit, and one with the Blade, Bulwark and Shroud becomes The Usurper (+1 damage once one of your units has fallen that battle)."},
  crown:{name:"Hollow King's Crown",r:2,src:"boss",desc:"Cursed. Your units deal +1 damage with +1 pierce, but at the end of each of your turns the crown feeds: one of your units, chosen at random, loses 1 HP (it never takes the last). It was a king's once. The king is still in there, somewhere, and he is so very hungry."},
  blossom:{name:"Cherry Blossom Blade",r:2,src:"boss",get desc(){return unlocks.cherry // the Cherry Grove reveals what the blade remembers
    ?"Last Bloom: when one of your units falls, your units beside it get +1 damage for the rest of the battle (+2 if it fell in a Cherry Grove). Forged beneath the cherry boughs, where every petal falls too soon. It remembers each one."
@@ -677,17 +681,17 @@ const RELICS={
  statue:{name:"Bleeding Statue",r:2,src:"both",desc:"At the start of each battle, one random unit on each side begins to bleed: it loses 1 HP at the end of each of its side's turns (never the last). Your bleeding unit stops bleeding once it lands a kill. Blood perpetually leaks from its eyes. The blood has to come from somewhere."},
  eldritch:{name:"Weak Eldritch Token",r:0,src:"shop",desc:"First Blood Pact: your units deal +1 damage to enemies at full health, but take +1 damage while they are at full health themselves. Cold to the touch, and faintly humming. Whatever it bargains with is very small. For now."},
  token:{name:"Marcus's Loyalty Token",r:2,src:"shop",desc:"Everything at Marcus's wagon costs 20% less."},
- rock:{name:"Improvised Weapon (Rock)",r:0,need:["P","E","N"],desc:"Your Apothecaries, Enchanters and Banner Bearers deal +1 damage while at a third of their health or less. Desperate times."},
- stick:{name:"Improvised Weapon (Long Stick)",r:0,need:["P","E","N"],desc:"Poke and Back Off: after attacking, your Apothecaries, Enchanters and Banner Bearers at a third of their health or less can step 1 tile. Poke it, then run."},
- hide:{name:"Improvised Armor (Hide Behind Knight)",r:0,need:["P","E","N"],desc:"Your Apothecaries, Enchanters and Banner Bearers get +1 armor while at a third of their health or less and next to one of your Knights."},
+ rock:{name:"Improvised Weapon (Rock)",r:0,set:"improvised",need:["P","E","N"],desc:"Your Apothecaries, Enchanters and Banner Bearers deal +1 damage while at a third of their health or less. Desperate times."},
+ stick:{name:"Improvised Weapon (Long Stick)",r:0,set:"improvised",need:["P","E","N"],desc:"Poke and Back Off: after attacking, your Apothecaries, Enchanters and Banner Bearers at a third of their health or less can step 1 tile. Poke it, then run."},
+ hide:{name:"Improvised Armor (Hide Behind Knight)",r:0,set:"improvised",need:["P","E","N"],desc:"Your Apothecaries, Enchanters and Banner Bearers get +1 armor while at a third of their health or less and next to one of your Knights."},
  warm:{name:"Warm Mug",r:1,src:"both",lock:"campsite",desc:"Rested: the first time you leave Herbert's camp in a battle, all your units get +2% evasion until the end of the enemy's next turn. Still warm. It's always still warm."},
  spurs:{name:"Spurs",r:0,src:"shop",need:"C",desc:"Your Cavalry deal +1 damage when they attack after moving that turn."},
  grog:{name:"Flask of Liquid Courage",r:1,src:"both",desc:"Cursed. All your units deal +1 damage, and take +1 damage. Courage cuts both ways."},
  pebble:{name:"Lucky Pebble",r:0,desc:"All your units get +1% evasion. Found in a boot. Probably lucky."},
  warpaint:{name:"Berserker's Warpaint",r:1,src:"both",desc:"Cursed. All your units deal +1 damage, but they never retaliate. No time to parry when you're busy screaming."},
  keen:{name:"Keen Eye Charm",r:0,desc:"Your ranged attacks (range 2 or more) ignore 3% of the target's evasion."},
- redtome:{name:"Tome of the Red Mages' College",r:1,src:"both",need:"E",desc:"Your Enchanters glow a faint red. Their attacks deal +1 damage, but cost them 1 HP each (never the last). Slowing is unaffected."},
- blacktome:{name:"Tome of the Black Mages' College",r:1,src:"both",need:"E",desc:"Your Enchanters siphon life: a landed attack heals them 1 HP, and they deal +1 damage to a target that is already slowed."},
+ redtome:{name:"Tome of the Red Mages' College",r:1,set:"tomes",src:"both",need:"E",desc:"Your Enchanters glow a faint red. Their attacks deal +1 damage, but cost them 1 HP each (never the last). Slowing is unaffected."},
+ blacktome:{name:"Tome of the Black Mages' College",r:1,set:"tomes",src:"both",need:"E",desc:"Your Enchanters siphon life: a landed attack heals them 1 HP, and they deal +1 damage to a target that is already slowed."},
  whet:{name:"Whetstones",r:0,src:"both",desc:"Archers deal +1 damage."},
  shield:{name:"Sturdy Shields",r:0,desc:"Knights get +1 armor."},
  rations:{name:"Trail Rations",r:0,src:"both",desc:"Your units heal 1 extra HP after each battle."},
@@ -713,6 +717,14 @@ const RELICS={
  mug:{name:"Herbert's Mug",r:2,desc:"Once per battle, the first of your units to fall survives with 1 HP instead."},
  cap:{name:"Herbert's Nightcap",r:2,desc:"Once per battle, the first of your units to drop to half HP or less (without falling) heals 2 HP."}};
 const CALT_ART='<i class="calt"><svg viewBox="0 0 40 40" aria-hidden="true">'+[[11,12,0],[27,9,40],[19,22,20],[8,30,65],[31,28,10],[23,34,50]].map(([x,y,r])=>`<g transform="translate(${x} ${y}) rotate(${r})"><path d="M0 0L0-4.500M0 0L3.900 2.200M0 0L-3.900 2.200" stroke="#26262c" stroke-width="1.700" stroke-linecap="round"/><path d="M0 0L0-4.500" stroke="#b8bcc4" stroke-width=".6" stroke-linecap="round"/><circle r="1.100" fill="#4a4a52"/></g>`).join("")+'</svg></i>';
+// relics made to work as a group (set: on the relic). The relic card names the set; the Relic Sets page reads this table too.
+const RELIC_SETS={
+ champion:{name:"Regalia of the Shimmering Champion",rule:"Every piece you carry goes to one random unit above half health (never a mercenary or the Angry Chicken).",bonus:"All three: The Champion, +5% evasion."},
+ usurper:{name:"Tarnished Regalia of the Usurper",rule:"Every piece you carry goes to one unit at or below half health, or your most wounded (never a mercenary, the Angry Chicken or a Champion bearer).",bonus:"All three: The Usurper, +1 damage once one of your units has fallen that battle."},
+ improvised:{name:"Improvised Arms",rule:"For your Apothecaries, Enchanters and Banner Bearers at a third of their health or less.",bonus:"No set bonus: each covers a different need, so together a cornered healer hits back, slips away and hides behind a Knight."},
+ tomes:{name:"Tomes of the Mages' College",rule:"For your Enchanters.",bonus:"No set bonus: the Black Tome's healing pays the Red Tome's toll."}};
+// excl: a relic that can't be carried alongside another (the two swords)
+const clash=(id,have)=>have.some(r=>RELICS[r].excl===id||RELICS[id].excl===r);
 const RARITY=[["Common","#8a8f96"],["Uncommon","#3f9a5a"],["Rare","#c9962a"]],RARITY_W=[60,30,10];
 let RELIC=new Set(),FOE_RELIC=new Set(),FOE_ITEMS=[],relicUsed={},firstTurn=true,pturn=1; // relics active in the current battle (campaign only), which once-per-battle ones have fired, and whether it is still your opening turn (Boots of a Forced March); pturn: your turn number (Font of the Wise Ones blessings)
 const rel=(u,id)=>u.team==="y"?RELIC.has(id):u.team==="f"&&FOE_RELIC.has(id); // the enemy can carry relics too (boss battles)
@@ -1113,6 +1125,10 @@ const ICON={
  R:'<svg viewBox="0 0 40 40"><path d="M9 31L19 17l10 14M12 27h14" stroke="rgba(0,0,0,.3)" stroke-width="4.0" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M9 31L19 17l10 14M12 27h14" stroke="var(--ic)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M8 9l17 13" stroke="rgba(0,0,0,.3)" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M8 9l17 13" stroke="var(--ic)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M8 9q-2.200 6.500 2 10" stroke="rgba(0,0,0,.3)" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M8 9q-2.200 6.500 2 10" stroke="var(--ic)" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" fill="none"/><rect x="22.500" y="20.500" width="7.500" height="8.500" rx="1.200" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round" transform="rotate(-38 26 25)"/><path d="M23.400 24.600l5.200-4M25 26.600l5.200-4" stroke="var(--tc)" stroke-width=".9" opacity=".6"/><circle cx="10.200" cy="19.800" r="2.600" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><circle cx="9.400" cy="19" r=".8" fill="var(--tc)" opacity=".5"/><circle cx="19" cy="17" r="1.700" fill="var(--tc)"/><circle cx="12" cy="33" r="2.700" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><circle cx="27" cy="33" r="2.700" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><circle cx="12" cy="33" r=".9" fill="var(--tc)"/><circle cx="27" cy="33" r=".9" fill="var(--tc)"/></svg>'};
 // The Champion (a unit bearing the Shimmering Sword, Shield and Cloak): an ornate crested great helm
 const CHAMP_ICON='<svg viewBox="0 0 40 40"><path d="M20 2q-3 3-2 7q4-1 6 2q2-5-1-8q0 3-3 3q1-2 0-4z" fill="#e8c050" stroke="#6a4c10" stroke-width=".6" stroke-linejoin="round"/><path d="M9 19q0-10 11-10t11 10v10q0 6-11 8q-11-2-11-8z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M20 9q11 0 11 10v10q0 6-11 8q4-8 4-18t-4-10z" fill="rgba(0,0,0,.17)"/><path d="M9 19q11-5 22 0" stroke="#e8c050" stroke-width="2.200" fill="none"/><path d="M20 9v8" stroke="#e8c050" stroke-width="1.800"/><path d="M12 22h16v3H12z" fill="var(--tc)"/><path d="M15 28h1.600v5H15zM19.200 28h1.600v6h-1.600zM23.400 28h1.600v5h-1.600z" fill="var(--tc)"/><path d="M9 29q11 5 22 0" stroke="#e8c050" stroke-width="1.600" fill="none"/><circle cx="20" cy="13" r="1.500" fill="#e8c050" stroke="#6a4c10" stroke-width=".5"/><path d="M12 17q1.500-5 6.500-6.500" stroke="#fff" stroke-width="1.100" fill="none" opacity=".45" stroke-linecap="round"/></svg>';
+// The Usurper (a unit bearing the Tarnished Blade, Bulwark and Shroud): a scowling helm under a cracked crown
+const USURP_ICON='<svg viewBox="0 0 40 40"><path d="M10.500 11l-1-7 4.300 3.200 3-4.200 3.200 4 3.200-4 3 4.200 4.300-3.200-1 7z" fill="#8a6a34" stroke="#2a1a0a" stroke-width=".7" stroke-linejoin="round"/><path d="M22.400 3.800l-1.200 2.800 1.300 1.600-1 2.400" stroke="#2a1a0a" stroke-width=".8" fill="none"/><circle cx="16.300" cy="8.600" r="1" fill="#b0182a"/><circle cx="24" cy="8.600" r="1" fill="#b0182a"/>'
+ +'<path d="M9 20q0-9.500 11-9.500t11 9.500v9q0 6.500-11 8.500q-11-2-11-8.500z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M20 10.500q11 0 11 9.500v9q0 6.500-11 8.500q4-8 4-18t-4-9z" fill="rgba(0,0,0,.17)"/>'
+ +'<path d="M11.500 20.500l7 2.400v2.600l-7-1.800zM28.500 20.500l-7 2.400v2.600l7-1.800z" fill="var(--tc)"/><path d="M19 26h2v8h-2z" fill="var(--tc)"/><path d="M9.500 29.500q10.500 4.500 21 0" stroke="#8a6a34" stroke-width="1.600" fill="none"/><path d="M12 18q1.500-5 6.500-6.400" stroke="#fff" stroke-width="1.100" fill="none" opacity=".4" stroke-linecap="round"/></svg>';
 ICON.W='<svg viewBox="0 0 40 40"><path d="M7 9l8.500 7h9l8.500-7-1.800 15.500-8 11.500h-6.400l-8-11.500z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M9 11l4 5M31 11l-4 5" stroke="var(--tc)" stroke-width="1.100" opacity=".5" stroke-linecap="round"/><path d="M20 16h4.500l8.500-7-1.800 15.500-8 11.500H20z" fill="rgba(0,0,0,.17)"/><path d="M12 24l3 2M28 24l-3 2" stroke="var(--tc)" stroke-width=".8" opacity=".55"/><path d="M13.300 21.800l3.700 1.200M26.700 21.800L23 23" stroke="var(--tc)" stroke-width="1.300" stroke-linecap="round"/><circle cx="15.400" cy="23.700" r="1.500" fill="var(--tc)"/><circle cx="24.600" cy="23.700" r="1.500" fill="var(--tc)"/><path d="M17.300 30h5.400l-2.700 3.200z" fill="var(--tc)"/><path d="M20 33.200v1.800" stroke="var(--tc)" stroke-width=".8"/></svg>';
 ICON.B='<svg viewBox="0 0 40 40"><circle cx="10.500" cy="11" r="4.600" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><circle cx="29.500" cy="11" r="4.600" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><circle cx="10.500" cy="11" r="2" fill="var(--tc)" opacity=".45"/><circle cx="29.500" cy="11" r="2" fill="var(--tc)" opacity=".45"/><ellipse cx="20" cy="23" rx="13" ry="12" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M20 11a13 12 0 0113 12a13 12 0 01-13 12q5-6 5-12t-5-12z" fill="rgba(0,0,0,.17)"/><path d="M12.500 18.200l3.800 1M27.500 18.200l-3.800 1" stroke="var(--tc)" stroke-width="1.200" stroke-linecap="round"/><circle cx="15" cy="20.500" r="1.800" fill="var(--tc)"/><circle cx="25" cy="20.500" r="1.800" fill="var(--tc)"/><ellipse cx="20" cy="28.200" rx="5.400" ry="3.800" fill="var(--tc)" opacity=".35"/><path d="M17.600 26.300h4.800l-2.400 2.400z" fill="var(--tc)"/><path d="M20 28.700v2M18 31q2 1.200 4 0" stroke="var(--tc)" stroke-width=".9" fill="none" stroke-linecap="round"/></svg>';
 ICON.G='<svg viewBox="0 0 40 40"><path d="M10.500 21q-6-3-6.500-11q3.500 3 6.500 4q-1.500-5 1-9q2 4.500 4.500 7q.5-4 3-6q1 5 0 9z" fill="var(--ic)" stroke="rgba(0,0,0,.28)" stroke-width=".8" stroke-linejoin="round"/><path d="M6 11q2.500 4 5.500 6M11.500 7q1 5 3.500 8" stroke="var(--tc)" stroke-width=".9" fill="none" opacity=".45" stroke-linecap="round"/><path d="M8.500 21q0-8 9-9.500h3q.5-5.500 5.500-6q5 0 6 5.500v2.500q2.500 9-4.500 13q-5 3-11 2q-8-1.500-8-7.500z" fill="var(--ic)" stroke="rgba(0,0,0,.28)" stroke-width=".8" stroke-linejoin="round"/><path d="M11 25q5 4.500 13 2.500q4-1.500 5.500-5" stroke="rgba(0,0,0,.2)" stroke-width="2.400" fill="none" stroke-linecap="round"/><path d="M13.500 19.500q5-3.500 11 0q-1.500 6-8.500 5.500q2-2.500-2.500-5.500z" fill="var(--ic)" stroke="var(--tc)" stroke-width="1" stroke-linejoin="round"/><path d="M16.500 22.500q3 .5 5.500-1M17.500 24.500q2.500 0 4.500-1" stroke="var(--tc)" stroke-width=".8" fill="none" opacity=".6" stroke-linecap="round"/><path d="M22.500 6.500q-.5-3.500 2-3.500q1 1.500.8 2.800q1.200-2.800 3.400-2.300q.6 2-.6 3.400q2.200-.6 3 1.400l-3.600 1.400z" fill="#d8352a" stroke="#6a1410" stroke-width=".6" stroke-linejoin="round"/><path d="M31.500 10l5 1.800l-5 1.700z" fill="#f2a52e" stroke="#6a4010" stroke-width=".6" stroke-linejoin="round"/><path d="M31 13.500q1.500 3.500-.5 4.500q-1.800-1-.7-4.500z" fill="#d8352a" stroke="#6a1410" stroke-width=".5"/><circle cx="28" cy="10.300" r="1.500" fill="var(--tc)"/><circle cx="28.400" cy="9.900" r=".45" fill="#fff"/><path d="M25.200 7.600l5 2" stroke="var(--tc)" stroke-width="1.600" stroke-linecap="round"/><path d="M16.500 31l-1 5M22 31l1 5" stroke="#e8962a" stroke-width="1.800" stroke-linecap="round"/><path d="M13 36.200h4.500M20.500 36.200h4.500M15.500 36l-2-1.600M23 36l2-1.600" stroke="#e8962a" stroke-width="1.300" stroke-linecap="round"/></svg>';
@@ -1274,6 +1290,8 @@ function combat(a,b,from=a){
   add("Last Bloom",a.bloom||0);
   add("First Blood Pact",(rel(a,"eldritch")&&b.team!=="y"&&b.hp>=maxHp(b)?1:0)+(rel(b,"eldritch")&&a.team!=="y"&&b.hp>=maxHp(b)?1:0)); // Weak Eldritch Token: both ways
   add("Champion's Sword",a.champ?1:0);
+  add("Usurper's Blade",a.ublade?1:0);
+  add("The Usurper",a.vengeance?1:0); // a comrade has fallen
   add("War Drum",a.team==="y"&&turn==="y"&&a.drum===pturn?1:0);
   add("Hollow King's Crown",rel(a,"crown")?1:0);
   add("Improvised Weapon",desperate(a,"rock")?1:0);
@@ -1285,7 +1303,7 @@ function combat(a,b,from=a){
   add("Elite",a.elite?1:0);
   const armor=[["Armor",B.ar||0],["Padded Armor",b.t==="A"&&mods[b.team]==="PAD"?1:0],["Forest Tactics",mods[b.team]==="FT"&&A.rg>1&&WOODS(k)?1:0],["Fortress",FORT.has(k)?1:0],["Sturdy Shields",b.t==="K"&&rel(b,"shield")?1:0],["Barding",b.t==="C"&&rel(b,"bard")?1:0],["Banner of the Fallen Keep",b.keep?1:0],["Stubborn as a Mule",muled(b)?MULE_AR:0],["Improvised Armor",desperate(b,"hide")&&units.some(v=>v.team===b.team&&v.t==="K"&&d(v,b)===1)?1:0]];
   armor.forEach(([l,v])=>add(l,-v));
-  add("Pierce",Math.min(Math.max(0,(A.pi||0)+(rel(a,"bluemagma")?1:0)+(rel(a,"crown")?1:0)+(a.champ?1:0)-(b.cshield?1:0)),armor.reduce((t,x)=>t+x[1],0))); // Blue Magma and the Champion's Sword add pierce; the Champion's Shield turns 1 aside
+  add("Pierce",Math.min(Math.max(0,(A.pi||0)+(rel(a,"bluemagma")?1:0)+(rel(a,"crown")?1:0)+(a.champ?1:0)+(a.ublade&&b.hp>maxHp(b)/2?1:0)-(b.cshield?1:0)),armor.reduce((t,x)=>t+x[1],0))); // Blue Magma and the Champion's Sword add pierce, the Usurper's Blade against the healthy; the Champion's Shield turns 1 aside
   add("Pavise",b.t==="A"&&A.rg>1&&rel(b,"pavise")?-1:0); // a shield wall, not armor: pierce can't get past it
   const ev=Math.max(0,-(rel(a,"keen")&&rgOf(a)>1?KEEN_EV:0)+Math.min(EV_CAP,(B.ev||0)+(rel(b,"luck")?.05:0)+(b.trio?TRIO_EV:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(rel(b,"sakurafan")&&[...blastOf(k),[b.x,b.y]].some(([x,y])=>CHERRY.has(x+","+y))?FAN_EV:0)+(blessed(b)?BLESS_EV:0)+(rested(b)?REST_EV:0)+(rel(b,"pebble")?PEBBLE_EV:0)+(rallied(b)?RALLY_EV:0)+(b.team==="y"&&SMOKE.has(k)?SMOKE_EV:0)+(WOODS(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0))); // Keen Eye Charm: ranged attacks see through a little of it
   return {dmg:Math.max(1,parts.reduce((t,p)=>t+p[1],0)),hit:1-ev,parts}; // every hit deals at least 1
@@ -1392,7 +1410,8 @@ function render(){
   board.classList.toggle("murky",MURKY);board.classList.toggle("haunted",HAUNTED);board.classList.toggle("volcanic",VOLCANIC);
   const mv=new Set(),tg=new Set(),ig=new Set(),ir=new Set(),pr=new Set(),hs=new Set(),bt=new Set(),it=mode&&mode.startsWith("item:")&&sel&&turn==="y"?itemTargets(sel,mode.slice(5)):new Set();
   if(sel&&turn==="y"&&!over){
-    if(mode==="tp"||mode==="ctp")farRow("y").forEach(p=>mv.add(p+""));
+    if(mode==="ushove"&&shoveT)shoveT.ds.forEach(k=>mv.add(k));
+    else if(mode==="tp"||mode==="ctp")farRow("y").forEach(p=>mv.add(p+""));
     else if(mode==="push")units.filter(b=>b.team==="y"&&pushable(sel,b)).forEach(b=>tg.add(b));
     else{
       const rc=sel.moved?[]:reach(sel);
@@ -1424,7 +1443,7 @@ function render(){
     html+=`<button class="${cls}" data-x="${x}" data-y="${y}"${pd&&pd.k===k?` data-arrow="${pd.a}"`:""} aria-label="${label.replace(/"/g,"&quot;")}">`
       +'<i class="lt"></i>'+tileArt(x,y)+(fr?'<i class="tint"></i>':"")+(SMOKE.has(k)?'<i class="smoke"></i>':"")+(CALTROPS.has(k)?CALT_ART:"")+joins(x,y); // fortress art covers its tile, so highlights go on a see-through layer above it
     if(u){
-      let uc="u "+u.team+(u.merc?" merc":"")+(u.auto&&u.team==="y"?" free":spent(u)?" done":"")+(u.slow?" slow":"")+(inspired(u)?" insp":"")+(blessed(u)||rested(u)?" blessed":"")+(u.t==="E"&&rel(u,"redtome")?" redglow":"")+(rallied(u)?" rallied":"")+(muled(u)?" mule":"")+(u.elite?" elite":"")+(u.champ||u.cshield?" champ":"")+(u===sel||u===insp?" sel":""),mvs="";
+      let uc="u "+u.team+(u.merc?" merc":"")+(u.auto&&u.team==="y"?" free":spent(u)?" done":"")+(u.slow?" slow":"")+(inspired(u)?" insp":"")+(blessed(u)||rested(u)?" blessed":"")+(u.t==="E"&&rel(u,"redtome")?" redglow":"")+(rallied(u)?" rallied":"")+(muled(u)?" mule":"")+(u.elite?" elite":"")+(u.champ||u.cshield?" champ":"")+(u.ublade||u.ubulwark||u.ushroud?" usurp":"")+(u===sel||u===insp?" sel":""),mvs="";
       if(u.spawn){uc+=" tpin";delete u.spawn}
       const pp=prevPos.get(u);prevPos.set(u,[x,y]);
       if(pp&&(pp[0]!==x||pp[1]!==y)){ // slide in from where it was last drawn (a long jump fades in instead)
@@ -1433,7 +1452,7 @@ function render(){
         else{uc+=" mv";stepped=1;mvs=`;--dx:${ddx*122}%;--dy:${ddy*122}%;--dur:${.1+.06*dist}s`}
       }
       const c=COLORS[col[u.team]],hr=u.hp/maxHp(u),bg=u.auto&&!u.merc?`color-mix(in srgb,${c[1]} 55%,#fff)`:c[1]; // units that act on their own wear a lighter shade
-      html+=`<div class="${uc}" data-t="${u.t}" data-team="${u.team}" style="background:${bg};--tc:${bg};--ic:${c[2]}${mvs}">${u.merc?'<b class="ms"></b>':""}${u.trio?CHAMP_ICON:ICON[u.t]}</div>`
+      html+=`<div class="${uc}" data-t="${u.t}" data-team="${u.team}" style="background:${bg};--tc:${bg};--ic:${c[2]}${mvs}">${u.merc?'<b class="ms"></b>':""}${u.trio?CHAMP_ICON:u.utrio?USURP_ICON:ICON[u.t]}</div>`
         +`<div class="hp"><i style="width:${100*hr}%;background-color:${hr>.5?"#5fd068":hr>.25?"#f0c33a":"#ee5a45"}"></i></div>`;
     }
     html+="</button>";
@@ -1504,10 +1523,14 @@ function renderInfo(){
   if(u.cshield)notes.push("Champion's Shield: attacks against it have 1 less pierce.");
   if(u.cloak)notes.push(u.cloakUsed?"Champion's Cloak: its teleport is spent.":"Champion's Cloak: can teleport to the far edge once this battle.");
   if(u.trio)notes.push("The Champion: Sword, Shield and Cloak together, +5% evasion.");
+  if(u.ublade)notes.push("Usurper's Blade: +1 damage, +1 pierce against enemies above half health; a landed blow heals it 1 HP and can shove the target 1 tile.");
+  if(u.ubulwark)notes.push("Usurper's Bulwark: an adjacent enemy that lands a blow on it takes 1 damage.");
+  if(u.ushroud)notes.push(u.shroudUsed?"Usurper's Shroud: its escape is spent.":"Usurper's Shroud: once this battle, a fatal blow sends it into shadow at its own edge instead.");
+  if(u.utrio)notes.push(u.vengeance?"The Usurper: +1 damage, for a fallen comrade.":"The Usurper: +1 damage once one of its comrades falls.");
   if(u.bloom)notes.push(`Last Bloom: +${u.bloom} damage this battle, for a fallen comrade.`);
-  const stats=[["Move",mvOf(u)],["Range",rangeTxt({...T,rg:rgOf(u)})],["Damage",T.dmg+(u.t==="A"&&rel(u,"whet")?1:0)+(u.bloom||0)+(u.champ?1:0)+(inspired(u)?"+1":"")],["Armor",arm],["Pierce",T.pi||0],["Evasion",pct(T.ev||0)]].map(([k,v])=>`<span class="stat${v===0||v==="0%"?" nil":""}">${k} <b>${v}</b></span>`).join(""); // the same six stats on every card, zeros dimmed
+  const stats=[["Move",mvOf(u)],["Range",rangeTxt({...T,rg:rgOf(u)})],["Damage",T.dmg+(u.t==="A"&&rel(u,"whet")?1:0)+(u.bloom||0)+(u.champ?1:0)+(u.ublade?1:0)+(u.vengeance?1:0)+(inspired(u)?"+1":"")],["Armor",arm],["Pierce",T.pi||0],["Evasion",pct(T.ev||0)]].map(([k,v])=>`<span class="stat${v===0||v==="0%"?" nil":""}">${k} <b>${v}</b></span>`).join(""); // the same six stats on every card, zeros dimmed
   el.className="pb";el.style.borderLeft=`8px solid ${c[1]}`;
-  el.innerHTML=`<div class="lbl">Unit</div><div class="row top"><div class="pv">${u.trio?disc(u.t,c).replace(ICON[u.t],CHAMP_ICON):disc(u.t,c,u.merc,u.auto&&u.team==="y")}</div><div class="ib"><div class="nm"><strong>${u.merc?u.mname:hero?heroName(u.ci):cap(NAME[u.t])}</strong><span>${u.trio?"The Champion":u.merc?(u.team==="y"?"Your mercenary ":"Enemy mercenary ")+NAME[u.t]:hero?cap(NAME[u.t]):u.team==="y"?"Your unit":u.team==="w"?"Wild":"Enemy"}</span></div><div class="hprow"><span>HP</span><b>${u.hp} / ${maxHp(u)}</b></div><div class="hpb"><i style="width:${100*r}%;background:${r>.5?"#4caf50":r>.25?"#e0b21c":"#d64b3a"}"></i></div><div class="stats">${stats}</div>${notes.map(n=>`<small>${n}</small>`).join("")}</div></div>`;
+  el.innerHTML=`<div class="lbl">Unit</div><div class="row top"><div class="pv">${u.trio||u.utrio?disc(u.t,c).replace(ICON[u.t],u.trio?CHAMP_ICON:USURP_ICON):disc(u.t,c,u.merc,u.auto&&u.team==="y")}</div><div class="ib"><div class="nm"><strong>${u.merc?u.mname:hero?heroName(u.ci):cap(NAME[u.t])}</strong><span>${u.trio?"The Champion":u.utrio?"The Usurper":u.merc?(u.team==="y"?"Your mercenary ":"Enemy mercenary ")+NAME[u.t]:hero?cap(NAME[u.t]):u.team==="y"?"Your unit":u.team==="w"?"Wild":"Enemy"}</span></div><div class="hprow"><span>HP</span><b>${u.hp} / ${maxHp(u)}</b></div><div class="hpb"><i style="width:${100*r}%;background:${r>.5?"#4caf50":r>.25?"#e0b21c":"#d64b3a"}"></i></div><div class="stats">${stats}</div>${notes.map(n=>`<small>${n}</small>`).join("")}</div></div>`;
 }
 function floatText(x,y,t,miss){
   const p=document.createElement("div");p.className="pop"+(miss===true?" miss":miss==="heal"?" heal":miss==="slow"?" slow":miss==="thanks"?" thanks":miss==="bless"?" bless":miss==="rally"?" rally":"");p.textContent=t;
@@ -1613,6 +1636,7 @@ function click(x,y){
   bchoice=null;choiceMv=null;
   tile={x,y};
   if(over||busy||turn!=="y"||!units.length)return render();
+  if(mode==="ushove"&&shoveT)return endShove(x,y);
   if(mode&&mode.startsWith("item:")&&sel){const id=mode.slice(5);if(itemTargets(sel,id).has(x+","+y)){if(id!=="caltrops")return useItem(sel,id,x,y);bchoice={x,y,calt:1,dir:"h"};say("Throw the caltrops across or down?");return render()}mode=null;say("Put the item away. Move, attack, or pick another unit.");return render()}
   if(CAMPS.has(x+","+y)&&sel&&!mode&&d(sel,{x,y})===1){bchoice={x,y,camp:1};say("Choose an action next to the camp site.");return render()}
   if(BARRELS.has(x+","+y)&&sel&&!mode&&!sel.acted&&canBreak(sel,x,y)){bchoice={x,y};say("Choose an action next to the barrels.");return render()}
@@ -1661,12 +1685,31 @@ function champRetreat(u){
   const best=DIRS.map(([dx,dy])=>[u.x+dx,u.y+dy]).filter(([x,y])=>open(x,y)).sort((p,q)=>far(q[0],q[1])-far(p[0],p[1]))[0];
   if(best&&far(...best)>far(u.x,u.y)){[u.x,u.y]=best;render()}
 }
+const shoveDests=t=>DIRS.map(([dx,dy])=>[t.x+dx,t.y+dy]).filter(([x,y])=>open(x,y)).map(p=>p+""); // where a shoved unit can go: any open neighbouring tile
+let shoveT=null; // a shove waiting for its tile: {a, t, ds, rest}
 function doAttack(a,u){
   a.acted=1;a.moved=1;sel=null;insp=null;locked=true;lastMove=null;
   attack(a,u,()=>{locked=false;info=units.includes(u)?u:null;
-    if(a.champStep&&units.includes(a)&&!over){delete a.champStep;a.moved=0;a.stepOnly=1;sel=a;info=a;say("The champion's blow landed: it can step 1 tile.")}
-    else if(units.includes(a)&&!over&&desperate(a,"stick")){a.moved=0;a.stepOnly=1;sel=a;info=a;say("Poke and back off: it can step 1 tile.")} // Long Stick
-    afterAction()});
+    const rest=()=>{
+      if(a.champStep&&units.includes(a)&&!over){delete a.champStep;a.moved=0;a.stepOnly=1;sel=a;info=a;say("The champion's blow landed: it can step 1 tile.")}
+      else if(units.includes(a)&&!over&&desperate(a,"stick")){a.moved=0;a.stepOnly=1;sel=a;info=a;say("Poke and back off: it can step 1 tile.")} // Long Stick
+      afterAction()};
+    const t=a.ushove;delete a.ushove;
+    if(t&&!over&&units.includes(a)&&units.includes(t)){const ds=shoveDests(t);
+      if(ds.length){shoveT={a,t,ds,rest};mode="ushove";sel=a;info=t;say(`The Usurper's blade landed: tap a marked tile to shove ${who(t)}, or tap anywhere else to leave it.`);return render()}}
+    rest()});
+}
+function endShove(x,y){ // a tile from shoveDests moves the target; anything else leaves it be
+  const s=shoveT;shoveT=null;mode=null;sel=null;
+  if(s.ds.includes(x+","+y)&&units.includes(s.t)){s.t.x=x;s.t.y=y;sfx("shove");say(`Shoved ${who(s.t)} 1 tile.`)}else say(`Left ${who(s.t)} where it stands.`);
+  s.rest();
+}
+// an enemy Usurper's Blade shoves your unit onto magma or into the mud, or away from its friends
+function usurpShove(u){
+  const t=u.ushove;delete u.ushove;if(!t||over||!units.includes(u)||!units.includes(t))return;
+  const sc=([x,y])=>{const k=x+","+y,near=(team,r)=>units.filter(v=>v!==t&&v.team===team&&Math.abs(v.x-x)+Math.abs(v.y-y)<=r).length;return (MAGMA.has(k)?6:0)+(SWAMP.has(k)?3:0)+2*near(u.team,1)-2*near(t.team,1)};
+  const best=shoveDests(t).map(pk).sort((p,q)=>sc(q)-sc(p))[0];
+  if(best&&sc(best)>sc([t.x,t.y])){[t.x,t.y]=best;sfx("shove");say(`The enemy ${NAME[u.t]} shoved ${who(t)} 1 tile.`);render()}
 }
 const blastOf=k=>{const[x,y]=pk(k),r=[];for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const a=x+dx,b=y+dy;if((dx||dy)&&a>=0&&b>=0&&a<W&&b<H)r.push([a,b])}return r}; // the 8 surrounding tiles
 const blastDmg=u=>Math.max(1,XB_DMG-(FORT.has(u.x+","+u.y)?1:0));
@@ -1969,11 +2012,17 @@ const who=u=>(u.team==="y"?"your ":u.team==="f"?"the enemy ":"the wild ")+NAME[u
 function hurt(u,n){
   const before=u.hp;u.hp-=n;floatText(u.x,u.y,"-"+n);
   if(u.hp<=0&&dandelionSaves(u,before)){u.hp=1;later(()=>{if(units.includes(u)){floatText(u.x,u.y,"Resisted","heal");sfx("bless")}},250)}
+  if(u.hp<=0&&u.ushroud&&!u.shroudUsed){ // the Usurper's Shroud: once, it melts into shadow and slips back to its own edge
+    u.shroudUsed=1;u.hp=1;const row=u.team==="y"?H-1:0,xs=[];for(let x=0;x<W;x++)if(open(x,row))xs.push(x);
+    if(xs.length){u.x=xs[Math.floor(Math.random()*xs.length)];u.y=row}
+    later(()=>{if(units.includes(u)){floatText(u.x,u.y,"Into Shadow","slow");sfx("warp")}},250);
+  }
   if(rel(u,"chicken")&&!relicUsed.chicken&&u.t!=="G")spawnChicken(u);
   else if(u.hp<=0&&rel(u,"mug")&&!relicUsed.mug){relicUsed.mug=1;u.hp=1;thanks(u)}
   else if(u.hp>0&&u.hp<=maxHp(u)/2&&rel(u,"cap")&&!relicUsed.cap){relicUsed.cap=1;const h=Math.min(2,maxHp(u)-u.hp);u.hp+=h;later(()=>floatText(u.x,u.y,"+"+h,"heal"),250);thanks(u)}
   if(u.hp>0){sfx("hit");return false}
   sfx("kill");units=units.filter(v=>v!==u);
+  units.filter(v=>v.team===u.team&&v.utrio&&!v.vengeance).forEach(v=>{v.vengeance=1;later(()=>{if(units.includes(v))floatText(v.x,v.y,"Vengeance +1","bless")},450)}); // The Usurper: the first comrade to fall
   if(rel(u,"blossom")){ // Cherry Blossom Blade: the fallen's courage passes to the comrades beside them
     const n=CHERRY.has(u.x+","+u.y)?2:1;
     units.filter(v=>v.team===u.team&&!v.auto&&d(u,v)===1).forEach(v=>{v.bloom=(v.bloom||0)+n;later(()=>{if(units.includes(v))floatText(v.x,v.y,"Last Bloom +"+n,"bless")},400)});
@@ -2020,11 +2069,14 @@ function hitFor(a,b,c,back){ // resolve one blow from a to b: dodge roll, damage
   if(Math.random()<1-c.hit){floatText(b.x,b.y,"Evade",true);sfx("evade");say(sent(who(b))+" evaded "+(back?"the retaliation.":"the attack."));return false}
   if(b.team==="y"&&b.t==="A"&&a.team!=="y"&&ST(a).rg>1){unlocks.ah=(unlocks.ah||0)+1;saveU();if(unlocks.ah>=10)unlock("pavise")} // archers under arrow fire learn to raise a wall
   if(a.champ&&!back)a.champStep=1; // the Champion's Sword: a step after a landed blow
+  const adj=d(a,b)===1;
   if(hurt(b,c.dmg)){credit(a,b);
     if(a.bleed&&rel(a,"statue")){delete a.bleed;later(()=>{if(units.includes(a))floatText(a.x,a.y,"Staunched","heal")},300)} // Bleeding Statue: a kill stops your own bleeding
     if(a.team==="y"&&units.some(v=>v!==a&&v.team==="y"&&d(v,b)===1)){unlocks.wp=(unlocks.wp||0)+1;saveU();if(unlocks.wp>=20)unlock("wolfpack")} // kills on a surrounded enemy teach the pack
     say(sent(who(a))+(back?" retaliated and destroyed ":" destroyed ")+who(b)+".")}
-  else say(sent(who(a))+(back?" retaliated against ":" hit ")+who(b)+" for "+c.dmg+" damage.");
+  else{say(sent(who(a))+(back?" retaliated against ":" hit ")+who(b)+" for "+c.dmg+" damage.");if(a.ublade&&!back&&!muled(b))a.ushove=b} // the Usurper's Blade: a shove after a landed blow
+  if(a.ublade&&units.includes(a)&&a.hp<maxHp(a)){a.hp+=1;later(()=>{if(units.includes(a))floatText(a.x,a.y,"+1","heal")},300)} // ...and it feeds its bearer
+  if(b.ubulwark&&adj&&a.team!==b.team&&units.includes(a)){later(()=>sfx("hit"),150);if(hurt(a,1))credit(b,a)} // the Usurper's Bulwark: thorns
   return true;
 }
 function applyAttack(a,b){
@@ -2154,9 +2206,9 @@ function wispsAct(){
 const ELITE_HP=2,ELITE_MAX=3,elitesFor=r=>r>=3?Math.min(ELITE_MAX,Math.floor((r-1)/2)):0;
 const bossRelicsFor=r=>r<2?0:r<4?1:r<8?2:2+Math.floor((r-6)/2),bossItemsFor=r=>r<6?0:Math.min(3,1+Math.floor((r-6)/2));
 // relics an enemy army can make use of (no player-only actions, once-per-battle tricks or gold), and the unit each needs
-const FOE_OK={csword:"",cshield:"",whet:"A",shield:"K",bard:"C",luck:"",long:"A",debris:"R",wolfpack:"",mercy:"",gauntlets:"",pavise:"A",pennant:"",hatchet:"",keep:"",ram:"",blossom:"",crown:"",statue:"",spurs:"C",grog:"",pebble:"",warpaint:""};
+const FOE_OK={csword:"",cshield:"",ublade:"",ubulwark:"",ushroud:"",whet:"A",shield:"K",bard:"C",luck:"",long:"A",debris:"R",wolfpack:"",mercy:"",gauntlets:"",pavise:"A",pennant:"",hatchet:"",keep:"",ram:"",blossom:"",crown:"",statue:"",spurs:"C",grog:"",pebble:"",warpaint:""};
 function foeLoadout(r){
-  const army=units.filter(u=>u.team==="f").map(u=>u.t),ok=id=>id in FOE_OK&&(!FOE_OK[id]||army.includes(FOE_OK[id]))&&!FOE_RELIC.has(id);
+  const army=units.filter(u=>u.team==="f").map(u=>u.t),ok=id=>id in FOE_OK&&(!FOE_OK[id]||army.includes(FOE_OK[id]))&&!FOE_RELIC.has(id)&&(!RELICS[id].lock||unlocks[RELICS[id].lock])&&!clash(id,[...FOE_RELIC]);
   const boss=Object.keys(RELICS).filter(id=>RELICS[id].src==="boss"&&ok(id)),other=Object.keys(RELICS).filter(id=>RELICS[id].src!=="boss"&&ok(id));
   const take=list=>{const c=list.filter(ok);if(c.length)FOE_RELIC.add(c[Math.floor(Math.random()*c.length)])};
   for(let i=0;i<bossRelicsFor(r);i++)take(i===0||(r>=6&&i===1)?boss:Math.random()<.5?boss:other); // the first (and from region 6 the second) always from the boss list
@@ -2374,7 +2426,7 @@ function enemyTurn(note=""){
         const c=ts.find(p=>pushable(u,p)&&dmgTo(u,p)<p.hp&&FOREST.has(pushDest(u,p)+"")&&pushDest(u,p)+""!==p.x+","+p.y);
         if(c){[c.x,c.y]=pushDest(u,c);pushed=true;sfx("shove");say("Enemy knight pushed your "+NAME[c.t]+" into a forest.")}
       }
-      if(!pushed){attack(u,ts[0],()=>{champRetreat(u);fin()});return}
+      if(!pushed){attack(u,ts[0],()=>{champRetreat(u);usurpShove(u);fin()});return}
     }
     fin();
   }
@@ -2869,7 +2921,7 @@ $("rand").onclick=()=>{pick.x=[];const P=poolNow();for(let i=0;i<EXTRAS;i++){let
 $("clr").onclick=()=>{pick.x=[];renderSetup()};
 $("randm").onclick=()=>{const k=Object.keys(MODS);pick.m=k[Math.floor(Math.random()*k.length)];renderSetup()};
 function resetBattle(){
-  SMOKE=new Set();CALTROPS=new Set();FOE_RELIC=new Set();FOE_ITEMS=[];gid++;$("defeat").hidden=true;tile=null;units=[];sel=null;mode=null;choice=null;choiceMv=null;bchoice=null;lastMove=null;insp=null;info=null;turn="y";over=false;busy=false;locked=false;tpUsed={y:0,f:0};
+  SMOKE=new Set();CALTROPS=new Set();FOE_RELIC=new Set();FOE_ITEMS=[];shoveT=null;gid++;$("defeat").hidden=true;tile=null;units=[];sel=null;mode=null;choice=null;choiceMv=null;bchoice=null;lastMove=null;insp=null;info=null;turn="y";over=false;busy=false;locked=false;tpUsed={y:0,f:0};
   const keys=Object.keys(MODS);mods={y:null,f:keys[Math.floor(Math.random()*keys.length)]};
 }
 function init(){
@@ -2910,7 +2962,16 @@ function start(o={}){
     if(has("csword"))u.champ=1;
     if(has("cshield")){u.cshield=1;if(u.hp<maxHp(u))u.hp+=1}
     if(has("ccloak"))u.cloak=1;
-    if(u.champ&&u.cshield&&u.cloak)u.trio=1; // all three: The Champion
+    if(u.champ&&u.cshield&&u.cloak){u.trio=1;if(team==="y")unlock("ublade")} // all three: The Champion (and wearing it once reveals its shadow, the Usurper's Blade)
+  });
+  ["y","f"].forEach(team=>{ // the Tarnished Regalia of the Usurper: one wounded unit takes every piece its side carries
+    const has=id=>team==="y"?RELIC.has(id):FOE_RELIC.has(id);if(!has("ublade")&&!has("ubulwark")&&!has("ushroud"))return;
+    const any=units.filter(u=>u.team===team&&!u.auto&&!u.merc&&!u.champ&&!u.cshield&&!u.cloak);if(!any.length)return;
+    const fr=u=>u.hp/maxHp(u),low=any.filter(u=>fr(u)<=.5),worst=Math.min(...any.map(fr)),pool=low.length?low:any.filter(u=>fr(u)===worst),u=pool[Math.floor(Math.random()*pool.length)];
+    if(has("ublade"))u.ublade=1;
+    if(has("ubulwark")){u.ubulwark=1;if(u.hp<maxHp(u))u.hp+=1}
+    if(has("ushroud"))u.ushroud=1;
+    if(u.ublade&&u.ubulwark&&u.ushroud)u.utrio=1; // all three: The Usurper
   });
   if(RELIC.has("statue")||FOE_RELIC.has("statue"))["y","f"].forEach(team=>{const l=units.filter(u=>u.team===team&&!u.auto);if(l.length)l[Math.floor(Math.random()*l.length)].bleed=1}); // the Bleeding Statue picks one unit per side
   if(camp.battle&&RELIC.has("keep")){const ys=units.filter(u=>u.team==="y"&&u.ci!=null);ys[Math.floor(Math.random()*ys.length)].keep=1} // Banner of the Fallen Keep
@@ -3392,9 +3453,9 @@ const goldFor=n=>(n.type==="boss"?25+BOSS_GOLD_STEP*((camp.region||1)-1):10)+2*u
 const relicCount=id=>camp.relics.filter(r=>r===id).length;
 // relics the shop may stock right now: sold there, unlocked, useful to this army, and not already carried as many times as allowed
 const needOk=(R,army)=>!R.need||[].concat(R.need).some(t=>army.includes(t)); // need: a unit type (or list of types) the army must have
-const shopRelics=()=>{const army=armyTypes();return Object.keys(RELICS).filter(id=>{const R=RELICS[id];return (R.src==="shop"||R.src==="both")&&(!R.lock||unlocks[R.lock])&&needOk(R,army)&&relicCount(id)<(R.max||1)})};
+const shopRelics=()=>{const army=armyTypes();return Object.keys(RELICS).filter(id=>{const R=RELICS[id];return (R.src==="shop"||R.src==="both")&&(!R.lock||unlocks[R.lock])&&needOk(R,army)&&relicCount(id)<(R.max||1)&&!clash(id,camp.relics)})};
 function relicOffer(){
-  const army=armyTypes(),pool=Object.keys(RELICS).filter(id=>!camp.relics.includes(id)&&!RELICS[id].find&&RELICS[id].src!=="shop"&&RELICS[id].src!=="boss"&&(!RELICS[id].lock||unlocks[RELICS[id].lock])&&needOk(RELICS[id],army)),out=[];
+  const army=armyTypes(),pool=Object.keys(RELICS).filter(id=>!camp.relics.includes(id)&&!RELICS[id].find&&RELICS[id].src!=="shop"&&RELICS[id].src!=="boss"&&(!RELICS[id].lock||unlocks[RELICS[id].lock])&&needOk(RELICS[id],army)&&!clash(id,camp.relics)),out=[];
   for(let n=2+(Math.random()<.5?1:0)+relicCount("coin");n>0&&pool.length;n--){ // each Copper Coin of Good Fortune adds a choice
     const tot=pool.reduce((t,id)=>t+RARITY_W[RELICS[id].r],0);let roll=Math.random()*tot,i=0;
     while(roll>=RARITY_W[RELICS[pool[i]].r]){roll-=RARITY_W[RELICS[pool[i]].r];i++}
@@ -3407,7 +3468,7 @@ function relicOffer(){
 const BOSS_W=[35,40,25];
 function bossOffer(){
   const army=armyTypes(),ok=R=>(!R.lock||unlocks[R.lock])&&needOk(R,army);
-  const have=id=>relicCount(id)>=(RELICS[id].max||1),rar=e=>e.startsWith("item:")?(ITEMS[e.slice(5)].r||0):RELICS[e].r;
+  const have=id=>relicCount(id)>=(RELICS[id].max||1)||clash(id,camp.relics),rar=e=>e.startsWith("item:")?(ITEMS[e.slice(5)].r||0):RELICS[e].r;
   const pick=list=>{const tot=list.reduce((t,e)=>t+BOSS_W[rar(e)],0);let roll=Math.random()*tot,i=0;while(roll>=BOSS_W[rar(list[i])]){roll-=BOSS_W[rar(list[i])];i++}return list[i]};
   const bossList=Object.keys(RELICS).filter(id=>RELICS[id].src==="boss"&&ok(RELICS[id])&&!have(id)),out=bossList.length?[pick(bossList)]:[];
   const pool=[...Object.keys(RELICS).filter(id=>{const R=RELICS[id];return !R.find&&R.src!=="shop"&&R.src!=="boss"&&ok(R)&&!have(id)}),
@@ -3448,6 +3509,9 @@ const RICON={ // small 32-unit relic icons
  csword:'<circle cx="16" cy="16" r="13" fill="#fff6c8" opacity=".35"/><path d="M16 2l3 4v15h-6V6z" fill="#e8eef4" stroke="#3a4450" stroke-width="1.100" stroke-linejoin="round"/><path d="M16 3v18" stroke="#fff" stroke-width=".8"/><path d="M9 21h14v2.600H9z" fill="#d8b24a" stroke="#6a4c10" stroke-width=".9"/><path d="M14.500 23.600h3v5h-3z" fill="#5a3a1c" stroke="#2a1a0c" stroke-width=".8"/><circle cx="16" cy="30" r="1.600" fill="#d8b24a" stroke="#6a4c10" stroke-width=".7"/><g fill="#fff"><path d="M24 6l.7 1.800l1.800.7l-1.800.7l-.7 1.800l-.7-1.800l-1.800-.7l1.800-.7z"/><path d="M7 9l.5 1.300l1.300.5l-1.300.5l-.5 1.300l-.5-1.300l-1.300-.5l1.300-.5z"/></g>',
  cshield:'<circle cx="16" cy="16" r="13" fill="#fff6c8" opacity=".35"/><path d="M16 3l11 4v8q0 9-11 14q-11-5-11-14V7z" fill="#cfd8e2" stroke="#3a4450" stroke-width="1.200" stroke-linejoin="round"/><path d="M16 6l8 3v6q0 6.500-8 10.500q-8-4-8-10.500V9z" fill="#3a5a8a" stroke="#d8b24a" stroke-width="1.100"/><path d="M16 10l1.800 3.700l4 .6l-2.900 2.800l.7 4l-3.600-1.900l-3.600 1.900l.7-4l-2.900-2.800l4-.6z" fill="#f2d27a" stroke="#8a6418" stroke-width=".6"/><g fill="#fff"><path d="M26 21l.6 1.500l1.500.6l-1.500.6l-.6 1.500l-.6-1.500l-1.500-.6l1.500-.6z"/></g>',
  ccloak:'<circle cx="16" cy="16" r="13" fill="#fff6c8" opacity=".35"/><path d="M10 5q6-3 12 0l1 4q5 9 4 19q-11 3-22 0q-1-10 4-19z" fill="#5a3a8a" stroke="#2a1a44" stroke-width="1.100" stroke-linejoin="round"/><path d="M10 5q6 3 12 0" stroke="#d8b24a" stroke-width="1.400" fill="none"/><path d="M13 9q-3 9-3 18M19 9q3 9 4 18M16 8v20" stroke="#8a6ab8" stroke-width=".9" fill="none"/><circle cx="16" cy="6" r="1.600" fill="#d8b24a" stroke="#6a4c10" stroke-width=".6"/><path d="M6 27q11 3 22 0" stroke="#d8b24a" stroke-width="1.200" fill="none"/><g fill="#fff"><path d="M26 7l.6 1.500l1.500.6l-1.500.6l-.6 1.500l-.6-1.500l-1.500-.6l1.500-.6z"/><path d="M5 14l.5 1.200l1.200.5l-1.200.5l-.5 1.200l-.5-1.200l-1.200-.5l1.200-.5z"/></g>',
+ ublade:'<circle cx="16" cy="16" r="13" fill="#3a1a3a" opacity=".3"/><path d="M16 2l3 4v15h-6V6z" fill="#6e7276" stroke="#1a1c20" stroke-width="1.100" stroke-linejoin="round"/><path d="M16 3v18" stroke="#a4a8ac" stroke-width=".7"/><path d="M13.200 9.500l1.600.8-.8 1.600 1 1.200M18.800 14l-1.200 1 .8 1.400" stroke="#2a2c30" stroke-width=".6" fill="none"/><path d="M9 21h14v2.600H9z" fill="#7a5a2a" stroke="#2a1a0a" stroke-width=".9"/><circle cx="16" cy="22.300" r="1.300" fill="#b0182a" stroke="#3a0a10" stroke-width=".5"/><path d="M14.500 23.600h3v5h-3z" fill="#2a1a1c" stroke="#0a0608" stroke-width=".8"/><circle cx="16" cy="30" r="1.600" fill="#7a5a2a" stroke="#2a1a0a" stroke-width=".7"/><path d="M25 10q-2-3 0-5.500q2-2.500 0-4.500M7.500 15q-2-3 0-5.500" stroke="#7a6a8a" stroke-width="1.100" fill="none" opacity=".75" stroke-linecap="round"/>',
+ ubulwark:'<circle cx="16" cy="16" r="13" fill="#3a1a3a" opacity=".3"/><path d="M4.500 9l2.200 1.200M27.500 9l-2.200 1.200M6 21.500l1.800-.6M26 21.500l-1.800-.6M16 30.500v-1.800" stroke="#8a8e92" stroke-width="1.500" stroke-linecap="round"/><path d="M16 3l11 4v8q0 9-11 14q-11-5-11-14V7z" fill="#5a5e62" stroke="#1a1c20" stroke-width="1.200" stroke-linejoin="round"/><path d="M16 6l8 3v6q0 6.500-8 10.500q-8-4-8-10.500V9z" fill="#3a2030" stroke="#7a5a2a" stroke-width="1.100"/><path d="M16 9.500l1.600 4.400h-3.200zM16 21l-1.600-4.400h3.200zM10.800 15.200l4.200-1v2zM21.200 15.200l-4.200 1v-2z" fill="#a4a8ac" stroke="#1a1c20" stroke-width=".5"/><circle cx="16" cy="15.200" r="1.400" fill="#b0182a"/><path d="M27 27q2-3 0-5.500" stroke="#7a6a8a" stroke-width="1.100" fill="none" opacity=".75" stroke-linecap="round"/>',
+ ushroud:'<circle cx="16" cy="16" r="13" fill="#3a1a3a" opacity=".3"/><path d="M10 5q6-3 12 0l1 4q5 9 4 19l-3-2-2 3-3-2-2 3-2-3-3 2-2-3-3 2q-1-10 4-19z" fill="#2c2232" stroke="#0e0a12" stroke-width="1.100" stroke-linejoin="round"/><path d="M10 5q6 3 12 0" stroke="#7a5a2a" stroke-width="1.400" fill="none"/><path d="M13 9q-3 9-3 16M19 9q3 9 4 16M16 8v17" stroke="#4e3e5e" stroke-width=".9" fill="none"/><circle cx="16" cy="6" r="1.600" fill="#b0182a" stroke="#3a0a10" stroke-width=".6"/><path d="M4.500 13q-2-3 0-6M27.500 14q2-3 0-6" stroke="#7a6a8a" stroke-width="1.100" fill="none" opacity=".75" stroke-linecap="round"/>',
  token:'<circle cx="16" cy="16" r="12" fill="#d8b24a" stroke="#6a4c10" stroke-width="1.300"/><circle cx="16" cy="16" r="9" fill="none" stroke="#f4dc8a" stroke-width="1"/><circle cx="16" cy="14" r="3.600" fill="#f2ead8" stroke="#6a4c10" stroke-width=".9"/><circle cx="14.700" cy="13.600" r=".9" fill="#3a2a14"/><circle cx="17.300" cy="13.600" r=".9" fill="#3a2a14"/><path d="M14.600 16h2.800" stroke="#3a2a14" stroke-width=".7"/><path d="M11 22q5-3 10 0" stroke="#6a4c10" stroke-width="1.100" fill="none"/><path d="M10 9l2 2M22 9l-2 2" stroke="#f4dc8a" stroke-width=".8"/>',
  coin:'<circle cx="16" cy="16" r="12" fill="#b8693a" stroke="#5a2a10" stroke-width="1.300"/><circle cx="16" cy="16" r="9" fill="none" stroke="#e09a5a" stroke-width="1"/><g fill="#3f7a3a" stroke="#1e4a1c" stroke-width=".7"><circle cx="14" cy="13" r="2.400"/><circle cx="18" cy="13" r="2.400"/><circle cx="14" cy="17" r="2.400"/><circle cx="18" cy="17" r="2.400"/></g><path d="M16 17q1 4 3 6" stroke="#1e4a1c" stroke-width="1" fill="none"/><path d="M8 11q3-5 8-6" stroke="#f0c08a" stroke-width="1.200" fill="none" opacity=".7"/>',
  whet:'<path d="M5 21l17-12q4-2 5 1t-2 5L9 25q-4 2-5-1t1-3z" fill="#8f979e" stroke="#2e3338" stroke-width="1.200"/><path d="M8 21l15-10" stroke="#d2d8dd" stroke-width="1.300" opacity=".7"/><path d="M9 24l14-10" stroke="#5c646b" stroke-width="1" opacity=".6"/>',
@@ -3594,7 +3658,7 @@ let relinfoFrom=null;
 function showRelicInfo(id,from){
   const R=RELICS[id],[rn,rc]=RARITY[R.r];relinfoFrom=from;
   $("rititle").textContent=R.name;
-  $("ribody").innerHTML=`<div class="rcard" style="--rc:${rc}"><span class="ri">${relicIcon(id,38)}</span><span class="rr">${rn} relic</span><small>${R.desc}</small></div>`;
+  $("ribody").innerHTML=`<div class="rcard" style="--rc:${rc}"><span class="ri">${relicIcon(id,38)}</span><span class="rr">${rn} relic${R.set?" \u00b7 "+RELIC_SETS[R.set].name:""}</span><small>${R.desc}</small></div>`;
   $("relinfo").hidden=false;$("riclose").focus();
 }
 function closeRelicInfo(){$("relinfo").hidden=true;if(relinfoFrom&&relinfoFrom.isConnected)relinfoFrom.focus();relinfoFrom=null;if(riAfter){const f=riAfter;riAfter=null;f()}}
@@ -3842,6 +3906,7 @@ const UNLOCKS=[
  {id:"pennant",relic:"pennant",hint:"Conquer the Dueling Fortresses challenge."},
  {id:"hatchet",relic:"hatchet",hint:"Conquer the Tanglewood challenge."},
  {id:"trumpet",relic:"trumpet",hint:"Conquer the Ford at Greywater challenge."},
+ {id:"ublade",relic:"ublade",hint:"Every crown casts a shadow."},
  {id:"wolfpack",relic:"wolfpack",hint:"Wolves never hunt alone."},
  {id:"chicken",relic:"chicken",hint:"Conquer the Fort Wharton challenge."},
  {id:"pavise",relic:"pavise",hint:"Those who stand in the rain of arrows learn to carry a wall."},
@@ -3873,6 +3938,7 @@ $("go").onclick=()=>{
 };
 $("end").onclick=()=>{
   if(over||busy||locked||!units.length||turn!=="y")return;
+  if(mode==="ushove"){mode=null;shoveT=null}
   firstTurn=false;pturn++;
   units.forEach(u=>{if(u.team==="y"&&!u.moved&&rel(u,"drum"))u.drum=pturn}); // War Drum: holding the line pays off next turn
   const n=mods.y==="REST"?rest("y"):0;
@@ -3902,6 +3968,7 @@ if(document.addEventListener)document.addEventListener("keydown",e=>{
   if(!$("tguide").hidden)return closeGuide();
   if(!$("relinfo").hidden)return closeRelicInfo();
   if($("game").hidden||paused||locked||busy||over)return;
+  if(mode==="ushove"&&shoveT)return endShove(-1,-1); // Esc leaves the target where it stands
   if(choice||bchoice||mode){choice=null;choiceMv=null;bchoice=null;mode=null;say("Move, attack, or pick another unit.");render()} // Esc backs out one step
   else if(sel){sel=null;info=null;say("Select one of your units.");render()}
 });
