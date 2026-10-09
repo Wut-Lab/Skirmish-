@@ -631,7 +631,7 @@ const W=10,H=12,
 TYPES={K:{hp:12,mv:3,rg:1,mn:1,dmg:5,ar:2},A:{hp:8,mv:3,rg:3,mn:1,dmg:4,pi:1,ev:.1},R:{hp:10,mv:2,rg:4,mn:2,dmg:4,pi:2},W:{hp:8,mv:2,rg:1,mn:1,dmg:4,ev:.15},B:{hp:16,mv:1,rg:1,mn:1,dmg:6,ar:1},H:{hp:5,mv:3,rg:2,mn:1,dmg:3,ev:.25},C:{hp:9,mv:5,rg:1,mn:1,dmg:4,ar:1,ev:.1},P:{hp:7,mv:3,rg:2,mn:1,dmg:1,heal:3,ev:.1},E:{hp:6,mv:3,rg:3,mn:1,dmg:2,slow:1,ev:.15},T:{hp:9,mv:3,rg:1,mn:1,dmg:3,ar:1},N:{hp:8,mv:3,rg:1,mn:1,dmg:2,ev:.05},M:{hp:4,mv:2,rg:1,mn:1,dmg:2},G:{hp:3,mv:4,rg:1,mn:1,dmg:2,ev:.15}}; // G: the Angry Chicken (Chicken Suit relic)
 const ST=u=>u.st?{...TYPES[u.t],...u.st}:TYPES[u.t]; // a unit's stats: its type's, unless it carries its own (mercenaries)
 // Mercenaries: a weaker, slightly randomized take on a unit type that fights on its own. One at a time, for MERC_TERM campaign battles.
-const MERC_TYPES="KARC",MERC_PRICE={K:70,A:65,R:70,C:75},MERC_TERM=4,MERC_SHOP=1/3,MERC_ROAD=.1,MERC_FOE=r=>r>=6?.4:r>=3?.25:0; // MERC_FOE: the chance an enemy army (from region 3) hires one; a boss rolls twice
+const MERC_TYPES="KARC",MERC_PRICE={K:70,A:65,R:70,C:75},MERC_TERM=4,MERC_SHOP=1/3,MERC_ROAD=.1;
 const MERC_QUIRKS=[["Swift",{mv:1},"+1 move"],["Stout",{ar:1},"+1 armor"],["Nimble",{ev:.05},"+5% evasion"],["Hardy",{hp:2},"+2 HP"],["Keen",{pi:1},"+1 pierce"]];
 const MERC_NAMES=["Bruno","Garrick","Vasco","Ingrid","Rurik","Sabine","Dario","Helga","Tobias","Mirela","Corvin","Ottilie","Brennan","Zora","Lothar","Greta","Anselm","Kasia","Pell","Ysgrim"];
 function rollMerc(t){
@@ -1266,6 +1266,7 @@ const ABILITY={P:`Heals an ally in range for up to ${TYPES.P.heal} HP instead of
  G:"Burst out of the Chicken Suit. Fights for you on its own: at the end of each of your turns it charges the nearest enemy. Forests and shallow water don't slow it."};
 const TAG={P:"Heals",E:"Slows",T:"Musters militia",N:"+1 damage aura"}; // short ability labels for the setup cards
 const listAnd=a=>a.length<2?a.join(""):a.slice(0,-1).join(", ")+" and "+a[a.length-1];
+const fellAt=f=>{const u=[...new Set(f)];if(u.length<3)return listAnd(u);for(let i=u.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[u[i],u[j]]=[u[j],u[i]]}return u[0]+", "+u[1]+", and other fields of glory"}; // two random places, then the rest
 const limitNames=()=>listAnd(poolNow().split("").filter(t=>LIMIT1.includes(t)).map(t=>"the "+cap(NAME[t])));
 
 let camp={cfg:null,pos:0,cleared:[],done:false,battle:null,sel:null,hp:null,gold:0,relics:[],items:[],offer:null,found:[],lastGold:0,kills:[],region:1,mapsPrior:0,bossUsed:{loc:[],name:[]}},campSetup=false,endMode="quick",worldLock=false,choice=null,locked=false,tile=null,info=null,paused=false,gid=0,seed=0,col={y:"blue",f:"red"},insp=null,units=[],sel=null,turn="y",over=false,busy=false,mode=null,mods={y:null,f:null},tpUsed={y:0,f:0},pick={t:null,m:null};
@@ -1493,7 +1494,7 @@ function renderInfo(){
   if(!info){el.className="pb empty";el.style.borderLeft="";el.innerHTML='<div class="lbl">Unit</div><div class="ph">Tap a unit to see its details.</div>';return}
   const u=info,T=ST(u),c=COLORS[col[u.team]],fo=WOODS(u.x+","+u.y),r=u.hp/maxHp(u),notes=[],hero=camp.battle&&!chal&&u.team==="y"&&u.ci!=null&&camp.names;
   if(u.team==="w")notes.push("Wild: wanders at random and attacks any unit in range.");
-  if(u.merc)notes.push(u.team==="y"?`Mercenary: fights on its own at the end of your turn.${camp.merc?` ${camp.merc.left} battle${camp.merc.left>1?"s":""} left on its contract.`:""}`:"Mercenary: hired by the enemy, a little weaker than the real thing.");
+  if(u.merc&&u.team==="y")notes.push(`Mercenary: fights on its own at the end of your turn.${camp.merc?` ${camp.merc.left} battle${camp.merc.left>1?"s":""} left on its contract.`:""}`);
   if(ABILITY[u.t])notes.push(u.t==="P"?ABILITY.P.replace(TYPES.P.heal+" HP",healOf(u)+" HP"):ABILITY[u.t]); // the Apothecary's note carries its heal, relics included
   if(u.t==="T")notes.push(`Musters left this battle: ${musterUses(u)-(u.musters||0)}.`);
   if(inspired(u))notes.push("Inspired by a nearby Banner Bearer: deals +1 damage.");
@@ -2199,21 +2200,31 @@ function wispsAct(){
 /* ---------- Wounds and honors: each campaign soldier has a name, a record and scars ---------- */
 // a unit that falls in a won campaign battle comes back wounded: 1 less max HP per wound, for the rest of the campaign.
 // Healing spots mend one wound per unit; Herbert's fire mends them all.
-/* ---------- Escalation: each region's enemies grow a little tougher ----------
-   region 1 as is; 2: the boss carries a boss relic; 3: an Elite in every battle; 4: the boss carries a second relic (boss list or any);
-   5: a second Elite; 6: the boss carries two boss relics and a consumable. From 7 on the pattern keeps climbing:
-   each odd region adds an Elite (up to 3), each even region adds a relic and a consumable to the boss (consumables up to 3). */
-const ELITE_HP=2,ELITE_MAX=3,elitesFor=r=>r>=3?Math.min(ELITE_MAX,Math.floor((r-1)/2)):0;
-const bossRelicsFor=r=>r<2?0:r<4?1:r<8?2:2+Math.floor((r-6)/2),bossItemsFor=r=>r<6?0:Math.min(3,1+Math.floor((r-6)/2));
+/* ---------- Escalation: one row per region, the single source for how much tougher the enemy gets ----------
+   elite: enemies made Elite in every battle (+2 HP, +1 damage) · extra: units added to every enemy army (the boss always brings one more anyway)
+   relics, items: what the boss's army carries. Past the last row it repeats, with one more boss relic every 2 regions. */
+const ESC=[
+ {elite:0,extra:0,relics:0,items:1}, // 1
+ {elite:1,extra:0,relics:1,items:1}, // 2
+ {elite:2,extra:0,relics:1,items:1}, // 3
+ {elite:3,extra:0,relics:2,items:1}, // 4
+ {elite:4,extra:0,relics:2,items:1}, // 5
+ {elite:5,extra:0,relics:2,items:1}, // 6
+ {elite:5,extra:1,relics:3,items:2}, // 7
+ {elite:6,extra:2,relics:3,items:2}, // 8
+ {elite:7,extra:3,relics:3,items:3}, // 9
+ {elite:8,extra:4,relics:4,items:3}, // 10
+];
+const ELITE_HP=2,esc=r=>{const n=ESC.length,e=ESC[Math.min(r,n)-1];return r>n?{...e,relics:e.relics+Math.floor((r-n)/2)}:e},escFrom=k=>ESC.findIndex(e=>e[k]>0)+1;
 // relics an enemy army can make use of (no player-only actions, once-per-battle tricks or gold), and the unit each needs
 const FOE_OK={csword:"",cshield:"",ublade:"",ubulwark:"",ushroud:"",whet:"A",shield:"K",bard:"C",luck:"",long:"A",debris:"R",wolfpack:"",mercy:"",gauntlets:"",pavise:"A",pennant:"",hatchet:"",keep:"",ram:"",blossom:"",crown:"",statue:"",spurs:"C",grog:"",pebble:"",warpaint:""};
 function foeLoadout(r){
   const army=units.filter(u=>u.team==="f").map(u=>u.t),ok=id=>id in FOE_OK&&(!FOE_OK[id]||army.includes(FOE_OK[id]))&&!FOE_RELIC.has(id)&&(!RELICS[id].lock||unlocks[RELICS[id].lock])&&!clash(id,[...FOE_RELIC]);
   const boss=Object.keys(RELICS).filter(id=>RELICS[id].src==="boss"&&ok(id)),other=Object.keys(RELICS).filter(id=>RELICS[id].src!=="boss"&&ok(id));
   const take=list=>{const c=list.filter(ok);if(c.length)FOE_RELIC.add(c[Math.floor(Math.random()*c.length)])};
-  for(let i=0;i<bossRelicsFor(r);i++)take(i===0||(r>=6&&i===1)?boss:Math.random()<.5?boss:other); // the first (and from region 6 the second) always from the boss list
+  for(let i=0;i<esc(r).relics;i++)take(i===0||(r>=6&&i===1)?boss:Math.random()<.5?boss:other); // the first (and from region 6 the second) always from the boss list
   const kit=Object.keys(ITEMS).filter(id=>ITEMS[id].foe);
-  for(let i=0;i<bossItemsFor(r);i++)FOE_ITEMS.push(kit[Math.floor(Math.random()*kit.length)]);
+  for(let i=0;i<esc(r).items;i++)FOE_ITEMS.push(kit[Math.floor(Math.random()*kit.length)]);
 }
 // the boss uses its consumables at the start of its turn, when they'd help
 function foeUseItems(){
@@ -2509,7 +2520,7 @@ function fresh(list,used){
 // Builds a new random map: camp at the bottom, three rows of battles, a boss at the top.
 function genWorld(){
   const R=n=>Math.floor(Math.random()*n),rr=(a,b)=>a+Math.random()*(b-a),used=new Set();
-  const nodes=[{id:0,name:"Harrow Camp",x:Math.round(rr(50,350)),y:466,type:"camp",text:"Your starting camp. Nothing to fight here."}];
+  const nodes=[{id:0,name:"Camp",x:Math.round(rr(50,350)),y:466,type:"camp",text:"Your starting camp. Nothing to fight here."}];
   const layers=[[0]];let bag=[];
   const nextBiome=()=>{if(!bag.length)bag=["forest","plain","fort","wild","swamp",...(unlocks.graveyard?["graveyard"]:[]),...(unlocks.volcanic?["volcanic"]:[]),...(unlocks.sakura?["sakura"]:[])].sort(()=>Math.random()-.5);return bag.pop()};
   [378,292,206].forEach(y0=>{
@@ -2563,7 +2574,21 @@ function genWorld(){
   }
   WORLD=nodes;EDGES=E;
   if(nodes.some(n=>!reachFrom(n.id).has(nodes.length-1)))E.forEach(e=>e.length=2); // safety net: the boss must stay reachable from everywhere
-  DECO={trees:scatter(12),rocks:scatter(5),river:`M-10 ${ry()} C 70 ${ry()} 120 ${ry()} 220 ${ry()} S 340 ${ry()} 420 ${ry()}`};
+  const Y=[0,0,0,0,0,0].map(ry),bz=(a,b,c,d,t)=>(1-t)**3*a+3*(1-t)**2*t*b+3*(1-t)*t*t*c+t**3*d;
+  const riv=[];for(let i=0;i<=40;i++){const t=(i%20)/20,s=i>=20;if(i===40){riv.push([420,Y[5]]);break}riv.push(s?[bz(220,320,340,420,t),bz(Y[3],2*Y[3]-Y[2],Y[4],Y[5],t)]:[bz(-10,70,120,220,t),bz(Y[0],Y[1],Y[2],Y[3],t)])} // the river sampled along its curve
+  const segD=(x,y,ax,ay,bx,by)=>{const dx=bx-ax,dy=by-ay,t=Math.max(0,Math.min(1,((x-ax)*dx+(y-ay)*dy)/(dx*dx+dy*dy||1)));return Math.hypot(x-ax-t*dx,y-ay-t*dy)};
+  const open=(x,y,r)=>x>14&&x<386&&y>40&&y<508&&Math.hypot(x-50,y-56)>58&&!(y<74&&Math.abs(x-200)<150)&&nodes.every(n=>Math.hypot(n.x-x,n.y-y)>44&&!(Math.abs(n.x-x)<half(n)+6&&y>n.y&&y<n.y+44))
+    &&E.every(([a,b])=>segD(x,y,nodes[a].x,nodes[a].y,nodes[b].x,nodes[b].y)>r)&&riv.every(([rx,ry2])=>Math.hypot(rx-x,ry2-y)>r+8); // clear of locations, their labels, the paths, the river, the compass and the title
+  const ranges=[];
+  for(let t=0;t<200&&ranges.length<3;t++){ // mountain chains: 4-7 peaks marching along a gentle line, tallest in the middle
+    const n=4+R(4),a=rr(-.5,.5)+(Math.random()<.5?0:Math.PI),st=rr(13,16);let x=rr(30,370),y=rr(90,500);const ch=[];
+    for(let i=0;i<n;i++){const h=18+16*Math.sin(Math.PI*(i+.5)/n)+rr(-3,3);if(!open(x,y,16))break;ch.push([Math.round(x),Math.round(y),Math.round(rr(11,15)),Math.round(h)]);x+=Math.cos(a)*st;y+=Math.sin(a)*st+rr(-3,3)}
+    if(ch.length>=4&&ranges.every(r=>r.every(([px,py])=>ch.every(([qx,qy])=>Math.hypot(px-qx,py-qy)>40))))ranges.push(ch);
+  }
+  const bare=(x,y)=>ranges.every(c=>c.every(([a,b])=>Math.hypot(a-x,b-y)>30)),dry=([x,y])=>bare(x,y)&&riv.every(([a,b])=>Math.hypot(a-x,b-y)>22); // other scenery keeps off the mountain chains and the river
+  const spot=(c,r)=>{const out=[];for(let t=0;t<400&&out.length<c;t++){const x=rr(20,380),y=rr(40,500);if(open(x,y,r)&&bare(x,y)&&out.every(([p,q])=>Math.hypot(p-x,q-y)>24))out.push([Math.round(x),Math.round(y)])}return out};
+  const reeds=[];for(let t=0;t<30&&reeds.length<6;t++){const[x,y]=riv[2+R(37)],o=Math.random()<.5?-12:12;if(x>20&&x<380&&nodes.every(n=>Math.hypot(n.x-x,n.y-y-o)>34))reeds.push([Math.round(x),Math.round(y+o)])}
+  DECO={trees:scatter(12).filter(dry).concat(spot(6,12)),rocks:scatter(5).filter(dry),ranges,hills:spot(7,12),grass:spot(14,6),reeds,river:`M-10 ${Y[0]} C 70 ${Y[1]} 120 ${Y[2]} 220 ${Y[3]} S 340 ${Y[4]} 420 ${Y[5]}`};
 }
 const BIOME_NAME={forest:"Forest",plain:"Plains",fort:"Stronghold",wild:"Wilds",wetlands:"Wetlands",swamp:"Murky Swamp",graveyard:"Haunted Graveyard",volcanic:"Molten Wastes",sakura:"Sakura Vale",boss:"Enemy Stronghold"};
 // a Quick Battle map has no biome of its own, so name it from what was generated
@@ -2580,7 +2605,11 @@ const nest=(str,x,y,w,style="")=>str.replace(/<svg[^>]*>/,`<svg x="${x}" y="${y}
 function mapArt(){
   let g='<defs><radialGradient id="pg" cx=".5" cy=".4" r=".85"><stop offset="0" stop-color="#eadfb8"/><stop offset="1" stop-color="#cbb78a"/></radialGradient><filter id="wsh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="1.200" dy="2.400" stdDeviation="1.600" flood-color="#3a2810" flood-opacity=".45"/></filter><radialGradient id="wnode" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></radialGradient><filter id="wblur"><feGaussianBlur stdDeviation="6"/></filter><filter id="wblur2" x="-50%" y="-100%" width="200%" height="300%"><feGaussianBlur stdDeviation="2.500"/></filter><linearGradient id="wmt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a7656"/><stop offset=".6" stop-color="#9c8762" stop-opacity=".9"/><stop offset="1" stop-color="#b8a27a" stop-opacity="0"/></linearGradient></defs><rect width="400" height="520" fill="url(#pg)"/>';
   g+='<g filter="url(#wblur)" fill="#a07a40" opacity=".12"><ellipse cx="318" cy="96" rx="34" ry="22"/><ellipse cx="86" cy="388" rx="28" ry="18"/><ellipse cx="236" cy="470" rx="40" ry="14"/></g>'; // age stains
-  g+=`<path d="${DECO.river}" stroke="#6a8a7a" stroke-width="20" fill="none" stroke-linecap="round" opacity=".35"/><path d="${DECO.river}" stroke="#8ec0d8" stroke-width="15" fill="none" stroke-linecap="round" opacity=".62"/><path d="${DECO.river}" stroke="#d8f0f8" stroke-width="2" fill="none" stroke-dasharray="14 22" opacity=".45" transform="translate(0 -3)"/>`;
+  // the river in map ink: a soft shadow, inked banks, a washed blue-green bed lit along its middle, and hatched ripples; reeds on the banks
+  const rv=DECO.river,rp=(w,c,o,x="")=>`<path d="${rv}" stroke="${c}" stroke-width="${w}" fill="none" stroke-linecap="round" opacity="${o}"${x}/>`;
+  g+=`<g style="mix-blend-mode:multiply">${rp(24,"#6a5430",".2",' filter="url(#wblur2)"')+rp(17,"#4a3a26",".72")+rp(15,"#8cb2b4","1")+rp(7,"#bfd8d4",".75",' transform="translate(-1 -1.5)"')
+   +rp(.9,"#3e4e48",".5",' stroke-dasharray="5 9 3 15" transform="translate(0 -3.5)"')+rp(.9,"#3e4e48",".42",' stroke-dasharray="3 14 6 10" stroke-dashoffset="9" transform="translate(0 3)"')}`
+   +(DECO.reeds||[]).map(([x,y])=>`<path d="M${x-3} ${y+3}q1-6-1-9M${x} ${y+3}v-10M${x+3} ${y+3}q-1-6 2-8" stroke="#4a5a32" stroke-width="1" fill="none" stroke-linecap="round" opacity=".75"/><ellipse cx="${x}" cy="${y-8}" rx="1" ry="2.200" fill="#5a3e20" opacity=".8"/>`).join("")+`</g>`;
   const clear=([x,y])=>Math.hypot(x-50,y-56)>58&&!(y<74&&Math.abs(x-200)<150); // keep scenery off the compass rose and the title
   // mountain ranges drawn like old-map ink: 2-3 overlapping peaks in sepia, lit on the left, hatched on the right, snow-capped, fading into the paper at the foot
   const peak=(px,py,w,h,k)=>{const f=v=>v.toFixed(1),tx=px+(k%2?1.5:-1.5);
@@ -2590,6 +2619,13 @@ function mapArt(){
      +[.25,.45,.65].map(t=>`<path d="M${f(tx+w*t*.6)} ${f(py-h*(1-t)+1)}l${f(-w*.18)} ${f(h*.32)}" stroke="#4a3a26" stroke-width=".8" opacity=".55"/>`).join("")
      +`<path d="M${f(tx-w*.32)} ${f(py-h*.66)}L${f(tx)} ${f(py-h)}L${f(tx+w*.3)} ${f(py-h*.7)}L${f(tx+w*.1)} ${f(py-h*.62)}L${f(tx-w*.08)} ${f(py-h*.7)}z" fill="#fbf6e8" stroke="#6a5638" stroke-width=".6" stroke-linejoin="round"/>`
      +`<path d="M${f(px-w)} ${f(py)}L${f(tx)} ${f(py-h)}L${f(px+w)} ${f(py)}" fill="none" stroke="#4a3a26" stroke-width="1.100" stroke-linejoin="round" opacity=".75"/>`;};
+  // rolling hills: low inked humps, hatched on the shaded side; tufts of grass between
+  (DECO.hills||[]).forEach(([x,y],i)=>{const hump=(hx,w,h)=>`<path d="M${hx-w} ${y}Q${hx} ${y-h*2} ${hx+w} ${y}z" fill="url(#wmt)" opacity=".75"/><path d="M${hx-w} ${y}Q${hx} ${y-h*2} ${hx+w} ${y}" fill="none" stroke="#4a3a26" stroke-width=".9" opacity=".65"/>`+[.3,.55].map(t=>`<path d="M${hx+w*t} ${y-h*(1-t*t)*.9}l-2 ${h*.35}" stroke="#4a3a26" stroke-width=".7" opacity=".45"/>`).join("");
+    g+=`<g style="mix-blend-mode:multiply">${i%2?hump(x-8,12,6)+hump(x+7,10,4.5):hump(x+6,13,7)+hump(x-9,9,4)}</g>`});
+  g+=`<g stroke="#5a6a3a" stroke-width=".9" fill="none" stroke-linecap="round" opacity=".6">${(DECO.grass||[]).map(([x,y])=>`<path d="M${x-3} ${y}l-1-4M${x} ${y}v-5M${x+3} ${y}l1-4"/>`).join("")}</g>`;
+  // mountain chains: peaks drawn back to front, each tall peak with a lower foothill stepping out in front
+  (DECO.ranges||[]).forEach(ch=>{const ps=[];ch.forEach(([x,y,w,h],i)=>{ps.push([x,y,w,h,i]);if(i%2&&i<ch.length-1)ps.push([x+7,y+7,w*.75,h*.55,i+1])});
+    g+=`<g style="mix-blend-mode:multiply">${ps.sort((a,b)=>a[1]-b[1]).map(([x,y,w,h,k])=>peak(x,y,w,h,k)).join("")}</g>`});
   DECO.rocks.filter(clear).forEach(([x,y],i)=>{g+=`<g style="mix-blend-mode:multiply">`+(i%2?peak(x-15,y+9,13,20,1)+peak(x+14,y+9,14,24,2)+peak(x,y+11,17,32,3):peak(x+15,y+9,13,19,2)+peak(x-7,y+11,18,33,1)+peak(x+6,y+12,10,14,3))+`</g>`});
   // tree clumps: 4-6 trees of mixed sizes and greens on a soft shadow, in map ink
   const CL=[[-8,2,.85],[0,-3,1],[8,1,.9],[-3,6,.75],[5,7,.8],[-12,7,.65],[12,8,.6]],TC=["#3d6a3e","#4d7a46","#36593a","#56824a"];
@@ -2951,9 +2987,11 @@ function start(o={}){
   const spot=(rows,xs)=>{for(const y of rows)for(const x of xs)if(!solid(x+","+y)&&!at(x,y))return [x,y];return null};
   if(camp.battle&&!chal&&camp.merc&&camp.merc.hp>0){const m=camp.merc,sp=spot([H-1,H-2],[5,2,7,0,9,4,6,1,3,8]);if(sp)units.push({t:m.t,team:"y",auto:1,merc:1,mname:m.name,st:m.st,x:sp[0],y:sp[1],hp:Math.min(m.hp,m.st.hp),moved:1,acted:1})} // your hired sword
   FOE_RELIC=new Set();FOE_ITEMS=[];
-  if(camp.battle&&!chal){const fs=units.filter(u=>u.team==="f").sort(()=>Math.random()-.5);fs.slice(0,elitesFor(camp.region||1)).forEach(u=>{u.elite=1;u.hp+=ELITE_HP}); // Elite enemies (see elitesFor)
+  if(camp.battle&&!chal){const E=esc(camp.region||1); // escalation (see ESC): extra enemy units, then Elites, then the boss's loadout
+    for(let i=0;i<E.extra;i++){const t=rnd(foe),sp=spot([1,0],[4,5,2,7,0,9,3,6,1,8]);if(sp){foe.push(t);units.push({t,team:"f",x:sp[0],y:sp[1],hp:TYPES[t].hp,moved:0,acted:0})}}
+    units.filter(u=>u.team==="f").sort(()=>Math.random()-.5).slice(0,E.elite).forEach(u=>{u.elite=1;u.hp+=ELITE_HP});
     if(o.boss)foeLoadout(camp.region||1);
-    const ch=MERC_FOE(camp.region||1);for(let i=0;i<(o.boss?2:1);i++)if(Math.random()<ch){const m=rollMerc(),sp=spot([0,1],[4,2,7,0,9,5,3,6,1,8]);if(sp)units.push({t:m.t,team:"f",merc:1,mname:m.name,st:m.st,x:sp[0],y:sp[1],hp:m.st.hp,moved:0,acted:0})}} // the enemy hires help too
+  }
   if(FOE_RELIC.has("keep")){const fs=units.filter(u=>u.team==="f");fs[Math.floor(Math.random()*fs.length)].keep=1}
   ["y","f"].forEach(team=>{ // the Shimmering Champion pieces: one random unit (above half health when it can) takes every piece its side carries
     const has=id=>team==="y"?RELIC.has(id):FOE_RELIC.has(id);if(!has("csword")&&!has("cshield")&&!has("ccloak"))return;
@@ -2983,10 +3021,10 @@ function start(o={}){
       if(!solid(x+","+y)&&!at(x,y)){wild={t,team:"w",x,y,hp:TYPES[t].hp,moved:0,acted:0};units.push(wild)}
     }
   }
-  const loc=camp.battle?WORLD[camp.battle.node].name+(o.boss?" (boss battle). ":". "):"",fm=units.filter(u=>u.merc&&u.team==="f");
+  const loc=camp.battle?WORLD[camp.battle.node].name+(o.boss?" (boss battle). ":". "):"";
   BIOME_KEY=camp.battle?WORLD[camp.battle.node].b:guessBiome();$("biome").textContent=BIOME_NAME[BIOME_KEY];
   const el=units.filter(u=>u.elite),carry=[...FOE_RELIC].map(id=>RELICS[id].name).concat(FOE_ITEMS.map(id=>ITEMS[id].name));
-  show("game");say(loc+(carry.length?"The boss comes well equipped! ":"")+"Your turn. Select one of your units."+(el.length?` Elite enemy ${listAnd(el.map(u=>cap(NAME[u.t])))} ${el.length>1?"lead":"leads"} their army.`:"")+(wild?" A wild "+NAME[wild.t]+" roams the map.":"")+(fm.length?` The enemy has hired ${fm.length>1?"mercenaries":"a mercenary "+NAME[fm[0].t]}.`:""));render();
+  show("game");say(loc+(carry.length?"The boss comes well equipped! ":"")+"Your turn. Select one of your units."+(!el.length?"":el.length===units.filter(u=>u.team==="f").length?" Their whole army is Elite.":el.length>3?` ${el.length} Elite enemies lead their army.`:` Elite enemy ${listAnd(el.map(u=>cap(NAME[u.t])))} ${el.length>1?"lead":"leads"} their army.`)+(wild?" A wild "+NAME[wild.t]+" roams the map.":""));render();
 }
 $("hero").innerHTML=[["K","blue"],["C","green"],["R","yellow"],["A","red"]].map(([t,c])=>`<div class="pv">${disc(t,COLORS[c])}</div>`).join("");
 $("play").onclick=()=>askHold("quick",init);
@@ -3044,7 +3082,7 @@ const HOWTO=[
         :k==="boss"?nest(FORT_ICON[1],x-14,y-14,28)
         :`<path d="M${x-6} ${y-6}L${x+6} ${y+6}M${x+6} ${y-6}L${x-6} ${y+6}" stroke="#3b2a14" stroke-width="3" stroke-linecap="round"/>`});
     return s+"</svg>"},
-  body:()=>`<p>Travel along the paths on the world map. Each new location starts a battle, and winning clears it. Paths marked with arrows are one-way: there's no coming back, so places you skip may be cut off for good, and something may happen along the way. Every campaign uses a new random map. Defeat the boss at the top to finish, or travel on to new lands: a fresh map in a new region, with your army, relics and gold carried over.</p><p>You choose your extra units, modifier, and color once. Your units keep their health between battles. After each win, surviving units recover ${Math.round(CAMP_HEAL*100)}% of their max health, and a unit that falls returns with 1 HP. But if your whole army falls, or you concede, the campaign ends there: choose your battles carefully.</p><p>Each new region is tougher than the last. From region 2, the boss's garrison carries relics of its own, and later consumables it isn't shy about using. From region 3, Elite enemies (ringed in gold, with +2 HP and +1 damage) lead every army, and more join them as you travel on.</p><p>Every soldier has a name. A unit that falls in a battle you win comes back wounded, with 1 less max HP for the rest of the campaign (up to ${WOUND_MAX} wounds, marked \u2020 on the world map). The healing space mends one wound per unit, and Herbert's fire mends them all. Brave deeds earn honors, like "the Bold" or "the Unbroken", and the roll of honor remembers it all when you conquer a region.</p><p>Each victory also earns gold, shown by the coin purse on the world map, and lets you choose one of two or three relics. Relics last for the rest of the campaign: rarer ones are stronger.</p><p>Teal wave spaces are wetlands: battles fought across lakes, ponds and rivers. One or two appear on each map. Dark reed spaces are murky swamps, thick with mud that stops units in their tracks.</p><p>Each map has one healing space (a green cross). Visiting it restores 70% of each unit's health, once.</p><p>Each map also has one Merchant (a gold coin purse), where Marcus sells potions, bombs and relics for gold. You can visit once. Your pack holds up to ${ITEM_CAP} items: in battle, select a unit and tap <b>Use Item</b>. Using an item takes that unit's action.</p>`},
+  body:()=>`<p>Travel along the paths on the world map. Each new location starts a battle, and winning clears it. Paths marked with arrows are one-way: there's no coming back, so places you skip may be cut off for good, and something may happen along the way. Every campaign uses a new random map. Defeat the boss at the top to finish, or travel on to new lands: a fresh map in a new region, with your army, relics and gold carried over.</p><p>You choose your extra units, modifier, and color once. Your units keep their health between battles. After each win, surviving units recover ${Math.round(CAMP_HEAL*100)}% of their max health, and a unit that falls returns with 1 HP. But if your whole army falls, or you concede, the campaign ends there: choose your battles carefully.</p><p>Each new region is tougher than the last. From region ${escFrom("elite")}, Elite enemies (ringed in gold, with +2 HP and +1 damage) lead every army, more in each new region, and from region ${escFrom("extra")} the enemy armies grow larger too. The boss's garrison carries consumables it isn't shy about using${escFrom("items")>1?` from region ${escFrom("items")}`:""}, and from region ${escFrom("relics")} relics of its own.</p><p>Every soldier has a name. A unit that falls in a battle you win comes back wounded, with 1 less max HP for the rest of the campaign (up to ${WOUND_MAX} wounds, marked \u2020 on the world map). The healing space mends one wound per unit, and Herbert's fire mends them all. Brave deeds earn honors, like "the Bold" or "the Unbroken", and the roll of honor remembers it all when you conquer a region.</p><p>Each victory also earns gold, shown by the coin purse on the world map, and lets you choose one of two or three relics. Relics last for the rest of the campaign: rarer ones are stronger.</p><p>Teal wave spaces are wetlands: battles fought across lakes, ponds and rivers. One or two appear on each map. Dark reed spaces are murky swamps, thick with mud that stops units in their tracks.</p><p>Each map has one healing space (a green cross). Visiting it restores 70% of each unit's health, once.</p><p>Each map also has one Merchant (a gold coin purse), where Marcus sells potions, bombs and relics for gold. You can visit once. Your pack holds up to ${ITEM_CAP} items: in battle, select a unit and tap <b>Use Item</b>. Using an item takes that unit's action.</p>`},
  {id:"scout",title:"Scouting",art:()=>{const m=[];for(let y=0;y<7;y++){let r="";for(let x=0;x<7;x++){const d=Math.abs(x-3)+Math.abs(y-3);r+=d===0?".":d<=2?"g":d===3?"p":"."}m.push(r)}return hBoard(7,7,m,[["K","f",3,3]],38)},
   body:()=>"<p>Tap any unit to see its details, including its health. Tap an enemy to see where it can move (gray) and hit (red). Tap it again to hide.</p>"}
 ];
@@ -3697,7 +3735,7 @@ function showTriumph(nm,fallen){ // fallen: how a lost campaign ended ("lost", "
   $("ttitle").textContent=fallen?"Your Campaign Has Ended":"Congratulations!";$("ttravel").hidden=!!fallen;
   $("tsub").innerHTML=fallen?(fallen==="lost"?`Your army fell at <b>${nm.name}</b>.`:`You withdrew from <b>${nm.name}</b>, and the campaign ended there.`)+` You reached region ${camp.region}.`
     :`You conquered <b>${nm.name}</b>`+(camp.region>1?` and won your ${["","","second","third","fourth","fifth"][camp.region]||camp.region+"th"} region!`:" and won the campaign!");
-  $("tstats").innerHTML='<h3>Roll of honor</h3>'+army.map((t,i)=>{const f=(camp.falls&&camp.falls[i])||[];return `<div class="trow">${hIcon(t,"y")}<span>${heroName(i)} <small>${cap(NAME[t])}${t==="T"&&kills[i]?", with militia":""}${f.length?` · fell at ${listAnd([...new Set(f)])}`:" · never fell"}</small></span><b title="enemies defeated">${kills[i]}</b></div>`}).join("")
+  $("tstats").innerHTML='<h3>Roll of honor</h3>'+army.map((t,i)=>{const f=(camp.falls&&camp.falls[i])||[];return `<div class="trow">${hIcon(t,"y")}<span>${heroName(i)} <small>${cap(NAME[t])}${t==="T"&&kills[i]?", with militia":""}${f.length?` · fell at ${fellAt(f)}`:" · never fell"}</small></span><b title="enemies defeated">${kills[i]}</b></div>`}).join("")
     +`<div class="ttot"><span>Total defeated: ${total}</span><span>Maps cleared: ${maps}</span></div>`;
   $("therb").innerHTML=unlocks.campsite?`<div class="hport" aria-hidden="true">${campScene("plain").replace('viewBox="0 0 320 220"','viewBox="178 48 90 84" preserveAspectRatio="xMidYMid slice"')}</div><div class="cbub"><b>Herbert:</b> “${HERBERT_WIN[Math.floor(Math.random()*HERBERT_WIN.length)]}”</div>`:"";
   if(fallen&&unlocks.campsite)$("therb").querySelector(".cbub").innerHTML=`<b>Herbert:</b> “${HERBERT_LOSS[Math.floor(Math.random()*HERBERT_LOSS.length)]}”`;
