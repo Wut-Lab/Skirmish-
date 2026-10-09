@@ -1635,7 +1635,7 @@ function acts(){
   if(!mode&&canTrumpet(sel))add("Sound Trumpet",()=>doTrumpet(sel));
   if(!mode&&camp.battle&&!chal&&camp.items&&camp.items.length&&sel.team==="y"&&(!sel.acted||camp.items.some(id=>ITEMS[id].free))&&!sel.auto)add("Use Item",()=>{mode="items";say("Choose an item to use.");render()});
   if(mode==="items")[...new Set(camp.items)].filter(id=>!sel.acted||ITEMS[id].free).forEach(id=>{const k=camp.items.filter(i=>i===id).length;add(ITEMS[id].name+(k>1?" \u00d7"+k:""),()=>{mode="item:"+id;say(itemPrompt(id));render()})});
-  if(!mode&&canMuster(sel))add("Muster Militia",()=>{const n=muster(sel);sel=null;insp=null;lastMove=null;say(`Mustered ${n} militia. They can act next turn.`);render()});
+  if(!mode&&canMuster(sel))add("Muster Militia",()=>{const n=muster(sel);unlock("seaside");sel=null;insp=null;lastMove=null;say(`Mustered ${n} militia. They can act next turn.`);render()});
   if(mode)add("Cancel",()=>{mode=null;say("Move, attack, or pick another unit.");render()});
 }
 
@@ -3796,7 +3796,7 @@ $("tmenu").onclick=()=>{gid++;$("triumph").hidden=true;camp.battle=null;show("me
    Terrain letters (one source, read by the loader, the editor palette and the map codes): */
 const MAPCH={".":"ground",f:"forest",s:"shallow",d:"deep",m:"swamp",w:"wall",F:"fort",b:"barrels",x:"xbarrel",g:"grave",c:"campsite",l:"lava",h:"magma",v:"volcano",k:"cherry",o:"wisp",p:"flowers",q:"koi",n:"meadow",t:"greenwood"};
 const MAPKEY=Object.fromEntries(Object.entries(MAPCH).map(([c,k])=>[k,c]));
-// Challenge maps. diff: 0 easy, 1 moderate, 2 hard (the menu lists them easiest first). reward: an unlock id granted on the first win (add it to UNLOCKS with its hint); hint: how the menu describes that reward
+// Challenge maps. diff: 0 easy, 1 moderate, 2 hard (the menu lists them easiest first). reward: an unlock id granted on the first win (add it to UNLOCKS with its hint); hint: how the menu describes that reward; lock: an unlock id the map needs before it shows (add it to UNLOCKS with chal: the map id)
 const CHALLENGES=[
  {id:"meadow",diff:0,reward:"flowers",hint:"a new tile",name:"Wildflower Meadow",desc:"A quiet meadow in full bloom. A small enemy patrol stands between you and the road home.",biome:"plain",mods:{y:null,f:null},
   rows:["f........f","..pp......","......f...","..f....pp.",".....p....","pp...f....","....f...pp","...p......",".pp....f..","......pp..","f.........","........f."],
@@ -3815,8 +3815,12 @@ const CHALLENGES=[
   units:[["R","f",1,1],["K","f",0,2],["K","f",2,0],["A","f",2,2],["K","f",0,4],["A","y",8,10],["K","y",9,10],["K","y",8,11],["P","y",9,9],["E","y",7,11]]},
  {id:"wharton",diff:1,reward:"chicken",hint:"a relic",name:"Fort Wharton",desc:"A fortress with tight corridors.",biome:"forest",mods:{y:null,f:null},
   rows:["FwwwwwwwwF","Fw..ff..wF","fw..ww..wf","fw..fw..wf","fw..wf..wf","Fw..ww..wF","Fw..ww..wF","fw..ww..wf","fw..ww..wf","fw..ww..wf","Fw..ww..wF","FwwwwwwwwF"],
-  units:[["K","f",6,10],["C","f",7,10],["A","f",7,9],["P","y",2,9],["C","y",2,10],["C","y",3,10],["A","y",3,9]]}
+  units:[["K","f",6,10],["C","f",7,10],["A","f",7,9],["P","y",2,9],["C","y",2,10],["C","y",3,10],["A","y",3,9]]},
+ {id:"seaside",diff:2,lock:"seaside",name:"Seaside Grove",desc:"A condensed situation. Move wisely.",biome:"wetlands",mods:{y:"TP",f:"FT"},
+  rows:["fk.sssdddd","fkk.ssdddd","ftk..sdddd","nnf..ssddd","nnnnnsssdd","nnpnn.ssdd","nnpnn.nsss","pnnnnn..ss","nnnnpn..ns","nnnnnnn..s","npnnnnn...","nnnnn.nn.."],
+  units:[["K","f",0,6],["K","y",4,11],["H","w",6,4],["K","y",5,11],["T","f",0,4],["K","f",0,5],["A","f",0,3],["P","y",6,11],["M","f",1,4],["M","f",1,3]]}
 ];
+const chalOpen=c=>!c.lock||!!unlocks[c.lock]; // locked maps show only in the Unlocks menu until earned
 let chal=null; // the fixed map being played: {def, test}
 const DIFF=[["Easy","#3f9a5a"],["Moderate","#c9962a"],["Hard","#c8372d"]];
 // lays a fixed map's terrain into the board state
@@ -3865,8 +3869,8 @@ function chalEnd(win){
 }
 function openChallenges(){
   chal=null;show("menu");$("mbtns").hidden=true;const r=$("chalview");r.hidden=false;
-  r.innerHTML=`<h2 class="htitle">Challenges</h2><p class="hint" style="text-align:center">Fixed maps with fixed armies. ${CHALLENGES.filter(c=>unlocks["ch_"+c.id]).length} of ${CHALLENGES.length} conquered.</p><div class="ulist">`
-   +CHALLENGES.map((c,i)=>[c,i]).sort((a,b)=>(a[0].diff||0)-(b[0].diff||0)||a[1]-b[1]).map(([c,i])=>{const done=unlocks["ch_"+c.id],dl=DIFF[c.diff||0],nf=c.units.filter(u=>u[1]==="f").length,ny=c.units.filter(u=>u[1]==="y").length;
+  r.innerHTML=`<h2 class="htitle">Challenges</h2><p class="hint" style="text-align:center">Fixed maps with fixed armies. ${CHALLENGES.filter(c=>chalOpen(c)&&unlocks["ch_"+c.id]).length} of ${CHALLENGES.filter(chalOpen).length} conquered.</p><div class="ulist">`
+   +CHALLENGES.map((c,i)=>[c,i]).filter(([c])=>chalOpen(c)).sort((a,b)=>(a[0].diff||0)-(b[0].diff||0)||a[1]-b[1]).map(([c,i])=>{const done=unlocks["ch_"+c.id],dl=DIFF[c.diff||0],nf=c.units.filter(u=>u[1]==="f").length,ny=c.units.filter(u=>u[1]==="y").length;
      return `<div class="hcard">`+hRow(`<div class="tsw" style="${TERRAIN.fort.bg}">${FORT_ICON[0]}</div>`,`<b>${c.name}</b><small><span class="dtag" style="--dc:${dl[1]}">${dl[0]}</span> ${done?"✅ Conquered":"Not yet conquered"} · ${ny} of yours vs ${nf} enemies</small>${c.desc}${c.reward&&!done?`<small>Reward: ${c.hint||"something new"}</small>`:""}<div><button class="b pri cbtn" data-i="${i}">Play</button></div>`)+"</div>"}).join("")+"</div>";
   const box=document.createElement("div");box.className="menubtns";mk(box,"b big","Back to Main Menu",()=>{r.hidden=true;$("mbtns").hidden=false;$("chal").focus()});r.append(box);
   r.querySelectorAll(".cbtn").forEach(b=>b.onclick=()=>startChallenge(CHALLENGES[+b.dataset.i],false));
@@ -3982,10 +3986,12 @@ const UNLOCKS=[
  {id:"wolfpack",relic:"wolfpack",hint:"Wolves never hunt alone."},
  {id:"chicken",relic:"chicken",hint:"Conquer the Fort Wharton challenge."},
  {id:"pavise",relic:"pavise",hint:"Those who stand in the rain of arrows learn to carry a wall."},
- {id:"mule",item:"mule",hint:"Marcus saves his strangest stock for his best customers."}
+ {id:"mule",item:"mule",hint:"Marcus saves his strangest stock for his best customers."},
+ {id:"seaside",chal:"seaside",hint:"Answer a captain's first call to arms, and word comes from the shore."}
 ];
 // name, art and description for an unlock, read from the terrain table or the unit descriptions
-const unlockInfo=o=>o.item?{name:ITEMS[o.item].name,art:itemIcon(o.item,44),desc:ITEMS[o.item].desc+` ${RARITY[ITEMS[o.item].r||0][0]} consumable, sold by Marcus.`}
+const unlockInfo=o=>o.chal?(c=>({name:c.name,art:`<div class="tsw" style="${TERRAIN.fort.bg}">${FORT_ICON[0]}</div>`,desc:`${c.desc} A ${DIFF[c.diff||0][0].toLowerCase()} challenge map, played from the Challenges menu.`}))(CHALLENGES.find(c=>c.id===o.chal))
+  :o.item?{name:ITEMS[o.item].name,art:itemIcon(o.item,44),desc:ITEMS[o.item].desc+` ${RARITY[ITEMS[o.item].r||0][0]} consumable, sold by Marcus.`}
   :o.relic?{name:RELICS[o.relic].name,art:relicIcon(o.relic,44),desc:RELICS[o.relic].desc+` ${/^[AEIOU]/.test(RARITY[RELICS[o.relic].r][0])?"An":"A"} ${RARITY[RELICS[o.relic].r][0].toLowerCase()} relic `+(RELICS[o.relic].find?"found only in battle, never offered as a reward.":"that can be offered after campaign victories.")}
   :o.biome?{name:BIOME_NAME[o.biome],art:terrainSwatch(o.terrain),desc:BTEXT[o.biome]+" Can appear in campaigns and quick battles."}
   :o.terrain?{name:TERRAIN[o.terrain].name,art:terrainSwatch(o.terrain),desc:TERRAIN[o.terrain].desc}
