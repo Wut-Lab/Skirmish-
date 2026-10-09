@@ -630,7 +630,7 @@ const W=10,H=12,
 TYPES={K:{hp:12,mv:3,rg:1,mn:1,dmg:5,ar:2},A:{hp:8,mv:3,rg:3,mn:1,dmg:4,pi:1,ev:.1},R:{hp:10,mv:2,rg:4,mn:2,dmg:4,pi:2},W:{hp:8,mv:2,rg:1,mn:1,dmg:4,ev:.15},B:{hp:16,mv:1,rg:1,mn:1,dmg:6,ar:1},H:{hp:5,mv:3,rg:2,mn:1,dmg:3,ev:.25},C:{hp:9,mv:5,rg:1,mn:1,dmg:4,ar:1,ev:.1},P:{hp:7,mv:3,rg:2,mn:1,dmg:1,heal:3,ev:.1},E:{hp:6,mv:3,rg:3,mn:1,dmg:2,slow:1,ev:.15},T:{hp:9,mv:3,rg:1,mn:1,dmg:3,ar:1},N:{hp:8,mv:3,rg:1,mn:1,dmg:2,ev:.05},M:{hp:4,mv:2,rg:1,mn:1,dmg:2},G:{hp:3,mv:4,rg:1,mn:1,dmg:2,ev:.15}}; // G: the Angry Chicken (Chicken Suit relic)
 const ST=u=>u.st?{...TYPES[u.t],...u.st}:TYPES[u.t]; // a unit's stats: its type's, unless it carries its own (mercenaries)
 // Mercenaries: a weaker, slightly randomized take on a unit type that fights on its own. One at a time, for MERC_TERM campaign battles.
-const MERC_TYPES="KARC",MERC_PRICE={K:70,A:65,R:70,C:75},MERC_TERM=4,MERC_SHOP=1/3,MERC_ROAD=.1,MERC_FOE=r=>r>=6?.4:r>=3?.25:0; // MERC_FOE: the chance an enemy army (from region 3) hires one; a boss rolls twice
+const MERC_TYPES="KARC",MERC_PRICE={K:70,A:65,R:70,C:75},MERC_TERM=4,MERC_SHOP=1/3,MERC_ROAD=.1;
 const MERC_QUIRKS=[["Swift",{mv:1},"+1 move"],["Stout",{ar:1},"+1 armor"],["Nimble",{ev:.05},"+5% evasion"],["Hardy",{hp:2},"+2 HP"],["Keen",{pi:1},"+1 pierce"]];
 const MERC_NAMES=["Bruno","Garrick","Vasco","Ingrid","Rurik","Sabine","Dario","Helga","Tobias","Mirela","Corvin","Ottilie","Brennan","Zora","Lothar","Greta","Anselm","Kasia","Pell","Ysgrim"];
 function rollMerc(t){
@@ -1475,7 +1475,7 @@ function renderInfo(){
   if(!info){el.className="pb empty";el.style.borderLeft="";el.innerHTML='<div class="lbl">Unit</div><div class="ph">Tap a unit to see its details.</div>';return}
   const u=info,T=ST(u),c=COLORS[col[u.team]],fo=WOODS(u.x+","+u.y),r=u.hp/maxHp(u),notes=[],hero=camp.battle&&!chal&&u.team==="y"&&u.ci!=null&&camp.names;
   if(u.team==="w")notes.push("Wild: wanders at random and attacks any unit in range.");
-  if(u.merc)notes.push(u.team==="y"?`Mercenary: fights on its own at the end of your turn.${camp.merc?` ${camp.merc.left} battle${camp.merc.left>1?"s":""} left on its contract.`:""}`:"Mercenary: hired by the enemy, a little weaker than the real thing.");
+  if(u.merc&&u.team==="y")notes.push(`Mercenary: fights on its own at the end of your turn.${camp.merc?` ${camp.merc.left} battle${camp.merc.left>1?"s":""} left on its contract.`:""}`);
   if(ABILITY[u.t])notes.push(u.t==="P"?ABILITY.P.replace(TYPES.P.heal+" HP",healOf(u)+" HP"):ABILITY[u.t]); // the Apothecary's note carries its heal, relics included
   if(u.t==="T")notes.push(`Musters left this battle: ${musterUses(u)-(u.musters||0)}.`);
   if(inspired(u))notes.push("Inspired by a nearby Banner Bearer: deals +1 damage.");
@@ -2148,21 +2148,31 @@ function wispsAct(){
 /* ---------- Wounds and honors: each campaign soldier has a name, a record and scars ---------- */
 // a unit that falls in a won campaign battle comes back wounded: 1 less max HP per wound, for the rest of the campaign.
 // Healing spots mend one wound per unit; Herbert's fire mends them all.
-/* ---------- Escalation: each region's enemies grow a little tougher ----------
-   region 1 as is; from 2, one Elite per region beyond the first in every battle (region 2: one, region 3: two, ... until the whole army is Elite);
-   2: the boss carries a boss relic; 4: a second relic (boss list or any); 6: two boss relics and a consumable.
-   From 7 on, each even region adds a relic and a consumable to the boss (consumables up to 3). */
-const ELITE_HP=2,elitesFor=r=>Math.max(0,r-1);
-const bossRelicsFor=r=>r<2?0:r<4?1:r<8?2:2+Math.floor((r-6)/2),bossItemsFor=r=>r<6?0:Math.min(3,1+Math.floor((r-6)/2));
+/* ---------- Escalation: one row per region, the single source for how much tougher the enemy gets ----------
+   elite: enemies made Elite in every battle (+2 HP, +1 damage) · extra: units added to every enemy army (the boss always brings one more anyway)
+   relics, items: what the boss's army carries. Past the last row it repeats, with one more boss relic every 2 regions. */
+const ESC=[
+ {elite:0,extra:0,relics:0,items:1}, // 1
+ {elite:1,extra:0,relics:1,items:1}, // 2
+ {elite:2,extra:0,relics:1,items:1}, // 3
+ {elite:3,extra:0,relics:2,items:1}, // 4
+ {elite:4,extra:0,relics:2,items:1}, // 5
+ {elite:5,extra:0,relics:2,items:1}, // 6
+ {elite:5,extra:1,relics:3,items:2}, // 7
+ {elite:6,extra:2,relics:3,items:2}, // 8
+ {elite:7,extra:3,relics:3,items:3}, // 9
+ {elite:8,extra:4,relics:4,items:3}, // 10
+];
+const ELITE_HP=2,esc=r=>{const n=ESC.length,e=ESC[Math.min(r,n)-1];return r>n?{...e,relics:e.relics+Math.floor((r-n)/2)}:e},escFrom=k=>ESC.findIndex(e=>e[k]>0)+1;
 // relics an enemy army can make use of (no player-only actions, once-per-battle tricks or gold), and the unit each needs
 const FOE_OK={csword:"",cshield:"",whet:"A",shield:"K",bard:"C",luck:"",long:"A",debris:"R",wolfpack:"",mercy:"",gauntlets:"",pavise:"A",pennant:"",hatchet:"",keep:"",ram:"",blossom:"",crown:"",statue:"",spurs:"C",grog:"",pebble:"",warpaint:""};
 function foeLoadout(r){
   const army=units.filter(u=>u.team==="f").map(u=>u.t),ok=id=>id in FOE_OK&&(!FOE_OK[id]||army.includes(FOE_OK[id]))&&!FOE_RELIC.has(id);
   const boss=Object.keys(RELICS).filter(id=>RELICS[id].src==="boss"&&ok(id)),other=Object.keys(RELICS).filter(id=>RELICS[id].src!=="boss"&&ok(id));
   const take=list=>{const c=list.filter(ok);if(c.length)FOE_RELIC.add(c[Math.floor(Math.random()*c.length)])};
-  for(let i=0;i<bossRelicsFor(r);i++)take(i===0||(r>=6&&i===1)?boss:Math.random()<.5?boss:other); // the first (and from region 6 the second) always from the boss list
+  for(let i=0;i<esc(r).relics;i++)take(i===0||(r>=6&&i===1)?boss:Math.random()<.5?boss:other); // the first (and from region 6 the second) always from the boss list
   const kit=Object.keys(ITEMS).filter(id=>ITEMS[id].foe);
-  for(let i=0;i<bossItemsFor(r);i++)FOE_ITEMS.push(kit[Math.floor(Math.random()*kit.length)]);
+  for(let i=0;i<esc(r).items;i++)FOE_ITEMS.push(kit[Math.floor(Math.random()*kit.length)]);
 }
 // the boss uses its consumables at the start of its turn, when they'd help
 function foeUseItems(){
@@ -2925,9 +2935,11 @@ function start(o={}){
   const spot=(rows,xs)=>{for(const y of rows)for(const x of xs)if(!solid(x+","+y)&&!at(x,y))return [x,y];return null};
   if(camp.battle&&!chal&&camp.merc&&camp.merc.hp>0){const m=camp.merc,sp=spot([H-1,H-2],[5,2,7,0,9,4,6,1,3,8]);if(sp)units.push({t:m.t,team:"y",auto:1,merc:1,mname:m.name,st:m.st,x:sp[0],y:sp[1],hp:Math.min(m.hp,m.st.hp),moved:1,acted:1})} // your hired sword
   FOE_RELIC=new Set();FOE_ITEMS=[];
-  if(camp.battle&&!chal){const fs=units.filter(u=>u.team==="f").sort(()=>Math.random()-.5);fs.slice(0,elitesFor(camp.region||1)).forEach(u=>{u.elite=1;u.hp+=ELITE_HP}); // Elite enemies (see elitesFor)
+  if(camp.battle&&!chal){const E=esc(camp.region||1); // escalation (see ESC): extra enemy units, then Elites, then the boss's loadout
+    for(let i=0;i<E.extra;i++){const t=rnd(foe),sp=spot([1,0],[4,5,2,7,0,9,3,6,1,8]);if(sp){foe.push(t);units.push({t,team:"f",x:sp[0],y:sp[1],hp:TYPES[t].hp,moved:0,acted:0})}}
+    units.filter(u=>u.team==="f").sort(()=>Math.random()-.5).slice(0,E.elite).forEach(u=>{u.elite=1;u.hp+=ELITE_HP});
     if(o.boss)foeLoadout(camp.region||1);
-    const ch=MERC_FOE(camp.region||1);for(let i=0;i<(o.boss?2:1);i++)if(Math.random()<ch){const m=rollMerc(),sp=spot([0,1],[4,2,7,0,9,5,3,6,1,8]);if(sp)units.push({t:m.t,team:"f",merc:1,mname:m.name,st:m.st,x:sp[0],y:sp[1],hp:m.st.hp,moved:0,acted:0})}} // the enemy hires help too
+  }
   if(FOE_RELIC.has("keep")){const fs=units.filter(u=>u.team==="f");fs[Math.floor(Math.random()*fs.length)].keep=1}
   ["y","f"].forEach(team=>{ // the Shimmering Champion pieces: one random unit (above half health when it can) takes every piece its side carries
     const has=id=>team==="y"?RELIC.has(id):FOE_RELIC.has(id);if(!has("csword")&&!has("cshield")&&!has("ccloak"))return;
@@ -2948,10 +2960,10 @@ function start(o={}){
       if(!solid(x+","+y)&&!at(x,y)){wild={t,team:"w",x,y,hp:TYPES[t].hp,moved:0,acted:0};units.push(wild)}
     }
   }
-  const loc=camp.battle?WORLD[camp.battle.node].name+(o.boss?" (boss battle). ":". "):"",fm=units.filter(u=>u.merc&&u.team==="f");
+  const loc=camp.battle?WORLD[camp.battle.node].name+(o.boss?" (boss battle). ":". "):"";
   BIOME_KEY=camp.battle?WORLD[camp.battle.node].b:guessBiome();$("biome").textContent=BIOME_NAME[BIOME_KEY];
   const el=units.filter(u=>u.elite),carry=[...FOE_RELIC].map(id=>RELICS[id].name).concat(FOE_ITEMS.map(id=>ITEMS[id].name));
-  show("game");say(loc+(carry.length?"The boss comes well equipped! ":"")+"Your turn. Select one of your units."+(el.length?` Elite enemy ${listAnd(el.map(u=>cap(NAME[u.t])))} ${el.length>1?"lead":"leads"} their army.`:"")+(wild?" A wild "+NAME[wild.t]+" roams the map.":"")+(fm.length?` The enemy has hired ${fm.length>1?"mercenaries":"a mercenary "+NAME[fm[0].t]}.`:""));render();
+  show("game");say(loc+(carry.length?"The boss comes well equipped! ":"")+"Your turn. Select one of your units."+(!el.length?"":el.length===units.filter(u=>u.team==="f").length?" Their whole army is Elite.":el.length>3?` ${el.length} Elite enemies lead their army.`:` Elite enemy ${listAnd(el.map(u=>cap(NAME[u.t])))} ${el.length>1?"lead":"leads"} their army.`)+(wild?" A wild "+NAME[wild.t]+" roams the map.":""));render();
 }
 $("hero").innerHTML=[["K","blue"],["C","green"],["R","yellow"],["A","red"]].map(([t,c])=>`<div class="pv">${disc(t,COLORS[c])}</div>`).join("");
 $("play").onclick=()=>askHold("quick",init);
@@ -3009,7 +3021,7 @@ const HOWTO=[
         :k==="boss"?nest(FORT_ICON[1],x-14,y-14,28)
         :`<path d="M${x-6} ${y-6}L${x+6} ${y+6}M${x+6} ${y-6}L${x-6} ${y+6}" stroke="#3b2a14" stroke-width="3" stroke-linecap="round"/>`});
     return s+"</svg>"},
-  body:()=>`<p>Travel along the paths on the world map. Each new location starts a battle, and winning clears it. Paths marked with arrows are one-way: there's no coming back, so places you skip may be cut off for good, and something may happen along the way. Every campaign uses a new random map. Defeat the boss at the top to finish, or travel on to new lands: a fresh map in a new region, with your army, relics and gold carried over.</p><p>You choose your extra units, modifier, and color once. Your units keep their health between battles. After each win, surviving units recover ${Math.round(CAMP_HEAL*100)}% of their max health, and a unit that falls returns with 1 HP. But if your whole army falls, or you concede, the campaign ends there: choose your battles carefully.</p><p>Each new region is tougher than the last. From region 2, the boss's garrison carries relics of its own, and later consumables it isn't shy about using. From region 2, Elite enemies (ringed in gold, with +2 HP and +1 damage) lead every army, with one more in each new region.</p><p>Every soldier has a name. A unit that falls in a battle you win comes back wounded, with 1 less max HP for the rest of the campaign (up to ${WOUND_MAX} wounds, marked \u2020 on the world map). The healing space mends one wound per unit, and Herbert's fire mends them all. Brave deeds earn honors, like "the Bold" or "the Unbroken", and the roll of honor remembers it all when you conquer a region.</p><p>Each victory also earns gold, shown by the coin purse on the world map, and lets you choose one of two or three relics. Relics last for the rest of the campaign: rarer ones are stronger.</p><p>Teal wave spaces are wetlands: battles fought across lakes, ponds and rivers. One or two appear on each map. Dark reed spaces are murky swamps, thick with mud that stops units in their tracks.</p><p>Each map has one healing space (a green cross). Visiting it restores 70% of each unit's health, once.</p><p>Each map also has one Merchant (a gold coin purse), where Marcus sells potions, bombs and relics for gold. You can visit once. Your pack holds up to ${ITEM_CAP} items: in battle, select a unit and tap <b>Use Item</b>. Using an item takes that unit's action.</p>`},
+  body:()=>`<p>Travel along the paths on the world map. Each new location starts a battle, and winning clears it. Paths marked with arrows are one-way: there's no coming back, so places you skip may be cut off for good, and something may happen along the way. Every campaign uses a new random map. Defeat the boss at the top to finish, or travel on to new lands: a fresh map in a new region, with your army, relics and gold carried over.</p><p>You choose your extra units, modifier, and color once. Your units keep their health between battles. After each win, surviving units recover ${Math.round(CAMP_HEAL*100)}% of their max health, and a unit that falls returns with 1 HP. But if your whole army falls, or you concede, the campaign ends there: choose your battles carefully.</p><p>Each new region is tougher than the last. From region ${escFrom("elite")}, Elite enemies (ringed in gold, with +2 HP and +1 damage) lead every army, more in each new region, and from region ${escFrom("extra")} the enemy armies grow larger too. The boss's garrison carries consumables it isn't shy about using${escFrom("items")>1?` from region ${escFrom("items")}`:""}, and from region ${escFrom("relics")} relics of its own.</p><p>Every soldier has a name. A unit that falls in a battle you win comes back wounded, with 1 less max HP for the rest of the campaign (up to ${WOUND_MAX} wounds, marked \u2020 on the world map). The healing space mends one wound per unit, and Herbert's fire mends them all. Brave deeds earn honors, like "the Bold" or "the Unbroken", and the roll of honor remembers it all when you conquer a region.</p><p>Each victory also earns gold, shown by the coin purse on the world map, and lets you choose one of two or three relics. Relics last for the rest of the campaign: rarer ones are stronger.</p><p>Teal wave spaces are wetlands: battles fought across lakes, ponds and rivers. One or two appear on each map. Dark reed spaces are murky swamps, thick with mud that stops units in their tracks.</p><p>Each map has one healing space (a green cross). Visiting it restores 70% of each unit's health, once.</p><p>Each map also has one Merchant (a gold coin purse), where Marcus sells potions, bombs and relics for gold. You can visit once. Your pack holds up to ${ITEM_CAP} items: in battle, select a unit and tap <b>Use Item</b>. Using an item takes that unit's action.</p>`},
  {id:"scout",title:"Scouting",art:()=>{const m=[];for(let y=0;y<7;y++){let r="";for(let x=0;x<7;x++){const d=Math.abs(x-3)+Math.abs(y-3);r+=d===0?".":d<=2?"g":d===3?"p":"."}m.push(r)}return hBoard(7,7,m,[["K","f",3,3]],38)},
   body:()=>"<p>Tap any unit to see its details, including its health. Tap an enemy to see where it can move (gray) and hit (red). Tap it again to hide.</p>"}
 ];
