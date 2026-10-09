@@ -317,6 +317,7 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .shsec{width:100%;font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#d8b878;margin-top:4px}
 #shlist{display:grid;gap:8px;width:100%}.shitem{grid-template-columns:52px 1fr auto;width:100%}.shitem .ri{grid-row:span 3}
 .shprice{grid-column:3;grid-row:1/span 3;align-self:center;font-weight:800;font-size:.85rem;padding:6px 10px;border-radius:8px;background:#7a4c22;color:#fff3da;white-space:nowrap;box-shadow:0 2px 0 #1a0f07}.shprice.off{background:#8a7f70;color:#f1ead8;font-weight:700}
+.rcard.clash{opacity:.5;filter:grayscale(.9);cursor:not-allowed}.rcard.clash:hover{transform:none} /* a relic that can't be carried alongside one you have */
 .shitem[aria-disabled="true"]{opacity:.72;cursor:default}.shitem[aria-disabled="true"]:hover{transform:none}
 #shleave{justify-self:center;background:linear-gradient(#a8733a,#7a4c22);color:#fff3da;border-color:#1a0f07;box-shadow:0 3px 0 #1a0f07,inset 0 1px 0 rgba(255,255,255,.25)}
 .ipack{align-self:center;font-size:.8rem;font-weight:700;opacity:.75}
@@ -3506,7 +3507,7 @@ function relicOffer(){
 const BOSS_W=[35,40,25];
 function bossOffer(){
   const army=armyTypes(),ok=R=>(!R.lock||unlocks[R.lock])&&needOk(R,army);
-  const have=id=>relicCount(id)>=(RELICS[id].max||1)||clash(id,camp.relics),rar=e=>e.startsWith("item:")?(ITEMS[e.slice(5)].r||0):RELICS[e].r;
+  const have=id=>relicCount(id)>=(RELICS[id].max||1),rar=e=>e.startsWith("item:")?(ITEMS[e.slice(5)].r||0):RELICS[e].r;
   const pick=list=>{const tot=list.reduce((t,e)=>t+BOSS_W[rar(e)],0);let roll=Math.random()*tot,i=0;while(roll>=BOSS_W[rar(list[i])]){roll-=BOSS_W[rar(list[i])];i++}return list[i]};
   const bossList=Object.keys(RELICS).filter(id=>RELICS[id].src==="boss"&&ok(RELICS[id])&&!have(id)),out=bossList.length?[pick(bossList)]:[];
   const pool=[...Object.keys(RELICS).filter(id=>{const R=RELICS[id];return !R.find&&R.src!=="shop"&&R.src!=="boss"&&ok(R)&&!have(id)}),
@@ -3717,13 +3718,14 @@ function showRelicOffer(){
   const full=camp.items.length>=itemCap();
   $("rchoices").innerHTML=camp.offer.map(id=>{
     if(id.startsWith("item:")){const k=id.slice(5),I=ITEMS[k],rc=I.r?RARITY[I.r][1]:"#a08a64";return `<button class="rcard" data-id="${id}" style="--rc:${rc}"${full?' aria-disabled="true"':""}><span class="ri">${itemIcon(k,38)}</span><span class="rr">${I.r?RARITY[I.r][0]+" consumable":"Consumable"} \u00b7 ${full?"pack full":"one use"}</span><b>${I.name}</b><small>${I.desc}</small></button>`}
-    const R=RELICS[id],[rn,rc]=RARITY[R.r];return `<button class="rcard" data-id="${id}" style="--rc:${rc}"><span class="ri">${relicIcon(id,38)}</span><span class="rr">${rn}${boss?" relic":""}</span><b>${R.name}</b><small>${R.desc}</small></button>`}).join("");
+    const R=RELICS[id],[rn,rc]=RARITY[R.r],no=clash(id,camp.relics);return `<button class="rcard${no?" clash":""}" data-id="${id}" style="--rc:${rc}"${no?' aria-disabled="true"':""}><span class="ri">${relicIcon(id,38)}</span><span class="rr">${rn}${boss?" relic":""}</span><b>${R.name}</b><small>${R.desc}</small></button>`}).join("");
   $("rchoices").querySelectorAll(".rcard").forEach(b=>b.onclick=()=>{
     const id=b.dataset.id;
+    if(!id.startsWith("item:")&&clash(id,camp.relics)){$("relicv").querySelector(".rsub").textContent="Some things are not meant to work together.";return}
     if(id.startsWith("item:")){if(camp.items.length>=itemCap())return;camp.items.push(id.slice(5));renderItems()}else camp.relics.push(id);
     if(id==="chest"){camp.gold+=CHEST_GOLD;camp.lastGold=CHEST_GOLD;sfx("coin");renderGold()} // the war chest pays out at once
     camp.offer=null;camp.offerBoss=false;saveCamp();$("relicv").hidden=true;renderRelics();$("wmap").querySelector(".wn")&&renderWorld()});
-  $("relicv").hidden=false;$("rchoices").querySelector(".rcard").focus();
+  $("relicv").hidden=false;($("rchoices").querySelector('.rcard:not([aria-disabled="true"])')||$("rchoices").querySelector(".rcard")).focus();
 }
 /* ---------- Campaign triumph: after the boss falls ---------- */
 const battlesWon=()=>camp.cleared.filter(i=>WORLD[i]&&(WORLD[i].type==="battle"||WORLD[i].type==="boss")).length; // in this region
