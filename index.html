@@ -703,6 +703,7 @@ const RELICS={
  pebble:{name:"Lucky Pebble",r:0,desc:"All your units get +1% evasion. Found in a boot. Probably lucky."},
  warpaint:{name:"Berserker's Warpaint",r:1,src:"both",desc:"Cursed. All your units deal +1 damage, but they never retaliate. No time to parry when you're busy screaming."},
  keen:{name:"Keen Eye Charm",r:0,desc:"Your ranged attacks (range 2 or more) ignore 3% of the target's evasion."},
+ hexbook:{name:"Book of Combat Hexes",r:2,src:"both",need:"E",hpUp:"E",desc:"Enchanters get +1 max HP and +5% evasion. An adjacent enemy that attacks an Enchanter takes 1 damage, ignoring armor, whether or not it hits, and deals 1 less damage on its next turn. Gaining it doesn't heal them."},
  redtome:{name:"Tome of the Red Mages' College",r:1,set:"tomes",src:"both",need:"E",desc:"Your Enchanters glow a faint red. Their attacks deal +1 damage, but cost them 1 HP each (never the last). Slowing is unaffected."},
  blacktome:{name:"Tome of the Black Mages' College",r:1,set:"tomes",src:"both",need:"E",desc:"Your Enchanters siphon life: a landed attack heals them 1 HP, and they deal +1 damage to a target that is already slowed."},
  whet:{name:"Whetstones",r:0,src:"both",desc:"Archers deal +1 damage."},
@@ -1329,7 +1330,7 @@ const $=id=>document.getElementById(id),board=$("board");
 const d=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 const at=(x,y)=>units.find(u=>u.x===x&&u.y===y);
 const helmed=u=>units.some(b=>b!==u&&b.t==="N"&&b.team===u.team&&rel(b,"helm")&&d(b,u)<=BANNER_RANGE); // within the Inspirational Plumed Helm's reach
-const HELM_EV=.05,HEX_EV=.1; // HEX_EV: the Enchanter's hex makes its victim's targets harder to hit
+const HELM_EV=.05,HEX_EV=.1,HEXBOOK_EV=.05; // HEX_EV: the Enchanter's hex makes its victim's targets harder to hit
 const mvOf=u=>{const m=ST(u).mv+(helmed(u)?1:0)-(u.t==="A"&&mods[u.team]==="PAD"?1:0)-(u.t==="C"&&rel(u,"bard")?1:0)+(firstTurn&&rel(u,"drills")?1:0)+(u.haste||0);if(u.stepOnly)return 1;return u.slow?Math.min(m,TYPES.E.slow):m};
 const inspired=(u,at=u)=>units.some(b=>b.t==="N"&&b.team===u.team&&b!==u&&d(b,at)<=BANNER_RANGE); // within a Banner Bearer's aura (at: where u would stand)
 /* ---------- Combat: the one place an attack's damage and hit chance are worked out ----------
@@ -1367,6 +1368,7 @@ function combat(a,b,from=a){
   add("Tome of the Red Mages",a.t==="E"&&rel(a,"redtome")?1:0);
   add("Tome of the Black Mages",a.t==="E"&&rel(a,"blacktome")&&b.slow?1:0); // preying on the slowed
   add("Elite",a.elite?1:0);
+  add("Combat Hex",a.weak?-1:0); // cursed for striking an Enchanter
   add("Goading Bugle",a.goaded===pturn&&turn===a.team?1:0);
   add("Imposing Banner",units.some(v=>v.t==="N"&&v.team!==a.team&&v.team!=="w"&&rel(v,"imposing")&&d(v,from)<=BANNER_RANGE)?-1:0); // striking in the banner's shadow
   add("Vasco's Falcata",a.conq||0);
@@ -1375,7 +1377,7 @@ function combat(a,b,from=a){
   armor.forEach(([l,v])=>add(l,-v));
   add("Pierce",Math.min(a.t==="E"?99:Math.max(0,(A.pi||0)+(rel(a,"bluemagma")?1:0)+(rel(a,"crown")?1:0)+(a.t==="K"&&rel(a,"sallet")?1:0)+(a.t==="R"&&rel(a,"ammo")?1:0)+(a.champ?1:0)+(sc?1:0)+(a.ublade&&b.hp>maxHp(b)/2?1:0)-(b.cshield?1:0)),armor.reduce((t,x)=>t+x[1],0))); // Blue Magma and the Champion's Sword add pierce, the Usurper's Blade against the healthy; the Champion's Shield turns 1 aside
   add("Pavise",b.t==="A"&&A.rg>1&&rel(b,"pavise")?-1:0); // a shield wall, not armor: pierce can't get past it
-  const ev=Math.max(0,-(rel(a,"keen")&&rgOf(a)>1?KEEN_EV:0)-(b.t==="N"&&rel(b,"helm")?HELM_EV:0)+Math.min(EV_CAP,(B.ev||0)+(a.hex?HEX_EV:0)+(rel(b,"luck")?.05:0)+(b.trio?TRIO_EV:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(rel(b,"sakurafan")&&[...blastOf(k),[b.x,b.y]].some(([x,y])=>CHERRY.has(x+","+y))?FAN_EV:0)+(blessed(b)?BLESS_EV:0)+(rested(b)?REST_EV:0)+(rel(b,"pebble")?PEBBLE_EV:0)+(rallied(b)?RALLY_EV:0)+(b.team==="y"&&SMOKE.has(k)?SMOKE_EV:0)+(WOODS(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0))); // Keen Eye Charm: ranged attacks see through a little of it
+  const ev=Math.max(0,-(rel(a,"keen")&&rgOf(a)>1?KEEN_EV:0)-(b.t==="N"&&rel(b,"helm")?HELM_EV:0)+Math.min(EV_CAP,(B.ev||0)+(b.t==="E"&&rel(b,"hexbook")?HEXBOOK_EV:0)+(a.hex?HEX_EV:0)+(rel(b,"luck")?.05:0)+(b.trio?TRIO_EV:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(rel(b,"sakurafan")&&[...blastOf(k),[b.x,b.y]].some(([x,y])=>CHERRY.has(x+","+y))?FAN_EV:0)+(blessed(b)?BLESS_EV:0)+(rested(b)?REST_EV:0)+(rel(b,"pebble")?PEBBLE_EV:0)+(rallied(b)?RALLY_EV:0)+(b.team==="y"&&SMOKE.has(k)?SMOKE_EV:0)+(WOODS(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0))); // Keen Eye Charm: ranged attacks see through a little of it
   return {dmg:Math.max(1,parts.reduce((t,p)=>t+p[1],0)),hit:sc?1:1-ev,parts}; // every hit deals at least 1; a scouted first strike never misses
 }
 // a unit with `ret` retaliates against an attacker within its own range for half damage, at least 1 (the attacker may evade it); null when it can't
@@ -1609,12 +1611,14 @@ function renderInfo(){
   if(u.utrio)notes.push(u.vengeance?"The Usurper: +1 damage, for a fallen comrade.":"The Usurper: +1 damage once one of its comrades falls.");
   if(u.t==="T"&&u.team==="y"&&rel(u,"bugle"))notes.push("Goading Bugle: spend its action to goad its militia (+1 damage, a step after acting) and step 1 tile.");
   if(u.goaded===pturn&&turn===u.team)notes.push("Goaded: +1 damage this turn, and a 1-tile step after acting.");
+  if(u.t==="E"&&rel(u,"hexbook"))notes.push("Book of Combat Hexes: an adjacent enemy that attacks it takes 1 damage and deals 1 less on its next turn.");
+  if(u.weak||u.cursed)notes.push(u.weak?"Cursed: deals 1 less damage this turn.":"Cursed: will deal 1 less damage on its next turn.");
   if(u.aim)notes.push("Holding aim: it will shoot the first enemy that moves into its range.");else if(u.t==="A"&&u.team==="y"&&rel(u,"bowstring"))notes.push("Sentinel's Bowstring: end your turn without moving or acting to hold aim.");
   if(u.t==="N"&&rel(u,"imposing"))notes.push("Imposing Banner: enemies within 2 tiles deal 1 less damage.");
   if(u.t==="N"&&rel(u,"ipennant"))notes.push("Pennant of Inspiration: on each enemy turn, the first of your units within 2 tiles to take damage resists 1 of it.");
   if(u.t==="N"&&rel(u,"helm"))notes.push("Inspirational Plumed Helm: your other units within 2 tiles get +1 movement.");else if(helmed(u))notes.push("Inspired by the Plumed Helm: +1 movement.");
   if(u.bloom)notes.push(`Last Bloom: +${u.bloom} damage this battle, for a fallen comrade.`);
-  const stats=[["Move",mvOf(u)],["Range",rangeTxt({...T,rg:rgOf(u)})],["Damage",T.dmg+(u.t==="A"&&rel(u,"whet")?1:0)+(u.t==="M"&&rel(u,"pitchfork")?1:0)+(u.bloom||0)+(u.champ?1:0)+(u.ublade?1:0)+(u.vengeance?1:0)+(inspired(u)?"+1":"")],["Armor",arm],["Pierce",u.t==="E"?"All":(T.pi||0)+(u.t==="R"&&rel(u,"ammo")?1:0)],["Evasion",pct(Math.max(0,(T.ev||0)-(u.t==="N"&&rel(u,"helm")?HELM_EV:0)))]].map(([k,v])=>`<span class="stat${v===0||v==="0%"?" nil":""}">${k} <b>${v}</b></span>`).join(""); // the same six stats on every card, zeros dimmed
+  const stats=[["Move",mvOf(u)],["Range",rangeTxt({...T,rg:rgOf(u)})],["Damage",T.dmg+(u.t==="A"&&rel(u,"whet")?1:0)+(u.t==="M"&&rel(u,"pitchfork")?1:0)+(u.bloom||0)+(u.champ?1:0)+(u.ublade?1:0)+(u.vengeance?1:0)+(inspired(u)?"+1":"")],["Armor",arm],["Pierce",u.t==="E"?"All":(T.pi||0)+(u.t==="R"&&rel(u,"ammo")?1:0)],["Evasion",pct(Math.max(0,(T.ev||0)-(u.t==="N"&&rel(u,"helm")?HELM_EV:0)+(u.t==="E"&&rel(u,"hexbook")?HEXBOOK_EV:0)))]].map(([k,v])=>`<span class="stat${v===0||v==="0%"?" nil":""}">${k} <b>${v}</b></span>`).join(""); // the same six stats on every card, zeros dimmed
   el.className="pb";el.style.borderLeft=`8px solid ${c[1]}`;
   el.innerHTML=`<div class="lbl">Unit</div><div class="row top"><div class="pv">${u.trio||u.utrio?disc(u.t,c).replace(ICON[u.t],u.trio?CHAMP_ICON:USURP_ICON):disc(u.t,c,u.merc,u.auto&&u.team==="y")}</div><div class="ib"><div class="nm"><strong>${u.merc?u.mname:hero?heroName(u.ci):cap(NAME[u.t])}</strong><span>${u.trio?"The Champion":u.utrio?"The Usurper":u.merc?(u.team==="y"?"Your mercenary ":"Enemy mercenary ")+NAME[u.t]:hero?cap(NAME[u.t]):u.team==="y"?"Your unit":u.team==="w"?"Wild":"Enemy"}</span></div><div class="hprow"><span>HP</span><b>${u.hp} / ${maxHp(u)}</b></div><div class="hpb"><i style="width:${100*r}%;background:${r>.5?"#4caf50":r>.25?"#e0b21c":"#d64b3a"}"></i></div><div class="stats">${stats}</div>${notes.map(n=>`<small>${n}</small>`).join("")}</div></div>`;
 }
@@ -2180,6 +2184,7 @@ function applyAttack(a,b){
   const bx=b.x,by=b.y;
   const c=combat(a,b);if(scouting(a)){camp.scout=0;saveCamp()} // the scouts' tip-off is spent on this blow
   const landed=hitFor(a,b,c);
+  if(b.t==="E"&&rel(b,"hexbook")&&a.team!==b.team&&d(a,{x:bx,y:by})===1&&units.includes(a)){a.cursed=1;later(()=>{if(units.includes(a))floatText(a.x,a.y,"Cursed","slow")},300);if(hurt(a,1))credit(b,a)} // Book of Combat Hexes: striking an Enchanter up close has a price
   if(landed&&a.t==="R"&&rel(a,"debris")) // Debris Shot: shrapnel hits enemies around the target
     blastOf(bx+","+by).forEach(([x,y])=>{const v=at(x,y);if(v&&v.team!==a.team&&hurt(v,DEBRIS_DMG))credit(a,v)});
   if(landed&&a.t==="R"&&rel(a,"splinter")) // Splinter Shells: the shot carries through, hitting anyone on the 3 tiles behind the target
@@ -2588,7 +2593,7 @@ function enemyTurn(note=""){
     hazards("f",()=>{
       SMOKE=new Set(); // the smoke drifts away as your turn begins
       const healed=mods.f==="REST"?rest("f"):0;
-      units.forEach(u=>{u.moved=u.acted=0;delete u.aim;if(u.team!=="y"){delete u.slow;delete u.hex}});
+      units.forEach(u=>{u.moved=u.acted=0;delete u.aim;if(u.team!=="y"){delete u.slow;delete u.hex;delete u.weak;if(u.cursed){u.weak=1;delete u.cursed}}});
       const wisped=wispsAct();
       vanguard();turn="y";busy=false;say((wisped?wisped+" ":"")+"Your turn. Select one of your units."+(healed?" Resting enemy units recovered HP.":""));render();notify("Enemy turn ended — your move");
     });
@@ -3696,6 +3701,7 @@ const RICON={ // small 32-unit relic icons
  ipennant:'<path d="M7 3v27" stroke="#5a3a1c" stroke-width="2.200" stroke-linecap="round"/><circle cx="7" cy="3" r="1.800" fill="#d8b24a" stroke="#6a4c10" stroke-width=".6"/><path d="M8 5h20l-5 6l5 6H8z" fill="#3a5a8a" stroke="#1d2a44" stroke-width="1.100" stroke-linejoin="round"/><circle cx="15" cy="11" r="3" fill="#f2d27a" stroke="#8a6418" stroke-width=".7"/><path d="M15 6.500v1.500M15 14v1.500M10.500 11h1.500M18 11h1.500M11.800 7.800l1 1M17.200 13.200l1 1M18.200 7.800l-1 1M12.800 13.200l-1 1" stroke="#f2d27a" stroke-width=".9" stroke-linecap="round"/><path d="M9 6.500h18" stroke="#8aa8d0" stroke-width=".7" opacity=".7"/>',
  bowstring:'<path d="M9 3q14 13 0 26" fill="none" stroke="#6a4424" stroke-width="2.400" stroke-linecap="round"/><path d="M9 3L20 16L9 29" fill="none" stroke="#e8e0cc" stroke-width="1.100"/><circle cx="20" cy="16" r="1.400" fill="#c9962a"/><circle cx="23" cy="16" r="6" fill="none" stroke="#3f9a5a" stroke-width="1.300" opacity=".85"/><path d="M23 8.500v3M23 20.500v3M15.500 16h3M27.500 16h3" stroke="#3f9a5a" stroke-width="1.300" stroke-linecap="round"/><circle cx="23" cy="16" r="1" fill="#3f9a5a"/>',
  bugle:'<path d="M4 18h12" stroke="#8a6418" stroke-width="2.400" stroke-linecap="round"/><path d="M16 18q5 0 11-7v14q-6-7-11-7z" fill="#c9962a" stroke="#5a4010" stroke-width="1.100" stroke-linejoin="round"/><path d="M6 18q0 6 6 6h3" fill="none" stroke="#a87a1c" stroke-width="1.600"/><circle cx="4" cy="18" r="1.600" fill="#a87a1c" stroke="#5a4010" stroke-width=".7"/><path d="M26 12v12" stroke="#f4dc8a" stroke-width=".9" opacity=".7"/><path d="M8 13l2-6l2 4l2-6l2 6" fill="none" stroke="#b8372d" stroke-width="1.300" stroke-linejoin="round"/><path d="M28.500 9l2-2M29.500 18h2M28.500 27l2 2" stroke="#5a4010" stroke-width="1.100" stroke-linecap="round"/>',
+ hexbook:'<path d="M6 5h17q3 0 3 3v19H9q-3 0-3-3z" fill="#3a2a5a" stroke="#140c24" stroke-width="1.200" stroke-linejoin="round"/><path d="M6 24q0-3 3-3h17" stroke="#d8d0e8" stroke-width="1.600" fill="none"/><path d="M10 5v16" stroke="#1e1434" stroke-width="1"/><path d="M17 8l1.500 3.200 3.500.5-2.500 2.400.6 3.500-3.100-1.700-3.100 1.700.6-3.500-2.500-2.400 3.500-.5z" fill="none" stroke="#c8a0ff" stroke-width="1"/><path d="M13 10l8 6M21 10l-8 6" stroke="#e8c050" stroke-width="1.300" stroke-linecap="round"/><circle cx="17" cy="13" r="6.500" fill="#a070e0" opacity=".18"/>',
  spurs:'<path d="M5 18q0-7 8-7h6" stroke="#8a8f96" stroke-width="2.600" fill="none" stroke-linecap="round"/><path d="M5 18q0 4 6 4h7" stroke="#8a8f96" stroke-width="2.600" fill="none" stroke-linecap="round"/><path d="M18 16.500h4" stroke="#6a6f76" stroke-width="2"/><circle cx="25" cy="16.500" r="3.400" fill="#d8b24a" stroke="#6a4c10" stroke-width=".9"/><path d="M25 11.500v-2M25 23.500v-2M30 16.500h-2M20 16.500h2M28.500 13l-1.400 1.400M21.500 20l1.400-1.400M28.500 20l-1.400-1.400M21.500 13l1.400 1.400" stroke="#6a4c10" stroke-width="1.100" stroke-linecap="round"/><circle cx="25" cy="16.500" r="1" fill="#6a4c10"/>',
  grog:'<ellipse cx="16" cy="28" rx="9" ry="1.800" fill="rgba(0,0,0,.2)"/><rect x="13" y="3" width="6" height="4" rx="1" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M13.500 7h5v3q7 2 7 9v5q0 4-4 4H10.500q-4 0-4-4v-5q0-7 7-9z" fill="#7a6a4a" stroke="#2a1e12" stroke-width="1.200" stroke-linejoin="round"/><path d="M7 17h18v6H7z" fill="#a8402a" opacity=".85"/><path d="M7 17h18M7 23h18" stroke="#2a1e12" stroke-width=".9"/><path d="M12 20h8" stroke="#f0d8a0" stroke-width="1.300" stroke-linecap="round"/><path d="M10 12q1-2 3-2" stroke="#c8b890" stroke-width="1" fill="none" stroke-linecap="round" opacity=".7"/>',
  pebble:'<ellipse cx="16" cy="25" rx="9" ry="1.800" fill="rgba(0,0,0,.18)"/><ellipse cx="16" cy="19" rx="9" ry="6.500" fill="#9aa0a6" stroke="#3a3e44" stroke-width="1.200"/><path d="M10 17q4-3 10-2" stroke="#d8dce0" stroke-width="1.300" fill="none" stroke-linecap="round"/><path d="M14.200 20.800l1.200-1.600l1.600 1.200l-.6 1.800z" fill="#5a8a5a" opacity=".85"/>',
@@ -4171,7 +4177,7 @@ $("end").onclick=()=>{
   firstTurn=false;pturn++;
   units.forEach(u=>{if(u.team==="y"&&!u.moved&&rel(u,"drum"))u.drum=pturn}); // War Drum: holding the line pays off next turn
   const n=mods.y==="REST"?rest("y"):0;
-  units.forEach(u=>{if(u.team==="y"){delete u.slow;delete u.hex;delete u.haste;delete u.stepOnly}});
+  units.forEach(u=>{if(u.team==="y"){delete u.weak;if(u.cursed){u.weak=1;delete u.cursed}delete u.slow;delete u.hex;delete u.haste;delete u.stepOnly}});
   lastMove=null;notify("You ended your turn");
   const go=()=>hazards("y",()=>enemyTurn(n?"Your resting units recovered HP. ":""));
   if(units.some(u=>u.auto&&u.team==="y")){busy=true;render();chickensAct(()=>{if(!over)go()})}else go();
