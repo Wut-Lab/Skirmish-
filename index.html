@@ -214,8 +214,9 @@ button.b.sm2{padding:8px 12px;font-size:.85rem}
 #tinfo .tsw{width:40px;height:40px}
 .hpb{background:rgba(128,128,128,.35);border-radius:4px;overflow:hidden;height:6px;margin:2px 0}
 .stats{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 2px}
-#info .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 6px} /* Unit panel: Move, Range, Damage over Armor, Pierce, Evasion */
-#info .stat{display:flex;justify-content:space-between;gap:4px;padding:1px 5px;white-space:nowrap}.stat.nil{opacity:.5}.pb .row.top{align-items:flex-start}
+#info .stats,#unitview .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 6px} /* Unit panel: Move, Range, Damage over Armor, Pierce, Evasion */
+#unitview .hrow>div:last-child{flex:1;min-width:0}@media (max-width:480px){#unitview .stats{grid-template-columns:repeat(2,minmax(0,1fr))}} /* Unit List: the same chips, two across on narrow phones */
+#info .stat,#unitview .stat{display:flex;justify-content:space-between;gap:4px;padding:1px 5px;white-space:nowrap}.stat.nil{opacity:.5}.pb .row.top{align-items:flex-start}
 .stat{background:rgba(128,128,128,.18);border-radius:6px;padding:1px 7px;font-size:.74rem}
 .ib{flex:1;min-width:0;line-height:1.3}
 .ib small{display:block;opacity:.88;font-size:.74rem}
@@ -446,12 +447,13 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 <main>
 <section id="menu">
 <div class="hero"><div class="discs" id="hero"></div><h1>Skirmish</h1><p>Turn-based tactics on a small battlefield.</p></div>
-<div class="menubtns" id="mbtns"><button class="b big" id="camp">Campaign</button><button class="b big" id="play">Quick Battle</button><button class="b big" id="chal">Challenges</button><button class="b big" id="unl">Unlocks</button><button class="b big" id="how">How to Play</button><button class="b big" id="edit" hidden>Map Editor</button><p class="vgiven" id="vgiven" hidden></p></div>
+<div class="menubtns" id="mbtns"><button class="b big" id="camp">Campaign</button><button class="b big" id="play">Quick Battle</button><button class="b big" id="chal">Challenges</button><button class="b big" id="unl">Unlocks</button><button class="b big" id="how">How to Play</button><button class="b big" id="edit" hidden>Map Editor</button><button class="b big" id="ulist" hidden>Unit List</button><p class="vgiven" id="vgiven" hidden></p></div>
 <div class="mtog"><button class="b" id="maudio">Sound &amp; Music</button></div>
 <div class="menubtns" id="maud" hidden><h2 class="htitle">Sound &amp; Music</h2><button class="b big" id="msound">Sound: On</button><button class="b big" id="mmusic">Music: On</button><button class="b big" id="maback">Back</button></div>
 <div id="chalview" hidden></div>
 <div id="rulesview" hidden></div>
 <div id="unlockview" hidden></div>
+<div id="unitview" hidden></div>
 </section>
 <section id="editor" hidden>
 <div class="hd"><button class="b" id="eback">Menu</button><h2>Map Editor</h2></div>
@@ -649,9 +651,9 @@ function rollMerc(t){
 const mercLine=m=>{const T={...TYPES[m.t],...m.st};return `${cap(NAME[m.t])}: HP ${T.hp}, move ${T.mv}, damage ${T.dmg}`+(T.ar?`, armor ${T.ar}`:"")+(T.pi?`, pierce ${T.pi}`:"")+(T.ev?`, evasion ${pct(T.ev)}`:"")+`. ${m.q}: ${m.qt}.`};
 const mercDesc=m=>mercLine(m)+` Serves ${MERC_TERM} battles, fighting on its own after your turn.`+(camp.merc?` Hiring dismisses ${camp.merc.name}.`:"");
 function hireMerc(m){const old=camp.merc;camp.merc={t:m.t,name:m.name,q:m.q,qt:m.qt,st:m.st,hp:m.st.hp,left:MERC_TERM};camp.mercNote="";return old}
-const LIMIT1="PETNQ"; // one of each per army
+const LIMIT1="PETNQ",CORE="KAC",WILD="WBH"; // LIMIT1: one of each per army; CORE: in every army; WILD: the neutral animals
 const UNIT_UNLOCK={T:"captain",N:"banner",Q:"conquistador"}; // unlockable units and the unlock each needs
-const poolNow=()=>"KARCPE"+Object.keys(UNIT_UNLOCK).filter(t=>unlocks[UNIT_UNLOCK[t]]).join(""); // units an army may pick right now
+const poolNow=()=>CORE+"RPE"+Object.keys(UNIT_UNLOCK).filter(t=>unlocks[UNIT_UNLOCK[t]]).join(""); // units an army may pick right now
 // Can Retaliate / Can't Retaliate: a unit retaliates when it is in the first list and not in the second (the second wins)
 const CAN_RETALIATE="KARCPETNMWBHGQ",CANT_RETALIATE="R";
 const canRetaliate=t=>CAN_RETALIATE.includes(t)&&!CANT_RETALIATE.includes(t);
@@ -2392,7 +2394,7 @@ function campaignRecord(nm){
 const CAMP_HEAL=.2; // share of max HP every surviving unit recovers after a campaign win
 const campHeal=t=>Math.ceil(TYPES[t].hp*CAMP_HEAL);
 const HEAL_SPOT=.7,HEAL_TEXT="A safe resting place. Visiting it restores 70% of each unit's health, once.",HERB_SPOT=.2; // HERB_SPOT: chance Herbert camps at a healing spot (once he's unlocked)
-const armyTypes=()=>["K","A","C",...(camp.cfg?camp.cfg.x:[])];
+const armyTypes=()=>[...CORE,...(camp.cfg?camp.cfg.x:[])];
 function showEnd(win){
   const g=gid,nm=camp.battle?WORLD[camp.battle.node]:null;
   if(chal)return chalEnd(win);
@@ -3054,7 +3056,7 @@ const COLORS={red:["Red","#c8372d","#fff"],yellow:["Yellow","#e6b820","#2b2200"]
 const CHOICES=["red","yellow","blue","orange","green","purple"];
 // the main menu's running count of gold given to the Beggar (once you've given any); "Vasco" once he has told you his name
 const renderGiven=()=>{const g=unlocks.vg||0;$("vgiven").hidden=!g;$("vgiven").innerHTML=g?`${PURSE}Donated to ${unlocks.vmorion?"Vasco":"the Beggar"}: ${g} gold`:""};
-const show=n=>{["menu","pick","game","world","editor"].forEach(i=>$(i).hidden=i!==n);syncMusic();if(n==="menu"){renderGiven();$("maud").hidden=true;$("rulesview").hidden=true;$("unlockview").hidden=true;$("chalview").hidden=true;$("mbtns").hidden=false}};
+const show=n=>{["menu","pick","game","world","editor"].forEach(i=>$(i).hidden=i!==n);syncMusic();if(n==="menu"){renderGiven();$("maud").hidden=true;$("rulesview").hidden=true;$("unlockview").hidden=true;$("unitview").hidden=true;$("chalview").hidden=true;$("mbtns").hidden=false}};
 const disc=(t,c,merc,free)=>`<div class="u${merc?" merc":""}${free?" free":""}" data-t="${t}" style="background:${c[1]};--tc:${c[1]};--ic:${c[2]}">${merc?'<b class="ms"></b>':""}${ICON[t]}</div>`;
 const foeColor=()=>pick.c==="red"?"black":"red";
 const cap=w=>w.replace(/\b\w/g,c=>c.toUpperCase()); // "banner bearer" -> "Banner Bearer"
@@ -3070,7 +3072,7 @@ function renderSetup(){
   $("foecard").innerHTML=`<div class="pv">${disc("K",fc)}</div><div class="ec"><strong>Enemy plays ${fc[0]}</strong><div class="em">Modifier: <b>${fm.name}</b> \u2014 ${fm.desc}</div></div>`;
   // lineup preview: three fixed slots, then the extra slots
   const lu=$("lineup");lu.innerHTML="";
-  ["K","A","C"].forEach(t=>{
+  [...CORE].forEach(t=>{
     const d=document.createElement("div");d.className="slot";
     d.innerHTML=`<div class="pv">${disc(t,mc)}</div><b>${cap(NAME[t])}</b><small>Included</small>`;lu.append(d);
   });
@@ -3130,7 +3132,7 @@ function start(o={}){
   if(!camp.battle&&!Object.keys(o).length)o={...BIOME[quickBiome()]}; // quick battles roll a biome; unlocked tiles turn up wherever they belong
   genMap(o);col={y:pick.c,f:foeColor(),w:"wild"};
   const extra=pick.x.slice();
-  const P=poolNow(),rnd=(have=[])=>{let t;do t=P[Math.floor(Math.random()*P.length)];while(LIMIT1.includes(t)&&have.includes(t));return t},mine=["K","A","C",...extra],foe=["K","A","C"];foe.push(rnd(foe));foe.push(rnd(foe));
+  const P=poolNow(),rnd=(have=[])=>{let t;do t=P[Math.floor(Math.random()*P.length)];while(LIMIT1.includes(t)&&have.includes(t));return t},mine=[...CORE,...extra],foe=[...CORE];foe.push(rnd(foe));foe.push(rnd(foe));
   mods.y=pick.m;units=[];herbertMet=false;firstTurn=true;pturn=1;RELIC=new Set(camp.battle?camp.relics:[]);relicUsed={};
   if(!camp.battle&&mine.filter(t=>t==="K").length===3)unlock("campsite"); // three knights in a quick battle
   [1,3,4,6,8].forEach((x,i)=>{
@@ -3170,7 +3172,7 @@ function start(o={}){
   if(camp.battle&&RELIC.has("keep")){const ys=units.filter(u=>u.team==="y"&&u.ci!=null);ys[Math.floor(Math.random()*ys.length)].keep=1} // Banner of the Fallen Keep
   let wild=null;
   if(o.wild||Math.random()<.1){ // neutral animal in the middle of the map
-    const t="WBH"[Math.floor(Math.random()*3)];
+    const t=WILD[Math.floor(Math.random()*WILD.length)];
     for(let n=0;n<80&&!wild;n++){
       const x=Math.floor(Math.random()*W),y=4+Math.floor(Math.random()*4);
       if(!solid(x+","+y)&&!at(x,y)){wild={t,team:"w",x,y,hp:TYPES[t].hp,moved:0,acted:0};units.push(wild)}
@@ -4046,7 +4048,7 @@ function edPalette(){
   const pb=(kind,v,inner,label)=>`<button class="epb${kind==="e"?" erase":""}" data-k="${kind}" data-v="${v}" aria-label="${label}" aria-pressed="${edTool.kind===kind&&edTool.v===v}">${inner}</button>`;
   const team=`<div class="eteam"><button class="b" data-team="y" aria-pressed="${edTeam==="y"}">Your units</button><button class="b" data-team="f" aria-pressed="${edTeam==="f"}">Enemy units</button></div>`;
   $("epal").innerHTML=`<div class="eg"><small>Terrain</small>${Object.keys(MAPKEY).map(k=>pb("t",k,terrainSwatch(k),TERRAIN[k].name)).join("")}</div>`
-   +`<div class="eg"><small>Units</small>${team}</div><div class="eg">${"KACRPETNM".split("").map(t=>pb("u",t,disc(t,COLORS[col[edTeam]]||COLORS[edTeam==="y"?"blue":"red"]),cap(NAME[t]))).join("")}${"WBH".split("").map(t=>pb("u",t,disc(t,["","#7a5a36","#fff"]),"Wild "+NAME[t])).join("")}${pb("e","x","✕","Remove unit")}</div>`;
+   +`<div class="eg"><small>Units</small>${team}</div><div class="eg">${"KACRPETNM".split("").map(t=>pb("u",t,disc(t,COLORS[col[edTeam]]||COLORS[edTeam==="y"?"blue":"red"]),cap(NAME[t]))).join("")}${[...WILD].map(t=>pb("u",t,disc(t,["","#7a5a36","#fff"]),"Wild "+NAME[t])).join("")}${pb("e","x","✕","Remove unit")}</div>`;
   $("epal").querySelectorAll(".epb").forEach(b=>b.onclick=()=>{edTool={kind:b.dataset.k,v:b.dataset.v};edPalette();$("ehint").textContent=b.dataset.k==="t"?`Painting ${TERRAIN[b.dataset.v].name}: tap or drag across the board.`:b.dataset.k==="e"?"Tap a unit to remove it.":`Placing ${"WBH".includes(b.dataset.v)?"wild ":edTeam==="y"?"your ":"enemy "}${NAME[b.dataset.v]}: tap a tile.`});
   $("epal").querySelectorAll("[data-team]").forEach(b=>b.onclick=()=>{edTeam=b.dataset.team;edPalette()});
 }
@@ -4069,7 +4071,7 @@ function edApply(x,y,drag){
   if(edTool.kind==="t"){const r=[...ed.rows[y]];r[x]=MAPKEY[edTool.v];ed.rows=ed.rows.map((row,yy)=>yy===y?r.join(""):row)}
   else if(drag)return;
   else if(edTool.kind==="e"){if(i>=0)ed.units.splice(i,1)}
-  else{const t=edTool.v,team="WBH".includes(t)?"w":edTeam;if(i>=0)ed.units.splice(i,1);ed.units.push([t,team,x,y])}
+  else{const t=edTool.v,team=WILD.includes(t)?"w":edTeam;if(i>=0)ed.units.splice(i,1);ed.units.push([t,team,x,y])}
   edRender();
 }
 const edTileAt=e=>{const el=document.elementFromPoint(e.clientX,e.clientY),t=el&&el.closest("#eboard .t");return t?[+t.dataset.x,+t.dataset.y]:null};
@@ -4105,7 +4107,22 @@ $("eclear").onclick=()=>{
 $("edit").onclick=openEditor;
 // The map editor is a design tool, not part of the game: players never see it. The private editor build sets DEV to true.
 const DEV=false;
-$("edit").hidden=!DEV;
+$("edit").hidden=$("ulist").hidden=!DEV;
+// Unit List (editor build only): every unit type, read live from TYPES, ABILITY and the army rules, so it never falls behind the game
+const UNIT_FROM={M:"Mustered by a Captain",G:"Chicken Suit relic"}; // units that join a battle some other way
+const unitFrom=t=>UNIT_FROM[t]||(WILD.includes(t)?"Wild animal (neutral)":CORE.includes(t)?"In every army":(UNIT_UNLOCK[t]?`Unlockable extra (${UNIT_UNLOCK[t]} unlock)`:"Extra")+(LIMIT1.includes(t)?", 1 per army":""));
+const unitRank=t=>CORE.includes(t)?0:UNIT_FROM[t]?3:WILD.includes(t)?4:UNIT_UNLOCK[t]?2:1;
+function unitListView(){
+  const r=$("unitview"),ts=Object.keys(TYPES).sort((a,b)=>unitRank(a)-unitRank(b));
+  const chips=T=>[["HP",T.hp],["Move",T.mv],["Range",rangeTxt(T)],["Damage",T.dmg],["Armor",T.ar||0],["Pierce",T.pi||0],["Evasion",pct(T.ev||0)]].map(([k,v])=>`<span class="stat${v===0||v==="0%"?" nil":""}">${k} <b>${v}</b></span>`).join("");
+  r.innerHTML=`<h2 class="htitle">Unit List</h2><p class="hint" style="text-align:center">${ts.length} unit types, base numbers before relics, modifiers, wounds or Elite bonuses. Built from the game's own tables.</p><div class="ulist">`
+   +ts.map(t=>`<div class="hcard">`+hRow(hIcon(t,WILD.includes(t)?"w":"y"),`<b>${cap(NAME[t])}</b><small>${unitFrom(t)} · ${canRetaliate(t)?"Retaliates":"Never retaliates"}</small><div class="stats">${chips(TYPES[t])}</div>${ABILITY[t]?`<small>${ABILITY[t]}</small>`:""}`)+"</div>").join("")
+   +`<div class="hcard">${hRow(hIcon(MERC_TYPES[0],"y"),`<b>Mercenaries</b><small>Campaign only: hired from Marcus or a sellsword on the road</small><small>A weaker take on the ${listAnd([...MERC_TYPES].map(t=>cap(NAME[t])))}: 2-3 less HP and 1 less damage, plus one knack (${listAnd(MERC_QUIRKS.map(q=>q[0]+" "+q[2]))}). Fights on its own after your turn, for ${MERC_TERM} battles. ${listAnd([...MERC_TYPES].map(t=>cap(NAME[t])+" "+MERC_PRICE[t]))} gold, plus up to 10.</small>`)}</div></div>`;
+  const box=document.createElement("div");box.className="menubtns";
+  mk(box,"b big","Back to Main Menu",()=>{r.hidden=true;$("mbtns").hidden=false;$("ulist").focus()});r.append(box);
+  window.scrollTo(0,0);box.querySelector("button").focus({preventScroll:true});
+}
+$("ulist").onclick=()=>{$("mbtns").hidden=true;$("unitview").hidden=false;unitListView()};
 $("eback").onclick=()=>show("menu");
 /* ---------- Unlocks ---------- */
 const UNLOCKS=[
