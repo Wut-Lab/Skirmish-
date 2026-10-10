@@ -714,6 +714,9 @@ const RELICS={
  bandages:{name:"Spare Bandages",r:0,desc:"Your units that fall in a battle return for the next one with 3 HP instead of 1."},
  ammo:{name:"Upgraded Ammunition",r:0,src:"both",need:"R",desc:"Artillery get +1 pierce. Iron-capped shot, cast to punch through plate."},
  stud:{name:"Royal Stud Book",r:0,src:"both",need:"C",hpUp:"C",desc:"Cavalry get +1 max HP. Gaining it doesn't heal them: the extra point fills in as they recover. Generations of careful breeding, written down at last."},
+ musket:{name:"Musket",r:0,src:"both",lock:"conquistador",need:"Q",desc:"Your Conquistadors get +1 range, but their shots from 2 or more tiles away deal 1 less damage. Loud, slow to load, and only roughly pointed where you meant."},
+ luckycross:{name:"Lucky Cross",r:1,src:"both",lock:"conquistador",need:"Q",desc:"Win a battle in which a Conquistador finishes off at least one enemy, and you earn 10 extra gold. Kissed before every charge, and so far it has never once failed."},
+ eldorado:{name:"Espada de El Dorado",r:2,src:"both",lock:"conquistador",need:"Q",desc:"Your Conquistadors deal +1 damage at melee range for every 50 gold you carry, up to +2. Gilded from guard to tip; it only ever seems to hunger for more."},
  bard:{name:"Barding",r:0,desc:"Cavalry get +1 armor but 1 less movement."},
  luck:{name:"Lucky Charm",r:1,desc:"All your units get +5% evasion."},
  long:{name:"Long Bows",r:1,desc:"Archers get +1 range."},
@@ -768,7 +771,7 @@ const canTrumpet=u=>rel(u,"trumpet")&&!relicUsed.trumpet&&!u.acted&&!u.auto&&uni
 const WOODS=k=>FOREST.has(k)&&!CHERRY.has(k),calm=u=>CHERRY.has(u.x+","+u.y);
 const BLUSH_R=2,blush=(x,y)=>{if(!VALE||!/^(ground|forest|cherry|flowers|koi|meadow|greenwood)$/.test(terrainKey(x+","+y)))return"";let m=9;CHERRY.forEach(c=>{const[a,b]=pk(c);m=Math.min(m,Math.abs(a-x)+Math.abs(b-y))});return m<2?" bsh1":m<=BLUSH_R?" bsh2":""}; // Sakura Vale: the groves and the open ground, woods, wildflowers and koi ponds within a diamond of a cherry grove take a pink tint, deeper beside it
 const healOf=u=>ST(u).heal+(rel(u,"salts")?1:0); // how much a healer restores, with relics
-const rgOf=u=>ST(u).rg+(u.t==="A"&&rel(u,"long")?1:0); // a unit's attack range, with relics
+const rgOf=u=>ST(u).rg+(u.t==="A"&&rel(u,"long")?1:0)+(u.t==="Q"&&rel(u,"musket")?1:0); // a unit's attack range, with relics
 const DEBRIS_DMG=1,SPLINTER_DMG=1; // Debris Shot splash: small, so it softens clusters without replacing a second attack
 const NAME={G:"angry chicken",K:"knight",A:"archer",R:"artillery",W:"wolf",B:"bear",H:"hawk",C:"cavalry",P:"apothecary",E:"enchanter",T:"captain",N:"banner bearer",Q:"conquistador",M:"militia"};
 const MODS={
@@ -1332,7 +1335,7 @@ const $=id=>document.getElementById(id),board=$("board");
 const d=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 const at=(x,y)=>units.find(u=>u.x===x&&u.y===y);
 const helmed=u=>units.some(b=>b!==u&&b.t==="N"&&b.team===u.team&&rel(b,"helm")&&d(b,u)<=BANNER_RANGE); // within the Inspirational Plumed Helm's reach
-const HELM_EV=.05,HEX_EV=.1,HEXBOOK_EV=.05; // HEX_EV: the Enchanter's hex makes its victim's targets harder to hit
+const ELDORADO_GOLD=50,ELDORADO_MAX=2,LUCKYCROSS_GOLD=10,HELM_EV=.05,HEX_EV=.1,HEXBOOK_EV=.05; // HEX_EV: the Enchanter's hex makes its victim's targets harder to hit
 const mvOf=u=>{const m=ST(u).mv+(helmed(u)?1:0)-(u.t==="A"&&mods[u.team]==="PAD"?1:0)-(u.t==="C"&&rel(u,"bard")?1:0)+(firstTurn&&rel(u,"drills")?1:0)+(u.haste||0);if(u.stepOnly)return 1;return u.slow?Math.min(m,TYPES.E.slow):m};
 const inspired=(u,at=u)=>units.some(b=>b.t==="N"&&b.team===u.team&&b!==u&&d(b,at)<=BANNER_RANGE); // within a Banner Bearer's aura (at: where u would stand)
 /* ---------- Combat: the one place an attack's damage and hit chance are worked out ----------
@@ -1370,6 +1373,8 @@ function combat(a,b,from=a){
   add("Tome of the Red Mages",a.t==="E"&&rel(a,"redtome")?1:0);
   add("Tome of the Black Mages",a.t==="E"&&rel(a,"blacktome")&&b.slow?1:0); // preying on the slowed
   add("Elite",a.elite?1:0);
+  add("Musket misfire",a.t==="Q"&&rel(a,"musket")&&d(from,b)>1?-1:0); // the musket's long shots go wide
+  add("Espada de El Dorado",a.t==="Q"&&a.team==="y"&&camp.battle&&rel(a,"eldorado")&&d(from,b)<=1?Math.min(ELDORADO_MAX,Math.floor((camp.gold||0)/ELDORADO_GOLD)):0); // greed, at arm's length
   add("Combat Hex",a.weak?-1:0); // cursed for striking an Enchanter
   add("Goading Bugle",a.goaded===pturn&&turn===a.team?1:0);
   add("Imposing Banner",units.some(v=>v.t==="N"&&v.team!==a.team&&v.team!=="w"&&rel(v,"imposing")&&d(v,from)<=BANNER_RANGE)?-1:0); // striking in the banner's shadow
@@ -1615,6 +1620,8 @@ function renderInfo(){
   if(u.goaded===pturn&&turn===u.team)notes.push("Goaded: +1 damage this turn, and a 1-tile step after acting.");
   if(u.t==="E"&&rel(u,"hexbook"))notes.push("Book of Combat Hexes: an adjacent enemy that attacks it takes 1 damage and deals 1 less on its next turn.");
   if(u.weak||u.cursed)notes.push(u.weak?"Cursed: deals 1 less damage this turn.":"Cursed: will deal 1 less damage on its next turn.");
+  if(u.t==="Q"&&u.team==="y"&&rel(u,"musket"))notes.push("Musket: range +1; shots from 2+ tiles deal 1 less damage.");
+  if(u.t==="Q"&&u.team==="y"&&rel(u,"eldorado")&&camp.battle)notes.push(`Espada de El Dorado: +${Math.min(ELDORADO_MAX,Math.floor((camp.gold||0)/ELDORADO_GOLD))} damage at melee range (${camp.gold||0} gold carried).`);
   if(u.aim)notes.push("Holding aim: it will shoot the first enemy that moves into its range.");else if(u.t==="A"&&u.team==="y"&&rel(u,"bowstring"))notes.push("Sentinel's Bowstring: end your turn without moving or acting to hold aim.");
   if(u.t==="N"&&rel(u,"imposing"))notes.push("Imposing Banner: enemies within 2 tiles deal 1 less damage.");
   if(u.t==="N"&&rel(u,"ipennant"))notes.push("Pennant of Inspiration: on each enemy turn, the first of your units within 2 tiles to take damage resists 1 of it.");
@@ -2135,6 +2142,7 @@ function credit(a,v){
   if(!camp.battle||!a||a.team!=="y"||v.team==="y")return;
   const src=a.ci!=null?a:a.cap&&a.cap.ci!=null?a.cap:null;
   if(src)camp.kills[src.ci]=(camp.kills[src.ci]||0)+1;
+  if(a.t==="Q")relicUsed.qkill=1; // the Lucky Cross pays out for a Conquistador's kill
 }
 // Chicken Suit: an Angry Chicken bursts out next to the first of your units to be hurt each battle
 function spawnChicken(u){
@@ -3643,7 +3651,7 @@ function findRelics(nm){
   });
 }
 /* ---------- Gold and relic rewards ---------- */
-const goldFor=n=>(n.type==="boss"?25+BOSS_GOLD_STEP*((camp.region||1)-1):10)+2*units.filter(u=>u.team==="y"&&u.ci!=null).length+(camp.relics.includes("ledger")?LEDGER_GOLD:0)+(camp.relics.includes("vgloves")?VGLOVES_GOLD:0); // more for bringing your army home
+const goldFor=n=>(n.type==="boss"?25+BOSS_GOLD_STEP*((camp.region||1)-1):10)+2*units.filter(u=>u.team==="y"&&u.ci!=null).length+(camp.relics.includes("ledger")?LEDGER_GOLD:0)+(camp.relics.includes("vgloves")?VGLOVES_GOLD:0)+(camp.relics.includes("luckycross")&&relicUsed.qkill?LUCKYCROSS_GOLD:0); // more for bringing your army home
 // 2 or 3 relics the army doesn't have yet, drawn by rarity weight
 const relicCount=id=>camp.relics.filter(r=>r===id).length;
 // relics the shop may stock right now: sold there, unlocked, useful to this army, and not already carried as many times as allowed
@@ -3704,6 +3712,9 @@ const RICON={ // small 32-unit relic icons
  bowstring:'<path d="M9 3q14 13 0 26" fill="none" stroke="#6a4424" stroke-width="2.400" stroke-linecap="round"/><path d="M9 3L20 16L9 29" fill="none" stroke="#e8e0cc" stroke-width="1.100"/><circle cx="20" cy="16" r="1.400" fill="#c9962a"/><circle cx="23" cy="16" r="6" fill="none" stroke="#3f9a5a" stroke-width="1.300" opacity=".85"/><path d="M23 8.500v3M23 20.500v3M15.500 16h3M27.500 16h3" stroke="#3f9a5a" stroke-width="1.300" stroke-linecap="round"/><circle cx="23" cy="16" r="1" fill="#3f9a5a"/>',
  bugle:'<path d="M4 18h12" stroke="#8a6418" stroke-width="2.400" stroke-linecap="round"/><path d="M16 18q5 0 11-7v14q-6-7-11-7z" fill="#c9962a" stroke="#5a4010" stroke-width="1.100" stroke-linejoin="round"/><path d="M6 18q0 6 6 6h3" fill="none" stroke="#a87a1c" stroke-width="1.600"/><circle cx="4" cy="18" r="1.600" fill="#a87a1c" stroke="#5a4010" stroke-width=".7"/><path d="M26 12v12" stroke="#f4dc8a" stroke-width=".9" opacity=".7"/><path d="M8 13l2-6l2 4l2-6l2 6" fill="none" stroke="#b8372d" stroke-width="1.300" stroke-linejoin="round"/><path d="M28.500 9l2-2M29.500 18h2M28.500 27l2 2" stroke="#5a4010" stroke-width="1.100" stroke-linecap="round"/>',
  hexbook:'<path d="M6 5h17q3 0 3 3v19H9q-3 0-3-3z" fill="#3a2a5a" stroke="#140c24" stroke-width="1.200" stroke-linejoin="round"/><path d="M6 24q0-3 3-3h17" stroke="#d8d0e8" stroke-width="1.600" fill="none"/><path d="M10 5v16" stroke="#1e1434" stroke-width="1"/><path d="M17 8l1.500 3.200 3.500.5-2.500 2.400.6 3.500-3.100-1.700-3.100 1.700.6-3.500-2.500-2.400 3.500-.5z" fill="none" stroke="#c8a0ff" stroke-width="1"/><path d="M13 10l8 6M21 10l-8 6" stroke="#e8c050" stroke-width="1.300" stroke-linecap="round"/><circle cx="17" cy="13" r="6.500" fill="#a070e0" opacity=".18"/>',
+ musket:'<path d="M4 23L26 9" stroke="#3a2a1c" stroke-width="2.400" stroke-linecap="round"/><path d="M14 17L27 8.500" stroke="#8a929a" stroke-width="2" stroke-linecap="round"/><path d="M3 24.500l7-3l2 3l-6 3z" fill="#7a4626" stroke="#2a1408" stroke-width=".9" stroke-linejoin="round"/><path d="M12 20l2 3" stroke="#c9962a" stroke-width="1.300"/><circle cx="28" cy="7.500" r="2.400" fill="#e8e4dc" opacity=".55"/><circle cx="29.500" cy="5.500" r="1.400" fill="#e8e4dc" opacity=".4"/>',
+ luckycross:'<path d="M13 3h6v8h7v6h-7v12h-6V17H6v-6h7z" fill="#c9a24a" stroke="#5a4010" stroke-width="1.100" stroke-linejoin="round"/><path d="M14.500 4.500v8h-7" stroke="#f4dc8a" stroke-width=".9" fill="none" opacity=".8"/><circle cx="16" cy="14" r="2.200" fill="#3f9a5a" stroke="#1e4a1c" stroke-width=".7"/><circle cx="8" cy="26" r="2.600" fill="#d8b24a" stroke="#6a4c10" stroke-width=".7"/><circle cx="24" cy="26" r="2.600" fill="#d8b24a" stroke="#6a4c10" stroke-width=".7"/>',
+ eldorado:'<circle cx="16" cy="16" r="13" fill="#f2c94c" opacity=".2"/><path d="M16 2l2.400 3.500v15h-4.800v-15z" fill="#f2d27a" stroke="#6a4c10" stroke-width="1" stroke-linejoin="round"/><path d="M16 3v17" stroke="#fff6c8" stroke-width=".7"/><path d="M9 20.500q7 3 14 0l-.5 2.200q-6.500 2.400-13 0z" fill="#d8b24a" stroke="#6a4c10" stroke-width=".8"/><path d="M14.800 23h2.400v5h-2.400z" fill="#5a3a1c" stroke="#2a1a0c" stroke-width=".7"/><circle cx="16" cy="29.500" r="1.600" fill="#d8b24a" stroke="#6a4c10" stroke-width=".7"/><circle cx="16" cy="21.600" r="1" fill="#b0182a"/><g fill="#f2c94c" stroke="#8a6410" stroke-width=".5"><circle cx="6" cy="27" r="2"/><circle cx="26" cy="27" r="2"/><circle cx="24" cy="24.500" r="1.600"/></g>',
  spurs:'<path d="M5 18q0-7 8-7h6" stroke="#8a8f96" stroke-width="2.600" fill="none" stroke-linecap="round"/><path d="M5 18q0 4 6 4h7" stroke="#8a8f96" stroke-width="2.600" fill="none" stroke-linecap="round"/><path d="M18 16.500h4" stroke="#6a6f76" stroke-width="2"/><circle cx="25" cy="16.500" r="3.400" fill="#d8b24a" stroke="#6a4c10" stroke-width=".9"/><path d="M25 11.500v-2M25 23.500v-2M30 16.500h-2M20 16.500h2M28.500 13l-1.400 1.400M21.500 20l1.400-1.400M28.500 20l-1.400-1.400M21.500 13l1.400 1.400" stroke="#6a4c10" stroke-width="1.100" stroke-linecap="round"/><circle cx="25" cy="16.500" r="1" fill="#6a4c10"/>',
  grog:'<ellipse cx="16" cy="28" rx="9" ry="1.800" fill="rgba(0,0,0,.2)"/><rect x="13" y="3" width="6" height="4" rx="1" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M13.500 7h5v3q7 2 7 9v5q0 4-4 4H10.500q-4 0-4-4v-5q0-7 7-9z" fill="#7a6a4a" stroke="#2a1e12" stroke-width="1.200" stroke-linejoin="round"/><path d="M7 17h18v6H7z" fill="#a8402a" opacity=".85"/><path d="M7 17h18M7 23h18" stroke="#2a1e12" stroke-width=".9"/><path d="M12 20h8" stroke="#f0d8a0" stroke-width="1.300" stroke-linecap="round"/><path d="M10 12q1-2 3-2" stroke="#c8b890" stroke-width="1" fill="none" stroke-linecap="round" opacity=".7"/>',
  pebble:'<ellipse cx="16" cy="25" rx="9" ry="1.800" fill="rgba(0,0,0,.18)"/><ellipse cx="16" cy="19" rx="9" ry="6.500" fill="#9aa0a6" stroke="#3a3e44" stroke-width="1.200"/><path d="M10 17q4-3 10-2" stroke="#d8dce0" stroke-width="1.300" fill="none" stroke-linecap="round"/><path d="M14.200 20.800l1.200-1.600l1.600 1.200l-.6 1.800z" fill="#5a8a5a" opacity=".85"/>',
