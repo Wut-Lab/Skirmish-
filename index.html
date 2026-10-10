@@ -716,9 +716,9 @@ const RELICS={
  wolfpack:{name:"Wolfpack Banner",r:1,lock:"wolfpack",desc:"Your units deal +1 damage to an enemy that is next to another of your units."},
  chicken:{name:"Chicken Suit",r:1,lock:"chicken",desc:"The first time one of your units takes damage in a battle, an Angry Chicken bursts out beside it. It fights for you on its own, charging the nearest enemy at the end of each of your turns."},
  trumpet:{name:"Trumpet of Encouragement",r:1,lock:"trumpet",desc:"Once per battle, one of your units can spend its action to sound the trumpet: allies within 2 tiles that have already moved can move again this turn, and they get +5% evasion until the end of your next turn."},
- vgloves:{name:"???'s Gloves",r:0,lock:"vgloves",desc:"Each battle you win pays 3 extra gold. Worn soft, and still warm."},
- vmorion:{name:"Vasco's Morion",r:1,lock:"vmorion",desc:"Vanguard: at the start of each of your turns, your unit closest to the enemy gets +1 armor until your next turn."},
- vfalcata:{name:"Vasco's Falcata",r:2,lock:"vfalcata",desc:"Conquest: when one of your units defeats an enemy, it gets +1 damage for the rest of the battle (at most +2)."},
+ vgloves:{name:"???'s Gloves",r:0,set:"vasco",lock:"vgloves",desc:"Each battle you win pays 3 extra gold. Worn soft, and still warm."},
+ vmorion:{name:"Vasco's Morion",r:1,set:"vasco",lock:"vmorion",desc:"Vanguard: at the start of each of your turns, your unit closest to the enemy gets +1 armor until your next turn."},
+ vfalcata:{name:"Vasco's Falcata",r:2,set:"vasco",lock:"vfalcata",desc:"Conquest: when one of your units defeats an enemy, it gets +1 damage for the rest of the battle (at most +2)."},
  pavise:{name:"Pavise",r:0,lock:"pavise",desc:"Archers take 1 less damage from ranged attacks. Pierce can't get past it."},
  font:{name:"Font of the Wise Ones",r:2,lock:"font",find:1,desc:"Once per battle, each of your units can spend its action to bless an adjacent ally: the ally gets +5% evasion until the end of your next turn."},
  mercy:{name:"Mercy Blade",r:2,desc:"Your units deal +2 damage to enemies at half health or less."},
@@ -734,7 +734,8 @@ const RELIC_SETS={
  champion:{name:"Regalia of the Shimmering Champion",rule:"Every piece you carry goes to one random unit above half health (never a mercenary or the Angry Chicken).",bonus:"All three: The Champion, +5% evasion."},
  usurper:{name:"Tarnished Regalia of the Usurper",rule:"Every piece you carry goes to one unit at or below half health, or your most wounded (never a mercenary, the Angry Chicken or a Champion bearer).",bonus:"All three: The Usurper, +1 damage once one of your units has fallen that battle."},
  improvised:{name:"Improvised Arms",rule:"For your Apothecaries, Enchanters and Banner Bearers at a third of their health or less.",bonus:"No set bonus: each covers a different need, so together a cornered healer hits back, slips away and hides behind a Knight."},
- tomes:{name:"Tomes of the Mages' College",rule:"For your Enchanters.",bonus:"No set bonus: the Black Tome's healing pays the Red Tome's toll."}};
+ tomes:{name:"Tomes of the Mages' College",rule:"For your Enchanters.",bonus:"No set bonus: the Black Tome's healing pays the Red Tome's toll."},
+ vasco:{name:"Gear of the Lost Expedition",rule:"Given by the Beggar, in thanks for the gold you've given him.",bonus:"No set bonus: the Morion shields whoever leads the push, the Falcata sharpens with every enemy it takes, and the Gloves pay the way."}};
 // excl: a relic that can't be carried alongside another (the two swords)
 const clash=(id,have)=>have.some(r=>RELICS[r].excl===id||RELICS[id].excl===r);
 const RARITY=[["Common","#8a8f96"],["Uncommon","#3f9a5a"],["Rare","#c9962a"]],RARITY_W=[60,30,10];
