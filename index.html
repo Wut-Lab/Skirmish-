@@ -374,6 +374,7 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .vgiven{margin:2px 0 0;text-align:center;font-weight:700;font-size:.9rem;opacity:.85;display:flex;align-items:center;justify-content:center;gap:6px}.vgiven svg{width:22px;height:22px}
 .mchip{flex:1 1 calc(50% - 4px);min-width:0;box-sizing:border-box}.gchip,.pchip{flex-basis:100%;min-width:0;box-sizing:border-box;flex-direction:row;align-items:center;gap:10px;padding:3px 10px}.pchip{background:#e6d3a8;color:#3b2a17}.gchip small,.pchip small{flex:none}.gchip span,.pchip span{flex:1;min-width:0;flex-wrap:nowrap!important;overflow:hidden;margin:0!important;padding:2px}.pmore{flex:none;width:26px;height:26px;padding:0;border:2.5px solid #111;border-radius:50%;background:#fff;color:#111;font:800 .8rem/1 inherit;cursor:pointer;box-sizing:border-box}.plist{display:grid;gap:8px}
 .gchip span,.pchip span{display:flex;gap:3px;flex-wrap:wrap;margin-top:2px}.gci,.pci{width:26px;height:26px;padding:0;border:0;border-radius:50%;background:#f4ead2;display:grid;place-items:center;cursor:pointer;box-shadow:0 0 0 1px rgba(0,0,0,.35)}
+.aimk{position:absolute;top:-5px;right:-5px;width:17px;height:17px;border-radius:50%;background:#1e3a2a;box-shadow:0 0 0 1.5px #9fe0b0;z-index:3;display:grid;place-items:center}.aimk svg{width:13px;height:13px} /* Sentinel's Bowstring: holding aim */
 .u.usurp::before{content:"\265B";position:absolute;bottom:-5px;left:-5px;width:16px;height:16px;border-radius:50%;background:#2a1a26;color:#e0a0b0;font-size:.62rem;line-height:16px;text-align:center;box-shadow:0 0 0 1.5px #b0182a,0 0 8px 2px rgba(120,30,60,.7);z-index:3} /* a Usurper piece: a dark crown */
 .u.elite{box-shadow:0 0 0 2.500px #e8c050,0 0 0 4px rgba(90,60,10,.85),0 0 10px 3px rgba(240,200,80,.55),var(--bev)}
 .evart svg{display:block;width:100%;height:auto;border-radius:8px;border:2px solid #1a0f07;box-shadow:0 2px 0 #1a0f07;margin-bottom:10px}
@@ -668,6 +669,7 @@ const RELICS={
  imposing:{name:"Imposing Banner",r:0,src:"both",need:"N",desc:"Enemy units within 2 tiles of your Banner Bearer deal 1 less damage (never less than 1). Tall, dark and heavy with old battle honors; nobody wants to be the first to strike beneath it."},
  helm:{name:"Inspirational Plumed Helm",r:2,src:"both",need:"N",desc:"Your other units within 2 tiles of your Banner Bearer get +1 movement, but the Banner Bearer gets 5% less evasion. Hard to miss, which is rather the point."},
  ipennant:{name:"Pennant of Inspiration",r:1,src:"both",need:"N",desc:"On each enemy turn, the first of your other units within 2 tiles of your Banner Bearer to take damage resists 1 of it (never below 1). They stand a little taller under it."},
+ bugle:{name:"Goading Bugle",r:2,src:"both",need:"T",desc:"Once per turn, your Captain can spend its action to sound the bugle: its Militia deal +1 damage this turn, the Captain steps 1 tile right away, and each of its Militia can step 1 tile after it acts. Not a pleasant sound. That's rather the idea."},
  baton:{name:"Drill Sergeant's Baton",r:1,src:"both",lock:"baton",need:"T",desc:"Your Captain's militia are drilled hard: they muster with 6 HP instead of 4."},
  pitchfork:{name:"Refined Pitchforks",r:0,src:"both",lock:"pitchfork",need:"T",desc:"Your Militia deal +1 damage."},
  gauntlets:{name:"Spiked Gauntlets",r:0,src:"both",desc:"Your units deal +1 damage when they retaliate."},
@@ -701,6 +703,7 @@ const RELICS={
  pebble:{name:"Lucky Pebble",r:0,desc:"All your units get +1% evasion. Found in a boot. Probably lucky."},
  warpaint:{name:"Berserker's Warpaint",r:1,src:"both",desc:"Cursed. All your units deal +1 damage, but they never retaliate. No time to parry when you're busy screaming."},
  keen:{name:"Keen Eye Charm",r:0,desc:"Your ranged attacks (range 2 or more) ignore 3% of the target's evasion."},
+ hexbook:{name:"Book of Combat Hexes",r:2,src:"both",need:"E",hpUp:"E",desc:"Enchanters get +1 max HP and +5% evasion. An adjacent enemy that attacks an Enchanter takes 1 damage, ignoring armor, whether or not it hits, and deals 1 less damage on its next turn. Gaining it doesn't heal them."},
  redtome:{name:"Tome of the Red Mages' College",r:1,set:"tomes",src:"both",need:"E",desc:"Your Enchanters glow a faint red. Their attacks deal +1 damage, but cost them 1 HP each (never the last). Slowing is unaffected."},
  blacktome:{name:"Tome of the Black Mages' College",r:1,set:"tomes",src:"both",need:"E",desc:"Your Enchanters siphon life: a landed attack heals them 1 HP, and they deal +1 damage to a target that is already slowed."},
  whet:{name:"Whetstones",r:0,src:"both",desc:"Archers deal +1 damage."},
@@ -712,6 +715,7 @@ const RELICS={
  bard:{name:"Barding",r:0,desc:"Cavalry get +1 armor but 1 less movement."},
  luck:{name:"Lucky Charm",r:1,desc:"All your units get +5% evasion."},
  long:{name:"Long Bows",r:1,desc:"Archers get +1 range."},
+ bowstring:{name:"Sentinel's Bowstring",r:2,src:"both",need:"A",desc:"An Archer that ends your turn without moving or acting holds aim: on the enemy turn, it shoots the first enemy that moves into its range, before that enemy can act. The target can't retaliate. Waxed and drawn taut, it can be held at full draw for an age."},
  splinter:{name:"Splinter Shells",r:1,src:"both",need:"R",desc:"Your Artillery's shells burst on impact: every hit also deals 1 damage to any unit, friend or foe, on the 3 tiles just behind the target. Stacks with Debris Shot."},
  debris:{name:"Debris Shot",r:1,need:"R",desc:"When your Artillery hits, every enemy on the 8 tiles around the target takes 1 damage."},
  drills:{name:"Boots of a Forced March",r:0,lock:"drills",desc:"Well-worn boots that set a brisk pace: your units get +1 movement on your first turn of each battle."},
@@ -756,6 +760,7 @@ const MULE_AR=2,muled=u=>u.team==="y"&&u.muleUntil>=pturn; // Mule Hair Potion: 
 const DANDELION_CHANCE=.2,DANDELION_RANGE=2; // Immortal Dandelion: the chance to shrug off a lethal blow, and how near a support unit must be
 const dandelionSaves=(u,before)=>rel(u,"dandelion")&&before>=2&&units.some(s=>s!==u&&s.team==="y"&&(s.t==="P"||s.t==="E")&&d(s,u)<=DANDELION_RANGE)&&Math.random()<DANDELION_CHANCE;
 const rallied=u=>u.team==="y"&&u.rallyUntil>=pturn; // Trumpet of Encouragement: lasts through the enemy turn and your next one
+const canBugle=u=>u.t==="T"&&u.team==="y"&&rel(u,"bugle")&&!u.acted&&!u.auto&&units.some(m=>m.cap===u); // Goading Bugle: needs militia to goad
 const canTrumpet=u=>rel(u,"trumpet")&&!relicUsed.trumpet&&!u.acted&&!u.auto&&units.some(b=>b!==u&&b.team==="y"&&d(u,b)<=RALLY_RANGE);
 // Cherry Grove, Moment of Calm: counts as forest only for movement; no forest combat bonuses, no slowing, no retaliation in or out
 const WOODS=k=>FOREST.has(k)&&!CHERRY.has(k),calm=u=>CHERRY.has(u.x+","+u.y);
@@ -1310,11 +1315,11 @@ const terrainSwatch=(key,art)=>`<div class="tsw" style="${TERRAIN[key].bg}">${ar
 const rangeTxt=T=>(T.mn>1?T.mn+"-":"")+T.rg;
 const pct=v=>Math.round(v*100)+"%";
 const unitStats=t=>{const T=TYPES[t];return `HP ${T.hp}, move ${T.mv}, range ${rangeTxt(T)}, damage ${T.dmg}`+(T.ar?`, armor ${T.ar}`:"")+(T.pi?`, pierce ${T.pi}`:"")+(T.ev?`, evasion ${pct(T.ev)}`:"")};
-const ABILITY={P:`Heals an ally in range for up to ${TYPES.P.heal} HP instead of attacking.`,E:"Can slow an enemy in range instead of attacking: its movement drops to 1 on its next turn.",
+const ABILITY={P:`Heals an ally in range for up to ${TYPES.P.heal} HP instead of attacking.`,E:"Its magic ignores armor. Can hex an enemy in range instead of attacking: on its next turn it moves only 1 tile, and the units it attacks get +10% evasion against it.",
  T:`Instead of attacking, can muster 1-2 militia onto open tiles beside it. Twice per battle, with at most ${MUSTER_ALIVE} of its militia at a time.`,
  N:`Allies within ${BANNER_RANGE} tiles deal +1 damage.`,Q:"Trailblazer: forests and shallow water cost it no extra movement, and a swamp doesn't end its move.",M:"Mustered by a Captain. Weak, but useful for blocking and finishing off foes.",
  G:"Burst out of the Chicken Suit. Fights for you on its own: at the end of each of your turns it charges the nearest enemy. Forests and shallow water don't slow it."};
-const TAG={P:"Heals",E:"Slows",T:"Musters militia",N:"+1 damage aura",Q:"Trailblazer"}; // short ability labels for the setup cards
+const TAG={P:"Heals",E:"Hexes; ignores armor",T:"Musters militia",N:"+1 damage aura",Q:"Trailblazer"}; // short ability labels for the setup cards
 const listAnd=a=>a.length<2?a.join(""):a.slice(0,-1).join(", ")+" and "+a[a.length-1];
 const fellAt=f=>{const u=[...new Set(f)];if(u.length<3)return listAnd(u);for(let i=u.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[u[i],u[j]]=[u[j],u[i]]}return u[0]+", "+u[1]+", and other fields of glory"}; // two random places, then the rest
 const limitNames=()=>listAnd(poolNow().split("").filter(t=>LIMIT1.includes(t)).map(t=>"the "+cap(NAME[t])));
@@ -1325,7 +1330,7 @@ const $=id=>document.getElementById(id),board=$("board");
 const d=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 const at=(x,y)=>units.find(u=>u.x===x&&u.y===y);
 const helmed=u=>units.some(b=>b!==u&&b.t==="N"&&b.team===u.team&&rel(b,"helm")&&d(b,u)<=BANNER_RANGE); // within the Inspirational Plumed Helm's reach
-const HELM_EV=.05;
+const HELM_EV=.05,HEX_EV=.1,HEXBOOK_EV=.05; // HEX_EV: the Enchanter's hex makes its victim's targets harder to hit
 const mvOf=u=>{const m=ST(u).mv+(helmed(u)?1:0)-(u.t==="A"&&mods[u.team]==="PAD"?1:0)-(u.t==="C"&&rel(u,"bard")?1:0)+(firstTurn&&rel(u,"drills")?1:0)+(u.haste||0);if(u.stepOnly)return 1;return u.slow?Math.min(m,TYPES.E.slow):m};
 const inspired=(u,at=u)=>units.some(b=>b.t==="N"&&b.team===u.team&&b!==u&&d(b,at)<=BANNER_RANGE); // within a Banner Bearer's aura (at: where u would stand)
 /* ---------- Combat: the one place an attack's damage and hit chance are worked out ----------
@@ -1363,14 +1368,16 @@ function combat(a,b,from=a){
   add("Tome of the Red Mages",a.t==="E"&&rel(a,"redtome")?1:0);
   add("Tome of the Black Mages",a.t==="E"&&rel(a,"blacktome")&&b.slow?1:0); // preying on the slowed
   add("Elite",a.elite?1:0);
+  add("Combat Hex",a.weak?-1:0); // cursed for striking an Enchanter
+  add("Goading Bugle",a.goaded===pturn&&turn===a.team?1:0);
   add("Imposing Banner",units.some(v=>v.t==="N"&&v.team!==a.team&&v.team!=="w"&&rel(v,"imposing")&&d(v,from)<=BANNER_RANGE)?-1:0); // striking in the banner's shadow
   add("Vasco's Falcata",a.conq||0);
   const sc=scouting(a);add("Scouted Ahead",sc?1:0);
   const armor=[["Armor",B.ar||0],["Padded Armor",b.t==="A"&&mods[b.team]==="PAD"?1:0],["Forest Tactics",mods[b.team]==="FT"&&A.rg>1&&WOODS(k)?1:0],["Fortress",FORT.has(k)?1:0],["Sturdy Shields",b.t==="K"&&rel(b,"shield")?1:0],["Barding",b.t==="C"&&rel(b,"bard")?1:0],["Banner of the Fallen Keep",b.keep?1:0],["Vasco's Morion",b.vang?1:0],["Stubborn as a Mule",muled(b)?MULE_AR:0],["Improvised Armor",desperate(b,"hide")&&units.some(v=>v.team===b.team&&v.t==="K"&&d(v,b)===1)?1:0]];
   armor.forEach(([l,v])=>add(l,-v));
-  add("Pierce",Math.min(Math.max(0,(A.pi||0)+(rel(a,"bluemagma")?1:0)+(rel(a,"crown")?1:0)+(a.t==="K"&&rel(a,"sallet")?1:0)+(a.t==="R"&&rel(a,"ammo")?1:0)+(a.champ?1:0)+(sc?1:0)+(a.ublade&&b.hp>maxHp(b)/2?1:0)-(b.cshield?1:0)),armor.reduce((t,x)=>t+x[1],0))); // Blue Magma and the Champion's Sword add pierce, the Usurper's Blade against the healthy; the Champion's Shield turns 1 aside
+  add("Pierce",Math.min(a.t==="E"?99:Math.max(0,(A.pi||0)+(rel(a,"bluemagma")?1:0)+(rel(a,"crown")?1:0)+(a.t==="K"&&rel(a,"sallet")?1:0)+(a.t==="R"&&rel(a,"ammo")?1:0)+(a.champ?1:0)+(sc?1:0)+(a.ublade&&b.hp>maxHp(b)/2?1:0)-(b.cshield?1:0)),armor.reduce((t,x)=>t+x[1],0))); // Blue Magma and the Champion's Sword add pierce, the Usurper's Blade against the healthy; the Champion's Shield turns 1 aside
   add("Pavise",b.t==="A"&&A.rg>1&&rel(b,"pavise")?-1:0); // a shield wall, not armor: pierce can't get past it
-  const ev=Math.max(0,-(rel(a,"keen")&&rgOf(a)>1?KEEN_EV:0)-(b.t==="N"&&rel(b,"helm")?HELM_EV:0)+Math.min(EV_CAP,(B.ev||0)+(rel(b,"luck")?.05:0)+(b.trio?TRIO_EV:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(rel(b,"sakurafan")&&[...blastOf(k),[b.x,b.y]].some(([x,y])=>CHERRY.has(x+","+y))?FAN_EV:0)+(blessed(b)?BLESS_EV:0)+(rested(b)?REST_EV:0)+(rel(b,"pebble")?PEBBLE_EV:0)+(rallied(b)?RALLY_EV:0)+(b.team==="y"&&SMOKE.has(k)?SMOKE_EV:0)+(WOODS(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0))); // Keen Eye Charm: ranged attacks see through a little of it
+  const ev=Math.max(0,-(rel(a,"keen")&&rgOf(a)>1?KEEN_EV:0)-(b.t==="N"&&rel(b,"helm")?HELM_EV:0)+Math.min(EV_CAP,(B.ev||0)+(b.t==="E"&&rel(b,"hexbook")?HEXBOOK_EV:0)+(a.hex?HEX_EV:0)+(rel(b,"luck")?.05:0)+(b.trio?TRIO_EV:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(rel(b,"sakurafan")&&[...blastOf(k),[b.x,b.y]].some(([x,y])=>CHERRY.has(x+","+y))?FAN_EV:0)+(blessed(b)?BLESS_EV:0)+(rested(b)?REST_EV:0)+(rel(b,"pebble")?PEBBLE_EV:0)+(rallied(b)?RALLY_EV:0)+(b.team==="y"&&SMOKE.has(k)?SMOKE_EV:0)+(WOODS(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0))); // Keen Eye Charm: ranged attacks see through a little of it
   return {dmg:Math.max(1,parts.reduce((t,p)=>t+p[1],0)),hit:sc?1:1-ev,parts}; // every hit deals at least 1; a scouted first strike never misses
 }
 // a unit with `ret` retaliates against an attacker within its own range for half damage, at least 1 (the attacker may evade it); null when it can't
@@ -1457,7 +1464,7 @@ function muster(u){ // 1-2 militia appear beside the captain, nearest the enemy 
   u.musters=(u.musters||0)+1;u.acted=u.moved=1;if(n)sfx("drum");
   return n;
 }
-const spent=u=>(!!u.acted&&!!u.moved)||!!u.auto||(u.team!=="w"&&!!u.moved&&!canMuster(u)&&!canTrumpet(u)&&!(u.team==="y"&&!u.acted&&camp.battle&&!chal&&camp.items&&camp.items.length)&&!targets(u).length&&!healTargets(u).length&&!(rel(u,"font")&&units.some(b=>canBless(u,b)))&&(u.team!=="y"||!breakables(u).length)&&!(mods.y==="PUSH"&&u.t==="K"&&units.some(b=>b.team==="y"&&pushable(u,b))));
+const spent=u=>(!!u.acted&&!!u.moved)||!!u.auto||(u.team!=="w"&&!!u.moved&&!canMuster(u)&&!canTrumpet(u)&&!canBugle(u)&&!(u.team==="y"&&!u.acted&&camp.battle&&!chal&&camp.items&&camp.items.length)&&!targets(u).length&&!healTargets(u).length&&!(rel(u,"font")&&units.some(b=>canBless(u,b)))&&(u.team!=="y"||!breakables(u).length)&&!(mods.y==="PUSH"&&u.t==="K"&&units.some(b=>b.team==="y"&&pushable(u,b))));
 const targets=u=>units.filter(e=>e.team!==u.team&&(u.team!=="f"||e.team!=="w")&&d(u,e)<=rgOf(u)&&d(u,e)>=ST(u).mn);
 
 const spotsOf=(u,rc)=>[[u.x,u.y],...rc.map(k=>pk(k))];
@@ -1471,7 +1478,7 @@ function atkZone(u,spots,set,bar){
   });
 }
 function render(){
-  units.forEach(u=>{if(u.slow&&calm(u)){delete u.slow;floatText(u.x,u.y,"Calm","bless")}});
+  units.forEach(u=>{if(u.slow&&calm(u)){delete u.slow;delete u.hex;floatText(u.x,u.y,"Calm","bless")}});
   board.classList.toggle("murky",MURKY);board.classList.toggle("haunted",HAUNTED);board.classList.toggle("volcanic",VOLCANIC);
   const mv=new Set(),tg=new Set(),ig=new Set(),ir=new Set(),pr=new Set(),hs=new Set(),bt=new Set(),it=mode&&mode.startsWith("item:")&&sel&&turn==="y"?itemTargets(sel,mode.slice(5)):new Set();
   if(sel&&turn==="y"&&!over){
@@ -1517,7 +1524,7 @@ function render(){
         else{uc+=" mv";stepped=1;mvs=`;--dx:${ddx*122}%;--dy:${ddy*122}%;--dur:${.1+.06*dist}s`}
       }
       const c=COLORS[col[u.team]],hr=u.hp/maxHp(u),bg=u.auto&&!u.merc?`color-mix(in srgb,${c[1]} 55%,#fff)`:c[1]; // units that act on their own wear a lighter shade
-      html+=`<div class="${uc}" data-t="${u.t}" data-team="${u.team}" style="background:${bg};--tc:${bg};--ic:${c[2]}${mvs}">${u.merc?'<b class="ms"></b>':""}${u.trio?CHAMP_ICON:u.utrio?USURP_ICON:ICON[u.t]}</div>`
+      html+=`<div class="${uc}" data-t="${u.t}" data-team="${u.team}" style="background:${bg};--tc:${bg};--ic:${c[2]}${mvs}">${u.merc?'<b class="ms"></b>':""}${u.trio?CHAMP_ICON:u.utrio?USURP_ICON:ICON[u.t]}${u.aim?'<i class="aimk" aria-label="Holding aim"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" fill="none" stroke="#9fe0b0" stroke-width="1.600"/><path d="M8 1v4M8 11v4M1 8h4M11 8h4" stroke="#9fe0b0" stroke-width="1.600"/></svg></i>':""}</div>`
         +`<div class="hp"><i style="width:${100*hr}%;background-color:${hr>.5?"#5fd068":hr>.25?"#f0c33a":"#ee5a45"}"></i></div>`;
     }
     html+="</button>";
@@ -1602,11 +1609,16 @@ function renderInfo(){
   if(u.ubulwark)notes.push("Usurper's Bulwark: an adjacent enemy that lands a blow on it takes 1 damage.");
   if(u.ushroud)notes.push(u.shroudUsed?"Usurper's Shroud: its escape is spent.":"Usurper's Shroud: once this battle, a fatal blow sends it into shadow at its own edge instead.");
   if(u.utrio)notes.push(u.vengeance?"The Usurper: +1 damage, for a fallen comrade.":"The Usurper: +1 damage once one of its comrades falls.");
+  if(u.t==="T"&&u.team==="y"&&rel(u,"bugle"))notes.push("Goading Bugle: spend its action to goad its militia (+1 damage, a step after acting) and step 1 tile.");
+  if(u.goaded===pturn&&turn===u.team)notes.push("Goaded: +1 damage this turn, and a 1-tile step after acting.");
+  if(u.t==="E"&&rel(u,"hexbook"))notes.push("Book of Combat Hexes: an adjacent enemy that attacks it takes 1 damage and deals 1 less on its next turn.");
+  if(u.weak||u.cursed)notes.push(u.weak?"Cursed: deals 1 less damage this turn.":"Cursed: will deal 1 less damage on its next turn.");
+  if(u.aim)notes.push("Holding aim: it will shoot the first enemy that moves into its range.");else if(u.t==="A"&&u.team==="y"&&rel(u,"bowstring"))notes.push("Sentinel's Bowstring: end your turn without moving or acting to hold aim.");
   if(u.t==="N"&&rel(u,"imposing"))notes.push("Imposing Banner: enemies within 2 tiles deal 1 less damage.");
   if(u.t==="N"&&rel(u,"ipennant"))notes.push("Pennant of Inspiration: on each enemy turn, the first of your units within 2 tiles to take damage resists 1 of it.");
   if(u.t==="N"&&rel(u,"helm"))notes.push("Inspirational Plumed Helm: your other units within 2 tiles get +1 movement.");else if(helmed(u))notes.push("Inspired by the Plumed Helm: +1 movement.");
   if(u.bloom)notes.push(`Last Bloom: +${u.bloom} damage this battle, for a fallen comrade.`);
-  const stats=[["Move",mvOf(u)],["Range",rangeTxt({...T,rg:rgOf(u)})],["Damage",T.dmg+(u.t==="A"&&rel(u,"whet")?1:0)+(u.t==="M"&&rel(u,"pitchfork")?1:0)+(u.bloom||0)+(u.champ?1:0)+(u.ublade?1:0)+(u.vengeance?1:0)+(inspired(u)?"+1":"")],["Armor",arm],["Pierce",(T.pi||0)+(u.t==="R"&&rel(u,"ammo")?1:0)],["Evasion",pct(Math.max(0,(T.ev||0)-(u.t==="N"&&rel(u,"helm")?HELM_EV:0)))]].map(([k,v])=>`<span class="stat${v===0||v==="0%"?" nil":""}">${k} <b>${v}</b></span>`).join(""); // the same six stats on every card, zeros dimmed
+  const stats=[["Move",mvOf(u)],["Range",rangeTxt({...T,rg:rgOf(u)})],["Damage",T.dmg+(u.t==="A"&&rel(u,"whet")?1:0)+(u.t==="M"&&rel(u,"pitchfork")?1:0)+(u.bloom||0)+(u.champ?1:0)+(u.ublade?1:0)+(u.vengeance?1:0)+(inspired(u)?"+1":"")],["Armor",arm],["Pierce",u.t==="E"?"All":(T.pi||0)+(u.t==="R"&&rel(u,"ammo")?1:0)],["Evasion",pct(Math.max(0,(T.ev||0)-(u.t==="N"&&rel(u,"helm")?HELM_EV:0)+(u.t==="E"&&rel(u,"hexbook")?HEXBOOK_EV:0)))]].map(([k,v])=>`<span class="stat${v===0||v==="0%"?" nil":""}">${k} <b>${v}</b></span>`).join(""); // the same six stats on every card, zeros dimmed
   el.className="pb";el.style.borderLeft=`8px solid ${c[1]}`;
   el.innerHTML=`<div class="lbl">Unit</div><div class="row top"><div class="pv">${u.trio||u.utrio?disc(u.t,c).replace(ICON[u.t],u.trio?CHAMP_ICON:USURP_ICON):disc(u.t,c,u.merc,u.auto&&u.team==="y")}</div><div class="ib"><div class="nm"><strong>${u.merc?u.mname:hero?heroName(u.ci):cap(NAME[u.t])}</strong><span>${u.trio?"The Champion":u.utrio?"The Usurper":u.merc?(u.team==="y"?"Your mercenary ":"Enemy mercenary ")+NAME[u.t]:hero?cap(NAME[u.t]):u.team==="y"?"Your unit":u.team==="w"?"Wild":"Enemy"}</span></div><div class="hprow"><span>HP</span><b>${u.hp} / ${maxHp(u)}</b></div><div class="hpb"><i style="width:${100*r}%;background:${r>.5?"#4caf50":r>.25?"#e0b21c":"#d64b3a"}"></i></div><div class="stats">${stats}</div>${notes.map(n=>`<small>${n}</small>`).join("")}</div></div>`;
 }
@@ -1651,7 +1663,7 @@ function buildMenu(){
     const ok=pushable(sel,t);
     opt(`<b>${!ok?"Can't Push":n?`Push ${n} Tile${n>1?"s":""}`:"Push (Blocked)"}</b><small>${!ok?"Too heavy":t.team==="y"?"Reposition ally":"Instead of attacking"}</small>`,()=>{choice=null;doPush(sel,t)},!ok||!n);
   }
-  if(sel.t==="E"&&t.team!==sel.team&&(cm||targets(sel).includes(t)))opt(`<b>${cm?"Move &amp; Slow":"Slow"}</b><small>${calm(t)?"Calm: can't be slowed":t.slow?"Already slowed":"Move 1 next turn"}</small>`,go(a=>doSlow(a,t)),!!t.slow||calm(t));
+  if(sel.t==="E"&&t.team!==sel.team&&(cm||targets(sel).includes(t)))opt(`<b>${cm?"Move &amp; Hex":"Hex"}</b><small>${calm(t)?"Calm: can't be hexed":t.slow?"Already slowed":"Move 1, its targets +10% evasion"}</small>`,go(a=>doSlow(a,t)),!!t.slow||calm(t));
   if(!cm&&healable(sel,t)){const hn=Math.min(healOf(sel),maxHp(t)-t.hp);opt(`<b>Heal</b><small>+${hn} HP</small>`,()=>{choice=null;doHeal(sel,t)})}
   if(!cm&&canBless(sel,t))opt(`<b>Bless</b><small>${blessed(t)?"Already blessed":"+5% evasion until your next turn ends"}</small>`,()=>{choice=null;doBless(sel,t)},blessed(t));
   opt("<b>Cancel</b>",()=>{choice=null;say("Move, attack, or pick another unit.");render()});
@@ -1677,6 +1689,7 @@ function acts(){
   if(mods.y==="TP"&&!tpUsed.y&&!sel.moved)add("Teleport",()=>{mode="tp";say("Choose an open tile on the far edge.");render()});
   if(mods.y==="PUSH"&&sel.t==="K"&&!sel.acted&&units.some(b=>b.team==="y"&&pushable(sel,b)))add("Push Ally",()=>{mode="push";say("Choose an adjacent ally to push.");render()});
   if(!mode&&canTrumpet(sel))add("Sound Trumpet",()=>doTrumpet(sel));
+  if(!mode&&canBugle(sel))add("Sound the Bugle",()=>doBugle(sel));
   if(!mode&&camp.battle&&!chal&&camp.items&&camp.items.length&&sel.team==="y"&&(!sel.acted||camp.items.some(id=>ITEMS[id].free))&&!sel.auto)add("Use Item",()=>{mode="items";say("Choose an item to use.");render()});
   if(mode==="items")[...new Set(camp.items)].filter(id=>!sel.acted||ITEMS[id].free).forEach(id=>{const k=camp.items.filter(i=>i===id).length;add(ITEMS[id].name+(k>1?" \u00d7"+k:""),()=>{mode="item:"+id;say(itemPrompt(id));render()})});
   if(!mode&&canMuster(sel))add("Muster Militia",()=>{const n=muster(sel);unlock("seaside");sel=null;insp=null;lastMove=null;say(`Mustered ${n} militia. They can act next turn.`);render()});
@@ -1770,6 +1783,7 @@ function doAttack(a,u){
   attack(a,u,()=>{locked=false;info=units.includes(u)?u:null;
     const rest=()=>{
       if(a.champStep&&units.includes(a)&&!over){delete a.champStep;a.moved=0;a.stepOnly=1;sel=a;info=a;say("The champion's blow landed: it can step 1 tile.")}
+      else if(a.goaded===pturn&&turn==="y"&&units.includes(a)&&!over){a.moved=0;a.stepOnly=1;sel=a;info=a;say("Goaded on: it can step 1 tile.")} // Goading Bugle
       else if(units.includes(a)&&!over&&desperate(a,"stick")){a.moved=0;a.stepOnly=1;sel=a;info=a;say("Poke and back off: it can step 1 tile.")} // Long Stick
       afterAction()};
     const t=a.ushove;delete a.ushove;
@@ -1836,11 +1850,16 @@ function applyHeal(a,b){const n=Math.min(healOf(a),maxHp(b)-b.hp);b.hp+=n;sfx("h
 function doSlow(a,u){
   if(calm(u))return; // Moment of Calm
   a.acted=1;a.moved=1;sel=null;insp=null;locked=true;lastMove=null;
-  animAttack(a,u,()=>{u.slow=1;sfx("slow");floatText(u.x,u.y,"Slow","slow");say("Slowed the "+NAME[u.t]+": movement reduced to 1 on its next turn.");locked=false;info=u;afterAction()});
+  animAttack(a,u,()=>{u.slow=1;u.hex=1;sfx("slow");floatText(u.x,u.y,"Hexed","slow");say("Hexed the "+NAME[u.t]+": on its next turn it moves only 1 tile, and its targets get +10% evasion.");locked=false;info=u;afterAction()});
 }
 function doBless(a,b){
   a.blessUsed=1;a.acted=a.moved=1;b.blessUntil=pturn+1;sel=null;mode=null;choice=null;info=b;lastMove=null;
   floatText(b.x,b.y,"Blessed","bless");sfx("bless");say("Blessed your "+NAME[b.t]+": +5% evasion until the end of your next turn.");render();
+}
+function doBugle(a){ // Goading Bugle: the militia hit harder and step after acting; the Captain steps now
+  const ms=units.filter(m=>m.cap===a);a.acted=1;a.moved=0;a.stepOnly=1;mode=null;choice=null;insp=null;lastMove=null;sel=a;info=a;
+  ms.forEach(m=>{m.goaded=pturn;floatText(m.x,m.y,"Goaded","rally");if(m.acted){m.moved=0;m.stepOnly=1}}); // militia that already acted get their step now
+  sfx("trumpet");say(`The bugle blares! ${ms.length} militia deal +1 damage this turn and can step 1 tile after acting. Your Captain can step 1 tile.`);render();
 }
 function doTrumpet(a){ // Trumpet of Encouragement: nearby allies that have moved get to move again, and all of them get +5% evasion
   relicUsed.trumpet=1;a.acted=a.moved=1;sel=null;mode=null;choice=null;insp=null;lastMove=null;
@@ -2165,6 +2184,7 @@ function applyAttack(a,b){
   const bx=b.x,by=b.y;
   const c=combat(a,b);if(scouting(a)){camp.scout=0;saveCamp()} // the scouts' tip-off is spent on this blow
   const landed=hitFor(a,b,c);
+  if(b.t==="E"&&rel(b,"hexbook")&&a.team!==b.team&&d(a,{x:bx,y:by})===1&&units.includes(a)){a.cursed=1;later(()=>{if(units.includes(a))floatText(a.x,a.y,"Cursed","slow")},300);if(hurt(a,1))credit(b,a)} // Book of Combat Hexes: striking an Enchanter up close has a price
   if(landed&&a.t==="R"&&rel(a,"debris")) // Debris Shot: shrapnel hits enemies around the target
     blastOf(bx+","+by).forEach(([x,y])=>{const v=at(x,y);if(v&&v.team!==a.team&&hurt(v,DEBRIS_DMG))credit(a,v)});
   if(landed&&a.t==="R"&&rel(a,"splinter")) // Splinter Shells: the shot carries through, hitting anyone on the 3 tiles behind the target
@@ -2493,6 +2513,13 @@ function enemyTurn(note=""){
     }
     return p;
   }
+  function sentinel(u,go){ // an Archer holding aim shoots the first enemy to move into its range
+    const a=units.find(v=>v.aim&&units.includes(u)&&targets(v).includes(u));
+    if(!a)return go();
+    delete a.aim;sfx("bow");
+    animAttack(a,u,()=>{if(g!==gid)return;hitFor(a,u,combat(a,u),false);if(units.includes(u))floatText(a.x,a.y,"Held aim","bless");render();
+      if(units.includes(u))later(go,350);else{if(checkEnd())return;later(step,500)}});
+  }
   function act(u){
     if(g!==gid)return;
     const fin=()=>{u.acted=1;if(!checkEnd())render();later(step,500)};
@@ -2515,7 +2542,7 @@ function enemyTurn(note=""){
     }
     if(u.t==="E"&&ts.length&&!ts.some(p=>dmgTo(u,p)>=p.hp)){
       const sl=ts.filter(p=>!p.slow&&!calm(p)&&!muled(p)&&mvOf(p)>1).sort((a,b)=>ST(b).dmg-ST(a).dmg||ST(b).mv-ST(a).mv)[0];
-      if(sl){u.acted=1;animAttack(u,sl,()=>{sl.slow=1;sfx("slow");floatText(sl.x,sl.y,"Slow","slow");say("Enemy "+NAME[u.t]+" slowed your "+NAME[sl.t]+".");fin()});return}
+      if(sl){u.acted=1;animAttack(u,sl,()=>{sl.slow=1;sl.hex=1;sfx("slow");floatText(sl.x,sl.y,"Hexed","slow");say("Enemy "+NAME[u.t]+" hexed your "+NAME[sl.t]+": it moves only 1 tile, and its targets get +10% evasion.");fin()});return}
     }
     if(ts.length){
       u.acted=1;
@@ -2545,7 +2572,7 @@ function enemyTurn(note=""){
       if(dest[0]!==u.x||dest[1]!==u.y){u.moved=1;movedAny=true}
       if(tp)[u.x,u.y]=dest;else if(walk(u,dest[0],dest[1])&&!units.includes(u)){say(`The enemy ${NAME[u.t]} fell on the caltrops.`);if(checkEnd())return;render();return later(step,500)}
       render();
-      later(()=>act(u),350);
+      later(()=>u.moved?sentinel(u,()=>act(u)):act(u),350);
       return;
     }
     if(wi<wq.length){
@@ -2566,7 +2593,7 @@ function enemyTurn(note=""){
     hazards("f",()=>{
       SMOKE=new Set(); // the smoke drifts away as your turn begins
       const healed=mods.f==="REST"?rest("f"):0;
-      units.forEach(u=>{u.moved=u.acted=0;if(u.team!=="y")delete u.slow});
+      units.forEach(u=>{u.moved=u.acted=0;delete u.aim;if(u.team!=="y"){delete u.slow;delete u.hex;delete u.weak;if(u.cursed){u.weak=1;delete u.cursed}}});
       const wisped=wispsAct();
       vanguard();turn="y";busy=false;say((wisped?wisped+" ":"")+"Your turn. Select one of your units."+(healed?" Resting enemy units recovered HP.":""));render();notify("Enemy turn ended — your move");
     });
@@ -3672,6 +3699,9 @@ const RICON={ // small 32-unit relic icons
  imposing:'<path d="M8 3v27" stroke="#3a2412" stroke-width="2.400" stroke-linecap="round"/><path d="M5 4h6l-3-3z" fill="#8a8e94" stroke="#2a2c30" stroke-width=".7"/><path d="M9 6h17v18l-8.500-4l-8.500 4z" fill="#2a2030" stroke="#0e0a12" stroke-width="1.100" stroke-linejoin="round"/><path d="M9 8.500h17" stroke="#c9962a" stroke-width="1.100"/><path d="M17.500 10.500l3 2.500l-1.200 4l-1.800-1.300l-1.800 1.300l-1.200-4z" fill="#b0182a" stroke="#c9962a" stroke-width=".7" stroke-linejoin="round"/><path d="M11 22l1 4M15 20.500l.5 4M20 20.500l-.5 4M24 22l-1 4" stroke="#c9962a" stroke-width=".9" stroke-linecap="round"/>',
  helm:'<path d="M17 12q-2-8 5-10q6-1 8 4q-3-1-5 1q2 1 1.500 3.500q-3-2-7 1.500z" fill="#c8372d" stroke="#5a1410" stroke-width=".8" stroke-linejoin="round"/><path d="M20 7q3-2 6.500-1M20.500 9.500q2-1 4-.5" stroke="#f0a090" stroke-width=".7" fill="none"/><path d="M7 29V18a9 9 0 0118 0v11z" fill="#9aa2aa" stroke="#2e3338" stroke-width="1.200"/><path d="M16 9a9 9 0 019 9v11h-5V18q0-5-4-9z" fill="rgba(0,0,0,.18)"/><path d="M9 17.500h14v3H9z" fill="#2e3338"/><path d="M14.800 20.500h2.400v7h-2.400z" fill="#2e3338"/><path d="M7 27h18" stroke="#d8b24a" stroke-width="1.600"/><circle cx="16" cy="12" r="1.300" fill="#d8b24a" stroke="#6a4c10" stroke-width=".5"/>',
  ipennant:'<path d="M7 3v27" stroke="#5a3a1c" stroke-width="2.200" stroke-linecap="round"/><circle cx="7" cy="3" r="1.800" fill="#d8b24a" stroke="#6a4c10" stroke-width=".6"/><path d="M8 5h20l-5 6l5 6H8z" fill="#3a5a8a" stroke="#1d2a44" stroke-width="1.100" stroke-linejoin="round"/><circle cx="15" cy="11" r="3" fill="#f2d27a" stroke="#8a6418" stroke-width=".7"/><path d="M15 6.500v1.500M15 14v1.500M10.500 11h1.500M18 11h1.500M11.800 7.800l1 1M17.200 13.200l1 1M18.200 7.800l-1 1M12.800 13.200l-1 1" stroke="#f2d27a" stroke-width=".9" stroke-linecap="round"/><path d="M9 6.500h18" stroke="#8aa8d0" stroke-width=".7" opacity=".7"/>',
+ bowstring:'<path d="M9 3q14 13 0 26" fill="none" stroke="#6a4424" stroke-width="2.400" stroke-linecap="round"/><path d="M9 3L20 16L9 29" fill="none" stroke="#e8e0cc" stroke-width="1.100"/><circle cx="20" cy="16" r="1.400" fill="#c9962a"/><circle cx="23" cy="16" r="6" fill="none" stroke="#3f9a5a" stroke-width="1.300" opacity=".85"/><path d="M23 8.500v3M23 20.500v3M15.500 16h3M27.500 16h3" stroke="#3f9a5a" stroke-width="1.300" stroke-linecap="round"/><circle cx="23" cy="16" r="1" fill="#3f9a5a"/>',
+ bugle:'<path d="M4 18h12" stroke="#8a6418" stroke-width="2.400" stroke-linecap="round"/><path d="M16 18q5 0 11-7v14q-6-7-11-7z" fill="#c9962a" stroke="#5a4010" stroke-width="1.100" stroke-linejoin="round"/><path d="M6 18q0 6 6 6h3" fill="none" stroke="#a87a1c" stroke-width="1.600"/><circle cx="4" cy="18" r="1.600" fill="#a87a1c" stroke="#5a4010" stroke-width=".7"/><path d="M26 12v12" stroke="#f4dc8a" stroke-width=".9" opacity=".7"/><path d="M8 13l2-6l2 4l2-6l2 6" fill="none" stroke="#b8372d" stroke-width="1.300" stroke-linejoin="round"/><path d="M28.500 9l2-2M29.500 18h2M28.500 27l2 2" stroke="#5a4010" stroke-width="1.100" stroke-linecap="round"/>',
+ hexbook:'<path d="M6 5h17q3 0 3 3v19H9q-3 0-3-3z" fill="#3a2a5a" stroke="#140c24" stroke-width="1.200" stroke-linejoin="round"/><path d="M6 24q0-3 3-3h17" stroke="#d8d0e8" stroke-width="1.600" fill="none"/><path d="M10 5v16" stroke="#1e1434" stroke-width="1"/><path d="M17 8l1.500 3.200 3.500.5-2.500 2.400.6 3.500-3.100-1.700-3.100 1.700.6-3.500-2.500-2.400 3.500-.5z" fill="none" stroke="#c8a0ff" stroke-width="1"/><path d="M13 10l8 6M21 10l-8 6" stroke="#e8c050" stroke-width="1.300" stroke-linecap="round"/><circle cx="17" cy="13" r="6.500" fill="#a070e0" opacity=".18"/>',
  spurs:'<path d="M5 18q0-7 8-7h6" stroke="#8a8f96" stroke-width="2.600" fill="none" stroke-linecap="round"/><path d="M5 18q0 4 6 4h7" stroke="#8a8f96" stroke-width="2.600" fill="none" stroke-linecap="round"/><path d="M18 16.500h4" stroke="#6a6f76" stroke-width="2"/><circle cx="25" cy="16.500" r="3.400" fill="#d8b24a" stroke="#6a4c10" stroke-width=".9"/><path d="M25 11.500v-2M25 23.500v-2M30 16.500h-2M20 16.500h2M28.500 13l-1.400 1.400M21.500 20l1.400-1.400M28.500 20l-1.400-1.400M21.500 13l1.400 1.400" stroke="#6a4c10" stroke-width="1.100" stroke-linecap="round"/><circle cx="25" cy="16.500" r="1" fill="#6a4c10"/>',
  grog:'<ellipse cx="16" cy="28" rx="9" ry="1.800" fill="rgba(0,0,0,.2)"/><rect x="13" y="3" width="6" height="4" rx="1" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M13.500 7h5v3q7 2 7 9v5q0 4-4 4H10.500q-4 0-4-4v-5q0-7 7-9z" fill="#7a6a4a" stroke="#2a1e12" stroke-width="1.200" stroke-linejoin="round"/><path d="M7 17h18v6H7z" fill="#a8402a" opacity=".85"/><path d="M7 17h18M7 23h18" stroke="#2a1e12" stroke-width=".9"/><path d="M12 20h8" stroke="#f0d8a0" stroke-width="1.300" stroke-linecap="round"/><path d="M10 12q1-2 3-2" stroke="#c8b890" stroke-width="1" fill="none" stroke-linecap="round" opacity=".7"/>',
  pebble:'<ellipse cx="16" cy="25" rx="9" ry="1.800" fill="rgba(0,0,0,.18)"/><ellipse cx="16" cy="19" rx="9" ry="6.500" fill="#9aa0a6" stroke="#3a3e44" stroke-width="1.200"/><path d="M10 17q4-3 10-2" stroke="#d8dce0" stroke-width="1.300" fill="none" stroke-linecap="round"/><path d="M14.200 20.800l1.200-1.600l1.600 1.200l-.6 1.800z" fill="#5a8a5a" opacity=".85"/>',
@@ -4143,10 +4173,11 @@ $("go").onclick=()=>{
 $("end").onclick=()=>{
   if(over||busy||locked||!units.length||turn!=="y")return;
   if(mode==="ushove"){mode=null;shoveT=null}
+  units.forEach(u=>{if(u.team==="y"&&u.t==="A"&&!u.moved&&!u.acted&&rel(u,"bowstring"))u.aim=1}); // Sentinel's Bowstring: held still, it holds aim
   firstTurn=false;pturn++;
   units.forEach(u=>{if(u.team==="y"&&!u.moved&&rel(u,"drum"))u.drum=pturn}); // War Drum: holding the line pays off next turn
   const n=mods.y==="REST"?rest("y"):0;
-  units.forEach(u=>{if(u.team==="y"){delete u.slow;delete u.haste;delete u.stepOnly}});
+  units.forEach(u=>{if(u.team==="y"){delete u.weak;if(u.cursed){u.weak=1;delete u.cursed}delete u.slow;delete u.hex;delete u.haste;delete u.stepOnly}});
   lastMove=null;notify("You ended your turn");
   const go=()=>hazards("y",()=>enemyTurn(n?"Your resting units recovered HP. ":""));
   if(units.some(u=>u.auto&&u.team==="y")){busy=true;render();chickensAct(()=>{if(!over)go()})}else go();
