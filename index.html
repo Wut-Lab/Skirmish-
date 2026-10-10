@@ -704,6 +704,8 @@ const RELICS={
  shield:{name:"Sturdy Shields",r:0,desc:"Knights get +1 armor."},
  rations:{name:"Trail Rations",r:0,src:"both",desc:"Your units heal 1 extra HP after each battle."},
  bandages:{name:"Spare Bandages",r:0,desc:"Your units that fall in a battle return for the next one with 3 HP instead of 1."},
+ ammo:{name:"Upgraded Ammunition",r:0,src:"both",need:"R",desc:"Artillery get +1 pierce. Iron-capped shot, cast to punch through plate."},
+ stud:{name:"Royal Stud Book",r:0,src:"both",need:"C",hpUp:"C",desc:"Cavalry get +1 max HP. Gaining it doesn't heal them: the extra point fills in as they recover. Generations of careful breeding, written down at last."},
  bard:{name:"Barding",r:0,desc:"Cavalry get +1 armor but 1 less movement."},
  luck:{name:"Lucky Charm",r:1,desc:"All your units get +5% evasion."},
  long:{name:"Long Bows",r:1,desc:"Archers get +1 range."},
@@ -1360,7 +1362,7 @@ function combat(a,b,from=a){
   const sc=scouting(a);add("Scouted Ahead",sc?1:0);
   const armor=[["Armor",B.ar||0],["Padded Armor",b.t==="A"&&mods[b.team]==="PAD"?1:0],["Forest Tactics",mods[b.team]==="FT"&&A.rg>1&&WOODS(k)?1:0],["Fortress",FORT.has(k)?1:0],["Sturdy Shields",b.t==="K"&&rel(b,"shield")?1:0],["Barding",b.t==="C"&&rel(b,"bard")?1:0],["Banner of the Fallen Keep",b.keep?1:0],["Vasco's Morion",b.vang?1:0],["Stubborn as a Mule",muled(b)?MULE_AR:0],["Improvised Armor",desperate(b,"hide")&&units.some(v=>v.team===b.team&&v.t==="K"&&d(v,b)===1)?1:0]];
   armor.forEach(([l,v])=>add(l,-v));
-  add("Pierce",Math.min(Math.max(0,(A.pi||0)+(rel(a,"bluemagma")?1:0)+(rel(a,"crown")?1:0)+(a.t==="K"&&rel(a,"sallet")?1:0)+(a.champ?1:0)+(sc?1:0)+(a.ublade&&b.hp>maxHp(b)/2?1:0)-(b.cshield?1:0)),armor.reduce((t,x)=>t+x[1],0))); // Blue Magma and the Champion's Sword add pierce, the Usurper's Blade against the healthy; the Champion's Shield turns 1 aside
+  add("Pierce",Math.min(Math.max(0,(A.pi||0)+(rel(a,"bluemagma")?1:0)+(rel(a,"crown")?1:0)+(a.t==="K"&&rel(a,"sallet")?1:0)+(a.t==="R"&&rel(a,"ammo")?1:0)+(a.champ?1:0)+(sc?1:0)+(a.ublade&&b.hp>maxHp(b)/2?1:0)-(b.cshield?1:0)),armor.reduce((t,x)=>t+x[1],0))); // Blue Magma and the Champion's Sword add pierce, the Usurper's Blade against the healthy; the Champion's Shield turns 1 aside
   add("Pavise",b.t==="A"&&A.rg>1&&rel(b,"pavise")?-1:0); // a shield wall, not armor: pierce can't get past it
   const ev=Math.max(0,-(rel(a,"keen")&&rgOf(a)>1?KEEN_EV:0)+Math.min(EV_CAP,(B.ev||0)+(rel(b,"luck")?.05:0)+(b.trio?TRIO_EV:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(rel(b,"sakurafan")&&[...blastOf(k),[b.x,b.y]].some(([x,y])=>CHERRY.has(x+","+y))?FAN_EV:0)+(blessed(b)?BLESS_EV:0)+(rested(b)?REST_EV:0)+(rel(b,"pebble")?PEBBLE_EV:0)+(rallied(b)?RALLY_EV:0)+(b.team==="y"&&SMOKE.has(k)?SMOKE_EV:0)+(WOODS(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0))); // Keen Eye Charm: ranged attacks see through a little of it
   return {dmg:Math.max(1,parts.reduce((t,p)=>t+p[1],0)),hit:sc?1:1-ev,parts}; // every hit deals at least 1; a scouted first strike never misses
@@ -1595,7 +1597,7 @@ function renderInfo(){
   if(u.ushroud)notes.push(u.shroudUsed?"Usurper's Shroud: its escape is spent.":"Usurper's Shroud: once this battle, a fatal blow sends it into shadow at its own edge instead.");
   if(u.utrio)notes.push(u.vengeance?"The Usurper: +1 damage, for a fallen comrade.":"The Usurper: +1 damage once one of its comrades falls.");
   if(u.bloom)notes.push(`Last Bloom: +${u.bloom} damage this battle, for a fallen comrade.`);
-  const stats=[["Move",mvOf(u)],["Range",rangeTxt({...T,rg:rgOf(u)})],["Damage",T.dmg+(u.t==="A"&&rel(u,"whet")?1:0)+(u.t==="M"&&rel(u,"pitchfork")?1:0)+(u.bloom||0)+(u.champ?1:0)+(u.ublade?1:0)+(u.vengeance?1:0)+(inspired(u)?"+1":"")],["Armor",arm],["Pierce",T.pi||0],["Evasion",pct(T.ev||0)]].map(([k,v])=>`<span class="stat${v===0||v==="0%"?" nil":""}">${k} <b>${v}</b></span>`).join(""); // the same six stats on every card, zeros dimmed
+  const stats=[["Move",mvOf(u)],["Range",rangeTxt({...T,rg:rgOf(u)})],["Damage",T.dmg+(u.t==="A"&&rel(u,"whet")?1:0)+(u.t==="M"&&rel(u,"pitchfork")?1:0)+(u.bloom||0)+(u.champ?1:0)+(u.ublade?1:0)+(u.vengeance?1:0)+(inspired(u)?"+1":"")],["Armor",arm],["Pierce",(T.pi||0)+(u.t==="R"&&rel(u,"ammo")?1:0)],["Evasion",pct(T.ev||0)]].map(([k,v])=>`<span class="stat${v===0||v==="0%"?" nil":""}">${k} <b>${v}</b></span>`).join(""); // the same six stats on every card, zeros dimmed
   el.className="pb";el.style.borderLeft=`8px solid ${c[1]}`;
   el.innerHTML=`<div class="lbl">Unit</div><div class="row top"><div class="pv">${u.trio||u.utrio?disc(u.t,c).replace(ICON[u.t],u.trio?CHAMP_ICON:USURP_ICON):disc(u.t,c,u.merc,u.auto&&u.team==="y")}</div><div class="ib"><div class="nm"><strong>${u.merc?u.mname:hero?heroName(u.ci):cap(NAME[u.t])}</strong><span>${u.trio?"The Champion":u.utrio?"The Usurper":u.merc?(u.team==="y"?"Your mercenary ":"Enemy mercenary ")+NAME[u.t]:hero?cap(NAME[u.t]):u.team==="y"?"Your unit":u.team==="w"?"Wild":"Enemy"}</span></div><div class="hprow"><span>HP</span><b>${u.hp} / ${maxHp(u)}</b></div><div class="hpb"><i style="width:${100*r}%;background:${r>.5?"#4caf50":r>.25?"#e0b21c":"#d64b3a"}"></i></div><div class="stats">${stats}</div>${notes.map(n=>`<small>${n}</small>`).join("")}</div></div>`;
 }
@@ -2288,7 +2290,7 @@ const ESC=[
 ];
 const ELITE_HP=2,esc=r=>{const n=ESC.length,e=ESC[Math.min(r,n)-1];return r>n?{...e,relics:e.relics+Math.floor((r-n)/2)}:e},escFrom=k=>ESC.findIndex(e=>e[k]>0)+1;
 // relics an enemy army can make use of (no player-only actions, once-per-battle tricks or gold), and the unit each needs
-const FOE_OK={csword:"",cshield:"",ublade:"",ubulwark:"",ushroud:"",whet:"A",shield:"K",bard:"C",luck:"",long:"A",debris:"R",wolfpack:"",mercy:"",gauntlets:"",pavise:"A",pennant:"",hatchet:"",keep:"",ram:"",blossom:"",crown:"",statue:"",spurs:"C",grog:"",pebble:"",warpaint:""};
+const FOE_OK={ammo:"R",stud:"C",csword:"",cshield:"",ublade:"",ubulwark:"",ushroud:"",whet:"A",shield:"K",bard:"C",luck:"",long:"A",debris:"R",wolfpack:"",mercy:"",gauntlets:"",pavise:"A",pennant:"",hatchet:"",keep:"",ram:"",blossom:"",crown:"",statue:"",spurs:"C",grog:"",pebble:"",warpaint:""};
 function foeLoadout(r){
   const army=units.filter(u=>u.team==="f").map(u=>u.t),ok=id=>id in FOE_OK&&(!FOE_OK[id]||army.includes(FOE_OK[id]))&&!FOE_RELIC.has(id)&&(!RELICS[id].lock||unlocks[RELICS[id].lock])&&!clash(id,[...FOE_RELIC]);
   const boss=Object.keys(RELICS).filter(id=>RELICS[id].src==="boss"&&ok(id)),other=Object.keys(RELICS).filter(id=>RELICS[id].src!=="boss"&&ok(id));
@@ -2322,8 +2324,11 @@ function foeUseItems(){
   }
   return msg.join(" ");
 }
-const WOUND_MAX=3,CROSS_SPARE=.15,MEDKIT_DOUBLE=.25,maxHp=u=>ST(u).hp-(u.wounds||0)+(u.elite?ELITE_HP:0);
-const woundsOf=i=>(camp.wounds&&camp.wounds[i])||0,campMax=i=>TYPES[armyTypes()[i]].hp-woundsOf(i);
+const hpUp=(t,has)=>Object.keys(RELICS).filter(id=>RELICS[id].hpUp===t&&has(id)).length; // relics that raise a unit type's max HP (hpUp: the type)
+const WOUND_MAX=3,CROSS_SPARE=.15,MEDKIT_DOUBLE=.25,maxHp=u=>ST(u).hp-(u.wounds||0)+(u.elite?ELITE_HP:0)+hpUp(u.t,id=>rel(u,id));
+const woundsOf=i=>(camp.wounds&&camp.wounds[i])||0,campMax=i=>TYPES[armyTypes()[i]].hp-woundsOf(i)+hpUp(armyTypes()[i],id=>camp.relics.includes(id));
+// taking a relic: one that raises max HP first pins the army's current HP, so gaining it never heals
+function gainRelic(id){if(RELICS[id].hpUp&&!camp.hp)camp.hp=campHps();camp.relics.push(id)}
 const HERO_NAMES=["Aldric","Bertram","Cedric","Dunstan","Edmund","Fulk","Godfrey","Hugh","Ivo","Jocelyn","Kenric","Leofric","Maud","Nesta","Osric","Percival","Quentin","Roswitha","Sibyl","Tristan","Ulric","Wymond","Agnes","Beatrix","Ysolde","Gareth","Hawise","Odo","Rowena","Thurstan","Elfric","Mabel","Warin","Isolde","Baldwin","Edith","Ranulf","Alys","Gilbert","Petronella"];
 // honors are earned once each; a soldier goes by the latest one ("Aldric the Bold")
 const HONORS=[
@@ -3091,7 +3096,7 @@ function start(o={}){
   mods.y=pick.m;units=[];herbertMet=false;firstTurn=true;pturn=1;RELIC=new Set(camp.battle?camp.relics:[]);relicUsed={};
   if(!camp.battle&&mine.filter(t=>t==="K").length===3)unlock("campsite"); // three knights in a quick battle
   [1,3,4,6,8].forEach((x,i)=>{
-    const wd=camp.battle?woundsOf(i):0;units.push({t:mine[i],team:"y",ci:i,x,y:H-1,hp:Math.min(TYPES[mine[i]].hp-wd,camp.battle&&camp.hp&&camp.hp[i]>0?camp.hp[i]:TYPES[mine[i]].hp),moved:0,acted:0,...(wd?{wounds:wd}:{})});
+    const wd=camp.battle?woundsOf(i):0;units.push({t:mine[i],team:"y",ci:i,x,y:H-1,hp:camp.battle?Math.min(campMax(i),camp.hp&&camp.hp[i]>0?camp.hp[i]:campMax(i)):TYPES[mine[i]].hp,moved:0,acted:0,...(wd?{wounds:wd}:{})});
     units.push({t:foe[i],team:"f",x:W-1-x,y:0,hp:TYPES[foe[i]].hp,moved:0,acted:0});
   });
   if(o.boss){const t=rnd(foe);units.push({t,team:"f",x:5,y:1,hp:TYPES[t].hp,moved:0,acted:0})}
@@ -3593,7 +3598,7 @@ function findRelics(nm){
     if(!f.when(nm)||(!locked&&!f.repeat))return;
     if(R.lock)unlock(R.lock);
     if(camp.relics.includes(f.relic))return; // already carried in this campaign
-    camp.relics.push(f.relic);
+    gainRelic(f.relic);
     camp.found.push({id:f.relic,by:by.length?by[Math.floor(Math.random()*by.length)].t:"K"}); // shown on the world map, one screen each
   });
 }
@@ -3651,6 +3656,8 @@ const RICON={ // small 32-unit relic icons
  stick:'<path d="M5 28L26 5" stroke="#6a4424" stroke-width="3.200" stroke-linecap="round"/><path d="M5 28L26 5" stroke="#9a6a3a" stroke-width="1.600" stroke-linecap="round"/><path d="M15 17l-4-3M19 13l1-4" stroke="#6a4424" stroke-width="1.600" stroke-linecap="round"/><path d="M11 14l-2 1" stroke="#4a7a3a" stroke-width="2" stroke-linecap="round"/>',
  hide:'<path d="M17 4l10 3v8q0 9-10 13q-10-4-10-13V7z" fill="#a8b0ba" stroke="#2e3440" stroke-width="1.200" stroke-linejoin="round"/><path d="M17 4v24" stroke="#6a7480" stroke-width=".9"/><circle cx="8" cy="20" r="3.200" fill="#e8c8a0" stroke="#3a2a1c" stroke-width=".9"/><path d="M6.600 19.600h.6M9 19.600h.6" stroke="#2a1c10" stroke-width=".9" stroke-linecap="round"/><path d="M4 22q1-1 2 0M10.500 22.500q1-1 2 .3" stroke="#e8c8a0" stroke-width="1.400" stroke-linecap="round"/>',
  warm:'<path d="M12 9q-2-3 0-5M16 9q-2-3 0-6M20 9q-2-3 0-5" stroke="#d8d4cc" stroke-width="1.100" fill="none" stroke-linecap="round" opacity=".8"/><path d="M7 11h16v12q0 5-5 5h-6q-5 0-5-5z" fill="#9a6a3e" stroke="#3a2412" stroke-width="1.200"/><path d="M23 14q5 0 5 4t-5 4" stroke="#3a2412" stroke-width="2.400" fill="none"/><path d="M23 14q5 0 5 4t-5 4" stroke="#9a6a3e" stroke-width="1.100" fill="none"/><ellipse cx="15" cy="11" rx="8" ry="1.600" fill="#5a3418" stroke="#3a2412" stroke-width=".8"/><path d="M10 16v8" stroke="#c8925a" stroke-width="1.100" opacity=".6"/><circle cx="15" cy="17" r="7" fill="#ffb347" opacity=".14"/>',
+ ammo:'<ellipse cx="16" cy="28" rx="12" ry="2" fill="rgba(0,0,0,.2)"/><circle cx="9" cy="22" r="5" fill="#3a3e44" stroke="#14161a" stroke-width="1.100"/><circle cx="19" cy="22" r="5" fill="#3a3e44" stroke="#14161a" stroke-width="1.100"/><circle cx="14" cy="14" r="5" fill="#3a3e44" stroke="#14161a" stroke-width="1.100"/><circle cx="7.500" cy="20.500" r="1.400" fill="#8a929a"/><circle cx="17.500" cy="20.500" r="1.400" fill="#8a929a"/><circle cx="12.500" cy="12.500" r="1.400" fill="#8a929a"/><path d="M22 9l4-4l3 3l-4 4z" fill="#c9962a" stroke="#5a4010" stroke-width=".8"/><path d="M22 9l-2.500 8l3 1l2.500-6z" fill="#6a7078" stroke="#14161a" stroke-width=".9" stroke-linejoin="round"/><path d="M26 5l3 3" stroke="#f4dc8a" stroke-width=".9"/>',
+ stud:'<path d="M7 4h17q2 0 2 2v21q0 2-2 2H7z" fill="#6a3a1e" stroke="#2a1408" stroke-width="1.100"/><path d="M9 5h14v22H9z" fill="#7a4626" stroke="#3a1e0c" stroke-width=".6"/><path d="M5 4v25" stroke="#3a1e0c" stroke-width="2.400"/><path d="M12.500 21l-1-5.500q-.500-5 4.500-5t4.500 5l-1 5.500h-2.200l1-5.500q0-2.600-2.300-2.600t-2.300 2.600l1 5.500z" fill="#d8b24a" stroke="#6a4c10" stroke-width=".7" stroke-linejoin="round"/><path d="M10 8h12M10 24.500h12" stroke="#d8b24a" stroke-width=".8"/><circle cx="25" cy="25" r="3" fill="#8a1a22" stroke="#3a0a10" stroke-width=".7"/>',
  spurs:'<path d="M5 18q0-7 8-7h6" stroke="#8a8f96" stroke-width="2.600" fill="none" stroke-linecap="round"/><path d="M5 18q0 4 6 4h7" stroke="#8a8f96" stroke-width="2.600" fill="none" stroke-linecap="round"/><path d="M18 16.500h4" stroke="#6a6f76" stroke-width="2"/><circle cx="25" cy="16.500" r="3.400" fill="#d8b24a" stroke="#6a4c10" stroke-width=".9"/><path d="M25 11.500v-2M25 23.500v-2M30 16.500h-2M20 16.500h2M28.500 13l-1.400 1.400M21.500 20l1.400-1.400M28.500 20l-1.400-1.400M21.500 13l1.400 1.400" stroke="#6a4c10" stroke-width="1.100" stroke-linecap="round"/><circle cx="25" cy="16.500" r="1" fill="#6a4c10"/>',
  grog:'<ellipse cx="16" cy="28" rx="9" ry="1.800" fill="rgba(0,0,0,.2)"/><rect x="13" y="3" width="6" height="4" rx="1" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M13.500 7h5v3q7 2 7 9v5q0 4-4 4H10.500q-4 0-4-4v-5q0-7 7-9z" fill="#7a6a4a" stroke="#2a1e12" stroke-width="1.200" stroke-linejoin="round"/><path d="M7 17h18v6H7z" fill="#a8402a" opacity=".85"/><path d="M7 17h18M7 23h18" stroke="#2a1e12" stroke-width=".9"/><path d="M12 20h8" stroke="#f0d8a0" stroke-width="1.300" stroke-linecap="round"/><path d="M10 12q1-2 3-2" stroke="#c8b890" stroke-width="1" fill="none" stroke-linecap="round" opacity=".7"/>',
  pebble:'<ellipse cx="16" cy="25" rx="9" ry="1.800" fill="rgba(0,0,0,.18)"/><ellipse cx="16" cy="19" rx="9" ry="6.500" fill="#9aa0a6" stroke="#3a3e44" stroke-width="1.200"/><path d="M10 17q4-3 10-2" stroke="#d8dce0" stroke-width="1.300" fill="none" stroke-linecap="round"/><path d="M14.200 20.800l1.200-1.600l1.600 1.200l-.6 1.800z" fill="#5a8a5a" opacity=".85"/>',
@@ -3791,7 +3798,7 @@ function buy(kind,id){
     camp.gold-=pr;m.hired=1;const old=hireMerc(m);boughtFromMarcus();marcusSays(old?MARCUS.mercSwap.replace("%",old.name):MARCUS.merc);
   }else{
     const R=RELICS[id],pr=priceOf(RELIC_PRICE[R.r]);if(n.stock.sold.includes(id)||relicCount(id)>=(R.max||1))return;if(camp.gold<pr)return marcusSays(MARCUS.poor);
-    camp.gold-=pr;camp.relics.push(id);boughtFromMarcus();n.stock.sold.push(id);marcusSays(MARCUS[id]||MARCUS.buy[Math.floor(Math.random()*MARCUS.buy.length)]);renderRelics();
+    camp.gold-=pr;gainRelic(id);boughtFromMarcus();n.stock.sold.push(id);marcusSays(MARCUS[id]||MARCUS.buy[Math.floor(Math.random()*MARCUS.buy.length)]);renderRelics();
   }
   sfx("coin");saveCamp();renderGold();renderItems();renderShop();
 }
@@ -3848,7 +3855,7 @@ function showRelicOffer(){
   $("rchoices").querySelectorAll(".rcard").forEach(b=>b.onclick=()=>{
     const id=b.dataset.id;
     if(!id.startsWith("item:")&&clash(id,camp.relics)){$("relicv").querySelector(".rsub").textContent="Some things are not meant to work together.";return}
-    if(id.startsWith("item:")){if(camp.items.length>=itemCap())return;camp.items.push(id.slice(5));renderItems()}else camp.relics.push(id);
+    if(id.startsWith("item:")){if(camp.items.length>=itemCap())return;camp.items.push(id.slice(5));renderItems()}else gainRelic(id);
     if(id==="chest"){camp.gold+=CHEST_GOLD;camp.lastGold=CHEST_GOLD;sfx("coin");renderGold()} // the war chest pays out at once
     camp.offer=null;camp.offerBoss=false;saveCamp();$("relicv").hidden=true;renderRelics();$("wmap").querySelector(".wn")&&renderWorld()});
   $("relicv").hidden=false;($("rchoices").querySelector('.rcard:not([aria-disabled="true"])')||$("rchoices").querySelector(".rcard")).focus();
