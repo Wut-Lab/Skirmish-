@@ -371,6 +371,7 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .u.rallied:not(.blessed){box-shadow:0 0 0 2px rgba(255,240,200,.9),0 0 10px 3px rgba(230,180,60,.7),var(--bev)}
 .u.mule:not(.blessed):not(.rallied){box-shadow:0 0 0 2px rgba(240,220,190,.9),0 0 9px 3px rgba(150,95,45,.8),var(--bev)}
 .u.champ::before{content:"\2726";position:absolute;bottom:-5px;left:-5px;width:16px;height:16px;border-radius:50%;background:#fff6c8;color:#8a6418;font-size:.7rem;font-weight:800;line-height:16px;text-align:center;box-shadow:0 0 0 1.5px #8a6418,0 0 8px 2px rgba(255,236,150,.8);z-index:3}
+.vgiven{margin:2px 0 0;text-align:center;font-weight:700;font-size:.9rem;opacity:.85;display:flex;align-items:center;justify-content:center;gap:6px}.vgiven svg{width:22px;height:22px}
 .mchip{flex:1 1 calc(50% - 4px);min-width:0;box-sizing:border-box}.gchip,.pchip{flex-basis:100%;min-width:0;box-sizing:border-box;flex-direction:row;align-items:center;gap:10px;padding:3px 10px}.pchip{background:#e6d3a8;color:#3b2a17}.gchip small,.pchip small{flex:none}.gchip span,.pchip span{flex:1;min-width:0;flex-wrap:nowrap!important;overflow:hidden;margin:0!important;padding:2px}.pmore{flex:none;width:26px;height:26px;padding:0;border:2.5px solid #111;border-radius:50%;background:#fff;color:#111;font:800 .8rem/1 inherit;cursor:pointer;box-sizing:border-box}.plist{display:grid;gap:8px}
 .gchip span,.pchip span{display:flex;gap:3px;flex-wrap:wrap;margin-top:2px}.gci,.pci{width:26px;height:26px;padding:0;border:0;border-radius:50%;background:#f4ead2;display:grid;place-items:center;cursor:pointer;box-shadow:0 0 0 1px rgba(0,0,0,.35)}
 .u.usurp::before{content:"\265B";position:absolute;bottom:-5px;left:-5px;width:16px;height:16px;border-radius:50%;background:#2a1a26;color:#e0a0b0;font-size:.62rem;line-height:16px;text-align:center;box-shadow:0 0 0 1.5px #b0182a,0 0 8px 2px rgba(120,30,60,.7);z-index:3} /* a Usurper piece: a dark crown */
@@ -444,7 +445,7 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 <main>
 <section id="menu">
 <div class="hero"><div class="discs" id="hero"></div><h1>Skirmish</h1><p>Turn-based tactics on a small battlefield.</p></div>
-<div class="menubtns" id="mbtns"><button class="b big" id="camp">Campaign</button><button class="b big" id="play">Quick Battle</button><button class="b big" id="chal">Challenges</button><button class="b big" id="unl">Unlocks</button><button class="b big" id="how">How to Play</button><button class="b big" id="edit" hidden>Map Editor</button></div>
+<div class="menubtns" id="mbtns"><button class="b big" id="camp">Campaign</button><button class="b big" id="play">Quick Battle</button><button class="b big" id="chal">Challenges</button><button class="b big" id="unl">Unlocks</button><button class="b big" id="how">How to Play</button><button class="b big" id="edit" hidden>Map Editor</button><p class="vgiven" id="vgiven" hidden></p></div>
 <div class="mtog"><button class="b" id="maudio">Sound &amp; Music</button></div>
 <div class="menubtns" id="maud" hidden><h2 class="htitle">Sound &amp; Music</h2><button class="b big" id="msound">Sound: On</button><button class="b big" id="mmusic">Music: On</button><button class="b big" id="maback">Back</button></div>
 <div id="chalview" hidden></div>
@@ -632,12 +633,12 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 const DIRS=[[1,0],[-1,0],[0,1],[0,-1]],pk=k=>k.split(",").map(Number); // the four neighbour steps; "x,y" tile key -> [x,y]
 const W=10,H=12,
 // hp, mv move, rg/mn range, dmg damage; ar armor, pi pierce, ev evasion (dodge chance); who retaliates: CAN_RETALIATE / CANT_RETALIATE below
-TYPES={K:{hp:12,mv:3,rg:1,mn:1,dmg:5,ar:2},A:{hp:8,mv:3,rg:3,mn:1,dmg:4,pi:1,ev:.1},R:{hp:10,mv:2,rg:4,mn:2,dmg:4,pi:2},W:{hp:8,mv:2,rg:1,mn:1,dmg:4,ev:.15},B:{hp:16,mv:1,rg:1,mn:1,dmg:6,ar:1},H:{hp:5,mv:3,rg:2,mn:1,dmg:3,ev:.25},C:{hp:9,mv:5,rg:1,mn:1,dmg:4,ar:1,ev:.1},P:{hp:7,mv:3,rg:2,mn:1,dmg:1,heal:3,ev:.1},E:{hp:6,mv:3,rg:3,mn:1,dmg:2,slow:1,ev:.15},T:{hp:9,mv:3,rg:1,mn:1,dmg:3,ar:1},N:{hp:8,mv:3,rg:1,mn:1,dmg:2,ev:.05},M:{hp:4,mv:2,rg:1,mn:1,dmg:2},G:{hp:3,mv:4,rg:1,mn:1,dmg:2,ev:.15}}; // G: the Angry Chicken (Chicken Suit relic)
+TYPES={K:{hp:12,mv:3,rg:1,mn:1,dmg:5,ar:2},A:{hp:8,mv:3,rg:3,mn:1,dmg:4,pi:1,ev:.1},R:{hp:10,mv:2,rg:4,mn:2,dmg:4,pi:2},W:{hp:8,mv:2,rg:1,mn:1,dmg:4,ev:.15},B:{hp:16,mv:1,rg:1,mn:1,dmg:6,ar:1},H:{hp:5,mv:3,rg:2,mn:1,dmg:3,ev:.25},C:{hp:9,mv:5,rg:1,mn:1,dmg:4,ar:1,ev:.1},P:{hp:7,mv:3,rg:2,mn:1,dmg:1,heal:3,ev:.1},E:{hp:6,mv:3,rg:3,mn:1,dmg:2,slow:1,ev:.15},T:{hp:9,mv:3,rg:1,mn:1,dmg:3,ar:1},N:{hp:8,mv:3,rg:1,mn:1,dmg:2,ev:.05},Q:{hp:10,mv:4,rg:1,mn:1,dmg:4,ar:1,ev:.05},M:{hp:4,mv:2,rg:1,mn:1,dmg:2},G:{hp:3,mv:4,rg:1,mn:1,dmg:2,ev:.15}}; // G: the Angry Chicken (Chicken Suit relic)
 const ST=u=>u.st?{...TYPES[u.t],...u.st}:TYPES[u.t]; // a unit's stats: its type's, unless it carries its own (mercenaries)
 // Mercenaries: a weaker, slightly randomized take on a unit type that fights on its own. One at a time, for MERC_TERM campaign battles.
 const MERC_TYPES="KARC",MERC_PRICE={K:70,A:65,R:70,C:75},MERC_TERM=4,MERC_SHOP=1/3,MERC_ROAD=.1;
 const MERC_QUIRKS=[["Swift",{mv:1},"+1 move"],["Stout",{ar:1},"+1 armor"],["Nimble",{ev:.05},"+5% evasion"],["Hardy",{hp:2},"+2 HP"],["Keen",{pi:1},"+1 pierce"]];
-const MERC_NAMES=["Bruno","Garrick","Vasco","Ingrid","Rurik","Sabine","Dario","Helga","Tobias","Mirela","Corvin","Ottilie","Brennan","Zora","Lothar","Greta","Anselm","Kasia","Pell","Ysgrim"];
+const MERC_NAMES=["Bruno","Garrick","Arturo","Ingrid","Rurik","Sabine","Dario","Helga","Tobias","Mirela","Corvin","Ottilie","Brennan","Zora","Lothar","Greta","Anselm","Kasia","Pell","Ysgrim"];
 function rollMerc(t){
   const rnd=l=>l[Math.floor(Math.random()*l.length)];t=t||rnd(MERC_TYPES);
   const T=TYPES[t],q=rnd(MERC_QUIRKS),st={hp:T.hp-2-Math.floor(Math.random()*2),dmg:T.dmg-1}; // 2-3 less HP and 1 less damage than the real thing...
@@ -647,11 +648,11 @@ function rollMerc(t){
 const mercLine=m=>{const T={...TYPES[m.t],...m.st};return `${cap(NAME[m.t])}: HP ${T.hp}, move ${T.mv}, damage ${T.dmg}`+(T.ar?`, armor ${T.ar}`:"")+(T.pi?`, pierce ${T.pi}`:"")+(T.ev?`, evasion ${pct(T.ev)}`:"")+`. ${m.q}: ${m.qt}.`};
 const mercDesc=m=>mercLine(m)+` Serves ${MERC_TERM} battles, fighting on its own after your turn.`+(camp.merc?` Hiring dismisses ${camp.merc.name}.`:"");
 function hireMerc(m){const old=camp.merc;camp.merc={t:m.t,name:m.name,q:m.q,qt:m.qt,st:m.st,hp:m.st.hp,left:MERC_TERM};camp.mercNote="";return old}
-const LIMIT1="PETN"; // one of each per army
-const UNIT_UNLOCK={T:"captain",N:"banner"}; // unlockable units and the unlock each needs
+const LIMIT1="PETNQ"; // one of each per army
+const UNIT_UNLOCK={T:"captain",N:"banner",Q:"conquistador"}; // unlockable units and the unlock each needs
 const poolNow=()=>"KARCPE"+Object.keys(UNIT_UNLOCK).filter(t=>unlocks[UNIT_UNLOCK[t]]).join(""); // units an army may pick right now
 // Can Retaliate / Can't Retaliate: a unit retaliates when it is in the first list and not in the second (the second wins)
-const CAN_RETALIATE="KARCPETNMWBHG",CANT_RETALIATE="R";
+const CAN_RETALIATE="KARCPETNMWBHGQ",CANT_RETALIATE="R";
 const canRetaliate=t=>CAN_RETALIATE.includes(t)&&!CANT_RETALIATE.includes(t);
 const FOREST_EV=.1,FT_FOREST_EV=.05,EV_CAP=.5,RET_SHARE=.5; // forest dodge bonus (less against Forest Tactics), dodge cap, share of damage dealt when retaliating (always at least 1)
 const MUSTER_USES=2,MUSTER_ALIVE=2,BATON_HP=2,BANNER_RANGE=2; // Captain: musters per battle, militia alive at once; Banner Bearer: aura reach
@@ -715,6 +716,9 @@ const RELICS={
  wolfpack:{name:"Wolfpack Banner",r:1,lock:"wolfpack",desc:"Your units deal +1 damage to an enemy that is next to another of your units."},
  chicken:{name:"Chicken Suit",r:1,lock:"chicken",desc:"The first time one of your units takes damage in a battle, an Angry Chicken bursts out beside it. It fights for you on its own, charging the nearest enemy at the end of each of your turns."},
  trumpet:{name:"Trumpet of Encouragement",r:1,lock:"trumpet",desc:"Once per battle, one of your units can spend its action to sound the trumpet: allies within 2 tiles that have already moved can move again this turn, and they get +5% evasion until the end of your next turn."},
+ vgloves:{name:"???'s Gloves",r:0,lock:"vgloves",desc:"Each battle you win pays 3 extra gold. Worn soft, and still warm."},
+ vmorion:{name:"Vasco's Morion",r:1,lock:"vmorion",desc:"Vanguard: at the start of each of your turns, your unit closest to the enemy gets +1 armor until your next turn."},
+ vfalcata:{name:"Vasco's Falcata",r:2,lock:"vfalcata",desc:"Conquest: when one of your units defeats an enemy, it gets +1 damage for the rest of the battle (at most +2)."},
  pavise:{name:"Pavise",r:0,lock:"pavise",desc:"Archers take 1 less damage from ranged attacks. Pierce can't get past it."},
  font:{name:"Font of the Wise Ones",r:2,lock:"font",find:1,desc:"Once per battle, each of your units can spend its action to bless an adjacent ally: the ally gets +5% evasion until the end of your next turn."},
  mercy:{name:"Mercy Blade",r:2,desc:"Your units deal +2 damage to enemies at half health or less."},
@@ -753,7 +757,7 @@ const BLUSH_R=2,blush=(x,y)=>{if(!VALE||!/^(ground|forest|cherry|flowers|koi|mea
 const healOf=u=>ST(u).heal+(rel(u,"salts")?1:0); // how much a healer restores, with relics
 const rgOf=u=>ST(u).rg+(u.t==="A"&&rel(u,"long")?1:0); // a unit's attack range, with relics
 const DEBRIS_DMG=1,SPLINTER_DMG=1; // Debris Shot splash: small, so it softens clusters without replacing a second attack
-const NAME={G:"angry chicken",K:"knight",A:"archer",R:"artillery",W:"wolf",B:"bear",H:"hawk",C:"cavalry",P:"apothecary",E:"enchanter",T:"captain",N:"banner bearer",M:"militia"};
+const NAME={G:"angry chicken",K:"knight",A:"archer",R:"artillery",W:"wolf",B:"bear",H:"hawk",C:"cavalry",P:"apothecary",E:"enchanter",T:"captain",N:"banner bearer",Q:"conquistador",M:"militia"};
 const MODS={
  TP:{name:"Teleport",desc:"Once per battle, one unit may teleport to any open tile on the far edge (replaces its move)."},
  PUSH:{name:"Push",desc:"Knights may push any unit except artillery and cavalry 2 tiles instead of attacking."},
@@ -765,6 +769,7 @@ let MURKY=false,HAUNTED=false,VOLCANIC=false,CHERRY=new Set(),SMOKE=new Set(),CA
 const PROGRESS_EPOCH=2;try{if(+localStorage.getItem("skirmish_epoch")!==PROGRESS_EPOCH){localStorage.removeItem("skirmish_unlocks_v1");localStorage.removeItem("skirmish-campaign");["quick","camp","chal"].forEach(m=>localStorage.removeItem("skirmish_hold_"+m));localStorage.setItem("skirmish_epoch",PROGRESS_EPOCH)}}catch(e){}
 const UKEY="skirmish_unlocks_v1",unlocks=(()=>{try{return JSON.parse(localStorage.getItem(UKEY)||"{}")||{}}catch(e){return{}}})();
 const saveU=()=>{try{localStorage.setItem(UKEY,JSON.stringify(unlocks))}catch(e){}};
+const vascoName=()=>{if(unlocks.vmorion)RELICS.vgloves.name="Vasco's Gloves"};vascoName(); // the Beggar's gloves, once he has told you his name
 const unlock=id=>{if(unlocks[id])return false;unlocks[id]=1;saveU();discover();if(id==="sakura")unlock("cherry");return true}; // Sakura Vale brings the cherry groves with it
 function discover(){ // a short "New Discovery!" banner that fades away on whatever screen is showing
   if(document.querySelector(".discovery"))return; // two unlocks at once share one banner
@@ -1172,6 +1177,7 @@ ICON.H='<svg viewBox="0 0 40 40"><path d="M20 14L3 12l7 8-5 4 11-1 4 10 4-10 11 
 ICON.C='<svg viewBox="0 0 40 40"><path d="M27.500 7.500q5 1 6 6M29.500 12.500q5 2 4.600 8M30.500 18.500q4 3 2.600 8" stroke="rgba(0,0,0,.3)" stroke-width="3.8000000000000003" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M27.500 7.500q5 1 6 6M29.500 12.500q5 2 4.600 8M30.500 18.500q4 3 2.600 8" stroke="var(--ic)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M23.500 9.500l.8-6.500l3.400 5.200z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M25 4.500l1 3.500" stroke="var(--tc)" stroke-width=".7" opacity=".55"/><path d="M25.500 6q-1.500 4.500-4.500 7L9.300 22.300q-2.300 1.900-1.200 4.300l1.300 2.500q1.200 1.700 3.300.9l4.700-1.800h2l-2 7.800h15V17.500q0-7.500-6.900-11.500z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M25 18q3.500 8 2 17h4.500V17.500q0-4.800-2.400-8z" fill="rgba(0,0,0,.17)"/><path d="M21 13.400L12.600 25.800M10.400 23.900l3.800 3.600M20.600 12.600l5 2.200" stroke="var(--tc)" stroke-width="1.200" stroke-linecap="round"/><circle cx="12.600" cy="25.800" r="1" fill="var(--tc)"/><circle cx="21" cy="16.300" r="1.800" fill="var(--tc)"/><circle cx="21.500" cy="15.800" r=".5" fill="#fff"/><path d="M19 14.400q2-1.200 4 0" stroke="var(--tc)" stroke-width=".7" fill="none" opacity=".6"/><ellipse cx="10.600" cy="26.200" rx="1" ry=".8" fill="var(--tc)"/></svg>';
 ICON.P='<svg viewBox="0 0 40 40"><path d="M17 6v9L9.500 29.500A4.500 4.500 0 0013.500 36h13a4.500 4.500 0 004-6.500L23 15V6" stroke="rgba(0,0,0,.3)" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M17 6v9L9.500 29.500A4.500 4.500 0 0013.500 36h13a4.500 4.500 0 004-6.500L23 15V6" stroke="var(--ic)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M15.500 3.300h9v3.400h-9z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M17.500 3.300v3.400M20 3.300v3.400M22.500 3.300v3.400" stroke="var(--tc)" stroke-width=".6" opacity=".5"/><path d="M12.300 26.500h15.400l3 4.600a2.200 2.200 0 01-1.900 3.400H11.200A2.200 2.200 0 019.300 31.100z" fill="var(--ic)"/><path d="M21 26.500h6.700l3 4.600a2.200 2.200 0 01-1.900 3.400H24q3-3.500-3-8z" fill="rgba(0,0,0,.15)"/><circle cx="17.200" cy="30.400" r="1.700" fill="var(--tc)"/><circle cx="23.400" cy="32" r="1.200" fill="var(--tc)"/><circle cx="14" cy="32.600" r=".8" fill="var(--tc)"/><path d="M15.400 18.500l-3.600 7" stroke="var(--ic)" stroke-width="1" opacity=".5" stroke-linecap="round"/><circle cx="25.800" cy="13.500" r="1.300" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><circle cx="28.400" cy="9.400" r=".9" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><circle cx="26.800" cy="6" r=".6" fill="var(--ic)" opacity=".8"/></svg>';
 ICON.T='<svg viewBox="0 0 40 40"><path d="M18.500 11.500q1.500-7.500 9-7.500q4.500.6 5 6q-2.200-2-4.400-1.200q1.400 2 .4 4.200q-2.200-2.200-4.500-1.400z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M21.500 9q2.500-3 6-3M23 11.500q2-1.700 4.500-1.600" stroke="var(--tc)" stroke-width=".8" fill="none" opacity=".55" stroke-linecap="round"/><path d="M10 32V21a10 10 0 0120 0v11z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M20 11a10 10 0 0110 10v11h-6.500V21q0-6.500-3.500-10z" fill="rgba(0,0,0,.17)"/><path d="M10 29.800h20V32H10z" fill="rgba(0,0,0,.17)"/><path d="M12.500 21.200h15v2.800h-15z" fill="var(--tc)"/><path d="M20 25.200l1.500 3 3.300.5-2.400 2.300.6 3.300-3-1.600-3 1.600.6-3.300-2.400-2.300 3.300-.5z" fill="var(--tc)"/><path d="M12.700 19q1.300-5 6-6.400" stroke="#fff" stroke-width="1.100" fill="none" opacity=".45" stroke-linecap="round"/></svg>';
+ICON.Q='<svg viewBox="0 0 40 40"><path d="M24.500 12.500q2-6 8-9.500q3.500-1.500 5.500-.5q-2.500.8-3.800 2.600q2.400-.6 3.800.2q-2.600 1-4 2.800q2 0 3 .8q-3 1.400-5.500 2.400q1.400.6 2.200 1.400q-4.500 1.200-9.200-.2z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M26 12q4-5.500 10.500-8.500M29.500 8.500l3-.6M28 10.500l3.500-.2" stroke="var(--tc)" stroke-width=".8" fill="none" opacity=".55" stroke-linecap="round"/><path d="M13 21.500q.5-11 7-13.500q6.500 2.500 7 13.500z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M20 8q6.500 2.500 7 13.500h-4.500q0-9-2.500-13.500z" fill="rgba(0,0,0,.17)"/><path d="M14.200 20q.6-9 5.800-11" stroke="var(--tc)" stroke-width=".8" fill="none" opacity=".55" stroke-linecap="round"/><path d="M10 28.500q-.5-10 10-10.500q10.500.5 10 10.500z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M20 18q10.500.5 10 10.500h-6q.5-7.500-4-10.500z" fill="rgba(0,0,0,.17)"/><path d="M10.200 25.400h19.600v2.600H10.200z" fill="var(--tc)"/><g fill="var(--ic)" opacity=".85"><circle cx="13.500" cy="26.700" r=".75"/><circle cx="20" cy="26.700" r=".75"/><circle cx="26.500" cy="26.700" r=".75"/></g><path d="M3 22.500q2.500 11 17 11t17-11q-4 6.500-17 6.500t-17-6.500z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M20 33.500q14.500 0 17-11q-4 6.500-17 6.500z" fill="rgba(0,0,0,.17)"/><path d="M5.500 25.500q4 5.500 14.500 5.800" stroke="var(--tc)" stroke-width=".8" fill="none" opacity=".55" stroke-linecap="round"/><path d="M12.400 24q.8-3.800 4.600-4.900" stroke="#fff" stroke-width="1.100" fill="none" opacity=".45" stroke-linecap="round"/></svg>';
 ICON.N='<svg viewBox="0 0 40 40"><path d="M12 7v28" stroke="rgba(0,0,0,.3)" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12 7v28" stroke="var(--ic)" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="12" cy="5.300" r="2.700" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><circle cx="11.200" cy="4.500" r=".8" fill="#fff" opacity=".5"/><path d="M14 8q9-2 18 0l-4.500 6.500L32 21q-9-2-18 0z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M23 7.300q4.500-.2 9 .7l-4.500 6.500L32 21q-4.500-1-9-.9q2-6-0-12.800z" fill="rgba(0,0,0,.13)"/><path d="M18.200 9.650l.62 1.750 1.850.05-1.470 1.120.53 1.780-1.530-1.050-1.530 1.050.53-1.780-1.470-1.120 1.850-.05z" fill="var(--tc)"/><path d="M23.600 14.650l.62 1.750 1.850.05-1.470 1.120.53 1.780-1.530-1.050-1.530 1.050.53-1.780-1.470-1.120 1.850-.05z" fill="var(--tc)"/></svg>';
 ICON.M='<svg viewBox="0 0 40 40"><path d="M20 17v18" stroke="rgba(0,0,0,.3)" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M20 17v18" stroke="var(--ic)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12 5v7a8 8 0 0016 0V5M20 5v11" stroke="rgba(0,0,0,.3)" stroke-width="4.0" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12 5v7a8 8 0 0016 0V5M20 5v11" stroke="var(--ic)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M17.800 17.400h4.400v2.800h-4.400z" fill="var(--tc)"/><path d="M18 18.800h4" stroke="var(--ic)" stroke-width=".5" opacity=".7"/><path d="M19 23v10" stroke="rgba(0,0,0,.18)" stroke-width="1"/></svg>';
 ICON.E='<svg viewBox="0 0 40 40"><path d="M9 33L22.500 19.500" stroke="rgba(0,0,0,.3)" stroke-width="5.0" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M9 33L22.500 19.500" stroke="var(--ic)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12 28.200l1.800 1.800M14.600 25.600l1.800 1.800" stroke="var(--tc)" stroke-width="1.300"/><circle cx="26" cy="12" r="7" fill="var(--ic)" opacity=".18"/><path d="M26 3.500l2.500 5.900 5.900 2.600-5.900 2.600L26 20.500l-2.500-5.900L17.600 12l5.900-2.600z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M26 3.500l2.500 5.900 5.900 2.600-5.900 2.600L26 20.500z" fill="rgba(0,0,0,.14)"/><circle cx="26" cy="12" r="1.700" fill="var(--tc)"/><path d="M10 11.200l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M32 26.200l.9 2 2 .8-2 .9-.9 2-.8-2-2-.9 2-.8z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><circle cx="22" cy="32" r="1.300" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/></svg>';
@@ -1300,9 +1306,9 @@ const pct=v=>Math.round(v*100)+"%";
 const unitStats=t=>{const T=TYPES[t];return `HP ${T.hp}, move ${T.mv}, range ${rangeTxt(T)}, damage ${T.dmg}`+(T.ar?`, armor ${T.ar}`:"")+(T.pi?`, pierce ${T.pi}`:"")+(T.ev?`, evasion ${pct(T.ev)}`:"")};
 const ABILITY={P:`Heals an ally in range for up to ${TYPES.P.heal} HP instead of attacking.`,E:"Can slow an enemy in range instead of attacking: its movement drops to 1 on its next turn.",
  T:`Instead of attacking, can muster 1-2 militia onto open tiles beside it. Twice per battle, with at most ${MUSTER_ALIVE} of its militia at a time.`,
- N:`Allies within ${BANNER_RANGE} tiles deal +1 damage.`,M:"Mustered by a Captain. Weak, but useful for blocking and finishing off foes.",
+ N:`Allies within ${BANNER_RANGE} tiles deal +1 damage.`,Q:"Trailblazer: forests and shallow water cost it no extra movement, and a swamp doesn't end its move.",M:"Mustered by a Captain. Weak, but useful for blocking and finishing off foes.",
  G:"Burst out of the Chicken Suit. Fights for you on its own: at the end of each of your turns it charges the nearest enemy. Forests and shallow water don't slow it."};
-const TAG={P:"Heals",E:"Slows",T:"Musters militia",N:"+1 damage aura"}; // short ability labels for the setup cards
+const TAG={P:"Heals",E:"Slows",T:"Musters militia",N:"+1 damage aura",Q:"Trailblazer"}; // short ability labels for the setup cards
 const listAnd=a=>a.length<2?a.join(""):a.slice(0,-1).join(", ")+" and "+a[a.length-1];
 const fellAt=f=>{const u=[...new Set(f)];if(u.length<3)return listAnd(u);for(let i=u.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[u[i],u[j]]=[u[j],u[i]]}return u[0]+", "+u[1]+", and other fields of glory"}; // two random places, then the rest
 const limitNames=()=>listAnd(poolNow().split("").filter(t=>LIMIT1.includes(t)).map(t=>"the "+cap(NAME[t])));
@@ -1318,6 +1324,14 @@ const inspired=(u,at=u)=>units.some(b=>b.t==="N"&&b.team===u.team&&b!==u&&d(b,at
    Every modifier is a labelled line in `parts`, so the attack menu, the game and the AI always agree.
    A new stat or effect = one more add(...) line here. `from` = where the attacker would stand (default: where it is).
    Armor = the target's own plus terrain and modifiers; the attacker's pierce cancels up to that much of it. */
+// Scouted Ahead (funding Vasco's expedition): your first attack in the next campaign battle
+const scouting=a=>!!(camp.scout&&camp.battle&&!chal&&a.team==="y"&&!a.auto&&turn==="y");
+// Vasco's Morion: your unit closest to the enemy takes the lead (+1 armor) at the start of each of your turns
+function vanguard(){
+  units.forEach(u=>delete u.vang);if(!RELIC.has("vmorion"))return;
+  const foes=units.filter(u=>u.team!=="y"),mine=units.filter(u=>u.team==="y"&&!u.auto);if(!foes.length||!mine.length)return;
+  const dist=u=>Math.min(...foes.map(f=>d(u,f))),m=Math.min(...mine.map(dist)),c=mine.filter(u=>dist(u)===m);c[Math.floor(Math.random()*c.length)].vang=1;
+}
 function combat(a,b,from=a){
   const k=b.x+","+b.y,A=ST(a),B=ST(b),parts=[["Base",A.dmg]],add=(label,v)=>{if(v)parts.push([label,v])};
   add("Banner",inspired(a,from)?1:0);
@@ -1341,12 +1355,14 @@ function combat(a,b,from=a){
   add("Tome of the Red Mages",a.t==="E"&&rel(a,"redtome")?1:0);
   add("Tome of the Black Mages",a.t==="E"&&rel(a,"blacktome")&&b.slow?1:0); // preying on the slowed
   add("Elite",a.elite?1:0);
-  const armor=[["Armor",B.ar||0],["Padded Armor",b.t==="A"&&mods[b.team]==="PAD"?1:0],["Forest Tactics",mods[b.team]==="FT"&&A.rg>1&&WOODS(k)?1:0],["Fortress",FORT.has(k)?1:0],["Sturdy Shields",b.t==="K"&&rel(b,"shield")?1:0],["Barding",b.t==="C"&&rel(b,"bard")?1:0],["Banner of the Fallen Keep",b.keep?1:0],["Stubborn as a Mule",muled(b)?MULE_AR:0],["Improvised Armor",desperate(b,"hide")&&units.some(v=>v.team===b.team&&v.t==="K"&&d(v,b)===1)?1:0]];
+  add("Vasco's Falcata",a.conq||0);
+  const sc=scouting(a);add("Scouted Ahead",sc?1:0);
+  const armor=[["Armor",B.ar||0],["Padded Armor",b.t==="A"&&mods[b.team]==="PAD"?1:0],["Forest Tactics",mods[b.team]==="FT"&&A.rg>1&&WOODS(k)?1:0],["Fortress",FORT.has(k)?1:0],["Sturdy Shields",b.t==="K"&&rel(b,"shield")?1:0],["Barding",b.t==="C"&&rel(b,"bard")?1:0],["Banner of the Fallen Keep",b.keep?1:0],["Vasco's Morion",b.vang?1:0],["Stubborn as a Mule",muled(b)?MULE_AR:0],["Improvised Armor",desperate(b,"hide")&&units.some(v=>v.team===b.team&&v.t==="K"&&d(v,b)===1)?1:0]];
   armor.forEach(([l,v])=>add(l,-v));
-  add("Pierce",Math.min(Math.max(0,(A.pi||0)+(rel(a,"bluemagma")?1:0)+(rel(a,"crown")?1:0)+(a.t==="K"&&rel(a,"sallet")?1:0)+(a.champ?1:0)+(a.ublade&&b.hp>maxHp(b)/2?1:0)-(b.cshield?1:0)),armor.reduce((t,x)=>t+x[1],0))); // Blue Magma and the Champion's Sword add pierce, the Usurper's Blade against the healthy; the Champion's Shield turns 1 aside
+  add("Pierce",Math.min(Math.max(0,(A.pi||0)+(rel(a,"bluemagma")?1:0)+(rel(a,"crown")?1:0)+(a.t==="K"&&rel(a,"sallet")?1:0)+(a.champ?1:0)+(sc?1:0)+(a.ublade&&b.hp>maxHp(b)/2?1:0)-(b.cshield?1:0)),armor.reduce((t,x)=>t+x[1],0))); // Blue Magma and the Champion's Sword add pierce, the Usurper's Blade against the healthy; the Champion's Shield turns 1 aside
   add("Pavise",b.t==="A"&&A.rg>1&&rel(b,"pavise")?-1:0); // a shield wall, not armor: pierce can't get past it
   const ev=Math.max(0,-(rel(a,"keen")&&rgOf(a)>1?KEEN_EV:0)+Math.min(EV_CAP,(B.ev||0)+(rel(b,"luck")?.05:0)+(b.trio?TRIO_EV:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(rel(b,"sakurafan")&&[...blastOf(k),[b.x,b.y]].some(([x,y])=>CHERRY.has(x+","+y))?FAN_EV:0)+(blessed(b)?BLESS_EV:0)+(rested(b)?REST_EV:0)+(rel(b,"pebble")?PEBBLE_EV:0)+(rallied(b)?RALLY_EV:0)+(b.team==="y"&&SMOKE.has(k)?SMOKE_EV:0)+(WOODS(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0))); // Keen Eye Charm: ranged attacks see through a little of it
-  return {dmg:Math.max(1,parts.reduce((t,p)=>t+p[1],0)),hit:1-ev,parts}; // every hit deals at least 1
+  return {dmg:Math.max(1,parts.reduce((t,p)=>t+p[1],0)),hit:sc?1:1-ev,parts}; // every hit deals at least 1; a scouted first strike never misses
 }
 // a unit with `ret` retaliates against an attacker within its own range for half damage, at least 1 (the attacker may evade it); null when it can't
 function retaliation(att,def,from=att){
@@ -1374,12 +1390,12 @@ function notify(t){const o=$("fx").querySelector(".banner");if(o)o.remove();cons
 
 function reach(u){ // entering shallow water costs 2; leaving a forest costs 1 extra; entering a swamp ends the move
   if((u.slow&&!muled(u))||u.stepOnly)return DIRS.map(([dx,dy])=>[u.x+dx,u.y+dy]).filter(([x,y])=>x>=0&&y>=0&&x<W&&y<H&&!solid(x+","+y)&&!at(x,y)).map(([x,y])=>x+","+y); // a slow (or the champion's step) always allows 1 tile, whatever the terrain costs
-  const nimble=u.t==="G",bud=mvOf(u)-(!nimble&&!rel(u,"hatchet")&&FOREST.has(u.x+","+u.y)?1:0),k0=u.x+","+u.y; // leaving a forest costs 1 extra (the Angry Chicken skips both of these costs)
+  const nimble=u.t==="G"||u.t==="Q",bud=mvOf(u)-(!nimble&&!rel(u,"hatchet")&&FOREST.has(u.x+","+u.y)?1:0),k0=u.x+","+u.y; // leaving a forest costs 1 extra (the Angry Chicken and the Conquistador skip both of these costs)
   const cost=new Map([[k0,0]]),q=[[u.x,u.y]];
   while(q.length){
     q.sort((a,b)=>cost.get(a+"")-cost.get(b+""));
     const[x,y]=q.shift(),c=cost.get(x+","+y);
-    if(SWAMP.has(x+","+y)&&(x!==u.x||y!==u.y))continue; // entering a swamp ends the move
+    if(SWAMP.has(x+","+y)&&(x!==u.x||y!==u.y)&&u.t!=="Q")continue; // entering a swamp ends the move (not for a Conquistador)
     for(const[dx,dy] of DIRS){
       const nx=x+dx,ny=y+dy,k=nx+","+ny;
       const o=at(nx,ny);if(nx<0||ny<0||nx>=W||ny>=H||solid(k)||(o&&o.team!==u.team))continue;
@@ -1395,9 +1411,9 @@ function reach(u){ // entering shallow water costs 2; leaving a forest costs 1 e
 function routes(u){
   const k0=u.x+","+u.y,out=new Map();
   if((u.slow&&!muled(u))||u.stepOnly){reach(u).forEach(k=>out.set(k,{n:CALTROPS.has(k)?1:0,path:[k]}));return out}
-  const nimble=u.t==="G",bud=mvOf(u)-(!nimble&&!rel(u,"hatchet")&&FOREST.has(k0)?1:0),best=new Map([[k0+"|0",{n:0,prev:null,k:k0}]]); // states: tile and movement spent
+  const nimble=u.t==="G"||u.t==="Q",bud=mvOf(u)-(!nimble&&!rel(u,"hatchet")&&FOREST.has(k0)?1:0),best=new Map([[k0+"|0",{n:0,prev:null,k:k0}]]); // states: tile and movement spent
   for(let c=0;c<=bud;c++)for(const[sk,st] of [...best])if(+sk.split("|")[1]===c){
-    if(SWAMP.has(st.k)&&st.k!==k0)continue; // entering a swamp ends the move
+    if(SWAMP.has(st.k)&&st.k!==k0&&u.t!=="Q")continue; // entering a swamp ends the move
     const[x,y]=pk(st.k);
     for(const[dx,dy] of DIRS){
       const nx=x+dx,ny=y+dy,k=nx+","+ny,o=at(nx,ny);if(nx<0||ny<0||nx>=W||ny>=H||solid(k)||(o&&o.team!==u.team))continue;
@@ -1562,8 +1578,11 @@ function renderInfo(){
   if(u.t==="A"&&rel(u,"pavise"))notes.push("Pavise: takes 1 less damage from ranged attacks.");
   if(mods[u.team]==="FT"&&fo)notes.push("Forest Tactics: +1 armor against ranged attacks here.");
   if(u.auto);else if(u.team==="y"&&u.acted&&!u.moved)notes.push("Rallied: can move again, but has already acted.");else if(u.team==="y"&&u.acted)notes.push("Finished for this turn.");else if(u.team==="y"&&u.moved)notes.push("Has moved this turn.");
-  const arm=(T.ar||0)+(u.t==="A"&&mods[u.team]==="PAD"?1:0)+(u.t==="K"&&rel(u,"shield")?1:0)+(u.t==="C"&&rel(u,"bard")?1:0)+(u.keep?1:0);
+  const arm=(T.ar||0)+(u.t==="A"&&mods[u.team]==="PAD"?1:0)+(u.t==="K"&&rel(u,"shield")?1:0)+(u.t==="C"&&rel(u,"bard")?1:0)+(u.keep?1:0)+(u.vang?1:0);
   if(u.keep)notes.push("Banner of the Fallen Keep: +1 armor this battle.");
+  if(u.vang)notes.push("Vasco's Morion: leading the way, +1 armor until your next turn.");
+  if(u.conq)notes.push(`Vasco's Falcata: +${u.conq} damage this battle.`);
+  if(scouting(u))notes.push("Scouted Ahead: its first attack this battle always hits, with +1 damage and +1 pierce.");
   if(u.team==="y"&&u.drum===pturn&&turn==="y")notes.push("War Drum: +1 damage this turn.");
   if(u.elite)notes.push("Elite: +2 HP and +1 damage.");
   if(u.champ)notes.push("Champion's Sword: +1 damage and +1 pierce; can step 1 tile after a blow lands.");
@@ -2117,7 +2136,7 @@ function hitFor(a,b,c,back){ // resolve one blow from a to b: dodge roll, damage
   if(b.team==="y"&&b.t==="A"&&a.team!=="y"&&ST(a).rg>1){unlocks.ah=(unlocks.ah||0)+1;saveU();if(unlocks.ah>=10)unlock("pavise")} // archers under arrow fire learn to raise a wall
   if(a.champ&&!back)a.champStep=1; // the Champion's Sword: a step after a landed blow
   const adj=d(a,b)===1;
-  if(hurt(b,c.dmg)){credit(a,b);
+  if(hurt(b,c.dmg)){credit(a,b);if(rel(a,"vfalcata")&&(a.conq||0)<2)a.conq=(a.conq||0)+1; // Vasco's Falcata: each conquest sharpens it
     if(a.bleed&&rel(a,"statue")){delete a.bleed;later(()=>{if(units.includes(a))floatText(a.x,a.y,"Staunched","heal")},300)} // Bleeding Statue: a kill stops your own bleeding
     if(a.team==="y"&&units.some(v=>v!==a&&v.team==="y"&&d(v,b)===1)){unlocks.wp=(unlocks.wp||0)+1;saveU();if(unlocks.wp>=20)unlock("wolfpack")} // kills on a surrounded enemy teach the pack
     say(sent(who(a))+(back?" retaliated and destroyed ":" destroyed ")+who(b)+".")}
@@ -2130,7 +2149,8 @@ const splinterTiles=(a,bx,by)=>{const sx=Math.sign(bx-a.x),sy=Math.sign(by-a.y);
   return (sx&&sy?[[sx,sy],[sx,0],[0,sy]]:sx?[[sx,-1],[sx,0],[sx,1]]:[[-1,sy],[0,sy],[1,sy]]).map(([dx,dy])=>[bx+dx,by+dy])};
 function applyAttack(a,b){
   const bx=b.x,by=b.y;
-  const landed=hitFor(a,b,combat(a,b));
+  const c=combat(a,b);if(scouting(a)){camp.scout=0;saveCamp()} // the scouts' tip-off is spent on this blow
+  const landed=hitFor(a,b,c);
   if(landed&&a.t==="R"&&rel(a,"debris")) // Debris Shot: shrapnel hits enemies around the target
     blastOf(bx+","+by).forEach(([x,y])=>{const v=at(x,y);if(v&&v.team!==a.team&&hurt(v,DEBRIS_DMG))credit(a,v)});
   if(landed&&a.t==="R"&&rel(a,"splinter")) // Splinter Shells: the shot carries through, hitting anyone on the 3 tiles behind the target
@@ -2156,7 +2176,7 @@ function burst(rb,bw){
   an.onfinish=()=>s.remove();
 }
 // melee units lunge at the target; ranged units fire a projectile
-const ATK_SFX={K:"swing",T:"swing",M:"swing",N:"swing",P:"swing",C:"charge",A:"bow",R:"siege",E:"zap",W:"growl",B:"growl",H:"screech",G:"bawk"};
+const ATK_SFX={K:"swing",Q:"swing",T:"swing",M:"swing",N:"swing",P:"swing",C:"charge",A:"bow",R:"siege",E:"zap",W:"growl",B:"growl",H:"screech",G:"bawk"};
 function animAttack(a,b,cb){
   let fired=false;const fin=()=>{if(!fired){fired=true;cb()}};sfx(ATK_SFX[a.t]||"swing");
   try{
@@ -2339,7 +2359,7 @@ const armyTypes=()=>["K","A","C",...(camp.cfg?camp.cfg.x:[])];
 function showEnd(win){
   const g=gid,nm=camp.battle?WORLD[camp.battle.node]:null;
   if(chal)return chalEnd(win);
-  endMode=nm?(win?"cwin":"close"):"quick";
+  endMode=nm?(win?"cwin":"close"):"quick";if(nm)camp.scout=0; // Scouted Ahead lasts one battle
   if(win&&CHERRY.size){unlocks.cg=(unlocks.cg||0)+1;saveU();if(unlocks.cg>=SAKURA_WINS)unlock("sakura")} // wins among the blossoms (campaign or quick battle) open the way to Sakura Vale
   if(nm&&win){ // record campaign progress right away
     if(!camp.cleared.includes(nm.id))camp.cleared.push(nm.id);
@@ -2531,7 +2551,7 @@ function enemyTurn(note=""){
       const healed=mods.f==="REST"?rest("f"):0;
       units.forEach(u=>{u.moved=u.acted=0;if(u.team!=="y")delete u.slow});
       const wisped=wispsAct();
-      turn="y";busy=false;say((wisped?wisped+" ":"")+"Your turn. Select one of your units."+(healed?" Resting enemy units recovered HP.":""));render();notify("Enemy turn ended — your move");
+      vanguard();turn="y";busy=false;say((wisped?wisped+" ":"")+"Your turn. Select one of your units."+(healed?" Resting enemy units recovered HP.":""));render();notify("Enemy turn ended — your move");
     });
   }
   step();
@@ -2649,8 +2669,8 @@ const edgeOf=(a,b)=>EDGES.find(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a)); /
 const canGo=(a,b)=>{const e=edgeOf(a,b);return !!e&&(!e[2]||b===e[1])};
 function reachFrom(id){const seen=new Set([id]),q=[id];while(q.length){const a=q.shift();WORLD.forEach(n=>{if(!seen.has(n.id)&&canGo(a,n.id)){seen.add(n.id);q.push(n.id)}})}return seen}
 const SAVE="skirmish-campaign";
-function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,items:camp.items,offer:camp.offer,offerBoss:camp.offerBoss,found:camp.found,kills:camp.kills,names:camp.names,wounds:camp.wounds,honors:camp.honors,falls:camp.falls,news:camp.news,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,merc:camp.merc||null,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
-function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],items:d.items||[],offer:d.offer||null,offerBoss:!!d.offerBoss,found:Array.isArray(d.found)?d.found:d.found?[d.found]:[],kills:d.kills||[],names:d.names||null,wounds:d.wounds||[],honors:d.honors||[],falls:d.falls||[],news:d.news||null,region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},merc:d.merc||null,mercNote:"",lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
+function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,items:camp.items,offer:camp.offer,offerBoss:camp.offerBoss,found:camp.found,kills:camp.kills,names:camp.names,wounds:camp.wounds,honors:camp.honors,falls:camp.falls,news:camp.news,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,merc:camp.merc||null,scout:camp.scout||0,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
+function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],items:d.items||[],offer:d.offer||null,offerBoss:!!d.offerBoss,found:Array.isArray(d.found)?d.found:d.found?[d.found]:[],kills:d.kills||[],names:d.names||null,wounds:d.wounds||[],honors:d.honors||[],falls:d.falls||[],news:d.news||null,region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},merc:d.merc||null,scout:d.scout||0,mercNote:"",lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
 const nest=(str,x,y,w,style="")=>str.replace(/<svg[^>]*>/,`<svg x="${x}" y="${y}" width="${w}" height="${w}" viewBox="0 0 40 40" style="${style}">`);
 function mapArt(){
   let g='<defs><radialGradient id="pg" cx=".5" cy=".4" r=".85"><stop offset="0" stop-color="#eadfb8"/><stop offset="1" stop-color="#cbb78a"/></radialGradient><filter id="wsh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="1.200" dy="2.400" stdDeviation="1.600" flood-color="#3a2810" flood-opacity=".45"/></filter><radialGradient id="wnode" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></radialGradient><filter id="wblur"><feGaussianBlur stdDeviation="6"/></filter><filter id="wblur2" x="-50%" y="-100%" width="200%" height="300%"><feGaussianBlur stdDeviation="2.500"/></filter><linearGradient id="wmt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a7656"/><stop offset=".6" stop-color="#9c8762" stop-opacity=".9"/><stop offset="1" stop-color="#b8a27a" stop-opacity="0"/></linearGradient></defs><rect width="400" height="520" fill="url(#pg)"/>';
@@ -2768,7 +2788,9 @@ function healFx(n){ // a gentle glow at the healing spot: rings drift outward an
 function openWorld(){camp.battle=null;camp.sel=camp.pos;if(camp.cfg&&!camp.names){rollNames();saveCamp()} // campaigns from before names existed
   renderWorld();if(camp.news){$("wprog").textContent=camp.news;camp.news=null;saveCamp()}show("world");renderGold();renderRelics();renderItems();showRelicOffer()}
 // The Beggar: a road-worn skeleton in ruined, oddly ornate armor, a battered kettle helm with a tattered golden plume, holding an old sack open; his seat matches the land ahead
-function beggarScene(b){
+// who: "vasco" (bare-skulled, once he has given you his helm) or "man" (one of his men, in a plumed morion), both under the expedition's banner
+function beggarScene(b,who){
+  const bare=who==="vasco"||(!who&&unlocks.vmorion);
   const P=CAMP_SET[b]||CAMP_SET.plain,K="#14110e",GL="url(#bggold)",ST="url(#bgsteel)",BN="url(#bgbone)",LE="url(#bgleath)";
   const rnd=(i,s)=>{const x=Math.sin(i*127.1+s*311.7)*43758.5453;return x-Math.floor(x)}; // fixed scatter, so the picture never shifts
   const tarn=(x,y,rx,ry,c="#6f8058")=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${c}" opacity=".55" filter="url(#bgblur)"/>`;
@@ -2802,7 +2824,7 @@ function beggarScene(b){
 <path d="M214 81q1-5 7-5q5 0 5 5q-1 3-2 5q-2 2-5 1.500q-4-.5-5-3.500q-.5-1.500 0-3z" fill="#070504"/><path d="M244 81q-1-5-7-5q-5 0-5 5q1 3 2 5q2 2 5 1.500q4-.5 5-3.500q.5-1.500 0-3z" fill="#070504"/>
 <circle cx="220.500" cy="82" r="5" fill="#c8282a" opacity=".22" filter="url(#bgblur)"/><circle cx="237.500" cy="82" r="5" fill="#c8282a" opacity=".22" filter="url(#bgblur)"/><circle class="twk" style="animation-duration:6s" cx="220.500" cy="82" r="1.300" fill="#d4483c" opacity=".8"/><circle class="twk" style="animation-duration:6s;animation-delay:-.4s" cx="237.500" cy="82" r="1.300" fill="#d4483c" opacity=".8"/><circle cx="220" cy="81.600" r=".4" fill="#ffb0a0" opacity=".6"/><circle cx="237" cy="81.600" r=".4" fill="#ffb0a0" opacity=".6"/>
 <path d="M229 87l-2.200 4.500q2.200 1.400 4.400 0z" fill="#0a0806"/><path d="M219 95q10 3 20 0" stroke="#2a241c" stroke-width="1" fill="none"/><path d="M220 95.500v2.600h2.300v-2.200zM222.600 95.800v2.800h2.400v-2.600zM228 96.100v3h2.400v-3zM230.700 96v3h2.300v-2.900zM233.300 95.800v2.800h2.400v-2.600zM235.900 95.500v2.600h2.300v-2.800z" fill="#d8ccac" stroke="#2a241c" stroke-width=".5"/><path d="M225.300 96v3" stroke="#2a241c" stroke-width="2.200"/></g>
-<ellipse cx="160" cy="69" rx="22" ry="5.500" fill="#000" opacity=".45" clip-path="url(#bgskclip)" filter="url(#bgblur)"/>`;
+${bare?"":`<ellipse cx="160" cy="69" rx="22" ry="5.500" fill="#000" opacity=".45" clip-path="url(#bgskclip)" filter="url(#bgblur)"/>`}`;
   const feather=(d,w)=>`<path d="${d}" fill="${GL}" stroke="#5a4010" stroke-width=".7"/><path d="${w}" stroke="#6a4c14" stroke-width=".8" fill="none"/>`;
   const helm=`<g transform="rotate(-4 160 60)"><g transform="rotate(64 177 46)">
 <path d="M176 46q6-10 18-16q12-6 22-4q-6 2-10 6l8-2q-6 4-8 8l7-1q-6 4-11 6l5 1q-7 4-14 3l3 3q-7 1-12-1z" fill="${GL}" stroke="#5a4010" stroke-width=".7"/><path d="M178 46q14-12 34-18M184 46l4-4M190 44l5-5M196 41l6-4M186 48l8 0M193 47l8-2" stroke="#6a4c14" stroke-width=".7" fill="none"/>
@@ -2817,6 +2839,16 @@ ${feather("M174 46q-2-12 4-22q4-6 10-8q-2 4-2 8l4-3q-2 5-2 9l4 0q-4 4-6 8l3 2q-6
 <path d="M144 54q-1-16 10-21" stroke="#d8dccf" stroke-width="2" fill="none" opacity=".35" stroke-linecap="round"/><path d="M160 30q1 14 0 30" stroke="#2a2c26" stroke-width="1.400" opacity=".6"/><path d="M160.800 31q1 14 .3 29" stroke="#b8bcb0" stroke-width=".6" opacity=".45"/>
 ${dent(170,42,4,20)}${dent(150,46,3,-25)}${tarn(170,52,6,3.500)}${tarn(149,38,4,2.400,"#7a4a26")}<path d="M174 36l-3 5l3 3l-2 4" stroke="${K}" stroke-width=".9" fill="none"/>
 <path d="M138 55q22 7 44 0l.3 5q-22 7-44.600 0z" fill="${GL}" stroke="#3a2a0a" stroke-width=".7"/><path d="M142 59q4-2 8 0t8 0t8 0t8 0" stroke="#5a4210" stroke-width=".7" fill="none"/>${rivet(142,58)}${rivet(178,58)}<circle cx="160" cy="60.500" r="2" fill="#7a1418" stroke="#3a2a0a" stroke-width=".6"/><circle cx="159.400" cy="60" r=".6" fill="#e07070" opacity=".7"/>${tarn(152,59,3,1.400,"#4a6040")}</g>`;
+  const morion=`<path d="M176 41q6-18 26-30q-4 6-5 10q5-4 10-5q-5 8-10 12q4 0 7-1q-7 8-16 11q3 1 6 0q-8 6-16 5z" fill="#a81c26" stroke="#3e080c" stroke-width=".8" stroke-linejoin="round"/><path d="M178 40q8-16 22-26M186 33l6-2M190 27l5-3M183 37l6 0" stroke="#e89a9a" stroke-width=".8" fill="none" opacity=".8"/><path d="M180 38q10-12 20-18" stroke="#fff" stroke-width=".6" opacity=".35" fill="none"/>
+<path d="M119 45q8 21 41 21t41-21q-9 14-41 14t-41-14z" fill="#1b1d19" stroke="${K}" stroke-width="1"/>
+<path d="M139 60C138 41 147 31 160 31C173 31 182 41 181 60Q160 66 139 60z" fill="url(#bgdome)" stroke="${K}" stroke-width="1.300"/>
+<path d="M146 41q2-22 14-27q12 5 14 27q-14-6-28 0z" fill="url(#bgdome)" stroke="${K}" stroke-width="1.200"/><path d="M147.500 39q2-20 12.500-24q10.500 4 12.500 24" stroke="${GL}" stroke-width="1.300" fill="none"/><path d="M151 33q2-12 8-15" stroke="#e8ecdf" stroke-width="1.200" fill="none" opacity=".5" stroke-linecap="round"/>
+<path d="M147 50q4-8 13-8t13 8M150 54q3-5 10-5t10 5" stroke="${GL}" stroke-width=".8" fill="none" opacity=".75"/><path d="M144 52q-1-12 8-17" stroke="#d8dccf" stroke-width="1.800" fill="none" opacity=".35" stroke-linecap="round"/>
+<path d="M139 56q21 7 42 0l.4 4.500q-21 7-42.800 0z" fill="${GL}" stroke="#3a2a0a" stroke-width=".7"/>${rivet(143,59)}${rivet(160,62)}${rivet(177,59)}
+<path d="M118 44q7 26 42 26t42-26q-10 17-42 17t-42-17z" fill="${ST}" stroke="${K}" stroke-width="1.200"/><path d="M118.800 45.500q7.500 23.800 41.200 23.800t41.200-23.800" stroke="${GL}" stroke-width="1.300" fill="none"/><path d="M126 56q10 8 24 9" stroke="#c4c8bc" stroke-width=".9" fill="none" opacity=".5"/>`;
+  const banner=`<ellipse cx="224" cy="184" rx="8" ry="2.400" fill="#2a2016" opacity=".7"/><path d="M224 184V38" stroke="${K}" stroke-width="4.200" stroke-linecap="round"/><path d="M224 184V38" stroke="url(#bgbark)" stroke-width="2.600"/><path d="M224 38l-3-4l3-9l3 9z" fill="${GL}" stroke="#3a2a0a" stroke-width=".7"/>
+<path d="M225 42q12-3 22 1t24-1l-8 15l9 16q-12 3-24-1t-23 1z" fill="#8e1c22" stroke="${K}" stroke-width="1.100" stroke-linejoin="round"/><path d="M225 46q11-3 21 1t20-1M225 70q11-3 22 1t20-1" stroke="${GL}" stroke-width="1.200" fill="none"/>
+<path d="M243 51l2.200 4.800 5.200.6-3.900 3.500 1.100 5.100-4.600-2.600-4.600 2.600 1.100-5.100-3.900-3.500 5.200-.6z" fill="${GL}" stroke="#3a2a0a" stroke-width=".6"/><path d="M232 48q4 10 0 20M258 46q-4 11 0 22" stroke="#4a0c10" stroke-width="1" fill="none" opacity=".5"/>`;
   const cape=`<path d="M130 98q30-9 60 0l9 58l-6 4l-4-6l-5 7l-6-5l-5 6l-6-6l-6 7l-5-6l-6 5l-5-7l-5 6l-7-4z" fill="url(#bgcape)" stroke="${K}" stroke-width="1.100"/><path d="M138 106l-5 46M152 104l-3 50M170 104l3 50M184 106l5 44" stroke="#1c0a0a" stroke-width="1.600" opacity=".7"/><path d="M144 106l-3 44M178 106l3 42" stroke="#7a3a32" stroke-width=".8" opacity=".5"/>`;
   const body=`<path d="M145 89q15 6 30 0l2 6q-17 6-34 0z" fill="${ST}" stroke="${K}" stroke-width="1"/><path d="M143 94q17 6 34 0l2 6q-19 6-38 0z" fill="${ST}" stroke="${K}" stroke-width="1"/><path d="M145 89q15 6 30 0M143 94q17 6 34 0" stroke="${GL}" stroke-width="1" fill="none" opacity=".8"/>
 <path d="M124 104q4-8 12-9h10l-2 9z" fill="${BN}" stroke="#2a241c" stroke-width="1"/><path d="M128 100q6-3 14-2" stroke="#7a6a4c" stroke-width="1" fill="none"/>
@@ -2840,13 +2872,14 @@ ${dent(146,118,4,15)}${dent(174,104,3,-20)}${tarn(146,129,6,3)}${tarn(176,132,4,
    +`<path d="M110 182q0-9 13-9h7q3 4 0 9z" fill="${LE}" stroke="${K}" stroke-width="1.100"/><path d="M113 179l4-1M120 177l3 2M126 175l1 4" stroke="#1e120a" stroke-width=".8"/><path d="M114 175q6-3 13-2" stroke="#9a6a3a" stroke-width=".7" opacity=".6"/><path d="M188 182q-2-9 5-10h9q11 2 11 10z" fill="${ST}" stroke="${K}" stroke-width="1.100"/><path d="M195 174q7 2 13 6" stroke="${GL}" stroke-width=".9" fill="none"/><path d="M204 176l2 6" stroke="${K}" stroke-width=".8"/>`;
   const pauldron=`<path d="M174 96q16-2 23 8q6 8 3 14q-7 3-14 0l-12-10z" fill="url(#bgdome)" stroke="${K}" stroke-width="1.200"/><path d="M175 97.500q15-1 21 8q5 7 3 12" stroke="#bfa264" stroke-width="2" fill="none" opacity=".8"/><path d="M182 112q8 5 18 3l-1 5q-9 2-18-3z" fill="url(#bgdome)" stroke="${K}" stroke-width="1"/><path d="M183 113.500q8 4 16 3" stroke="#bfa264" stroke-width="1.500" fill="none" opacity=".75"/><path d="M180 101q8 0 12 6" stroke="#d8dccf" stroke-width="1.200" fill="none" opacity=".3" stroke-linecap="round"/>${rivet(186,101)}${tarn(192,110,3.500,2)}`; // drawn over the arm, so it sits on the shoulder
   const glove=s=>`<g transform="${s}"><path d="M-8 -2q-3 4 0 8q4 3 10 1l6-4q1-4-2-6q-5-3-14 1z" fill="${LE}" stroke="${K}" stroke-width="1.100"/><path d="M-4 -4q1 3 0 5M0 -5q1 3 0 6M4 -4q1 3 0 5" stroke="#1e120a" stroke-width=".9" fill="none"/><path d="M-3 -4.600h2.400M1 -5.600h2.400M5 -4.400h2" stroke="#b07a46" stroke-width=".8" opacity=".7"/><path d="M-6 3q4 2 9 0" stroke="#2a180c" stroke-width=".8" stroke-dasharray="1.200 1" fill="none"/><path d="M-9 2q-2 3 1 5" stroke="#1e120a" stroke-width="1" fill="none"/></g>`;
+  const hand=t=>`<g transform="${t}"><path d="M-7 -1q-2 3 0 6q3 2 7 1l3-2q1-3-1-5q-4-2-9 0z" fill="${BN}" stroke="#2a241c" stroke-width=".9"/><path d="M-5 0q2 2 6 1" stroke="#7a6a4c" stroke-width=".7" fill="none"/>${[[-4,-1],[0,-2],[4,-1.500]].map(([x,y])=>`<path d="M${x} ${y+1}l.4 -3.600l2.400 1.800" stroke="#2a241c" stroke-width="2.600" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M${x} ${y+1}l.4 -3.600l2.400 1.800" stroke="#d6c8a2" stroke-width="1.400" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="${x+.4}" cy="${y-2.600}" r=".85" fill="#efe4c4" stroke="#2a241c" stroke-width=".5"/>`).join("")}<path d="M-8 3q-3 1-2 4" stroke="#2a241c" stroke-width="2.600" stroke-linecap="round" fill="none"/><path d="M-8 3q-3 1-2 4" stroke="#d6c8a2" stroke-width="1.400" stroke-linecap="round" fill="none"/></g>`;
   const sack=`<path d="M137 141q-9 14-5 27q9 13 28 13t28-13q4-13-5-27z" fill="url(#bgsack)" stroke="${K}" stroke-width="1.300"/><path d="M137 141q-9 14-5 27q9 13 28 13t28-13q4-13-5-27z" fill="url(#bgburlap)"/>
 <path d="M144 150q-5 11 0 20M178 148q5 11 2 20M160 158q-2 10 0 20M151 160q2 6 6 8" stroke="#3a2c18" stroke-width="1.400" fill="none" opacity=".55"/><path d="M146 150q-4 10 1 19M179 149q4 10 1 18" stroke="#c8aa78" stroke-width=".7" fill="none" opacity=".45"/>
 <path d="M164 160h11v9h-11z" fill="#8a6a44" stroke="#4a3418" stroke-width=".8"/><path d="M164 160h11v9h-11z" fill="none" stroke="#d8c090" stroke-width=".6" stroke-dasharray="1.400 1.200" transform="translate(.8 .8) scale(.99)"/><path d="M140 170q4 3 8 1" stroke="#4a3418" stroke-width=".9" fill="none"/>
 <path d="M186 156q6 4 4 12q-2 6 2 10" stroke="#6a5432" stroke-width="1.800" fill="none" stroke-linecap="round"/><path d="M186 156q6 4 4 12q-2 6 2 10" stroke="#a88a5a" stroke-width=".6" fill="none" stroke-dasharray="1.400 1"/>
 <ellipse cx="160" cy="141" rx="23" ry="6.400" fill="url(#bgmouth)" stroke="${K}" stroke-width="1.100"/><path d="M137.500 141q22.500 9 45 0" stroke="#b49466" stroke-width="2.400" fill="none" stroke-linecap="round"/><path d="M137.500 141q22.500 9 45 0" stroke="#5a4428" stroke-width=".7" fill="none" stroke-dasharray="2 1.400"/><path d="M150 135.500l1.400 2.600M170 135.500l-1.400 2.600" stroke="#8a6c44" stroke-width="1.200" stroke-linecap="round"/>
-${glove("translate(139 141) rotate(8)")}${glove("translate(181 141) scale(-1 1) rotate(8)")}`;
-  return `<svg viewBox="34 14 252 172" role="img" aria-label="A road-worn skeleton with faded red eyes, in tarnished, ruined ornate armor and a dented kettle helm with a tattered golden plume, holds an old sack open with gloved hands.">
+${(who!=="man"&&unlocks.vgloves?hand:glove)("translate(139 141) rotate(8)")}${(who!=="man"&&unlocks.vgloves?hand:glove)("translate(181 141) scale(-1 1) rotate(8)")}`;
+  return `<svg viewBox="34 14 252 172" role="img" aria-label="A road-worn skeleton with faded red eyes, in tarnished, ruined ornate armor${who==="man"?" and a plumed morion":bare?", its skull bare,":" and a dented kettle helm with a tattered golden plume,"} holds an old sack open with ${who!=="man"&&unlocks.vgloves?"bony":"gloved"} hands${who?" beneath a red and gold banner":""}.">
 <defs><linearGradient id="bgsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${P.sky[0]}"/><stop offset="1" stop-color="${P.sky[1]}"/></linearGradient><radialGradient id="bghz" cx=".5" cy="1" r=".7"><stop offset="0" stop-color="${P.hz}" stop-opacity=".55"/><stop offset="1" stop-color="${P.hz}" stop-opacity="0"/></radialGradient>
 <radialGradient id="bgbone" cx=".38" cy=".32" r=".8"><stop offset="0" stop-color="#e2d6b4"/><stop offset=".55" stop-color="#b09e7a"/><stop offset="1" stop-color="#5e5038"/></radialGradient>
 <linearGradient id="bgsteel" x1="0" y1="0" x2=".6" y2="1"><stop offset="0" stop-color="#8f948a"/><stop offset=".45" stop-color="#565b53"/><stop offset="1" stop-color="#25281f"/></linearGradient>
@@ -2872,27 +2905,51 @@ ${glove("translate(139 141) rotate(8)")}${glove("translate(181 141) scale(-1 1) 
 <path d="M34 150q60-10 126-6t126 4v38H34z" fill="${(P.g||["#2e3222"])[0]}"/><path d="M34 146q80-6 126-4t126 2" stroke="#fff" stroke-width="6" opacity=".05" filter="url(#bgblur)"/>
 <path d="M60 186q40-30 100-40q60 10 110 40z" fill="url(#bgroad)" opacity=".8"/>${[[96,180],[120,170],[214,172],[232,182],[150,184],[188,178]].map(([x,y],i)=>`<ellipse cx="${x}" cy="${y}" rx="${1.400+i%3}" ry="${.9+i%2*.5}" fill="#3a3024" opacity=".7"/>`).join("")}
 <ellipse cx="160" cy="182" rx="60" ry="5" fill="#000" opacity=".4" filter="url(#bgblur)"/>
-${seat}${cape}${legs}${body}${arms}${pauldron}${sack}${skull}${helm}
+${seat}${who?banner:""}${cape}${legs}${body}${arms}${pauldron}${sack}${skull}${who==="man"?morion:bare?"":helm}
 <rect x="34" y="14" width="252" height="172" fill="url(#bgmoonlt)"/><rect x="34" y="14" width="252" height="172" filter="url(#bggrain)" opacity=".22" style="mix-blend-mode:multiply"/><rect x="34" y="14" width="252" height="172" fill="url(#bgvig)"/></svg>`;
 }
 // things that can happen on a one-way path (rolled once per path)
 const ROAD_EVENTS=[
  {t:"A Broken-Down Cart",go:()=>{camp.gold+=15;sfx("coin");renderGold();return "Someone left in a hurry. Among the spilled crates, your army finds 15 gold."}},
  {t:"Abandoned Supplies",go:()=>{const k=["draught","smoke","fire","caltrops"][Math.floor(Math.random()*4)];if(camp.items.length<itemCap()){camp.items.push(k);renderItems();return `A soldier's pack lies by the trail. Inside: a ${ITEMS[k].name}.`}camp.gold+=10;sfx("coin");renderGold();return "A soldier's pack lies by the trail. Your own packs are full, so you take the 10 gold inside."}},
- {t:"The Beggar",go:to=>{const seat={graveyard:"leans against a crooked cemetery fence",volcanic:"huddles on a smouldering rock",sakura:"sits beneath a cherry tree, petals settling on his skull",swamp:"perches on a rotting log",wetlands:"sits on a mossy stone by the water",fort:"slumps against a broken wall",wild:"crouches on a boulder",forest:"sits on a mossy stump"}[WORLD[to].b]||"sits upon a stump";
-   return {art:beggarScene(WORLD[to].b),text:`A lonely, sorry-looking skeleton ${seat} at the side of the road. It holds an old sack open with gloved hands, and its eyes glow a faint, tired red.`,opts:[ // no reward yet: kindness may matter later
-    {label:"Give 5 gold",cost:5,go:()=>"You drop 5 gold in the sack. The skeleton's jaw clacks softly. It might have been a thank-you."},
-    {label:"Give 10 gold",cost:10,go:()=>"You drop 10 gold in the sack. The skeleton bows so low you worry it might come apart."},
+ {t:"The Beggar",when:()=>!unlocks.conquistador,go:to=>{const seat={graveyard:"leans against a crooked cemetery fence",volcanic:"huddles on a smouldering rock",sakura:"sits beneath a cherry tree, petals settling on his skull",swamp:"perches on a rotting log",wetlands:"sits on a mossy stone by the water",fort:"slumps against a broken wall",wild:"crouches on a boulder",forest:"sits on a mossy stump"}[WORLD[to].b]||"sits upon a stump";
+   const named=()=>!!unlocks.vmorion,quiet={5:"The skeleton's jaw clacks softly. It might have been a thank-you.",10:"The skeleton bows so low you worry it might come apart.",25:"The skeleton stares at the coins for a long moment, then up at you."};
+   const give=n=>({label:`Give ${n} gold`,cost:n,go:()=>{ // gold given is counted across every campaign (see VASCO)
+     const g0=unlocks.vg||0,g1=g0+n,hit=VASCO.filter(v=>v.at>g0&&v.at<=g1),line=VASCO.filter(v=>v.at<=g1).pop();unlocks.vg=g1;saveU();
+     let t=`You drop ${n} gold in the sack. `;
+     if(!line)return t+quiet[n];
+     t+=`${named()&&!hit.some(v=>v.relic==="vmorion")?"Vasco":"The skeleton"} looks up. \u201c${line.say}\u201d`;
+     hit.forEach(v=>{
+       if(v.relic){unlock(v.relic);vascoName();if(!camp.relics.includes(v.relic))camp.relics.push(v.relic);
+         t+=v.relic==="vmorion"?` He lifts the battered helm from his skull and sets it in your hands: <strong>${RELICS[v.relic].name}</strong>.`:` He presses something into your hand: <strong>${RELICS[v.relic].name}</strong>.`}
+       if(v.unit){unlock(UNIT_UNLOCK[v.unit]);t+=" Somewhere down the road, his men are gathering. The Conquistador can now join your army."}
+     });
+     renderRelics();saveCamp();return t}});
+   return {art:()=>beggarScene(WORLD[to].b),text:named()?`Vasco ${seat} at the side of the road, his skull bare to the wind. He holds his old sack open with bony hands, and his eyes glow a faint, tired red.`:`A lonely, sorry-looking skeleton ${seat} at the side of the road. It holds an old sack open with ${unlocks.vgloves?"bony":"gloved"} hands, and its eyes glow a faint, tired red.`,opts:[
+    give(5),give(10),give(25),
     {label:"Give nothing and quietly move on",go:()=>"You keep your eyes on the road. Behind you, the empty sack flaps in the wind."}]}}},
  {t:"Rockfall",go:()=>{const hp=campHps(),c=hp.map((h,i)=>h>1?i:-1).filter(i=>i>=0);if(!c.length)return "Stones clatter down the slope, but your army slips past unharmed.";const i=c[Math.floor(Math.random()*c.length)];hp[i]=Math.max(1,hp[i]-2);camp.hp=hp;return `Stones clatter down the slope. ${heroName(i)} is struck and loses 2 HP.`}}];
 const campHps=()=>armyTypes().map((t,i)=>camp.hp&&camp.hp[i]!=null?camp.hp[i]:campMax(i));
 let riAfter=null;
+// The Beggar is Vasco, a fallen explorer: what he says and gives as the gold you've given him (over every campaign) adds up
+const VASCO=[
+ {at:10,say:"...Thank you...",relic:"vgloves"},
+ {at:25,say:"It will go to good use..."},
+ {at:50,say:"You have my thanks... It rarely goes un-reciprocated."},
+ {at:100,say:"It's time you learn my name..... it's Vasco. Take this in exchange....",relic:"vmorion"},
+ {at:200,say:"My men will be happy to know you are funding them so well...",relic:"vfalcata"},
+ {at:500,say:"Thank you.... It's time our expedition begins anew. My men are the greatest explorers I've ever known. You have our thanks...",unit:"Q"}];
+// once the expedition sets out, Vasco or one of his men may wait on any new path (not while a scouting report is still unspent)
+const VASCO_ROAD=.1,EXPEDITION={t:"Vasco's Expedition",go:to=>{const man=Math.random()<.5;
+  return {art:beggarScene(WORLD[to].b,man?"man":"vasco"),text:man?"One of Vasco's men waits by the road beneath the expedition's banner, a plumed morion on his skull and an old sack held open. \u201cThe captain sends his regards. A little coin, and we'll scout the road ahead for you.\u201d":"Vasco sits by the road beneath the expedition's banner, his old sack held open. \u201cAh, my friend. My men are ready to scout the road ahead\u2026 if you would fund them.\u201d",opts:[
+   {label:"Fund Vasco's Exploration (10 gold)",cost:10,go:()=>{camp.scout=1;return `The coins vanish into the sack, and ${man?"the scout":"one of his men"} slips off ahead of your army. <strong>Scouted Ahead:</strong> in your next battle, your first attack always hits, with +1 damage and +1 pierce.`}},
+   {label:"Sorry, not now",go:()=>man?"The scout shrugs and settles back beneath the banner.":"Vasco nods. \u201cAnother time, then.\u201d"}]}}};
 const SELLSWORD={t:"A Sellsword",go:()=>{const m=rollMerc();
   return {text:`${{K:"A knight",A:"An archer",R:"An artillerist with a battered cannon",C:"A rider"}[m.t]} in mismatched armor leans on a milestone, idly flipping a coin. \u201cLooking for a sword arm? ${m.price} gold, and I'm yours for ${MERC_TERM} battles.\u201d ${mercDesc(m)}`,opts:[
    {label:`Hire ${m.name} (${m.price} gold)`,cost:m.price,go:()=>{const old=hireMerc(m);return `${m.name} pockets the coin and falls in at the back of your column.`+(old?` ${old.name} shrugs and wanders off.`:"")}},
    {label:"Decline and move on",go:()=>"The sellsword shrugs and goes back to flipping the coin."}]}}};
 function roadEvent(to,done,ev){
-  const E=ev||ROAD_EVENTS[Math.floor(Math.random()*ROAD_EVENTS.length)],r=E.go(to),card=t=>(r.art?`<div class="evart">${r.art}</div>`:"")+`<div class="rcard" style="--rc:#a08a64"><span class="rr">On the road</span><small>${t}</small></div>`;saveCamp();
+  const L=ROAD_EVENTS.filter(e=>!e.when||e.when()),E=ev||L[Math.floor(Math.random()*L.length)],r=E.go(to),card=t=>(r.art?`<div class="evart">${typeof r.art==="function"?r.art():r.art}</div>`:"")+`<div class="rcard" style="--rc:#a08a64"><span class="rr">On the road</span><small>${t}</small></div>`;saveCamp();
   $("rititle").textContent=E.t;relinfoFrom=null;riAfter=done;$("relinfo").hidden=false;
   if(typeof r==="string"){$("ribody").innerHTML=card(r);$("riclose").hidden=false;$("riclose").focus();return}
   $("ribody").innerHTML=card(r.text)+`<div class="menubtns">${r.opts.map((o,i)=>`<button class="b" data-i="${i}"${o.cost>camp.gold?" disabled":""}>${o.label}</button>`).join("")}</div>`;$("riclose").hidden=true; // a choice: pick one to carry on
@@ -2902,9 +2959,10 @@ function roadEvent(to,done,ev){
 function travel(id){
   if(worldLock)return;
   const e=edgeOf(camp.pos,id);camp.mercNote="";
-  if(e&&!e[4]){e[4]=1;saveCamp(); // any path, the first time you take it: sometimes a sellsword waits along the way
-    if(Math.random()<MERC_ROAD){e[3]=1;const A=WORLD[camp.pos],B=WORLD[id];worldLock=true;camp.sel=id;$("wm").style.transform=`translate(${Math.round((A.x+B.x)/2)}px,${Math.round((A.y+B.y)/2)-28}px)`;
-      setTimeout(()=>roadEvent(id,()=>{worldLock=false;renderWorld();travel(id)},SELLSWORD),700);return}}
+  if(e&&!e[4]){e[4]=1;saveCamp(); // any path, the first time you take it: sometimes a sellsword (or Vasco's expedition) waits along the way
+    const ev=Math.random()<MERC_ROAD?SELLSWORD:unlocks.conquistador&&!camp.scout&&Math.random()<VASCO_ROAD?EXPEDITION:null;
+    if(ev){e[3]=1;const A=WORLD[camp.pos],B=WORLD[id];worldLock=true;camp.sel=id;$("wm").style.transform=`translate(${Math.round((A.x+B.x)/2)}px,${Math.round((A.y+B.y)/2)-28}px)`;
+      setTimeout(()=>roadEvent(id,()=>{worldLock=false;renderWorld();travel(id)},ev),700);return}}
   if(e&&e[2]&&!e[3]){e[3]=1;saveCamp(); // a one-way path: sometimes, something happens along the way
     if(Math.random()<ROAD_EVENT){const A=WORLD[camp.pos],B=WORLD[id];worldLock=true;camp.sel=id;$("wm").style.transform=`translate(${Math.round((A.x+B.x)/2)}px,${Math.round((A.y+B.y)/2)-28}px)`;
       setTimeout(()=>roadEvent(id,()=>{worldLock=false;renderWorld();travel(id)}),700);return}}
@@ -2950,7 +3008,9 @@ $("wrestart").onclick=()=>{
 /* ---------- Screens & setup ---------- */
 const COLORS={red:["Red","#c8372d","#fff"],yellow:["Yellow","#e6b820","#2b2200"],blue:["Blue","#2f6fb5","#fff"],orange:["Orange","#e2812a","#fff"],green:["Green","#3b9a4e","#fff"],purple:["Purple","#7b4bb0","#fff"],black:["Black","#232a31","#fff"],wild:["Wild","#7a5a36","#fff"]};
 const CHOICES=["red","yellow","blue","orange","green","purple"];
-const show=n=>{["menu","pick","game","world","editor"].forEach(i=>$(i).hidden=i!==n);syncMusic();if(n==="menu"){$("maud").hidden=true;$("rulesview").hidden=true;$("unlockview").hidden=true;$("chalview").hidden=true;$("mbtns").hidden=false}};
+// the main menu's running count of gold given to the Beggar (once you've given any); "Vasco" once he has told you his name
+const renderGiven=()=>{const g=unlocks.vg||0;$("vgiven").hidden=!g;$("vgiven").innerHTML=g?`${PURSE}Donated to ${unlocks.vmorion?"Vasco":"the Beggar"}: ${g} gold`:""};
+const show=n=>{["menu","pick","game","world","editor"].forEach(i=>$(i).hidden=i!==n);syncMusic();if(n==="menu"){renderGiven();$("maud").hidden=true;$("rulesview").hidden=true;$("unlockview").hidden=true;$("chalview").hidden=true;$("mbtns").hidden=false}};
 const disc=(t,c,merc,free)=>`<div class="u${merc?" merc":""}${free?" free":""}" data-t="${t}" style="background:${c[1]};--tc:${c[1]};--ic:${c[2]}">${merc?'<b class="ms"></b>':""}${ICON[t]}</div>`;
 const foeColor=()=>pick.c==="red"?"black":"red";
 const cap=w=>w.replace(/\b\w/g,c=>c.toUpperCase()); // "banner bearer" -> "Banner Bearer"
@@ -3042,6 +3102,7 @@ function start(o={}){
     units.filter(u=>u.team==="f").sort(()=>Math.random()-.5).slice(0,E.elite).forEach(u=>{u.elite=1;u.hp+=ELITE_HP});
     if(o.boss)foeLoadout(camp.region||1);
   }
+  vanguard();
   if(FOE_RELIC.has("keep")){const fs=units.filter(u=>u.team==="f");fs[Math.floor(Math.random()*fs.length)].keep=1}
   ["y","f"].forEach(team=>{ // the Shimmering Champion pieces: one random unit (above half health when it can) takes every piece its side carries
     const has=id=>team==="y"?RELIC.has(id):FOE_RELIC.has(id);if(!has("csword")&&!has("cshield")&&!has("ccloak"))return;
@@ -3536,7 +3597,7 @@ function findRelics(nm){
   });
 }
 /* ---------- Gold and relic rewards ---------- */
-const goldFor=n=>(n.type==="boss"?25+BOSS_GOLD_STEP*((camp.region||1)-1):10)+2*units.filter(u=>u.team==="y"&&u.ci!=null).length+(camp.relics.includes("ledger")?LEDGER_GOLD:0); // more for bringing your army home
+const goldFor=n=>(n.type==="boss"?25+BOSS_GOLD_STEP*((camp.region||1)-1):10)+2*units.filter(u=>u.team==="y"&&u.ci!=null).length+(camp.relics.includes("ledger")?LEDGER_GOLD:0)+(camp.relics.includes("vgloves")?VGLOVES_GOLD:0); // more for bringing your army home
 // 2 or 3 relics the army doesn't have yet, drawn by rarity weight
 const relicCount=id=>camp.relics.filter(r=>r===id).length;
 // relics the shop may stock right now: sold there, unlocked, useful to this army, and not already carried as many times as allowed
@@ -3627,6 +3688,9 @@ const RICON={ // small 32-unit relic icons
  wolfpack:'<path d="M7 3v27" stroke="#5a3a1c" stroke-width="2.200" stroke-linecap="round"/><circle cx="7" cy="3" r="1.800" fill="#c9962a"/><path d="M8 5h19v17l-4.500-3l-5 3l-5-3l-4.500 3z" fill="#8a2a24" stroke="#3a1210" stroke-width="1.100" stroke-linejoin="round"/><path d="M8 7.500h19" stroke="#c9962a" stroke-width="1"/><path d="M11.500 6.500l3 4.500h6l3-4.500l-.3 6.500l-2.700 3l-1.300 4.500h-3.400l-1.300-4.500l-2.700-3z" fill="#d8d0c0" stroke="#2a1a14" stroke-width=".8" stroke-linejoin="round"/><path d="M12.800 9l1.400 2M22.200 9l-1.400 2" stroke="#8a7e6e" stroke-width=".8"/><path d="M14.500 13.300l2 .7M20.500 13.300l-2 .7" stroke="#2a1a14" stroke-width="1.200" stroke-linecap="round"/><path d="M16.300 19.300h2.400l-1.200 1.300z" fill="#2a1a14"/><path d="M17.500 15v4" stroke="#b0a694" stroke-width=".7"/>',
  chicken:'<path d="M8 28q-3-13 8-17q2-7 8-6q5 1 5 7l4 2l-4 2q2 10-8 13q-9 3-13-1z" fill="#f2ead8" stroke="#4a3a28" stroke-width="1.100"/><path d="M21 6l2-4l2 4l2-3l1 4" fill="#c8372d"/><path d="M33 14l3-.5l-3 2.500z" fill="#e8a83a"/><circle cx="24.500" cy="10" r="1.300" fill="#1a140e"/><path d="M21.500 7.500l5 2" stroke="#1a140e" stroke-width="1.200" stroke-linecap="round"/><path d="M11 22q5 3 9-1" stroke="#b8a888" stroke-width="1.400" fill="none"/><path d="M16 6l-2-3M14 7l-3-1" stroke="#c8372d" stroke-width="1.200" stroke-linecap="round"/>',
  trumpet:'<path d="M5 17h14" stroke="#8a6418" stroke-width="2.600" stroke-linecap="round"/><path d="M19 17q4 0 9-7v14q-5-7-9-7z" fill="#e0b040" stroke="#6a4a10" stroke-width="1.100" stroke-linejoin="round"/><path d="M8 17q0 5 5 5h4q2 0 2-2" fill="none" stroke="#c8962a" stroke-width="1.600"/><path d="M10 14v3M13 14v3M16 14v3" stroke="#6a4a10" stroke-width="1.400" stroke-linecap="round"/><circle cx="4" cy="17" r="1.600" fill="#c8962a" stroke="#6a4a10" stroke-width=".8"/><path d="M27 10.500v13" stroke="#fff3c0" stroke-width=".9" opacity=".7"/><path d="M12 25l-2 5l4-3l4 3l-2-5" fill="#8a2a24" stroke="#3a1210" stroke-width=".8"/>',
+ vgloves:'<ellipse cx="16" cy="29.500" rx="11" ry="1.600" fill="rgba(0,0,0,.2)"/><path d="M17 27l1-8q-1-3 .5-6l1.500-6q1-1.500 2.200-.4l-.6 6l1.200-7q1.200-1.400 2.300-.2l-.5 7.200l1.400-5.800q1.300-1 2.100.3l-1 6.300l1.200-3.600q1.200-.6 1.800.5l-1.200 6q-.8 4-3.400 6.500l-.4 4.200z" fill="#7a4e28" stroke="#2c1a0c" stroke-width="1" stroke-linejoin="round"/><path d="M17.400 23h8.400" stroke="#c8a050" stroke-width="1.300"/><path d="M21 12l-.6 5M24.500 11l-.5 5.500M27.500 12.500l-.8 4.500" stroke="#2c1a0c" stroke-width=".6" opacity=".6"/><path d="M4 25l-1-7q-.5-3 1.500-5.200l2-5.300q1.200-1.300 2.200 0l-1 5.500l2.200-6.400q1.400-1.200 2.300.1l-1.200 6.800l2-5.200q1.400-.8 2.100.5l-1.400 5.800l1.600-3q1.300-.4 1.700.8l-1.700 5.300q-1.300 3.600-4.300 5.600l.2 3.800z" fill="#9a6a38" stroke="#2c1a0c" stroke-width="1" stroke-linejoin="round"/><path d="M3.700 21.300l9-1.200" stroke="#d8b860" stroke-width="1.300"/><path d="M8 11.500q1.500-2 3-2.500M5.500 14q.6-1.800 1.600-2.800" stroke="#e0b884" stroke-width=".9" fill="none" opacity=".75" stroke-linecap="round"/><path d="M6 24q3 1.500 7-.5" stroke="#2c1a0c" stroke-width=".6" stroke-dasharray="1 .8" fill="none"/>',
+ vmorion:'<ellipse cx="16" cy="29.500" rx="12" ry="1.600" fill="rgba(0,0,0,.2)"/><path d="M20 9q2-5 7-7.500q2.500-.8 4 0q-2 .6-3 2q2-.2 3 .6q-2 .6-3.300 2q1.600.1 2.300.9q-2.400.9-4.300 1.300q1 .7 1.400 1.200q-3.600.6-6.100-.5z" fill="#b8202a" stroke="#4a0a0e" stroke-width=".8" stroke-linejoin="round"/><path d="M21 9q3-4.500 8.500-7" stroke="#f0b0b0" stroke-width=".7" fill="none"/><path d="M9.500 17q.5-10 6.500-12.500q6 2.500 6.500 12.500z" fill="#c4ccd4" stroke="#2e3440" stroke-width="1.100" stroke-linejoin="round"/><path d="M10.500 15.500q.8-8.500 5.500-10.500q4.700 2 5.500 10.500" stroke="#d9b862" stroke-width="1" fill="none"/><path d="M7.500 23q-.5-8.500 8.500-9q9 .5 8.500 9z" fill="#c4ccd4" stroke="#2e3440" stroke-width="1.100" stroke-linejoin="round"/><path d="M16 14q9 .5 8.500 9h-5q.5-6.500-3.500-9z" fill="rgba(0,0,0,.17)"/><path d="M7.600 20.400h16.800v2.400H7.600z" fill="#d9b862" stroke="#6a4c10" stroke-width=".5"/><circle cx="11" cy="21.600" r=".7" fill="#6a4c10"/><circle cx="16" cy="21.600" r=".7" fill="#6a4c10"/><circle cx="21" cy="21.600" r=".7" fill="#6a4c10"/><path d="M1.500 18q2 10 14.500 10t14.500-10q-3.500 5.800-14.500 5.800t-14.500-5.800z" fill="#aab4be" stroke="#2e3440" stroke-width="1.100" stroke-linejoin="round"/><path d="M2.300 19.500q3 7.700 13.700 7.700t13.700-7.700" stroke="#d9b862" stroke-width="1" fill="none"/><path d="M10.500 17q.5-2.500 3-3.500M11.500 12q.6-4 3-6" stroke="#fff" stroke-width="1.100" fill="none" opacity=".65" stroke-linecap="round"/>',
+ vfalcata:'<path d="M6.500 23.500q-1-9 6-15q6-5 14-5.500q-3 3-4.500 7.500q-1.500 5.500-6.500 9.500z" fill="#d6dde4" stroke="#2e3440" stroke-width="1.100" stroke-linejoin="round"/><path d="M9 21q1-8 7.500-12.500q4-2.800 8.500-4" stroke="#8c98a4" stroke-width=".9" fill="none"/><path d="M8.300 18q2-6 7-9.500" stroke="#fff" stroke-width="1" fill="none" opacity=".75" stroke-linecap="round"/><path d="M4 20.500l7.500 5" stroke="#6a4c10" stroke-width="3.400" stroke-linecap="round"/><path d="M4 20.500l7.500 5" stroke="#e0bf62" stroke-width="2" stroke-linecap="round"/><path d="M8 24l-3.500 5" stroke="#3a2412" stroke-width="3.400" stroke-linecap="round"/><path d="M8 24l-3.500 5" stroke="#8a2a20" stroke-width="2" stroke-linecap="round"/><path d="M7 25.300l1 .7M6 26.700l1 .7" stroke="#e0bf62" stroke-width=".7"/><path d="M4.500 29q-2 1.500-1 3.200q2.400 .4 3.600-1.600q2.500-.4 3.200-2.400q-1.200-1.400-3-1.200z" fill="#e0bf62" stroke="#6a4c10" stroke-width=".8" stroke-linejoin="round"/><circle cx="6.300" cy="29.400" r=".7" fill="#8a2a20"/><path d="M10 23q1-1.200 2.600-1" stroke="#e0bf62" stroke-width="1.100" fill="none"/><circle cx="7.700" cy="23.200" r="1" fill="#b8202a" stroke="#6a4c10" stroke-width=".4"/><g fill="#ffe28a"><path d="M27 15l.6 1.500l1.500.6l-1.500.6l-.6 1.500l-.6-1.500l-1.500-.6l1.500-.6z"/></g>',
  pavise:'<path d="M24 27l4 3" stroke="#4a3018" stroke-width="2" stroke-linecap="round"/><path d="M8 5q8-2 16 0v18q-8 6-16 6z" fill="#a8743a" stroke="#3a2412" stroke-width="1.200" stroke-linejoin="round"/><path d="M16 4v24" stroke="#6a4420" stroke-width="2"/><path d="M10 7q6-1.500 12 0v15q-6 4.500-12 4.500z" fill="#3a5a8a" opacity=".85"/><path d="M16 8v16M11.500 14h9" stroke="#e8dcc0" stroke-width="2.200"/><path d="M9 6v22" stroke="#d8a868" stroke-width=".9" opacity=".6"/><circle cx="12" cy="10" r=".8" fill="#2a1a0c"/><circle cx="20" cy="10" r=".8" fill="#2a1a0c"/>',
  cap:'<path d="M5 24q1-13 12-15q11-2 11 12l-3 2q-1-8-5-10q-5-1-6 6z" fill="#7a2a24" stroke="#3a1210" stroke-width="1.100"/><path d="M10 14q5 1 7 7M16 10q5 2 6 8" stroke="#c8b08a" stroke-width="1.600" fill="none" opacity=".55"/><path d="M4 23q8-4 16 0l-.5 3.500q-7.500-3.500-15 0z" fill="#b8ac90" stroke="#4a4030" stroke-width="1"/><circle cx="26" cy="24.500" r="3" fill="#e2d6bc" stroke="#6a604c" stroke-width=".9"/>'};
 const relicIcon=(id,sz=32)=>`<svg viewBox="0 0 32 32" width="${sz}" height="${sz}" aria-hidden="true">${RICON[id]}</svg>`;
@@ -3646,7 +3710,7 @@ const ITEMS={ // consumables, used in battle (campaign only); using one takes th
  medkit:{name:"Advanced Med Kit",price:45,r:1,desc:"Mend 1 wound on this unit or an adjacent ally (campaign wounds, restoring 1 max HP). An Apothecary using it has a 25% chance to mend 2."},
  mule:{name:"Mule Hair Potion",price:40,r:1,lock:"mule",desc:"The drinker turns stubborn as a mule: +2 armor, and it can't be pushed or slowed, until the end of your next turn. Brewed from genuine mule hair. Marcus swears Parsnip had nothing to do with it."}};
 // r: rarity (an uncommon is drawn half as often as a common); free: using it costs the unit nothing; lock: the unlock it waits for
-const BOSS_GOLD_STEP=10,ITEM_CAP=3,TONIC_MV=2,LEDGER_GOLD=5,TOKEN_OFF=.2,CHEST_OFF=.1,CHEST_GOLD=50,ITEM_STOCK=[1,.5],SHOP_ITEMS=3,MULE_BUYS=5,RELIC_PRICE=[40,70,110],SMOKE_EV=.2,DRAUGHT_HEAL=5,FIRE_DMG=3,LIGHTNING_DMG=1,CALTROP_DMG=1,CALTROP_ALLY=.5,CALTROP_AVOID=2.5; // CALTROP_ALLY: the chance your own unit steps on one; CALTROP_AVOID: how much the enemy minds crossing one // RELIC_PRICE by rarity: common, uncommon, rare
+const BOSS_GOLD_STEP=10,ITEM_CAP=3,TONIC_MV=2,LEDGER_GOLD=5,VGLOVES_GOLD=3,TOKEN_OFF=.2,CHEST_OFF=.1,CHEST_GOLD=50,ITEM_STOCK=[1,.5],SHOP_ITEMS=3,MULE_BUYS=5,RELIC_PRICE=[40,70,110],SMOKE_EV=.2,DRAUGHT_HEAL=5,FIRE_DMG=3,LIGHTNING_DMG=1,CALTROP_DMG=1,CALTROP_ALLY=.5,CALTROP_AVOID=2.5; // CALTROP_ALLY: the chance your own unit steps on one; CALTROP_AVOID: how much the enemy minds crossing one // RELIC_PRICE by rarity: common, uncommon, rare
 const itemCap=()=>ITEM_CAP+relicCount("saddle"); // Parsnip's Saddlebags: a slot each
 const priceOf=p=>Math.round(p*(camp.relics.includes("token")?1-TOKEN_OFF:1)*(camp.relics.includes("chest")?1-CHEST_OFF:1)); // Marcus's Loyalty Token, Boss's War Chest
 const IICON={
@@ -4023,12 +4087,16 @@ const UNLOCKS=[
  {id:"seaside",chal:"seaside",hint:"Answer a captain's first call to arms, and word comes from the shore."},
  {id:"pitchfork",relic:"pitchfork",hint:"Conquer the Seaside Grove challenge."},
  {id:"harrow",chal:"harrow",hint:"Conquer the Seaside Grove challenge."},
- {id:"baton",relic:"baton",hint:"Conquer the Harrowmere Crossing challenge."}
+ {id:"baton",relic:"baton",hint:"Conquer the Harrowmere Crossing challenge."},
+ {id:"vgloves",relic:"vgloves",hint:"A small kindness, remembered."},
+ {id:"vmorion",relic:"vmorion",hint:"Some debts are repaid in steel."},
+ {id:"vfalcata",relic:"vfalcata",hint:"His men are well funded."},
+ {id:"conquistador",unit:"Q",hint:"The expedition begins anew."}
 ];
 // name, art and description for an unlock, read from the terrain table or the unit descriptions
 const unlockInfo=o=>o.chal?(c=>({name:c.name,art:`<div class="tsw" style="${TERRAIN.fort.bg}">${FORT_ICON[0]}</div>`,desc:`${c.desc} A ${DIFF[c.diff||0][0].toLowerCase()} challenge map, played from the Challenges menu.`}))(CHALLENGES.find(c=>c.id===o.chal))
   :o.item?{name:ITEMS[o.item].name,art:itemIcon(o.item,44),desc:ITEMS[o.item].desc+` ${RARITY[ITEMS[o.item].r||0][0]} consumable, sold by Marcus.`}
-  :o.relic?{name:RELICS[o.relic].name,art:relicIcon(o.relic,44),desc:RELICS[o.relic].desc+` ${/^[AEIOU]/.test(RARITY[RELICS[o.relic].r][0])?"An":"A"} ${RARITY[RELICS[o.relic].r][0].toLowerCase()} relic `+(RELICS[o.relic].find?"found only in battle, never offered as a reward.":"that can be offered after campaign victories.")}
+  :o.relic?{name:unlocks.vmorion?RELICS[o.relic].name:RELICS[o.relic].name.replace(/^Vasco's/,"???'s"),art:relicIcon(o.relic,44),desc:RELICS[o.relic].desc+` ${/^[AEIOU]/.test(RARITY[RELICS[o.relic].r][0])?"An":"A"} ${RARITY[RELICS[o.relic].r][0].toLowerCase()} relic `+(RELICS[o.relic].find?"found only in battle, never offered as a reward.":"that can be offered after campaign victories.")}
   :o.biome?{name:BIOME_NAME[o.biome],art:terrainSwatch(o.terrain),desc:BTEXT[o.biome]+" Can appear in campaigns and quick battles."}
   :o.terrain?{name:TERRAIN[o.terrain].name,art:terrainSwatch(o.terrain),desc:TERRAIN[o.terrain].desc}
   :{name:cap(NAME[o.unit]),art:hIcon(o.unit,"y"),desc:`${unitStats(o.unit)}. ${ABILITY[o.unit]} Limit one per army.`};
@@ -4047,7 +4115,7 @@ $("unl").onclick=()=>{$("mbtns").hidden=true;$("unlockview").hidden=false;unlock
 $("how").onclick=()=>{$("mbtns").hidden=true;$("rulesview").hidden=false;howView(howMain,null)};
 $("back").onclick=()=>show("menu");
 $("go").onclick=()=>{
-  if(campSetup){dropHold("camp");camp.cfg={x:pick.x.slice(),m:pick.m,c:pick.c};camp.pos=0;camp.cleared=[];camp.done=false;camp.hp=null;camp.gold=0;camp.relics=[];camp.items=[];camp.merc=null;camp.mercNote="";camp.offer=null;camp.found=[];camp.lastGold=0;camp.kills=[];rollNames();camp.region=1;camp.mapsPrior=0;camp.bossUsed={loc:[],name:[]};camp.sel=0;genWorld();saveCamp();openWorld()}
+  if(campSetup){dropHold("camp");camp.cfg={x:pick.x.slice(),m:pick.m,c:pick.c};camp.pos=0;camp.cleared=[];camp.done=false;camp.hp=null;camp.gold=0;camp.relics=[];camp.items=[];camp.merc=null;camp.scout=0;camp.mercNote="";camp.offer=null;camp.found=[];camp.lastGold=0;camp.kills=[];rollNames();camp.region=1;camp.mapsPrior=0;camp.bossUsed={loc:[],name:[]};camp.sel=0;genWorld();saveCamp();openWorld()}
   else start();
 };
 $("end").onclick=()=>{
