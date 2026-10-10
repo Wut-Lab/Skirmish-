@@ -1314,11 +1314,11 @@ const terrainSwatch=(key,art)=>`<div class="tsw" style="${TERRAIN[key].bg}">${ar
 const rangeTxt=T=>(T.mn>1?T.mn+"-":"")+T.rg;
 const pct=v=>Math.round(v*100)+"%";
 const unitStats=t=>{const T=TYPES[t];return `HP ${T.hp}, move ${T.mv}, range ${rangeTxt(T)}, damage ${T.dmg}`+(T.ar?`, armor ${T.ar}`:"")+(T.pi?`, pierce ${T.pi}`:"")+(T.ev?`, evasion ${pct(T.ev)}`:"")};
-const ABILITY={P:`Heals an ally in range for up to ${TYPES.P.heal} HP instead of attacking.`,E:"Can slow an enemy in range instead of attacking: its movement drops to 1 on its next turn.",
+const ABILITY={P:`Heals an ally in range for up to ${TYPES.P.heal} HP instead of attacking.`,E:"Its magic ignores armor. Can hex an enemy in range instead of attacking: on its next turn it moves only 1 tile, and the units it attacks get +10% evasion against it.",
  T:`Instead of attacking, can muster 1-2 militia onto open tiles beside it. Twice per battle, with at most ${MUSTER_ALIVE} of its militia at a time.`,
  N:`Allies within ${BANNER_RANGE} tiles deal +1 damage.`,Q:"Trailblazer: forests and shallow water cost it no extra movement, and a swamp doesn't end its move.",M:"Mustered by a Captain. Weak, but useful for blocking and finishing off foes.",
  G:"Burst out of the Chicken Suit. Fights for you on its own: at the end of each of your turns it charges the nearest enemy. Forests and shallow water don't slow it."};
-const TAG={P:"Heals",E:"Slows",T:"Musters militia",N:"+1 damage aura",Q:"Trailblazer"}; // short ability labels for the setup cards
+const TAG={P:"Heals",E:"Hexes; ignores armor",T:"Musters militia",N:"+1 damage aura",Q:"Trailblazer"}; // short ability labels for the setup cards
 const listAnd=a=>a.length<2?a.join(""):a.slice(0,-1).join(", ")+" and "+a[a.length-1];
 const fellAt=f=>{const u=[...new Set(f)];if(u.length<3)return listAnd(u);for(let i=u.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[u[i],u[j]]=[u[j],u[i]]}return u[0]+", "+u[1]+", and other fields of glory"}; // two random places, then the rest
 const limitNames=()=>listAnd(poolNow().split("").filter(t=>LIMIT1.includes(t)).map(t=>"the "+cap(NAME[t])));
@@ -1329,7 +1329,7 @@ const $=id=>document.getElementById(id),board=$("board");
 const d=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 const at=(x,y)=>units.find(u=>u.x===x&&u.y===y);
 const helmed=u=>units.some(b=>b!==u&&b.t==="N"&&b.team===u.team&&rel(b,"helm")&&d(b,u)<=BANNER_RANGE); // within the Inspirational Plumed Helm's reach
-const HELM_EV=.05;
+const HELM_EV=.05,HEX_EV=.1; // HEX_EV: the Enchanter's hex makes its victim's targets harder to hit
 const mvOf=u=>{const m=ST(u).mv+(helmed(u)?1:0)-(u.t==="A"&&mods[u.team]==="PAD"?1:0)-(u.t==="C"&&rel(u,"bard")?1:0)+(firstTurn&&rel(u,"drills")?1:0)+(u.haste||0);if(u.stepOnly)return 1;return u.slow?Math.min(m,TYPES.E.slow):m};
 const inspired=(u,at=u)=>units.some(b=>b.t==="N"&&b.team===u.team&&b!==u&&d(b,at)<=BANNER_RANGE); // within a Banner Bearer's aura (at: where u would stand)
 /* ---------- Combat: the one place an attack's damage and hit chance are worked out ----------
@@ -1373,9 +1373,9 @@ function combat(a,b,from=a){
   const sc=scouting(a);add("Scouted Ahead",sc?1:0);
   const armor=[["Armor",B.ar||0],["Padded Armor",b.t==="A"&&mods[b.team]==="PAD"?1:0],["Forest Tactics",mods[b.team]==="FT"&&A.rg>1&&WOODS(k)?1:0],["Fortress",FORT.has(k)?1:0],["Sturdy Shields",b.t==="K"&&rel(b,"shield")?1:0],["Barding",b.t==="C"&&rel(b,"bard")?1:0],["Banner of the Fallen Keep",b.keep?1:0],["Vasco's Morion",b.vang?1:0],["Stubborn as a Mule",muled(b)?MULE_AR:0],["Improvised Armor",desperate(b,"hide")&&units.some(v=>v.team===b.team&&v.t==="K"&&d(v,b)===1)?1:0]];
   armor.forEach(([l,v])=>add(l,-v));
-  add("Pierce",Math.min(Math.max(0,(A.pi||0)+(rel(a,"bluemagma")?1:0)+(rel(a,"crown")?1:0)+(a.t==="K"&&rel(a,"sallet")?1:0)+(a.t==="R"&&rel(a,"ammo")?1:0)+(a.champ?1:0)+(sc?1:0)+(a.ublade&&b.hp>maxHp(b)/2?1:0)-(b.cshield?1:0)),armor.reduce((t,x)=>t+x[1],0))); // Blue Magma and the Champion's Sword add pierce, the Usurper's Blade against the healthy; the Champion's Shield turns 1 aside
+  add("Pierce",Math.min(a.t==="E"?99:Math.max(0,(A.pi||0)+(rel(a,"bluemagma")?1:0)+(rel(a,"crown")?1:0)+(a.t==="K"&&rel(a,"sallet")?1:0)+(a.t==="R"&&rel(a,"ammo")?1:0)+(a.champ?1:0)+(sc?1:0)+(a.ublade&&b.hp>maxHp(b)/2?1:0)-(b.cshield?1:0)),armor.reduce((t,x)=>t+x[1],0))); // Blue Magma and the Champion's Sword add pierce, the Usurper's Blade against the healthy; the Champion's Shield turns 1 aside
   add("Pavise",b.t==="A"&&A.rg>1&&rel(b,"pavise")?-1:0); // a shield wall, not armor: pierce can't get past it
-  const ev=Math.max(0,-(rel(a,"keen")&&rgOf(a)>1?KEEN_EV:0)-(b.t==="N"&&rel(b,"helm")?HELM_EV:0)+Math.min(EV_CAP,(B.ev||0)+(rel(b,"luck")?.05:0)+(b.trio?TRIO_EV:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(rel(b,"sakurafan")&&[...blastOf(k),[b.x,b.y]].some(([x,y])=>CHERRY.has(x+","+y))?FAN_EV:0)+(blessed(b)?BLESS_EV:0)+(rested(b)?REST_EV:0)+(rel(b,"pebble")?PEBBLE_EV:0)+(rallied(b)?RALLY_EV:0)+(b.team==="y"&&SMOKE.has(k)?SMOKE_EV:0)+(WOODS(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0))); // Keen Eye Charm: ranged attacks see through a little of it
+  const ev=Math.max(0,-(rel(a,"keen")&&rgOf(a)>1?KEEN_EV:0)-(b.t==="N"&&rel(b,"helm")?HELM_EV:0)+Math.min(EV_CAP,(B.ev||0)+(a.hex?HEX_EV:0)+(rel(b,"luck")?.05:0)+(b.trio?TRIO_EV:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(rel(b,"sakurafan")&&[...blastOf(k),[b.x,b.y]].some(([x,y])=>CHERRY.has(x+","+y))?FAN_EV:0)+(blessed(b)?BLESS_EV:0)+(rested(b)?REST_EV:0)+(rel(b,"pebble")?PEBBLE_EV:0)+(rallied(b)?RALLY_EV:0)+(b.team==="y"&&SMOKE.has(k)?SMOKE_EV:0)+(WOODS(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0))); // Keen Eye Charm: ranged attacks see through a little of it
   return {dmg:Math.max(1,parts.reduce((t,p)=>t+p[1],0)),hit:sc?1:1-ev,parts}; // every hit deals at least 1; a scouted first strike never misses
 }
 // a unit with `ret` retaliates against an attacker within its own range for half damage, at least 1 (the attacker may evade it); null when it can't
@@ -1476,7 +1476,7 @@ function atkZone(u,spots,set,bar){
   });
 }
 function render(){
-  units.forEach(u=>{if(u.slow&&calm(u)){delete u.slow;floatText(u.x,u.y,"Calm","bless")}});
+  units.forEach(u=>{if(u.slow&&calm(u)){delete u.slow;delete u.hex;floatText(u.x,u.y,"Calm","bless")}});
   board.classList.toggle("murky",MURKY);board.classList.toggle("haunted",HAUNTED);board.classList.toggle("volcanic",VOLCANIC);
   const mv=new Set(),tg=new Set(),ig=new Set(),ir=new Set(),pr=new Set(),hs=new Set(),bt=new Set(),it=mode&&mode.startsWith("item:")&&sel&&turn==="y"?itemTargets(sel,mode.slice(5)):new Set();
   if(sel&&turn==="y"&&!over){
@@ -1614,7 +1614,7 @@ function renderInfo(){
   if(u.t==="N"&&rel(u,"ipennant"))notes.push("Pennant of Inspiration: on each enemy turn, the first of your units within 2 tiles to take damage resists 1 of it.");
   if(u.t==="N"&&rel(u,"helm"))notes.push("Inspirational Plumed Helm: your other units within 2 tiles get +1 movement.");else if(helmed(u))notes.push("Inspired by the Plumed Helm: +1 movement.");
   if(u.bloom)notes.push(`Last Bloom: +${u.bloom} damage this battle, for a fallen comrade.`);
-  const stats=[["Move",mvOf(u)],["Range",rangeTxt({...T,rg:rgOf(u)})],["Damage",T.dmg+(u.t==="A"&&rel(u,"whet")?1:0)+(u.t==="M"&&rel(u,"pitchfork")?1:0)+(u.bloom||0)+(u.champ?1:0)+(u.ublade?1:0)+(u.vengeance?1:0)+(inspired(u)?"+1":"")],["Armor",arm],["Pierce",(T.pi||0)+(u.t==="R"&&rel(u,"ammo")?1:0)],["Evasion",pct(Math.max(0,(T.ev||0)-(u.t==="N"&&rel(u,"helm")?HELM_EV:0)))]].map(([k,v])=>`<span class="stat${v===0||v==="0%"?" nil":""}">${k} <b>${v}</b></span>`).join(""); // the same six stats on every card, zeros dimmed
+  const stats=[["Move",mvOf(u)],["Range",rangeTxt({...T,rg:rgOf(u)})],["Damage",T.dmg+(u.t==="A"&&rel(u,"whet")?1:0)+(u.t==="M"&&rel(u,"pitchfork")?1:0)+(u.bloom||0)+(u.champ?1:0)+(u.ublade?1:0)+(u.vengeance?1:0)+(inspired(u)?"+1":"")],["Armor",arm],["Pierce",u.t==="E"?"All":(T.pi||0)+(u.t==="R"&&rel(u,"ammo")?1:0)],["Evasion",pct(Math.max(0,(T.ev||0)-(u.t==="N"&&rel(u,"helm")?HELM_EV:0)))]].map(([k,v])=>`<span class="stat${v===0||v==="0%"?" nil":""}">${k} <b>${v}</b></span>`).join(""); // the same six stats on every card, zeros dimmed
   el.className="pb";el.style.borderLeft=`8px solid ${c[1]}`;
   el.innerHTML=`<div class="lbl">Unit</div><div class="row top"><div class="pv">${u.trio||u.utrio?disc(u.t,c).replace(ICON[u.t],u.trio?CHAMP_ICON:USURP_ICON):disc(u.t,c,u.merc,u.auto&&u.team==="y")}</div><div class="ib"><div class="nm"><strong>${u.merc?u.mname:hero?heroName(u.ci):cap(NAME[u.t])}</strong><span>${u.trio?"The Champion":u.utrio?"The Usurper":u.merc?(u.team==="y"?"Your mercenary ":"Enemy mercenary ")+NAME[u.t]:hero?cap(NAME[u.t]):u.team==="y"?"Your unit":u.team==="w"?"Wild":"Enemy"}</span></div><div class="hprow"><span>HP</span><b>${u.hp} / ${maxHp(u)}</b></div><div class="hpb"><i style="width:${100*r}%;background:${r>.5?"#4caf50":r>.25?"#e0b21c":"#d64b3a"}"></i></div><div class="stats">${stats}</div>${notes.map(n=>`<small>${n}</small>`).join("")}</div></div>`;
 }
@@ -1659,7 +1659,7 @@ function buildMenu(){
     const ok=pushable(sel,t);
     opt(`<b>${!ok?"Can't Push":n?`Push ${n} Tile${n>1?"s":""}`:"Push (Blocked)"}</b><small>${!ok?"Too heavy":t.team==="y"?"Reposition ally":"Instead of attacking"}</small>`,()=>{choice=null;doPush(sel,t)},!ok||!n);
   }
-  if(sel.t==="E"&&t.team!==sel.team&&(cm||targets(sel).includes(t)))opt(`<b>${cm?"Move &amp; Slow":"Slow"}</b><small>${calm(t)?"Calm: can't be slowed":t.slow?"Already slowed":"Move 1 next turn"}</small>`,go(a=>doSlow(a,t)),!!t.slow||calm(t));
+  if(sel.t==="E"&&t.team!==sel.team&&(cm||targets(sel).includes(t)))opt(`<b>${cm?"Move &amp; Hex":"Hex"}</b><small>${calm(t)?"Calm: can't be hexed":t.slow?"Already slowed":"Move 1, its targets +10% evasion"}</small>`,go(a=>doSlow(a,t)),!!t.slow||calm(t));
   if(!cm&&healable(sel,t)){const hn=Math.min(healOf(sel),maxHp(t)-t.hp);opt(`<b>Heal</b><small>+${hn} HP</small>`,()=>{choice=null;doHeal(sel,t)})}
   if(!cm&&canBless(sel,t))opt(`<b>Bless</b><small>${blessed(t)?"Already blessed":"+5% evasion until your next turn ends"}</small>`,()=>{choice=null;doBless(sel,t)},blessed(t));
   opt("<b>Cancel</b>",()=>{choice=null;say("Move, attack, or pick another unit.");render()});
@@ -1846,7 +1846,7 @@ function applyHeal(a,b){const n=Math.min(healOf(a),maxHp(b)-b.hp);b.hp+=n;sfx("h
 function doSlow(a,u){
   if(calm(u))return; // Moment of Calm
   a.acted=1;a.moved=1;sel=null;insp=null;locked=true;lastMove=null;
-  animAttack(a,u,()=>{u.slow=1;sfx("slow");floatText(u.x,u.y,"Slow","slow");say("Slowed the "+NAME[u.t]+": movement reduced to 1 on its next turn.");locked=false;info=u;afterAction()});
+  animAttack(a,u,()=>{u.slow=1;u.hex=1;sfx("slow");floatText(u.x,u.y,"Hexed","slow");say("Hexed the "+NAME[u.t]+": on its next turn it moves only 1 tile, and its targets get +10% evasion.");locked=false;info=u;afterAction()});
 }
 function doBless(a,b){
   a.blessUsed=1;a.acted=a.moved=1;b.blessUntil=pturn+1;sel=null;mode=null;choice=null;info=b;lastMove=null;
@@ -2537,7 +2537,7 @@ function enemyTurn(note=""){
     }
     if(u.t==="E"&&ts.length&&!ts.some(p=>dmgTo(u,p)>=p.hp)){
       const sl=ts.filter(p=>!p.slow&&!calm(p)&&!muled(p)&&mvOf(p)>1).sort((a,b)=>ST(b).dmg-ST(a).dmg||ST(b).mv-ST(a).mv)[0];
-      if(sl){u.acted=1;animAttack(u,sl,()=>{sl.slow=1;sfx("slow");floatText(sl.x,sl.y,"Slow","slow");say("Enemy "+NAME[u.t]+" slowed your "+NAME[sl.t]+".");fin()});return}
+      if(sl){u.acted=1;animAttack(u,sl,()=>{sl.slow=1;sl.hex=1;sfx("slow");floatText(sl.x,sl.y,"Hexed","slow");say("Enemy "+NAME[u.t]+" hexed your "+NAME[sl.t]+": it moves only 1 tile, and its targets get +10% evasion.");fin()});return}
     }
     if(ts.length){
       u.acted=1;
@@ -2588,7 +2588,7 @@ function enemyTurn(note=""){
     hazards("f",()=>{
       SMOKE=new Set(); // the smoke drifts away as your turn begins
       const healed=mods.f==="REST"?rest("f"):0;
-      units.forEach(u=>{u.moved=u.acted=0;delete u.aim;if(u.team!=="y")delete u.slow});
+      units.forEach(u=>{u.moved=u.acted=0;delete u.aim;if(u.team!=="y"){delete u.slow;delete u.hex}});
       const wisped=wispsAct();
       vanguard();turn="y";busy=false;say((wisped?wisped+" ":"")+"Your turn. Select one of your units."+(healed?" Resting enemy units recovered HP.":""));render();notify("Enemy turn ended — your move");
     });
@@ -4171,7 +4171,7 @@ $("end").onclick=()=>{
   firstTurn=false;pturn++;
   units.forEach(u=>{if(u.team==="y"&&!u.moved&&rel(u,"drum"))u.drum=pturn}); // War Drum: holding the line pays off next turn
   const n=mods.y==="REST"?rest("y"):0;
-  units.forEach(u=>{if(u.team==="y"){delete u.slow;delete u.haste;delete u.stepOnly}});
+  units.forEach(u=>{if(u.team==="y"){delete u.slow;delete u.hex;delete u.haste;delete u.stepOnly}});
   lastMove=null;notify("You ended your turn");
   const go=()=>hazards("y",()=>enemyTurn(n?"Your resting units recovered HP. ":""));
   if(units.some(u=>u.auto&&u.team==="y")){busy=true;render();chickensAct(()=>{if(!over)go()})}else go();
