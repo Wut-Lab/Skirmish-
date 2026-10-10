@@ -730,6 +730,8 @@ const RELICS={
  splinter:{name:"Splinter Shells",r:1,src:"both",need:"R",desc:"Your Artillery's shells burst on impact: every hit also deals 1 damage to any unit, friend or foe, on the 3 tiles just behind the target. Stacks with Debris Shot."},
  debris:{name:"Debris Shot",r:1,need:"R",desc:"When your Artillery hits, every enemy on the 8 tiles around the target takes 1 damage."},
  drills:{name:"Boots of a Forced March",r:0,lock:"drills",desc:"Well-worn boots that set a brisk pace: your units get +1 movement on your first turn of each battle."},
+ robes:{name:"Blessed Robes",r:1,src:"both",need:"P",desc:"Your Apothecaries recover 1 HP at the end of each of your turns. Woven by the Wise Ones, and never quite dirty."},
+ halo:{name:"Invigorating Halo",r:2,src:"both",need:"P",desc:"Your Apothecaries gain a second healing action: spend the action to heal every ally beside them for 2 HP. It can't be used on back-to-back turns."},
  salts:{name:"Smelling Salts",r:0,lock:"salts",need:"P",desc:"Apothecaries heal 1 extra HP."},
  hatchet:{name:"Woodcutter's Hatchet",r:0,lock:"hatchet",desc:"Leaving a forest costs your units no extra movement."},
  pennant:{name:"Garrison Pennant",r:0,lock:"pennant",desc:"Your units standing on a fortress tile get +5% evasion."},
@@ -779,6 +781,13 @@ function doBombard(a,x,y){
   let msg="Wall-breaker Charge! The fortress crumbles into rubble.";
   if(v&&v.team!==a.team){msg=`Wall-breaker Charge! The fortress crumbles, and ${who(v)} takes ${dmg} damage.`;if(hurt(v,dmg)){credit(a,v);msg=`Wall-breaker Charge! The fortress crumbles on ${who(v)}, and it falls.`}}
   say(msg);afterAction();
+}
+const HALO_HEAL=2,haloTargets=u=>units.filter(b=>b!==u&&b.team===u.team&&!b.auto&&d(u,b)===1&&b.hp<maxHp(b));
+const canHalo=u=>u.t==="P"&&u.team==="y"&&rel(u,"halo")&&!u.acted&&!u.auto&&u.haloTurn!==pturn&&u.haloTurn!==pturn-1&&haloTargets(u).length>0; // Invigorating Halo: never two turns running
+function doHalo(a){
+  const ts=haloTargets(a);a.acted=a.moved=1;a.haloTurn=pturn;mode=null;sel=null;insp=null;lastMove=null;info=a;
+  ts.forEach(b=>{const n=Math.min(HALO_HEAL,maxHp(b)-b.hp);b.hp+=n;floatText(b.x,b.y,"+"+n,"heal")});sfx("bless");
+  say(`The Invigorating Halo shines: ${ts.length} all${ts.length>1?"ies":"y"} beside your Apothecary recover${ts.length>1?"":"s"} up to ${HALO_HEAL} HP.`);render();
 }
 const canBugle=u=>u.t==="T"&&u.team==="y"&&rel(u,"bugle")&&!u.acted&&!u.auto&&units.some(m=>m.cap===u); // Goading Bugle: needs militia to goad
 const canTrumpet=u=>rel(u,"trumpet")&&!relicUsed.trumpet&&!u.acted&&!u.auto&&units.some(b=>b!==u&&b.team==="y"&&d(u,b)<=RALLY_RANGE);
@@ -1499,7 +1508,7 @@ function muster(u){ // 1-2 militia appear beside the captain, nearest the enemy 
   u.musters=(u.musters||0)+1;u.acted=u.moved=1;if(n)sfx("drum");
   return n;
 }
-const spent=u=>(!!u.acted&&!!u.moved)||!!u.auto||(u.team!=="w"&&!!u.moved&&!canMuster(u)&&!canTrumpet(u)&&!canBugle(u)&&!canBombard(u)&&!(u.team==="y"&&!u.acted&&camp.battle&&!chal&&camp.items&&camp.items.length)&&!targets(u).length&&!healTargets(u).length&&!(rel(u,"font")&&units.some(b=>canBless(u,b)))&&(u.team!=="y"||!breakables(u).length)&&!(u.t==="K"&&units.some(b=>b.team==="y"&&pushable(u,b))));
+const spent=u=>(!!u.acted&&!!u.moved)||!!u.auto||(u.team!=="w"&&!!u.moved&&!canMuster(u)&&!canTrumpet(u)&&!canBugle(u)&&!canHalo(u)&&!canBombard(u)&&!(u.team==="y"&&!u.acted&&camp.battle&&!chal&&camp.items&&camp.items.length)&&!targets(u).length&&!healTargets(u).length&&!(rel(u,"font")&&units.some(b=>canBless(u,b)))&&(u.team!=="y"||!breakables(u).length)&&!(u.t==="K"&&units.some(b=>b.team==="y"&&pushable(u,b))));
 const targets=u=>units.filter(e=>e.team!==u.team&&(u.team!=="f"||e.team!=="w")&&d(u,e)<=rgOf(u)&&d(u,e)>=ST(u).mn);
 
 const spotsOf=(u,rc)=>[[u.x,u.y],...rc.map(k=>pk(k))];
@@ -1654,6 +1663,8 @@ function renderInfo(){
   if(u.t==="C"&&u.team==="y"&&rel(u,"lance"))notes.push(charging(u)?"Master's Lance: charging! +2 pierce, no retaliation, and a knockback.":"Master's Lance: move 3+ tiles before attacking to charge.");
   if(u.hex)notes.push("Hexed: moves only 1 tile, and its targets get +10% evasion against it"+(u.hexPend?"; the Glowing Pendant also cuts its evasion by 5%.":"."));
   if(u.t==="R"&&u.team==="y"&&rel(u,"wallbreak"))notes.push(relicUsed.wallbreak?"Wall-breaker Charge: spent this battle.":"Wall-breaker Charge: once this battle, blast a fortress tile in range into rubble.");
+  if(u.t==="P"&&u.team==="y"&&rel(u,"robes"))notes.push("Blessed Robes: recovers 1 HP at the end of each of your turns.");
+  if(u.t==="P"&&u.team==="y"&&rel(u,"halo"))notes.push(u.haloTurn===pturn||u.haloTurn===pturn-1?"Invigorating Halo: recharging; it can't shine two turns running.":"Invigorating Halo: spend its action to heal every ally beside it for 2 HP.");
   if(u.aim)notes.push("Holding aim: it will shoot the first enemy that moves into its range.");else if(u.t==="A"&&u.team==="y"&&rel(u,"bowstring"))notes.push("Sentinel's Bowstring: end your turn without moving or acting to hold aim.");
   if(u.t==="N"&&rel(u,"imposing"))notes.push("Imposing Banner: enemies within 2 tiles deal 1 less damage.");
   if(u.t==="N"&&rel(u,"ipennant"))notes.push("Pennant of Inspiration: on each enemy turn, the first of your units within 2 tiles to take damage resists 1 of it.");
@@ -1731,6 +1742,7 @@ function acts(){
   if(sel.t==="K"&&!sel.acted&&units.some(b=>b.team==="y"&&pushable(sel,b)))add("Push Ally",()=>{mode="push";say("Choose an adjacent ally to push.");render()});
   if(!mode&&canTrumpet(sel))add("Sound Trumpet",()=>doTrumpet(sel));
   if(!mode&&canBugle(sel))add("Sound the Bugle",()=>doBugle(sel));
+  if(!mode&&canHalo(sel))add("Invigorating Halo",()=>doHalo(sel));
   if(!mode&&canBombard(sel))add("Wall-breaker Charge",()=>{mode="bombard";say("Choose a fortress tile in range to blast into rubble.");render()});
   if(!mode&&camp.battle&&!chal&&camp.items&&camp.items.length&&sel.team==="y"&&(!sel.acted||camp.items.some(id=>ITEMS[id].free))&&!sel.auto)add("Use Item",()=>{mode="items";say("Choose an item to use.");render()});
   if(mode==="items")[...new Set(camp.items)].filter(id=>!sel.acted||ITEMS[id].free).forEach(id=>{const k=camp.items.filter(i=>i===id).length;add(ITEMS[id].name+(k>1?" \u00d7"+k:""),()=>{mode="item:"+id;say(itemPrompt(id));render()})});
@@ -3758,6 +3770,8 @@ const RICON={ // small 32-unit relic icons
  lance:'<path d="M3 29L27 5" stroke="#5a3a1c" stroke-width="2.200" stroke-linecap="round"/><path d="M27 5l3-3l-1 5z" fill="#c8ccd2" stroke="#2e3338" stroke-width=".8"/><path d="M22 6l4 4l-3 1l-2-2z" fill="#c8ccd2" stroke="#2e3338" stroke-width=".7"/><path d="M8 20l4 4l-5 3l-2-2z" fill="#c9962a" stroke="#5a4010" stroke-width=".8"/><path d="M14 12l3 0l-1 3z" fill="#b8372d"/><path d="M12 14q3-2 5-1l-2 3q-2-1-3-2z" fill="#b8372d" stroke="#5a1410" stroke-width=".6"/>',
  pendant:'<path d="M9 3q7 9 14 0" stroke="#c9962a" stroke-width="1.300" fill="none"/><circle cx="16" cy="20" r="9" fill="#a070e0" opacity=".2"/><path d="M16 11l6 7l-6 10l-6-10z" fill="#8a5ad0" stroke="#3a1a6a" stroke-width="1.100" stroke-linejoin="round"/><path d="M16 11l6 7h-12z" fill="#c8a0ff" opacity=".7"/><path d="M13 16l2 1" stroke="#fff" stroke-width="1" opacity=".8"/><circle cx="16" cy="9.500" r="1.600" fill="#d8b24a" stroke="#6a4c10" stroke-width=".6"/>',
  wallbreak:'<path d="M4 28V14h5v-3h4v3h4v-3h4v3h3v14z" fill="#9a948b" stroke="#3a3632" stroke-width="1.100" stroke-linejoin="round"/><path d="M4 20h20M10 14v6M18 20v8" stroke="#5a554e" stroke-width=".9"/><path d="M15 12l3-5l2 4l4-3l-1 5l5 1l-4 3l3 3l-5-1" fill="#ff8a2a" stroke="#8a2a10" stroke-width=".8" stroke-linejoin="round"/><circle cx="27" cy="7" r="3.400" fill="#26262a" stroke="#0a0a0c" stroke-width=".9"/><path d="M29 4.500q2-3 4-2" stroke="#8a6a3a" stroke-width="1" fill="none"/><circle cx="26" cy="6" r=".9" fill="#fff" opacity=".4"/>',
+ robes:'<path d="M11 5q5-2 10 0l2 5q4 8 4 18H5q0-10 4-18z" fill="#f2ead8" stroke="#6a5a44" stroke-width="1.100" stroke-linejoin="round"/><path d="M11 5q5 3 10 0" stroke="#c9962a" stroke-width="1.300" fill="none"/><path d="M16 8v20" stroke="#c9962a" stroke-width="1.100"/><path d="M13.500 15h5M16 12.500v5" stroke="#b8372d" stroke-width="1.600" stroke-linecap="round"/><path d="M5 28h22" stroke="#c9962a" stroke-width="1.300"/><circle cx="16" cy="16" r="10" fill="#fff6c8" opacity=".18"/>',
+ halo:'<ellipse cx="16" cy="9" rx="10" ry="3.600" fill="none" stroke="#f2d27a" stroke-width="2.200"/><ellipse cx="16" cy="9" rx="10" ry="3.600" fill="none" stroke="#fff6c8" stroke-width=".8"/><circle cx="16" cy="20" r="11" fill="#7fe0a0" opacity=".16"/><path d="M14 16h4v4h4v4h-4v4h-4v-4h-4v-4h4z" fill="#3f9a5a" stroke="#1e4a1c" stroke-width=".9" stroke-linejoin="round"/><g fill="#7fe0a0"><path d="M5 18l.8 1.800 1.800.8-1.800.8-.8 1.800-.8-1.800-1.800-.8 1.800-.8z"/><path d="M27 18l.8 1.800 1.800.8-1.800.8-.8 1.800-.8-1.800-1.800-.8 1.800-.8z"/></g>',
  spurs:'<path d="M5 18q0-7 8-7h6" stroke="#8a8f96" stroke-width="2.600" fill="none" stroke-linecap="round"/><path d="M5 18q0 4 6 4h7" stroke="#8a8f96" stroke-width="2.600" fill="none" stroke-linecap="round"/><path d="M18 16.500h4" stroke="#6a6f76" stroke-width="2"/><circle cx="25" cy="16.500" r="3.400" fill="#d8b24a" stroke="#6a4c10" stroke-width=".9"/><path d="M25 11.500v-2M25 23.500v-2M30 16.500h-2M20 16.500h2M28.500 13l-1.400 1.400M21.500 20l1.400-1.400M28.500 20l-1.400-1.400M21.500 13l1.400 1.400" stroke="#6a4c10" stroke-width="1.100" stroke-linecap="round"/><circle cx="25" cy="16.500" r="1" fill="#6a4c10"/>',
  grog:'<ellipse cx="16" cy="28" rx="9" ry="1.800" fill="rgba(0,0,0,.2)"/><rect x="13" y="3" width="6" height="4" rx="1" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M13.500 7h5v3q7 2 7 9v5q0 4-4 4H10.500q-4 0-4-4v-5q0-7 7-9z" fill="#7a6a4a" stroke="#2a1e12" stroke-width="1.200" stroke-linejoin="round"/><path d="M7 17h18v6H7z" fill="#a8402a" opacity=".85"/><path d="M7 17h18M7 23h18" stroke="#2a1e12" stroke-width=".9"/><path d="M12 20h8" stroke="#f0d8a0" stroke-width="1.300" stroke-linecap="round"/><path d="M10 12q1-2 3-2" stroke="#c8b890" stroke-width="1" fill="none" stroke-linecap="round" opacity=".7"/>',
  pebble:'<ellipse cx="16" cy="25" rx="9" ry="1.800" fill="rgba(0,0,0,.18)"/><ellipse cx="16" cy="19" rx="9" ry="6.500" fill="#9aa0a6" stroke="#3a3e44" stroke-width="1.200"/><path d="M10 17q4-3 10-2" stroke="#d8dce0" stroke-width="1.300" fill="none" stroke-linecap="round"/><path d="M14.200 20.800l1.200-1.600l1.600 1.200l-.6 1.800z" fill="#5a8a5a" opacity=".85"/>',
@@ -4248,6 +4262,7 @@ $("end").onclick=()=>{
   firstTurn=false;pturn++;
   units.forEach(u=>{if(u.team==="y"&&!u.moved&&rel(u,"drum"))u.drum=pturn}); // War Drum: holding the line pays off next turn
   const n=mods.y==="REST"?rest("y"):0;
+  units.forEach(u=>{if(u.team==="y"&&u.t==="P"&&rel(u,"robes")&&u.hp<maxHp(u)){u.hp+=1;floatText(u.x,u.y,"+1","heal")}}); // Blessed Robes
   units.forEach(u=>{if(u.team==="y"){delete u.weak;if(u.cursed){u.weak=1;delete u.cursed}delete u.slow;delete u.hex;delete u.hexPend;delete u.haste;delete u.stepOnly}});
   lastMove=null;notify("You ended your turn");
   const go=()=>hazards("y",()=>enemyTurn(n?"Your resting units recovered HP. ":""));
