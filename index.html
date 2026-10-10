@@ -374,6 +374,7 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .vgiven{margin:2px 0 0;text-align:center;font-weight:700;font-size:.9rem;opacity:.85;display:flex;align-items:center;justify-content:center;gap:6px}.vgiven svg{width:22px;height:22px}
 .mchip{flex:1 1 calc(50% - 4px);min-width:0;box-sizing:border-box}.gchip,.pchip{flex-basis:100%;min-width:0;box-sizing:border-box;flex-direction:row;align-items:center;gap:10px;padding:3px 10px}.pchip{background:#e6d3a8;color:#3b2a17}.gchip small,.pchip small{flex:none}.gchip span,.pchip span{flex:1;min-width:0;flex-wrap:nowrap!important;overflow:hidden;margin:0!important;padding:2px}.pmore{flex:none;width:26px;height:26px;padding:0;border:2.5px solid #111;border-radius:50%;background:#fff;color:#111;font:800 .8rem/1 inherit;cursor:pointer;box-sizing:border-box}.plist{display:grid;gap:8px}
 .gchip span,.pchip span{display:flex;gap:3px;flex-wrap:wrap;margin-top:2px}.gci,.pci{width:26px;height:26px;padding:0;border:0;border-radius:50%;background:#f4ead2;display:grid;place-items:center;cursor:pointer;box-shadow:0 0 0 1px rgba(0,0,0,.35)}
+.aimk{position:absolute;top:-5px;right:-5px;width:17px;height:17px;border-radius:50%;background:#1e3a2a;box-shadow:0 0 0 1.5px #9fe0b0;z-index:3;display:grid;place-items:center}.aimk svg{width:13px;height:13px} /* Sentinel's Bowstring: holding aim */
 .u.usurp::before{content:"\265B";position:absolute;bottom:-5px;left:-5px;width:16px;height:16px;border-radius:50%;background:#2a1a26;color:#e0a0b0;font-size:.62rem;line-height:16px;text-align:center;box-shadow:0 0 0 1.5px #b0182a,0 0 8px 2px rgba(120,30,60,.7);z-index:3} /* a Usurper piece: a dark crown */
 .u.elite{box-shadow:0 0 0 2.500px #e8c050,0 0 0 4px rgba(90,60,10,.85),0 0 10px 3px rgba(240,200,80,.55),var(--bev)}
 .evart svg{display:block;width:100%;height:auto;border-radius:8px;border:2px solid #1a0f07;box-shadow:0 2px 0 #1a0f07;margin-bottom:10px}
@@ -712,6 +713,7 @@ const RELICS={
  bard:{name:"Barding",r:0,desc:"Cavalry get +1 armor but 1 less movement."},
  luck:{name:"Lucky Charm",r:1,desc:"All your units get +5% evasion."},
  long:{name:"Long Bows",r:1,desc:"Archers get +1 range."},
+ bowstring:{name:"Sentinel's Bowstring",r:2,src:"both",need:"A",desc:"An Archer that ends your turn without moving or acting holds aim: on the enemy turn, it shoots the first enemy that moves into its range, before that enemy can act. The target can't retaliate. Waxed and drawn taut, it can be held at full draw for an age."},
  splinter:{name:"Splinter Shells",r:1,src:"both",need:"R",desc:"Your Artillery's shells burst on impact: every hit also deals 1 damage to any unit, friend or foe, on the 3 tiles just behind the target. Stacks with Debris Shot."},
  debris:{name:"Debris Shot",r:1,need:"R",desc:"When your Artillery hits, every enemy on the 8 tiles around the target takes 1 damage."},
  drills:{name:"Boots of a Forced March",r:0,lock:"drills",desc:"Well-worn boots that set a brisk pace: your units get +1 movement on your first turn of each battle."},
@@ -1517,7 +1519,7 @@ function render(){
         else{uc+=" mv";stepped=1;mvs=`;--dx:${ddx*122}%;--dy:${ddy*122}%;--dur:${.1+.06*dist}s`}
       }
       const c=COLORS[col[u.team]],hr=u.hp/maxHp(u),bg=u.auto&&!u.merc?`color-mix(in srgb,${c[1]} 55%,#fff)`:c[1]; // units that act on their own wear a lighter shade
-      html+=`<div class="${uc}" data-t="${u.t}" data-team="${u.team}" style="background:${bg};--tc:${bg};--ic:${c[2]}${mvs}">${u.merc?'<b class="ms"></b>':""}${u.trio?CHAMP_ICON:u.utrio?USURP_ICON:ICON[u.t]}</div>`
+      html+=`<div class="${uc}" data-t="${u.t}" data-team="${u.team}" style="background:${bg};--tc:${bg};--ic:${c[2]}${mvs}">${u.merc?'<b class="ms"></b>':""}${u.trio?CHAMP_ICON:u.utrio?USURP_ICON:ICON[u.t]}${u.aim?'<i class="aimk" aria-label="Holding aim"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" fill="none" stroke="#9fe0b0" stroke-width="1.600"/><path d="M8 1v4M8 11v4M1 8h4M11 8h4" stroke="#9fe0b0" stroke-width="1.600"/></svg></i>':""}</div>`
         +`<div class="hp"><i style="width:${100*hr}%;background-color:${hr>.5?"#5fd068":hr>.25?"#f0c33a":"#ee5a45"}"></i></div>`;
     }
     html+="</button>";
@@ -1602,6 +1604,7 @@ function renderInfo(){
   if(u.ubulwark)notes.push("Usurper's Bulwark: an adjacent enemy that lands a blow on it takes 1 damage.");
   if(u.ushroud)notes.push(u.shroudUsed?"Usurper's Shroud: its escape is spent.":"Usurper's Shroud: once this battle, a fatal blow sends it into shadow at its own edge instead.");
   if(u.utrio)notes.push(u.vengeance?"The Usurper: +1 damage, for a fallen comrade.":"The Usurper: +1 damage once one of its comrades falls.");
+  if(u.aim)notes.push("Holding aim: it will shoot the first enemy that moves into its range.");else if(u.t==="A"&&u.team==="y"&&rel(u,"bowstring"))notes.push("Sentinel's Bowstring: end your turn without moving or acting to hold aim.");
   if(u.t==="N"&&rel(u,"imposing"))notes.push("Imposing Banner: enemies within 2 tiles deal 1 less damage.");
   if(u.t==="N"&&rel(u,"ipennant"))notes.push("Pennant of Inspiration: on each enemy turn, the first of your units within 2 tiles to take damage resists 1 of it.");
   if(u.t==="N"&&rel(u,"helm"))notes.push("Inspirational Plumed Helm: your other units within 2 tiles get +1 movement.");else if(helmed(u))notes.push("Inspired by the Plumed Helm: +1 movement.");
@@ -2493,6 +2496,13 @@ function enemyTurn(note=""){
     }
     return p;
   }
+  function sentinel(u,go){ // an Archer holding aim shoots the first enemy to move into its range
+    const a=units.find(v=>v.aim&&units.includes(u)&&targets(v).includes(u));
+    if(!a)return go();
+    delete a.aim;sfx("bow");
+    animAttack(a,u,()=>{if(g!==gid)return;hitFor(a,u,combat(a,u),false);if(units.includes(u))floatText(a.x,a.y,"Held aim","bless");render();
+      if(units.includes(u))later(go,350);else{if(checkEnd())return;later(step,500)}});
+  }
   function act(u){
     if(g!==gid)return;
     const fin=()=>{u.acted=1;if(!checkEnd())render();later(step,500)};
@@ -2545,7 +2555,7 @@ function enemyTurn(note=""){
       if(dest[0]!==u.x||dest[1]!==u.y){u.moved=1;movedAny=true}
       if(tp)[u.x,u.y]=dest;else if(walk(u,dest[0],dest[1])&&!units.includes(u)){say(`The enemy ${NAME[u.t]} fell on the caltrops.`);if(checkEnd())return;render();return later(step,500)}
       render();
-      later(()=>act(u),350);
+      later(()=>u.moved?sentinel(u,()=>act(u)):act(u),350);
       return;
     }
     if(wi<wq.length){
@@ -2566,7 +2576,7 @@ function enemyTurn(note=""){
     hazards("f",()=>{
       SMOKE=new Set(); // the smoke drifts away as your turn begins
       const healed=mods.f==="REST"?rest("f"):0;
-      units.forEach(u=>{u.moved=u.acted=0;if(u.team!=="y")delete u.slow});
+      units.forEach(u=>{u.moved=u.acted=0;delete u.aim;if(u.team!=="y")delete u.slow});
       const wisped=wispsAct();
       vanguard();turn="y";busy=false;say((wisped?wisped+" ":"")+"Your turn. Select one of your units."+(healed?" Resting enemy units recovered HP.":""));render();notify("Enemy turn ended — your move");
     });
@@ -3672,6 +3682,7 @@ const RICON={ // small 32-unit relic icons
  imposing:'<path d="M8 3v27" stroke="#3a2412" stroke-width="2.400" stroke-linecap="round"/><path d="M5 4h6l-3-3z" fill="#8a8e94" stroke="#2a2c30" stroke-width=".7"/><path d="M9 6h17v18l-8.500-4l-8.500 4z" fill="#2a2030" stroke="#0e0a12" stroke-width="1.100" stroke-linejoin="round"/><path d="M9 8.500h17" stroke="#c9962a" stroke-width="1.100"/><path d="M17.500 10.500l3 2.500l-1.200 4l-1.800-1.300l-1.800 1.300l-1.200-4z" fill="#b0182a" stroke="#c9962a" stroke-width=".7" stroke-linejoin="round"/><path d="M11 22l1 4M15 20.500l.5 4M20 20.500l-.5 4M24 22l-1 4" stroke="#c9962a" stroke-width=".9" stroke-linecap="round"/>',
  helm:'<path d="M17 12q-2-8 5-10q6-1 8 4q-3-1-5 1q2 1 1.500 3.500q-3-2-7 1.500z" fill="#c8372d" stroke="#5a1410" stroke-width=".8" stroke-linejoin="round"/><path d="M20 7q3-2 6.500-1M20.500 9.500q2-1 4-.5" stroke="#f0a090" stroke-width=".7" fill="none"/><path d="M7 29V18a9 9 0 0118 0v11z" fill="#9aa2aa" stroke="#2e3338" stroke-width="1.200"/><path d="M16 9a9 9 0 019 9v11h-5V18q0-5-4-9z" fill="rgba(0,0,0,.18)"/><path d="M9 17.500h14v3H9z" fill="#2e3338"/><path d="M14.800 20.500h2.400v7h-2.400z" fill="#2e3338"/><path d="M7 27h18" stroke="#d8b24a" stroke-width="1.600"/><circle cx="16" cy="12" r="1.300" fill="#d8b24a" stroke="#6a4c10" stroke-width=".5"/>',
  ipennant:'<path d="M7 3v27" stroke="#5a3a1c" stroke-width="2.200" stroke-linecap="round"/><circle cx="7" cy="3" r="1.800" fill="#d8b24a" stroke="#6a4c10" stroke-width=".6"/><path d="M8 5h20l-5 6l5 6H8z" fill="#3a5a8a" stroke="#1d2a44" stroke-width="1.100" stroke-linejoin="round"/><circle cx="15" cy="11" r="3" fill="#f2d27a" stroke="#8a6418" stroke-width=".7"/><path d="M15 6.500v1.500M15 14v1.500M10.500 11h1.500M18 11h1.500M11.800 7.800l1 1M17.200 13.200l1 1M18.200 7.800l-1 1M12.800 13.200l-1 1" stroke="#f2d27a" stroke-width=".9" stroke-linecap="round"/><path d="M9 6.500h18" stroke="#8aa8d0" stroke-width=".7" opacity=".7"/>',
+ bowstring:'<path d="M9 3q14 13 0 26" fill="none" stroke="#6a4424" stroke-width="2.400" stroke-linecap="round"/><path d="M9 3L20 16L9 29" fill="none" stroke="#e8e0cc" stroke-width="1.100"/><circle cx="20" cy="16" r="1.400" fill="#c9962a"/><circle cx="23" cy="16" r="6" fill="none" stroke="#3f9a5a" stroke-width="1.300" opacity=".85"/><path d="M23 8.500v3M23 20.500v3M15.500 16h3M27.500 16h3" stroke="#3f9a5a" stroke-width="1.300" stroke-linecap="round"/><circle cx="23" cy="16" r="1" fill="#3f9a5a"/>',
  spurs:'<path d="M5 18q0-7 8-7h6" stroke="#8a8f96" stroke-width="2.600" fill="none" stroke-linecap="round"/><path d="M5 18q0 4 6 4h7" stroke="#8a8f96" stroke-width="2.600" fill="none" stroke-linecap="round"/><path d="M18 16.500h4" stroke="#6a6f76" stroke-width="2"/><circle cx="25" cy="16.500" r="3.400" fill="#d8b24a" stroke="#6a4c10" stroke-width=".9"/><path d="M25 11.500v-2M25 23.500v-2M30 16.500h-2M20 16.500h2M28.500 13l-1.400 1.400M21.500 20l1.400-1.400M28.500 20l-1.400-1.400M21.500 13l1.400 1.400" stroke="#6a4c10" stroke-width="1.100" stroke-linecap="round"/><circle cx="25" cy="16.500" r="1" fill="#6a4c10"/>',
  grog:'<ellipse cx="16" cy="28" rx="9" ry="1.800" fill="rgba(0,0,0,.2)"/><rect x="13" y="3" width="6" height="4" rx="1" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M13.500 7h5v3q7 2 7 9v5q0 4-4 4H10.500q-4 0-4-4v-5q0-7 7-9z" fill="#7a6a4a" stroke="#2a1e12" stroke-width="1.200" stroke-linejoin="round"/><path d="M7 17h18v6H7z" fill="#a8402a" opacity=".85"/><path d="M7 17h18M7 23h18" stroke="#2a1e12" stroke-width=".9"/><path d="M12 20h8" stroke="#f0d8a0" stroke-width="1.300" stroke-linecap="round"/><path d="M10 12q1-2 3-2" stroke="#c8b890" stroke-width="1" fill="none" stroke-linecap="round" opacity=".7"/>',
  pebble:'<ellipse cx="16" cy="25" rx="9" ry="1.800" fill="rgba(0,0,0,.18)"/><ellipse cx="16" cy="19" rx="9" ry="6.500" fill="#9aa0a6" stroke="#3a3e44" stroke-width="1.200"/><path d="M10 17q4-3 10-2" stroke="#d8dce0" stroke-width="1.300" fill="none" stroke-linecap="round"/><path d="M14.200 20.800l1.200-1.600l1.600 1.200l-.6 1.800z" fill="#5a8a5a" opacity=".85"/>',
@@ -4143,6 +4154,7 @@ $("go").onclick=()=>{
 $("end").onclick=()=>{
   if(over||busy||locked||!units.length||turn!=="y")return;
   if(mode==="ushove"){mode=null;shoveT=null}
+  units.forEach(u=>{if(u.team==="y"&&u.t==="A"&&!u.moved&&!u.acted&&rel(u,"bowstring"))u.aim=1}); // Sentinel's Bowstring: held still, it holds aim
   firstTurn=false;pturn++;
   units.forEach(u=>{if(u.team==="y"&&!u.moved&&rel(u,"drum"))u.drum=pturn}); // War Drum: holding the line pays off next turn
   const n=mods.y==="REST"?rest("y"):0;
