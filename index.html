@@ -669,6 +669,7 @@ const RELICS={
  imposing:{name:"Imposing Banner",r:0,src:"both",need:"N",desc:"Enemy units within 2 tiles of your Banner Bearer deal 1 less damage (never less than 1). Tall, dark and heavy with old battle honors; nobody wants to be the first to strike beneath it."},
  helm:{name:"Inspirational Plumed Helm",r:2,src:"both",need:"N",desc:"Your other units within 2 tiles of your Banner Bearer get +1 movement, but the Banner Bearer gets 5% less evasion. Hard to miss, which is rather the point."},
  ipennant:{name:"Pennant of Inspiration",r:1,src:"both",need:"N",desc:"On each enemy turn, the first of your other units within 2 tiles of your Banner Bearer to take damage resists 1 of it (never below 1). They stand a little taller under it."},
+ bugle:{name:"Goading Bugle",r:2,src:"both",need:"T",desc:"Once per turn, your Captain can spend its action to sound the bugle: its Militia deal +1 damage this turn, the Captain steps 1 tile right away, and each of its Militia can step 1 tile after it acts. Not a pleasant sound. That's rather the idea."},
  baton:{name:"Drill Sergeant's Baton",r:1,src:"both",lock:"baton",need:"T",desc:"Your Captain's militia are drilled hard: they muster with 6 HP instead of 4."},
  pitchfork:{name:"Refined Pitchforks",r:0,src:"both",lock:"pitchfork",need:"T",desc:"Your Militia deal +1 damage."},
  gauntlets:{name:"Spiked Gauntlets",r:0,src:"both",desc:"Your units deal +1 damage when they retaliate."},
@@ -758,6 +759,7 @@ const MULE_AR=2,muled=u=>u.team==="y"&&u.muleUntil>=pturn; // Mule Hair Potion: 
 const DANDELION_CHANCE=.2,DANDELION_RANGE=2; // Immortal Dandelion: the chance to shrug off a lethal blow, and how near a support unit must be
 const dandelionSaves=(u,before)=>rel(u,"dandelion")&&before>=2&&units.some(s=>s!==u&&s.team==="y"&&(s.t==="P"||s.t==="E")&&d(s,u)<=DANDELION_RANGE)&&Math.random()<DANDELION_CHANCE;
 const rallied=u=>u.team==="y"&&u.rallyUntil>=pturn; // Trumpet of Encouragement: lasts through the enemy turn and your next one
+const canBugle=u=>u.t==="T"&&u.team==="y"&&rel(u,"bugle")&&!u.acted&&!u.auto&&units.some(m=>m.cap===u); // Goading Bugle: needs militia to goad
 const canTrumpet=u=>rel(u,"trumpet")&&!relicUsed.trumpet&&!u.acted&&!u.auto&&units.some(b=>b!==u&&b.team==="y"&&d(u,b)<=RALLY_RANGE);
 // Cherry Grove, Moment of Calm: counts as forest only for movement; no forest combat bonuses, no slowing, no retaliation in or out
 const WOODS=k=>FOREST.has(k)&&!CHERRY.has(k),calm=u=>CHERRY.has(u.x+","+u.y);
@@ -1365,6 +1367,7 @@ function combat(a,b,from=a){
   add("Tome of the Red Mages",a.t==="E"&&rel(a,"redtome")?1:0);
   add("Tome of the Black Mages",a.t==="E"&&rel(a,"blacktome")&&b.slow?1:0); // preying on the slowed
   add("Elite",a.elite?1:0);
+  add("Goading Bugle",a.goaded===pturn&&turn===a.team?1:0);
   add("Imposing Banner",units.some(v=>v.t==="N"&&v.team!==a.team&&v.team!=="w"&&rel(v,"imposing")&&d(v,from)<=BANNER_RANGE)?-1:0); // striking in the banner's shadow
   add("Vasco's Falcata",a.conq||0);
   const sc=scouting(a);add("Scouted Ahead",sc?1:0);
@@ -1459,7 +1462,7 @@ function muster(u){ // 1-2 militia appear beside the captain, nearest the enemy 
   u.musters=(u.musters||0)+1;u.acted=u.moved=1;if(n)sfx("drum");
   return n;
 }
-const spent=u=>(!!u.acted&&!!u.moved)||!!u.auto||(u.team!=="w"&&!!u.moved&&!canMuster(u)&&!canTrumpet(u)&&!(u.team==="y"&&!u.acted&&camp.battle&&!chal&&camp.items&&camp.items.length)&&!targets(u).length&&!healTargets(u).length&&!(rel(u,"font")&&units.some(b=>canBless(u,b)))&&(u.team!=="y"||!breakables(u).length)&&!(mods.y==="PUSH"&&u.t==="K"&&units.some(b=>b.team==="y"&&pushable(u,b))));
+const spent=u=>(!!u.acted&&!!u.moved)||!!u.auto||(u.team!=="w"&&!!u.moved&&!canMuster(u)&&!canTrumpet(u)&&!canBugle(u)&&!(u.team==="y"&&!u.acted&&camp.battle&&!chal&&camp.items&&camp.items.length)&&!targets(u).length&&!healTargets(u).length&&!(rel(u,"font")&&units.some(b=>canBless(u,b)))&&(u.team!=="y"||!breakables(u).length)&&!(mods.y==="PUSH"&&u.t==="K"&&units.some(b=>b.team==="y"&&pushable(u,b))));
 const targets=u=>units.filter(e=>e.team!==u.team&&(u.team!=="f"||e.team!=="w")&&d(u,e)<=rgOf(u)&&d(u,e)>=ST(u).mn);
 
 const spotsOf=(u,rc)=>[[u.x,u.y],...rc.map(k=>pk(k))];
@@ -1604,6 +1607,8 @@ function renderInfo(){
   if(u.ubulwark)notes.push("Usurper's Bulwark: an adjacent enemy that lands a blow on it takes 1 damage.");
   if(u.ushroud)notes.push(u.shroudUsed?"Usurper's Shroud: its escape is spent.":"Usurper's Shroud: once this battle, a fatal blow sends it into shadow at its own edge instead.");
   if(u.utrio)notes.push(u.vengeance?"The Usurper: +1 damage, for a fallen comrade.":"The Usurper: +1 damage once one of its comrades falls.");
+  if(u.t==="T"&&u.team==="y"&&rel(u,"bugle"))notes.push("Goading Bugle: spend its action to goad its militia (+1 damage, a step after acting) and step 1 tile.");
+  if(u.goaded===pturn&&turn===u.team)notes.push("Goaded: +1 damage this turn, and a 1-tile step after acting.");
   if(u.aim)notes.push("Holding aim: it will shoot the first enemy that moves into its range.");else if(u.t==="A"&&u.team==="y"&&rel(u,"bowstring"))notes.push("Sentinel's Bowstring: end your turn without moving or acting to hold aim.");
   if(u.t==="N"&&rel(u,"imposing"))notes.push("Imposing Banner: enemies within 2 tiles deal 1 less damage.");
   if(u.t==="N"&&rel(u,"ipennant"))notes.push("Pennant of Inspiration: on each enemy turn, the first of your units within 2 tiles to take damage resists 1 of it.");
@@ -1680,6 +1685,7 @@ function acts(){
   if(mods.y==="TP"&&!tpUsed.y&&!sel.moved)add("Teleport",()=>{mode="tp";say("Choose an open tile on the far edge.");render()});
   if(mods.y==="PUSH"&&sel.t==="K"&&!sel.acted&&units.some(b=>b.team==="y"&&pushable(sel,b)))add("Push Ally",()=>{mode="push";say("Choose an adjacent ally to push.");render()});
   if(!mode&&canTrumpet(sel))add("Sound Trumpet",()=>doTrumpet(sel));
+  if(!mode&&canBugle(sel))add("Sound the Bugle",()=>doBugle(sel));
   if(!mode&&camp.battle&&!chal&&camp.items&&camp.items.length&&sel.team==="y"&&(!sel.acted||camp.items.some(id=>ITEMS[id].free))&&!sel.auto)add("Use Item",()=>{mode="items";say("Choose an item to use.");render()});
   if(mode==="items")[...new Set(camp.items)].filter(id=>!sel.acted||ITEMS[id].free).forEach(id=>{const k=camp.items.filter(i=>i===id).length;add(ITEMS[id].name+(k>1?" \u00d7"+k:""),()=>{mode="item:"+id;say(itemPrompt(id));render()})});
   if(!mode&&canMuster(sel))add("Muster Militia",()=>{const n=muster(sel);unlock("seaside");sel=null;insp=null;lastMove=null;say(`Mustered ${n} militia. They can act next turn.`);render()});
@@ -1773,6 +1779,7 @@ function doAttack(a,u){
   attack(a,u,()=>{locked=false;info=units.includes(u)?u:null;
     const rest=()=>{
       if(a.champStep&&units.includes(a)&&!over){delete a.champStep;a.moved=0;a.stepOnly=1;sel=a;info=a;say("The champion's blow landed: it can step 1 tile.")}
+      else if(a.goaded===pturn&&turn==="y"&&units.includes(a)&&!over){a.moved=0;a.stepOnly=1;sel=a;info=a;say("Goaded on: it can step 1 tile.")} // Goading Bugle
       else if(units.includes(a)&&!over&&desperate(a,"stick")){a.moved=0;a.stepOnly=1;sel=a;info=a;say("Poke and back off: it can step 1 tile.")} // Long Stick
       afterAction()};
     const t=a.ushove;delete a.ushove;
@@ -1844,6 +1851,11 @@ function doSlow(a,u){
 function doBless(a,b){
   a.blessUsed=1;a.acted=a.moved=1;b.blessUntil=pturn+1;sel=null;mode=null;choice=null;info=b;lastMove=null;
   floatText(b.x,b.y,"Blessed","bless");sfx("bless");say("Blessed your "+NAME[b.t]+": +5% evasion until the end of your next turn.");render();
+}
+function doBugle(a){ // Goading Bugle: the militia hit harder and step after acting; the Captain steps now
+  const ms=units.filter(m=>m.cap===a);a.acted=1;a.moved=0;a.stepOnly=1;mode=null;choice=null;insp=null;lastMove=null;sel=a;info=a;
+  ms.forEach(m=>{m.goaded=pturn;floatText(m.x,m.y,"Goaded","rally");if(m.acted){m.moved=0;m.stepOnly=1}}); // militia that already acted get their step now
+  sfx("trumpet");say(`The bugle blares! ${ms.length} militia deal +1 damage this turn and can step 1 tile after acting. Your Captain can step 1 tile.`);render();
 }
 function doTrumpet(a){ // Trumpet of Encouragement: nearby allies that have moved get to move again, and all of them get +5% evasion
   relicUsed.trumpet=1;a.acted=a.moved=1;sel=null;mode=null;choice=null;insp=null;lastMove=null;
@@ -3683,6 +3695,7 @@ const RICON={ // small 32-unit relic icons
  helm:'<path d="M17 12q-2-8 5-10q6-1 8 4q-3-1-5 1q2 1 1.500 3.500q-3-2-7 1.500z" fill="#c8372d" stroke="#5a1410" stroke-width=".8" stroke-linejoin="round"/><path d="M20 7q3-2 6.500-1M20.500 9.500q2-1 4-.5" stroke="#f0a090" stroke-width=".7" fill="none"/><path d="M7 29V18a9 9 0 0118 0v11z" fill="#9aa2aa" stroke="#2e3338" stroke-width="1.200"/><path d="M16 9a9 9 0 019 9v11h-5V18q0-5-4-9z" fill="rgba(0,0,0,.18)"/><path d="M9 17.500h14v3H9z" fill="#2e3338"/><path d="M14.800 20.500h2.400v7h-2.400z" fill="#2e3338"/><path d="M7 27h18" stroke="#d8b24a" stroke-width="1.600"/><circle cx="16" cy="12" r="1.300" fill="#d8b24a" stroke="#6a4c10" stroke-width=".5"/>',
  ipennant:'<path d="M7 3v27" stroke="#5a3a1c" stroke-width="2.200" stroke-linecap="round"/><circle cx="7" cy="3" r="1.800" fill="#d8b24a" stroke="#6a4c10" stroke-width=".6"/><path d="M8 5h20l-5 6l5 6H8z" fill="#3a5a8a" stroke="#1d2a44" stroke-width="1.100" stroke-linejoin="round"/><circle cx="15" cy="11" r="3" fill="#f2d27a" stroke="#8a6418" stroke-width=".7"/><path d="M15 6.500v1.500M15 14v1.500M10.500 11h1.500M18 11h1.500M11.800 7.800l1 1M17.200 13.200l1 1M18.200 7.800l-1 1M12.800 13.200l-1 1" stroke="#f2d27a" stroke-width=".9" stroke-linecap="round"/><path d="M9 6.500h18" stroke="#8aa8d0" stroke-width=".7" opacity=".7"/>',
  bowstring:'<path d="M9 3q14 13 0 26" fill="none" stroke="#6a4424" stroke-width="2.400" stroke-linecap="round"/><path d="M9 3L20 16L9 29" fill="none" stroke="#e8e0cc" stroke-width="1.100"/><circle cx="20" cy="16" r="1.400" fill="#c9962a"/><circle cx="23" cy="16" r="6" fill="none" stroke="#3f9a5a" stroke-width="1.300" opacity=".85"/><path d="M23 8.500v3M23 20.500v3M15.500 16h3M27.500 16h3" stroke="#3f9a5a" stroke-width="1.300" stroke-linecap="round"/><circle cx="23" cy="16" r="1" fill="#3f9a5a"/>',
+ bugle:'<path d="M4 18h12" stroke="#8a6418" stroke-width="2.400" stroke-linecap="round"/><path d="M16 18q5 0 11-7v14q-6-7-11-7z" fill="#c9962a" stroke="#5a4010" stroke-width="1.100" stroke-linejoin="round"/><path d="M6 18q0 6 6 6h3" fill="none" stroke="#a87a1c" stroke-width="1.600"/><circle cx="4" cy="18" r="1.600" fill="#a87a1c" stroke="#5a4010" stroke-width=".7"/><path d="M26 12v12" stroke="#f4dc8a" stroke-width=".9" opacity=".7"/><path d="M8 13l2-6l2 4l2-6l2 6" fill="none" stroke="#b8372d" stroke-width="1.300" stroke-linejoin="round"/><path d="M28.500 9l2-2M29.500 18h2M28.500 27l2 2" stroke="#5a4010" stroke-width="1.100" stroke-linecap="round"/>',
  spurs:'<path d="M5 18q0-7 8-7h6" stroke="#8a8f96" stroke-width="2.600" fill="none" stroke-linecap="round"/><path d="M5 18q0 4 6 4h7" stroke="#8a8f96" stroke-width="2.600" fill="none" stroke-linecap="round"/><path d="M18 16.500h4" stroke="#6a6f76" stroke-width="2"/><circle cx="25" cy="16.500" r="3.400" fill="#d8b24a" stroke="#6a4c10" stroke-width=".9"/><path d="M25 11.500v-2M25 23.500v-2M30 16.500h-2M20 16.500h2M28.500 13l-1.400 1.400M21.500 20l1.400-1.400M28.500 20l-1.400-1.400M21.500 13l1.400 1.400" stroke="#6a4c10" stroke-width="1.100" stroke-linecap="round"/><circle cx="25" cy="16.500" r="1" fill="#6a4c10"/>',
  grog:'<ellipse cx="16" cy="28" rx="9" ry="1.800" fill="rgba(0,0,0,.2)"/><rect x="13" y="3" width="6" height="4" rx="1" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M13.500 7h5v3q7 2 7 9v5q0 4-4 4H10.500q-4 0-4-4v-5q0-7 7-9z" fill="#7a6a4a" stroke="#2a1e12" stroke-width="1.200" stroke-linejoin="round"/><path d="M7 17h18v6H7z" fill="#a8402a" opacity=".85"/><path d="M7 17h18M7 23h18" stroke="#2a1e12" stroke-width=".9"/><path d="M12 20h8" stroke="#f0d8a0" stroke-width="1.300" stroke-linecap="round"/><path d="M10 12q1-2 3-2" stroke="#c8b890" stroke-width="1" fill="none" stroke-linecap="round" opacity=".7"/>',
  pebble:'<ellipse cx="16" cy="25" rx="9" ry="1.800" fill="rgba(0,0,0,.18)"/><ellipse cx="16" cy="19" rx="9" ry="6.500" fill="#9aa0a6" stroke="#3a3e44" stroke-width="1.200"/><path d="M10 17q4-3 10-2" stroke="#d8dce0" stroke-width="1.300" fill="none" stroke-linecap="round"/><path d="M14.200 20.800l1.200-1.600l1.600 1.200l-.6 1.800z" fill="#5a8a5a" opacity=".85"/>',
