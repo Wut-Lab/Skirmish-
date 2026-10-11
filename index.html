@@ -3927,12 +3927,18 @@ function renderItems(){
   $("witems").querySelectorAll(".ichip").forEach(b=>b.onclick=()=>showItemInfo(b.dataset.id,b));
 }
 function showItemInfo(id,from){const I=ITEMS[id];relinfoFrom=from;$("rititle").textContent=I.name;$("ribody").innerHTML=`<div class="rcard" style="--rc:#a08a64"><span class="ri">${itemIcon(id,38)}</span><span class="rr">Consumable \u00b7 one use</span><small>${I.desc} In battle, select a unit and tap Use Item.</small></div>`;$("relinfo").hidden=false;$("riclose").focus()}
-// a full pack: pick a consumable to discard for the new one (id); take() then adds it as usual. "Keep my pack" changes nothing
+// a full pack: pick a consumable to discard for the new one (id), then confirm; take() then adds it as usual. "Keep my pack" changes nothing
 function swapItem(id,from,take){
-  const end=()=>{$("riclose").hidden=false;closeRelicInfo()};relinfoFrom=from;$("rititle").textContent="Your Pack Is Full";
-  $("ribody").innerHTML=`<p class="rsub">Discard one to make room for the <strong>${ITEMS[id].name}</strong>.</p><div class="plist">${camp.items.map((k,i)=>`<button class="rcard" data-i="${i}" style="--rc:${ITEMS[k].r?RARITY[ITEMS[k].r][1]:"#a08a64"}"><span class="ri">${itemIcon(k,38)}</span><span class="rr">Tap to discard</span><b>${ITEMS[k].name}</b><small>${ITEMS[k].desc}</small></button>`).join("")}</div><div class="menubtns"><button class="b" id="swkeep">Keep my pack</button></div>`;
-  $("ribody").querySelectorAll(".rcard").forEach(b=>b.onclick=()=>{camp.items.splice(+b.dataset.i,1);end();take()});
-  $("swkeep").onclick=end;$("riclose").hidden=true;$("relinfo").hidden=false;$("ribody").querySelector(".rcard").focus();
+  const end=()=>{$("riclose").hidden=false;closeRelicInfo()},card=(k,rr,i)=>`<button class="rcard" data-i="${i}" style="--rc:${ITEMS[k].r?RARITY[ITEMS[k].r][1]:"#a08a64"}"><span class="ri">${itemIcon(k,38)}</span><span class="rr">${rr}</span><b>${ITEMS[k].name}</b><small>${ITEMS[k].desc}</small></button>`;
+  const pick=()=>{
+    $("ribody").innerHTML=`<p class="rsub">Discard one to make room for the <strong>${ITEMS[id].name}</strong>.</p><div class="plist">${camp.items.map((k,i)=>card(k,"Tap to discard",i)).join("")}</div><div class="menubtns"><button class="b" id="swkeep">Keep my pack</button></div>`;
+    $("ribody").querySelectorAll(".rcard").forEach(b=>b.onclick=()=>sure(+b.dataset.i));$("swkeep").onclick=end;$("ribody").querySelector(".rcard").focus();
+  };
+  const sure=i=>{ // are you sure?
+    $("ribody").innerHTML=`<p class="rsub">Are you sure? The <strong>${ITEMS[camp.items[i]].name}</strong> will be gone for good, and the <strong>${ITEMS[id].name}</strong> takes its place.</p><div class="plist">${card(camp.items[i],"To be discarded",i)}</div><div class="menubtns"><button class="b" id="swyes">Yes, discard it</button><button class="b" id="swback">Go back</button></div>`;
+    $("ribody").querySelector(".rcard").disabled=true;$("swyes").onclick=()=>{camp.items.splice(i,1);end();take()};$("swback").onclick=pick;$("swback").focus();
+  };
+  relinfoFrom=from;$("rititle").textContent="Your Pack Is Full";$("riclose").hidden=true;$("relinfo").hidden=false;pick();
 }
 function showPack(from,foe){ // every relic and item you (or the garrison) carry, from the battle card's "..."
   const row=(icon,rr,rc,nm,desc)=>`<div class="rcard" style="--rc:${rc}"><span class="ri">${icon}</span><span class="rr">${rr}</span><b>${nm}</b><small>${desc}</small></div>`;
