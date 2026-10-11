@@ -717,7 +717,7 @@ const RELICS={
  rations:{name:"Trail Rations",r:0,src:"both",desc:"Your units heal 1 extra HP after each battle."},
  bandages:{name:"Spare Bandages",r:0,desc:"Your units that fall in a battle return for the next one with 3 HP instead of 1."},
  ammo:{name:"Upgraded Ammunition",r:0,src:"both",need:"R",desc:"Artillery get +1 pierce. Iron-capped shot, cast to punch through plate."},
- stud:{name:"Royal Stud Book",r:0,src:"both",need:"C",hpUp:"C",desc:"Cavalry get +1 max HP. Gaining it doesn't heal them: the extra point fills in as they recover. Generations of careful breeding, written down at last."},
+ stud:{name:"Royal Stud Book",r:0,src:"both",need:["C","Q"],hpUp:["C","Q"],get desc(){return (unlocks.conquistador?"Mounted units (Cavalry and Conquistadors)":"Cavalry")+" get +1 max HP. Gaining it doesn't heal them: the extra point fills in as they recover. Generations of careful breeding, written down at last."}},
  musket:{name:"Musket",r:0,src:"both",lock:"conquistador",need:"Q",desc:"Your Conquistadors get +1 range, but their shots from 2 or more tiles away deal 1 less damage. Loud, slow to load, and only roughly pointed where you meant."},
  luckycross:{name:"Lucky Cross",r:1,src:"both",lock:"conquistador",need:"Q",desc:"Win a battle in which a Conquistador finishes off at least one enemy, and you earn 10 extra gold. Kissed before every charge, and so far it has never once failed."},
  eldorado:{name:"Espada de El Dorado",r:2,src:"both",lock:"conquistador",need:"Q",desc:"Your Conquistadors deal +1 damage at melee range for every 50 gold you carry, up to +2. Gilded from guard to tip; it only ever seems to hunger for more."},
@@ -2380,9 +2380,9 @@ const ESC=[
 ];
 const ELITE_HP=2,esc=r=>{const n=ESC.length,e=ESC[Math.min(r,n)-1];return r>n?{...e,relics:e.relics+Math.floor((r-n)/2)}:e},escFrom=k=>ESC.findIndex(e=>e[k]>0)+1;
 // relics an enemy army can make use of (no player-only actions, once-per-battle tricks or gold), and the unit each needs
-const FOE_OK={ipennant:"N",imposing:"N",helm:"N",ammo:"R",stud:"C",csword:"",cshield:"",ublade:"",ubulwark:"",ushroud:"",whet:"A",shield:"K",bard:"C",luck:"",long:"A",debris:"R",wolfpack:"",mercy:"",gauntlets:"",pavise:"A",pennant:"",hatchet:"",keep:"",ram:"",blossom:"",crown:"",statue:"",spurs:"C",grog:"",pebble:"",warpaint:""};
+const FOE_OK={ipennant:"N",imposing:"N",helm:"N",ammo:"R",stud:["C","Q"],csword:"",cshield:"",ublade:"",ubulwark:"",ushroud:"",whet:"A",shield:"K",bard:"C",luck:"",long:"A",debris:"R",wolfpack:"",mercy:"",gauntlets:"",pavise:"A",pennant:"",hatchet:"",keep:"",ram:"",blossom:"",crown:"",statue:"",spurs:"C",grog:"",pebble:"",warpaint:""};
 function foeLoadout(r){
-  const army=units.filter(u=>u.team==="f").map(u=>u.t),ok=id=>id in FOE_OK&&(!FOE_OK[id]||army.includes(FOE_OK[id]))&&!FOE_RELIC.has(id)&&(!RELICS[id].lock||unlocks[RELICS[id].lock])&&!clash(id,[...FOE_RELIC]);
+  const army=units.filter(u=>u.team==="f").map(u=>u.t),ok=id=>id in FOE_OK&&(!FOE_OK[id]||[].concat(FOE_OK[id]).some(t=>army.includes(t)))&&!FOE_RELIC.has(id)&&(!RELICS[id].lock||unlocks[RELICS[id].lock])&&!clash(id,[...FOE_RELIC]);
   const boss=Object.keys(RELICS).filter(id=>RELICS[id].src==="boss"&&ok(id)),other=Object.keys(RELICS).filter(id=>RELICS[id].src!=="boss"&&ok(id));
   const take=list=>{const c=list.filter(ok);if(c.length)FOE_RELIC.add(c[Math.floor(Math.random()*c.length)])};
   for(let i=0;i<esc(r).relics;i++)take(i===0||(r>=6&&i===1)?boss:Math.random()<.5?boss:other); // the first (and from region 6 the second) always from the boss list
@@ -2414,7 +2414,7 @@ function foeUseItems(){
   }
   return msg.join(" ");
 }
-const hpUp=(t,has)=>Object.keys(RELICS).filter(id=>RELICS[id].hpUp===t&&has(id)).length; // relics that raise a unit type's max HP (hpUp: the type)
+const hpUp=(t,has)=>Object.keys(RELICS).filter(id=>[].concat(RELICS[id].hpUp||[]).includes(t)&&has(id)).length; // relics that raise a unit type's max HP (hpUp: the type, or a list of types)
 const WOUND_MAX=3,CROSS_SPARE=.15,MEDKIT_DOUBLE=.25,maxHp=u=>ST(u).hp-(u.wounds||0)+(u.elite?ELITE_HP:0)+hpUp(u.t,id=>rel(u,id));
 const woundsOf=i=>(camp.wounds&&camp.wounds[i])||0,campMax=i=>TYPES[armyTypes()[i]].hp-woundsOf(i)+hpUp(armyTypes()[i],id=>camp.relics.includes(id));
 // taking a relic: one that raises max HP first pins the army's current HP, so gaining it never heals
