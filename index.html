@@ -720,6 +720,7 @@ const RELICS={
  stud:{name:"Royal Stud Book",r:0,src:"both",need:["C","Q"],hpUp:["C","Q"],get desc(){return (unlocks.conquistador?"Mounted units (Cavalry and Conquistadors)":"Cavalry")+" get +1 max HP. Gaining it doesn't heal them: the extra point fills in as they recover. Generations of careful breeding, written down at last."}},
  musket:{name:"Musket",r:0,src:"both",lock:"conquistador",need:"Q",desc:"Your Conquistadors get +1 range, but their shots from 2 or more tiles away deal 1 less damage. Loud, slow to load, and only roughly pointed where you meant."},
  luckycross:{name:"Lucky Cross",r:1,src:"both",lock:"conquistador",need:"Q",desc:"Win a battle in which a Conquistador finishes off at least one enemy, and you earn 10 extra gold. Kissed before every charge, and so far it has never once failed."},
+ escaupil:{name:"Quilted Escaupil",r:1,src:"both",lock:"conquistador",need:"Q",desc:"Your Conquistadors get +5% evasion. On a turn one moves through forest or swamp, that rises to +10% and its attacks get +1 pierce. Quilted cotton, borrowed from the locals: cool in the jungle and quiet in the brush."},
  eldorado:{name:"Espada de El Dorado",r:2,src:"both",lock:"conquistador",need:"Q",desc:"Your Conquistadors deal +1 damage at melee range for every 50 gold you carry, up to +2. Gilded from guard to tip; it only ever seems to hunger for more."},
  lance:{name:"Master's Lance",r:2,src:"both",need:"C",desc:"A Cavalry unit that moved 3 or more tiles this turn before attacking charges: the attack gets +2 pierce, the target can't retaliate, and if the blow lands the target is knocked back 1 tile."},
  rsaddle:{name:"Swift Rider's Saddle",r:1,src:"both",need:"C",desc:"Your Cavalry can ride through enemy units as well as your own (never stopping on one), and a Cavalry unit that has moved gets +5% evasion until your next turn."},
@@ -1367,7 +1368,7 @@ const $=id=>document.getElementById(id),board=$("board");
 const d=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 const at=(x,y)=>units.find(u=>u.x===x&&u.y===y);
 const helmed=u=>units.some(b=>b!==u&&b.t==="N"&&b.team===u.team&&rel(b,"helm")&&d(b,u)<=BANNER_RANGE); // within the Inspirational Plumed Helm's reach
-const PENDANT_EV=.05,RIDER_EV=.05,LIGHT_EV=.05,ELDORADO_GOLD=50,ELDORADO_MAX=2,LUCKYCROSS_GOLD=10,HELM_EV=.05,HEX_EV=.1,HEXBOOK_EV=.05; // HEX_EV: the Enchanter's hex makes its victim's targets harder to hit
+const ESCA_EV=.05,ESCA_ROUGH_EV=.1,PENDANT_EV=.05,RIDER_EV=.05,LIGHT_EV=.05,ELDORADO_GOLD=50,ELDORADO_MAX=2,LUCKYCROSS_GOLD=10,HELM_EV=.05,HEX_EV=.1,HEXBOOK_EV=.05; // HEX_EV: the Enchanter's hex makes its victim's targets harder to hit
 const mvOf=u=>{const m=ST(u).mv+(helmed(u)?1:0)+(u.t==="K"&&rel(u,"lightarmor")?1:0)-(u.t==="C"&&rel(u,"bard")?1:0)+(firstTurn&&rel(u,"drills")?1:0)+(u.haste||0);if(u.stepOnly)return 1;return u.slow?Math.min(m,TYPES.E.slow):m};
 const inspired=(u,at=u)=>units.some(b=>b.t==="N"&&b.team===u.team&&b!==u&&d(b,at)<=BANNER_RANGE); // within a Banner Bearer's aura (at: where u would stand)
 /* ---------- Combat: the one place an attack's damage and hit chance are worked out ----------
@@ -1414,9 +1415,9 @@ function combat(a,b,from=a){
   const sc=scouting(a);add("Scouted Ahead",sc?1:0);
   const armor=[["Armor",B.ar||0],["Shield Wall",walled(b)?1:0],["Forest Tactics",mods[b.team]==="FT"&&A.rg>1&&WOODS(k)?1:0],["Fortress",FORT.has(k)?1:0],["Sturdy Shields",b.t==="K"&&rel(b,"shield")?1:0],["Lightened Armor",b.t==="K"&&rel(b,"lightarmor")?-1:0],["Barding",b.t==="C"&&rel(b,"bard")?1:0],["Banner of the Fallen Keep",b.keep?1:0],["Vasco's Morion",b.vang?1:0],["Stubborn as a Mule",muled(b)?MULE_AR:0],["Improvised Armor",desperate(b,"hide")&&units.some(v=>v.team===b.team&&v.t==="K"&&d(v,b)===1)?1:0]];
   armor.forEach(([l,v])=>add(l,-v));
-  add("Pierce",Math.min(a.t==="E"?99:a.bruise?1:Math.max(0,(A.pi||0)+(charging(a,from)?2:0)+(rel(a,"bluemagma")?1:0)+(rel(a,"crown")?1:0)+(a.t==="K"&&rel(a,"sallet")?1:0)+(a.t==="R"&&rel(a,"ammo")?1:0)+(a.champ?1:0)+(sc?1:0)+(a.ublade&&b.hp>maxHp(b)/2?1:0)-(b.cshield?1:0)),armor.reduce((t,x)=>t+x[1],0))); // Blue Magma and the Champion's Sword add pierce, the Usurper's Blade against the healthy; the Champion's Shield turns 1 aside
+  add("Pierce",Math.min(a.t==="E"?99:a.bruise?1:Math.max(0,(A.pi||0)+(charging(a,from)?2:0)+(rel(a,"bluemagma")?1:0)+(rel(a,"crown")?1:0)+(a.t==="K"&&rel(a,"sallet")?1:0)+(a.t==="R"&&rel(a,"ammo")?1:0)+(a.t==="Q"&&rel(a,"escaupil")&&a.rough?1:0)+(a.champ?1:0)+(sc?1:0)+(a.ublade&&b.hp>maxHp(b)/2?1:0)-(b.cshield?1:0)),armor.reduce((t,x)=>t+x[1],0))); // Blue Magma and the Champion's Sword add pierce, the Usurper's Blade against the healthy; the Champion's Shield turns 1 aside
   add("Pavise",b.t==="A"&&A.rg>1&&rel(b,"pavise")?-1:0); // a shield wall, not armor: pierce can't get past it
-  const ev=Math.max(0,-(rel(a,"keen")&&rgOf(a)>1?KEEN_EV:0)-(mods[a.team]==="AIM"?AIM_EV:0)-(b.t==="N"&&rel(b,"helm")?HELM_EV:0)-(b.hex&&b.hexPend?PENDANT_EV:0)+Math.min(EV_CAP,(B.ev||0)+(rides(b)&&b.moved?RIDER_EV:0)+(b.t==="K"&&rel(b,"lightarmor")?LIGHT_EV:0)+(b.t==="E"&&rel(b,"hexbook")?HEXBOOK_EV:0)+(a.hex?HEX_EV:0)+(rel(b,"luck")?.05:0)+(b.trio?TRIO_EV:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(rel(b,"sakurafan")&&[...blastOf(k),[b.x,b.y]].some(([x,y])=>CHERRY.has(x+","+y))?FAN_EV:0)+(blessed(b)?BLESS_EV:0)+(rested(b)?REST_EV:0)+(rel(b,"pebble")?PEBBLE_EV:0)+(rallied(b)?RALLY_EV:0)+(b.team==="y"&&SMOKE.has(k)?SMOKE_EV:0)+(WOODS(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0))); // Keen Eye Charm: ranged attacks see through a little of it; Steady Aim, any attack
+  const ev=Math.max(0,-(rel(a,"keen")&&rgOf(a)>1?KEEN_EV:0)-(mods[a.team]==="AIM"?AIM_EV:0)-(b.t==="N"&&rel(b,"helm")?HELM_EV:0)-(b.hex&&b.hexPend?PENDANT_EV:0)+Math.min(EV_CAP,(B.ev||0)+(rides(b)&&b.moved?RIDER_EV:0)+(b.t==="K"&&rel(b,"lightarmor")?LIGHT_EV:0)+(b.t==="Q"&&rel(b,"escaupil")?(b.rough?ESCA_ROUGH_EV:ESCA_EV):0)+(b.t==="E"&&rel(b,"hexbook")?HEXBOOK_EV:0)+(a.hex?HEX_EV:0)+(rel(b,"luck")?.05:0)+(b.trio?TRIO_EV:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(rel(b,"sakurafan")&&[...blastOf(k),[b.x,b.y]].some(([x,y])=>CHERRY.has(x+","+y))?FAN_EV:0)+(blessed(b)?BLESS_EV:0)+(rested(b)?REST_EV:0)+(rel(b,"pebble")?PEBBLE_EV:0)+(rallied(b)?RALLY_EV:0)+(b.team==="y"&&SMOKE.has(k)?SMOKE_EV:0)+(WOODS(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0))); // Keen Eye Charm: ranged attacks see through a little of it; Steady Aim, any attack
   return {dmg:Math.max(1,parts.reduce((t,p)=>t+p[1],0)),hit:sc?1:1-ev,parts}; // every hit deals at least 1; a scouted first strike never misses
 }
 // a unit with `ret` retaliates against an attacker within its own range for half damage, at least 1 (the attacker may evade it); null when it can't
@@ -1487,7 +1488,8 @@ function routes(u){
 // moves u to (x,y) along its route and springs any caltrops on the way; returns how many hurt it (u may have fallen: check units)
 function walk(u,x,y){
   if(!u.mvFrom)u.mvFrom=[u.x,u.y]; // where this turn's movement began (Master's Lance measures the run-up from here)
-  const r=routes(u).get(x+","+y),hits=r?r.path.filter(k=>CALTROPS.has(k)&&(u.team!=="y"||Math.random()<CALTROP_ALLY)).length:0;
+  const r=routes(u).get(x+","+y),rough=k=>FOREST.has(k)||SWAMP.has(k);if(u.t==="Q"&&[u.x+","+u.y,x+","+y,...(r?r.path:[])].some(rough))u.rough=1; // the Quilted Escaupil: it went through the brush this turn
+  const hits=r?r.path.filter(k=>CALTROPS.has(k)&&(u.team!=="y"||Math.random()<CALTROP_ALLY)).length:0;
   u.x=x;u.y=y;if(!hits)return 0;
   sfx("caltrops");
   for(let i=0;i<hits&&units.includes(u);i++)hurt(u,CALTROP_DMG); // ignores armor, like magma
@@ -1657,6 +1659,7 @@ function renderInfo(){
   if(u.goaded===pturn&&turn===u.team)notes.push("Goaded: +1 damage this turn, and a 1-tile step after acting.");
   if(u.t==="E"&&rel(u,"hexbook"))notes.push("Book of Combat Hexes: an adjacent enemy that attacks it takes 1 damage and deals 1 less on its next turn.");
   if(u.weak||u.cursed)notes.push(u.weak?"Cursed: deals 1 less damage this turn.":"Cursed: will deal 1 less damage on its next turn.");
+  if(u.t==="Q"&&rel(u,"escaupil"))notes.push(u.rough?"Quilted Escaupil: through the brush this turn, +10% evasion and +1 pierce.":"Quilted Escaupil: +5% evasion; move through forest or swamp for +10% and +1 pierce.");
   if(u.t==="Q"&&u.team==="y"&&rel(u,"musket"))notes.push("Musket: range +1; shots from 2+ tiles deal 1 less damage.");
   if(u.t==="Q"&&u.team==="y"&&rel(u,"eldorado")&&camp.battle)notes.push(`Espada de El Dorado: +${Math.min(ELDORADO_MAX,Math.floor((camp.gold||0)/ELDORADO_GOLD))} damage at melee range (${camp.gold||0} gold carried).`);
   if(u.t==="K"&&u.team==="y"&&rel(u,"bruiser"))notes.push(`Gauntlets of the Bruiser: its pushes strike for half damage${u.moved?"; it moved, so it pushes 3 tiles":""}.`);
@@ -1670,7 +1673,7 @@ function renderInfo(){
   if(u.t==="N"&&rel(u,"ipennant"))notes.push("Pennant of Inspiration: on each enemy turn, the first of your units within 2 tiles to take damage resists 1 of it.");
   if(u.t==="N"&&rel(u,"helm"))notes.push("Inspirational Plumed Helm: your other units within 2 tiles get +1 movement.");else if(helmed(u))notes.push("Inspired by the Plumed Helm: +1 movement.");
   if(u.bloom)notes.push(`Last Bloom: +${u.bloom} damage this battle, for a fallen comrade.`);
-  const stats=[["Move",mvOf(u)],["Range",rangeTxt({...T,rg:rgOf(u)})],["Damage",T.dmg+(u.t==="A"&&rel(u,"whet")?1:0)+(u.t==="M"&&rel(u,"pitchfork")?1:0)+(u.bloom||0)+(u.champ?1:0)+(u.ublade?1:0)+(u.vengeance?1:0)+(inspired(u)?"+1":"")],["Armor",arm],["Pierce",u.t==="E"?"All":(T.pi||0)+(u.t==="R"&&rel(u,"ammo")?1:0)],["Evasion",pct(Math.max(0,(T.ev||0)+(rides(u)&&u.moved?RIDER_EV:0)-(u.t==="N"&&rel(u,"helm")?HELM_EV:0)+(u.t==="E"&&rel(u,"hexbook")?HEXBOOK_EV:0)))]].map(([k,v])=>`<span class="stat${v===0||v==="0%"?" nil":""}">${k} <b>${v}</b></span>`).join(""); // the same six stats on every card, zeros dimmed
+  const stats=[["Move",mvOf(u)],["Range",rangeTxt({...T,rg:rgOf(u)})],["Damage",T.dmg+(u.t==="A"&&rel(u,"whet")?1:0)+(u.t==="M"&&rel(u,"pitchfork")?1:0)+(u.bloom||0)+(u.champ?1:0)+(u.ublade?1:0)+(u.vengeance?1:0)+(inspired(u)?"+1":"")],["Armor",arm],["Pierce",u.t==="E"?"All":(T.pi||0)+(u.t==="R"&&rel(u,"ammo")?1:0)+(u.t==="Q"&&rel(u,"escaupil")&&u.rough?1:0)],["Evasion",pct(Math.max(0,(T.ev||0)+(rides(u)&&u.moved?RIDER_EV:0)+(u.t==="Q"&&rel(u,"escaupil")?(u.rough?ESCA_ROUGH_EV:ESCA_EV):0)-(u.t==="N"&&rel(u,"helm")?HELM_EV:0)+(u.t==="E"&&rel(u,"hexbook")?HEXBOOK_EV:0)))]].map(([k,v])=>`<span class="stat${v===0||v==="0%"?" nil":""}">${k} <b>${v}</b></span>`).join(""); // the same six stats on every card, zeros dimmed
   el.className="pb";el.style.borderLeft=`8px solid ${c[1]}`;
   el.innerHTML=`<div class="lbl">Unit</div><div class="row top"><div class="pv">${u.trio||u.utrio?disc(u.t,c).replace(ICON[u.t],u.trio?CHAMP_ICON:USURP_ICON):disc(u.t,c,u.merc,u.auto&&u.team==="y")}</div><div class="ib"><div class="nm"><strong>${u.merc?u.mname:hero?heroName(u.ci):cap(NAME[u.t])}</strong><span>${u.trio?"The Champion":u.utrio?"The Usurper":u.merc?(u.team==="y"?"Your mercenary ":"Enemy mercenary ")+NAME[u.t]:hero?cap(NAME[u.t]):u.team==="y"?"Your unit":u.team==="w"?"Wild":"Enemy"}</span></div><div class="hprow"><span>HP</span><b>${u.hp} / ${maxHp(u)}</b></div><div class="hpb"><i style="width:${100*r}%;background:${r>.5?"#4caf50":r>.25?"#e0b21c":"#d64b3a"}"></i></div><div class="stats">${stats}</div>${notes.map(n=>`<small>${n}</small>`).join("")}</div></div>`;
 }
@@ -1771,7 +1774,7 @@ function moveThen(a,cm,fn){
 function undoMove(){
   const m=lastMove;lastMove=null;
   if(!m||!units.includes(m.u)||m.u.acted||at(m.x,m.y))return render();
-  m.u.x=m.x;m.u.y=m.y;m.u.moved=0;delete m.u.mvFrom;if(m.tp)tpUsed.y=0;if(m.ctp)m.u.cloakUsed=0;
+  m.u.x=m.x;m.u.y=m.y;m.u.moved=0;delete m.u.mvFrom;delete m.u.rough;if(m.tp)tpUsed.y=0;if(m.ctp)m.u.cloakUsed=0;
   sel=m.u;info=m.u;insp=null;mode=null;choice=null;bchoice=null;
   say("Move undone. Pick a new tile.");render();
 }
@@ -2548,7 +2551,7 @@ function evalTile(u,x,y,D,foes,xv){
 }
 function enemyTurn(note=""){
   const used=FOE_ITEMS.length?foeUseItems():"";if(used)note+=used+" ";if(over||checkEnd())return;
-  turn="f";sel=null;mode=null;choice=null;insp=null;info=null;busy=true;lastMove=null;units.forEach(u=>{if(u.team==="f")u.moved=u.acted=0});say(note+"Enemy is moving...");render();
+  turn="f";sel=null;mode=null;choice=null;insp=null;info=null;busy=true;lastMove=null;units.forEach(u=>{if(u.team==="f"){u.moved=u.acted=0;delete u.mvFrom;delete u.rough}});say(note+"Enemy is moving...");render();
   const wq=units.filter(u=>u.team==="w"),done=new Set();let wi=0,movedAny=false;
   const g=gid;
   // works out where u would like to stand: its best tile overall, and its best tile that isn't where it is now
@@ -2652,7 +2655,7 @@ function enemyTurn(note=""){
     hazards("f",()=>{
       SMOKE=new Set(); // the smoke drifts away as your turn begins
       const healed=mods.f==="REST"?rest("f"):0;
-      units.forEach(u=>{u.moved=u.acted=0;delete u.aim;delete u.mvFrom;if(u.team!=="y"){delete u.slow;delete u.hex;delete u.hexPend;delete u.weak;if(u.cursed){u.weak=1;delete u.cursed}}});
+      units.forEach(u=>{u.moved=u.acted=0;delete u.aim;delete u.mvFrom;delete u.rough;if(u.team!=="y"){delete u.slow;delete u.hex;delete u.hexPend;delete u.weak;if(u.cursed){u.weak=1;delete u.cursed}}});
       const wisped=wispsAct();
       vanguard();turn="y";busy=false;say((wisped?wisped+" ":"")+"Your turn. Select one of your units."+(healed?" Resting enemy units recovered HP.":""));render();notify("Enemy turn ended — your move");
     });
@@ -3763,6 +3766,7 @@ const RICON={ // small 32-unit relic icons
  hexbook:'<path d="M6 5h17q3 0 3 3v19H9q-3 0-3-3z" fill="#3a2a5a" stroke="#140c24" stroke-width="1.200" stroke-linejoin="round"/><path d="M6 24q0-3 3-3h17" stroke="#d8d0e8" stroke-width="1.600" fill="none"/><path d="M10 5v16" stroke="#1e1434" stroke-width="1"/><path d="M17 8l1.500 3.200 3.500.5-2.500 2.400.6 3.500-3.100-1.700-3.100 1.700.6-3.500-2.500-2.400 3.500-.5z" fill="none" stroke="#c8a0ff" stroke-width="1"/><path d="M13 10l8 6M21 10l-8 6" stroke="#e8c050" stroke-width="1.300" stroke-linecap="round"/><circle cx="17" cy="13" r="6.500" fill="#a070e0" opacity=".18"/>',
  musket:'<path d="M4 23L26 9" stroke="#3a2a1c" stroke-width="2.400" stroke-linecap="round"/><path d="M14 17L27 8.500" stroke="#8a929a" stroke-width="2" stroke-linecap="round"/><path d="M3 24.500l7-3l2 3l-6 3z" fill="#7a4626" stroke="#2a1408" stroke-width=".9" stroke-linejoin="round"/><path d="M12 20l2 3" stroke="#c9962a" stroke-width="1.300"/><circle cx="28" cy="7.500" r="2.400" fill="#e8e4dc" opacity=".55"/><circle cx="29.500" cy="5.500" r="1.400" fill="#e8e4dc" opacity=".4"/>',
  luckycross:'<path d="M13 3h6v8h7v6h-7v12h-6V17H6v-6h7z" fill="#c9a24a" stroke="#5a4010" stroke-width="1.100" stroke-linejoin="round"/><path d="M14.500 4.500v8h-7" stroke="#f4dc8a" stroke-width=".9" fill="none" opacity=".8"/><circle cx="16" cy="14" r="2.200" fill="#3f9a5a" stroke="#1e4a1c" stroke-width=".7"/><circle cx="8" cy="26" r="2.600" fill="#d8b24a" stroke="#6a4c10" stroke-width=".7"/><circle cx="24" cy="26" r="2.600" fill="#d8b24a" stroke="#6a4c10" stroke-width=".7"/>',
+ escaupil:'<path d="M11 5q5 3 10 0l5 3-2 5v13q-8 3-16 0V13l-2-5z" fill="#e8dcb8" stroke="#5a4a2a" stroke-width="1.100" stroke-linejoin="round"/><path d="M11 5q5 3 10 0" stroke="#8a3a1a" stroke-width="1.400" fill="none"/><path d="M8 14l8 8l8-8M8 20l6 6M24 20l-6 6M8 14l6-6M24 14l-6-6M10 26l14-14M22 26L8 12" stroke="#b8a47a" stroke-width=".8" fill="none"/><path d="M8 25.500q8 3 16 0" stroke="#8a3a1a" stroke-width="1.200" fill="none"/><path d="M3 29q2-5 5-6M29 29q-2-5-5-6" stroke="#3f7a3a" stroke-width="1.600" fill="none" stroke-linecap="round"/><path d="M4 28q1-3 3-4l-1 3zM28 28q-1-3-3-4l1 3z" fill="#5a9a4a"/>',
  eldorado:'<circle cx="16" cy="16" r="13" fill="#f2c94c" opacity=".2"/><path d="M16 2l2.400 3.500v15h-4.800v-15z" fill="#f2d27a" stroke="#6a4c10" stroke-width="1" stroke-linejoin="round"/><path d="M16 3v17" stroke="#fff6c8" stroke-width=".7"/><path d="M9 20.500q7 3 14 0l-.5 2.200q-6.500 2.400-13 0z" fill="#d8b24a" stroke="#6a4c10" stroke-width=".8"/><path d="M14.800 23h2.400v5h-2.400z" fill="#5a3a1c" stroke="#2a1a0c" stroke-width=".7"/><circle cx="16" cy="29.500" r="1.600" fill="#d8b24a" stroke="#6a4c10" stroke-width=".7"/><circle cx="16" cy="21.600" r="1" fill="#b0182a"/><g fill="#f2c94c" stroke="#8a6410" stroke-width=".5"><circle cx="6" cy="27" r="2"/><circle cx="26" cy="27" r="2"/><circle cx="24" cy="24.500" r="1.600"/></g>',
  lightarmor:'<path d="M10 6h12l3 4v9q0 6-9 10q-9-4-9-10v-9z" fill="#b8c0c8" stroke="#2e3338" stroke-width="1.100" stroke-linejoin="round"/><path d="M10 6h12l3 4H7z" fill="#8a929a" stroke="#2e3338" stroke-width=".8"/><path d="M12 14h8M12 18h8M13 22h6" stroke="#6a7278" stroke-width="1" stroke-dasharray="2 1.400"/><path d="M3 12h3M2 16h4M3 20h3M26 12h3M26 16h4M26 20h3" stroke="#6ab0d8" stroke-width="1.300" stroke-linecap="round" opacity=".85"/>',
  bruiser:'<path d="M8 28v-9l-2-5q0-3 3-3l1 3V8q0-2 2-2t2 2v4V6q0-2 2-2t2 2v6V7q0-2 2-2t2 2v7l1-2q3 0 2 3l-2 6v7z" fill="#6a7078" stroke="#1e2226" stroke-width="1.100" stroke-linejoin="round"/><path d="M8 28h14v-4H8z" fill="#5a3a1c" stroke="#2a1a0c" stroke-width="1"/><g fill="#c8ccd0" stroke="#1e2226" stroke-width=".5"><circle cx="11.500" cy="13" r="1"/><circle cx="15.500" cy="12" r="1"/><circle cx="19.500" cy="13" r="1"/></g><path d="M25 9l4-2M26 13h4M25 17l4 2" stroke="#d8352a" stroke-width="1.500" stroke-linecap="round"/>',
