@@ -3878,7 +3878,7 @@ const MARCUS={
  merc:"A fine sword arm, at a fair price. They'll fight their own way, mind. Don't take it personally.",
  mercSwap:"Done. I'll let % know their services are no longer required. They'll take it well. Probably.",
  poor:"Ah. Your purse is lighter than my conscience. Come back with more coin.",
- full:"Your pack's full, friend! Use something first. Next time, perhaps.",
+ full:"Pack's full, friend? Swap something out. I won't tell.",
  bye:"Safe roads! And if you see Herbert, tell him I'm still waiting for my mug money."};
 // what a Merchant stocks on your visit: 3 consumables and 2 or 3 relics, drawn by rarity
 function shopStock(){
@@ -3896,11 +3896,11 @@ let shopNode=null;
 const marcusSays=t=>{$("shline").textContent=t};
 function openShop(n){shopNode=n;marcusSays(MARCUS.greet[Math.floor(Math.random()*MARCUS.greet.length)]);$("shscene").innerHTML=shopScene();renderShop();$("shopv").hidden=false;$("shopv").scrollTop=0;$("shleave").focus({preventScroll:true})}
 function renderShop(){
-  const n=shopNode,full=camp.items.length>=itemCap();
-  $("shgold").innerHTML=`${PURSE}<b>${camp.gold}</b> gold<span class="shpack">Pack: ${camp.items.length} of ${itemCap()}</span>`;
+  const n=shopNode;
+  $("shgold").innerHTML=`${PURSE}<b>${camp.gold}</b> gold<span class="shpack">Pack: ${camp.items.length} of ${itemCap()}${camp.items.length>=itemCap()?" \u00b7 buying swaps one out":""}</span>`;
   const row=(kind,id,name,price,label,desc,icon,why,rc)=>`<button class="rcard shitem" data-kind="${kind}" data-id="${id}" style="--rc:${rc}"${why?" aria-disabled=\"true\"":""}><span class="ri">${icon}</span><span class="rr">${label}</span><b>${name}</b><small>${desc}</small><span class="shprice${why?" off":""}">${why||price+" gold"}</span></button>`;
   const need=p=>camp.gold<p?`Need ${p-camp.gold} more`:"";
-  $("shlist").innerHTML='<div class="shsec">Consumables</div>'+(n.stock.items||Object.keys(ITEMS).filter(id=>!ITEMS[id].r)).map(id=>{const I=ITEMS[id],pr=priceOf(I.price);return row("item",id,I.name,pr,(I.r?RARITY[I.r][0]+" consumable":"Consumable")+" \u00b7 one use",I.desc,itemIcon(id,38),full?"Pack full":need(pr),I.r?RARITY[I.r][1]:"#a08a64")}).join("")
+  $("shlist").innerHTML='<div class="shsec">Consumables</div>'+(n.stock.items||Object.keys(ITEMS).filter(id=>!ITEMS[id].r)).map(id=>{const I=ITEMS[id],pr=priceOf(I.price);return row("item",id,I.name,pr,(I.r?RARITY[I.r][0]+" consumable":"Consumable")+" \u00b7 one use",I.desc,itemIcon(id,38),need(pr),I.r?RARITY[I.r][1]:"#a08a64")}).join("")
     +((n.stock.mercs||[]).length?'<div class="shsec">Mercenary contracts</div>'+n.stock.mercs.map((m,i)=>{const pr=priceOf(m.price);return row("merc",i,m.name,pr,"Contract \u00b7 "+MERC_TERM+" battles",mercDesc(m),`<span class="mdisc">${disc(m.t,COLORS[camp.cfg.c],1,1)}</span>`,m.hired?"Hired":need(pr),"#6a7f8f")}).join(""):"")
     +'<div class="shsec">Relics</div>'+(n.stock.relics.length?n.stock.relics.map(id=>{const R=RELICS[id],[rn,rc]=RARITY[R.r],pr=priceOf(RELIC_PRICE[R.r]);return row("relic",id,R.name,pr,rn+" relic",R.desc,relicIcon(id,38),n.stock.sold.includes(id)?"Sold":relicCount(id)>=(R.max||1)?"Owned":need(pr),rc)}).join(""):'<p class="rsub">Marcus has no relics for you today.</p>');
   $("shlist").querySelectorAll(".shitem").forEach(b=>b.onclick=()=>buy(b.dataset.kind,b.dataset.id));
@@ -3909,7 +3909,7 @@ const boughtFromMarcus=()=>{unlocks.buys=(unlocks.buys||0)+1;saveU();if(unlocks.
 function buy(kind,id){
   const n=shopNode;
   if(kind==="item"){
-    const I=ITEMS[id],pr=priceOf(I.price);if(camp.items.length>=itemCap())return marcusSays(MARCUS.full);if(camp.gold<pr)return marcusSays(MARCUS.poor);
+    const I=ITEMS[id],pr=priceOf(I.price);if(camp.gold<pr)return marcusSays(MARCUS.poor);if(camp.items.length>=itemCap()){marcusSays(MARCUS.full);return swapItem(id,null,()=>buy(kind,id))}
     camp.gold-=pr;camp.items.push(id);boughtFromMarcus();marcusSays(typeof MARCUS[id]==="string"?MARCUS[id]:MARCUS.buy[Math.floor(Math.random()*MARCUS.buy.length)]);
   }else if(kind==="merc"){
     const m=n.stock.mercs[+id],pr=priceOf(m.price);if(m.hired)return;if(camp.gold<pr)return marcusSays(MARCUS.poor);
@@ -3927,6 +3927,13 @@ function renderItems(){
   $("witems").querySelectorAll(".ichip").forEach(b=>b.onclick=()=>showItemInfo(b.dataset.id,b));
 }
 function showItemInfo(id,from){const I=ITEMS[id];relinfoFrom=from;$("rititle").textContent=I.name;$("ribody").innerHTML=`<div class="rcard" style="--rc:#a08a64"><span class="ri">${itemIcon(id,38)}</span><span class="rr">Consumable \u00b7 one use</span><small>${I.desc} In battle, select a unit and tap Use Item.</small></div>`;$("relinfo").hidden=false;$("riclose").focus()}
+// a full pack: pick a consumable to discard for the new one (id); take() then adds it as usual. "Keep my pack" changes nothing
+function swapItem(id,from,take){
+  const end=()=>{$("riclose").hidden=false;closeRelicInfo()};relinfoFrom=from;$("rititle").textContent="Your Pack Is Full";
+  $("ribody").innerHTML=`<p class="rsub">Discard one to make room for the <strong>${ITEMS[id].name}</strong>.</p><div class="plist">${camp.items.map((k,i)=>`<button class="rcard" data-i="${i}" style="--rc:${ITEMS[k].r?RARITY[ITEMS[k].r][1]:"#a08a64"}"><span class="ri">${itemIcon(k,38)}</span><span class="rr">Tap to discard</span><b>${ITEMS[k].name}</b><small>${ITEMS[k].desc}</small></button>`).join("")}</div><div class="menubtns"><button class="b" id="swkeep">Keep my pack</button></div>`;
+  $("ribody").querySelectorAll(".rcard").forEach(b=>b.onclick=()=>{camp.items.splice(+b.dataset.i,1);end();take()});
+  $("swkeep").onclick=end;$("riclose").hidden=true;$("relinfo").hidden=false;$("ribody").querySelector(".rcard").focus();
+}
 function showPack(from,foe){ // every relic and item you (or the garrison) carry, from the battle card's "..."
   const row=(icon,rr,rc,nm,desc)=>`<div class="rcard" style="--rc:${rc}"><span class="ri">${icon}</span><span class="rr">${rr}</span><b>${nm}</b><small>${desc}</small></div>`;
   const by=foe?"Carried by the enemy \u00b7 ":"";
@@ -3968,12 +3975,13 @@ function showRelicOffer(){
   if(!camp.offer){$("relicv").hidden=true;return}
   const full=camp.items.length>=itemCap();
   $("rchoices").innerHTML=camp.offer.map(id=>{
-    if(id.startsWith("item:")){const k=id.slice(5),I=ITEMS[k],rc=I.r?RARITY[I.r][1]:"#a08a64";return `<button class="rcard" data-id="${id}" style="--rc:${rc}"${full?' aria-disabled="true"':""}><span class="ri">${itemIcon(k,38)}</span><span class="rr">${I.r?RARITY[I.r][0]+" consumable":"Consumable"} \u00b7 ${full?"pack full":"one use"}</span><b>${I.name}</b><small>${I.desc}</small></button>`}
+    if(id.startsWith("item:")){const k=id.slice(5),I=ITEMS[k],rc=I.r?RARITY[I.r][1]:"#a08a64";return `<button class="rcard" data-id="${id}" style="--rc:${rc}"><span class="ri">${itemIcon(k,38)}</span><span class="rr">${I.r?RARITY[I.r][0]+" consumable":"Consumable"} \u00b7 ${full?"pack full: swap one out":"one use"}</span><b>${I.name}</b><small>${I.desc}</small></button>`}
     const R=RELICS[id],[rn,rc]=RARITY[R.r],no=clash(id,camp.relics);return `<button class="rcard${no?" clash":""}" data-id="${id}" style="--rc:${rc}"${no?' aria-disabled="true"':""}><span class="ri">${relicIcon(id,38)}</span><span class="rr">${rn}${boss?" relic":""}</span><b>${R.name}</b><small>${R.desc}</small></button>`}).join("");
   $("rchoices").querySelectorAll(".rcard").forEach(b=>b.onclick=()=>{
     const id=b.dataset.id;
     if(!id.startsWith("item:")&&clash(id,camp.relics)){$("relicv").querySelector(".rsub").textContent="Some things are not meant to work together.";return}
-    if(id.startsWith("item:")){if(camp.items.length>=itemCap())return;camp.items.push(id.slice(5));renderItems()}else gainRelic(id);
+    if(id.startsWith("item:")&&camp.items.length>=itemCap())return swapItem(id.slice(5),b,()=>b.onclick()); // a full pack: discard one first
+    if(id.startsWith("item:")){camp.items.push(id.slice(5));renderItems()}else gainRelic(id);
     if(id==="chest"){camp.gold+=CHEST_GOLD;camp.lastGold=CHEST_GOLD;sfx("coin");renderGold()} // the war chest pays out at once
     camp.offer=null;camp.offerBoss=false;saveCamp();$("relicv").hidden=true;renderRelics();$("wmap").querySelector(".wn")&&renderWorld()});
   $("relicv").hidden=false;($("rchoices").querySelector('.rcard:not([aria-disabled="true"])')||$("rchoices").querySelector(".rcard")).focus();
