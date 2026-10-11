@@ -717,7 +717,7 @@ const RELICS={
  rations:{name:"Trail Rations",r:0,src:"both",desc:"Your units heal 1 extra HP after each battle."},
  bandages:{name:"Spare Bandages",r:0,desc:"Your units that fall in a battle return for the next one with 3 HP instead of 1."},
  ammo:{name:"Upgraded Ammunition",r:0,src:"both",need:"R",desc:"Artillery get +1 pierce. Iron-capped shot, cast to punch through plate."},
- stud:{name:"Royal Stud Book",r:0,src:"both",need:["C","Q"],hpUp:["C","Q"],desc:"Mounted units (Cavalry and Conquistadors) get +1 max HP. Gaining it doesn't heal them: the extra point fills in as they recover. Generations of careful breeding, written down at last."},
+ stud:{name:"Royal Stud Book",r:0,src:"both",need:["C","Q"],hpUp:["C","Q"],get desc(){return (unlocks.conquistador?"Mounted units (Cavalry and Conquistadors)":"Cavalry")+" get +1 max HP. Gaining it doesn't heal them: the extra point fills in as they recover. Generations of careful breeding, written down at last."}},
  musket:{name:"Musket",r:0,src:"both",lock:"conquistador",need:"Q",desc:"Your Conquistadors get +1 range, but their shots from 2 or more tiles away deal 1 less damage. Loud, slow to load, and only roughly pointed where you meant."},
  luckycross:{name:"Lucky Cross",r:1,src:"both",lock:"conquistador",need:"Q",desc:"Win a battle in which a Conquistador finishes off at least one enemy, and you earn 10 extra gold. Kissed before every charge, and so far it has never once failed."},
  eldorado:{name:"Espada de El Dorado",r:2,src:"both",lock:"conquistador",need:"Q",desc:"Your Conquistadors deal +1 damage at melee range for every 50 gold you carry, up to +2. Gilded from guard to tip; it only ever seems to hunger for more."},
