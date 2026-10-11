@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Knight 3D</title>
+<style>
+:root{--bg:#e9edf1;--ink:#1c2733;--panel:#fff;--you:#2f6fb5;--foe:#b8432f}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141b22;--ink:#e3e9ee;--panel:#1d2731}}
+:root[data-theme="dark"]{--bg:#141b22;--ink:#e3e9ee;--panel:#1d2731}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,sans-serif}
+#view{position:fixed;inset:0}
+#bar{position:fixed;left:16px;right:16px;bottom:16px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+button{font:inherit;padding:8px 14px;border-radius:8px;border:1px solid color-mix(in srgb,var(--ink) 20%,transparent);background:var(--panel);color:var(--ink);cursor:pointer}
+button[aria-pressed="true"]{outline:2px solid var(--you)}
+h1{position:fixed;top:12px;left:16px;margin:0;font-size:17px;font-weight:600}
+h1 small{display:block;font-weight:400;opacity:.65;font-size:13px}
+</style>
+</head>
+<body>
+<h1>Knight<small>Drag to orbit · scroll or pinch to zoom</small></h1>
+<div id="view"></div>
+<div id="bar">
+ <button id="team">Team: You</button>
+ <button id="attack">Attack</button>
+ <button id="hit">Take hit</button>
+ <button id="walk" aria-pressed="false">Walk</button>
+ <button id="die">Fall</button>
+ <button id="spin" aria-pressed="true">Turntable</button>
+</div>
+<script src="units3d.js"></script>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from "three";
+import {OrbitControls} from "three/addons/controls/OrbitControls.js";
+import {RoomEnvironment} from "three/addons/environments/RoomEnvironment.js";
+
+const view=document.getElementById("view");
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
+view.appendChild(renderer.domElement);
+
+const scene=new THREE.Scene();
+// soft studio reflections so the steel reads as metal, plus a warm key light for shadows
+scene.environment=new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(),.04).texture;
+scene.environmentIntensity=.7;
+scene.add(new THREE.HemisphereLight(0xfff1dc,0x4a4030,.6));
+const sun=new THREE.DirectionalLight(0xfff0d8,2.6);sun.position.set(2,4,2.5);sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);sun.shadow.bias=-.0004;sun.shadow.normalBias=.01;
+Object.assign(sun.shadow.camera,{left:-1.5,right:1.5,top:1.5,bottom:-1.5});scene.add(sun);
+
+const camera=new THREE.PerspectiveCamera(32,1,.05,50);camera.position.set(1.1,1.0,1.8);
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.target.set(0,.48,0);controls.enableDamping=true;controls.minDistance=.6;controls.maxDistance=6;controls.maxPolarAngle=Math.PI*.49;
+
+// a 3x3 patch of the game's parchment tiles
+for(let x=-1;x<=1;x++)for(let z=-1;z<=1;z++){
+  const tile=new THREE.Mesh(new THREE.BoxGeometry(.97,.08,.97),new THREE.MeshStandardMaterial({color:(x+z)&1?0xdccaa4:0xd5c29b,roughness:1,map:Units3D.TEX.grain(THREE,[1,1])}));
+  tile.position.set(x,-.04,z);tile.receiveShadow=true;scene.add(tile);
+}
+
+const TEAMS=[["You",0x2f6fb5],["Foe",0xb8432f]];let team=0;
+let knight=Units3D.makeKnight(THREE,{team:TEAMS[0][1]});scene.add(knight);
+
+const $=id=>document.getElementById(id);
+const toggle=(id,on)=>$(id).setAttribute("aria-pressed",on);
+$("team").onclick=()=>{team^=1;knight.setTeam(TEAMS[team][1]);$("team").textContent="Team: "+TEAMS[team][0]};
+$("attack").onclick=()=>knight.play("attack");
+$("hit").onclick=()=>knight.play("hit");
+$("walk").onclick=()=>{knight.walking=!knight.walking;toggle("walk",knight.walking)};
+$("die").onclick=()=>{
+  if(!knight.dead)return knight.play("die");
+  const ry=knight.rotation.y;scene.remove(knight);knight=Units3D.makeKnight(THREE,{team:TEAMS[team][1]});knight.rotation.y=ry;scene.add(knight);window.__knight=knight;
+};
+let spin=true;$("spin").onclick=()=>{spin=!spin;toggle("spin",spin)};
+
+function resize(){const w=view.clientWidth,h=view.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix()}
+addEventListener("resize",resize);resize();
+
+const clock=new THREE.Clock();
+renderer.setAnimationLoop(()=>{
+  const dt=Math.min(clock.getDelta(),.05),t=clock.elapsedTime;
+  if(spin)knight.rotation.y+=dt*.4;
+  knight.update(t,dt);
+  controls.update();renderer.render(scene,camera);
+});
+window.__knight=knight; // handle for screenshots / poking in devtools
+</script>
+</body>
+</html>
