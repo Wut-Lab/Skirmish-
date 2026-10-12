@@ -3752,7 +3752,7 @@ function bossOffer(){
   const pick=list=>{const tot=list.reduce((t,e)=>t+BOSS_W[rar(e)],0);let roll=Math.random()*tot,i=0;while(roll>=BOSS_W[rar(list[i])]){roll-=BOSS_W[rar(list[i])];i++}return list[i]};
   const bossList=Object.keys(RELICS).filter(id=>RELICS[id].src==="boss"&&ok(RELICS[id])&&!have(id)),out=bossList.length?[pick(bossList)]:[];
   const pool=[...Object.keys(RELICS).filter(id=>{const R=RELICS[id];return !R.find&&R.src!=="shop"&&R.src!=="boss"&&ok(R)&&!have(id)}),
-    ...Object.keys(ITEMS).filter(id=>ok(ITEMS[id])).map(id=>"item:"+id)];
+    ...Object.keys(ITEMS).filter(id=>ok(ITEMS[id])&&!carryMax(id)).map(id=>"item:"+id)];
   while(out.length<3&&pool.length){
     const cand=out.filter(e=>e.startsWith("item:")).length>=2?pool.filter(e=>!e.startsWith("item:")):pool;if(!cand.length)break;
     const e=pick(cand);out.push(e);pool.splice(pool.indexOf(e),1);
@@ -3861,11 +3861,12 @@ const ITEMS={ // consumables, used in battle (campaign only); using one takes th
  medkit:{name:"Advanced Med Kit",price:45,r:1,desc:"Mend 1 wound on this unit or an adjacent ally (campaign wounds, restoring 1 max HP). An Apothecary using it has a 25% chance to mend 2."},
  dryice:{name:"Bucket of Dry Ice",price:15,desc:"Tip it out by a unit within 3: cold fog rolls over it and every unit in the 8 tiles around it, friend or foe, giving each +3% evasion until your next turn. Mostly, it just looks spooky."},
  flash:{name:"Flash Vial",price:70,r:2,desc:"Throw at an enemy within 2: a blinding burst deals 1 damage, ignoring armor, and the target can't move or attack on its next turn."},
- incense:{name:"Enraging Incense",price:75,r:2,desc:"Burn it beside this unit or an adjacent ally: for the rest of the battle it gets +1 damage, +1 movement and +1 pierce, but 5% less evasion. The smoke smells of iron and bad decisions."},
+ incense:{name:"Enraging Incense",price:80,r:2,max:1,desc:"You can carry only one. Burn it beside this unit or an adjacent ally: for the rest of the battle it gets +1 damage, +1 movement and +1 pierce, but 5% less evasion. The smoke smells of iron and bad decisions."},
  mule:{name:"Mule Hair Potion",price:40,r:1,lock:"mule",desc:"The drinker turns stubborn as a mule: +2 armor, and it can't be pushed or slowed, until the end of your next turn. Brewed from genuine mule hair. Marcus swears Parsnip had nothing to do with it."}};
-// r: rarity (an uncommon is drawn half as often as a common, a rare a quarter as often); free: using it costs the unit nothing; lock: the unlock it waits for
+// r: rarity (an uncommon is drawn half as often as a common, a rare a quarter as often); max: how many the pack can hold at once; free: using it costs the unit nothing; lock: the unlock it waits for
 const BOSS_GOLD_STEP=10,ITEM_CAP=3,TONIC_MV=2,LEDGER_GOLD=5,VGLOVES_GOLD=3,TOKEN_OFF=.2,CHEST_OFF=.1,CHEST_GOLD=50,ITEM_STOCK=[1,.5,.25],SHOP_ITEMS=3,MULE_BUYS=5,RELIC_PRICE=[40,70,110],SMOKE_EV=.2,DRYICE_EV=.03,INCENSE_EV=.05,FLASH_DMG=1,DRAUGHT_HEAL=5,FIRE_DMG=3,LIGHTNING_DMG=1,CALTROP_DMG=1,CALTROP_ALLY=.5,CALTROP_AVOID=2.5; // CALTROP_ALLY: the chance your own unit steps on one; CALTROP_AVOID: how much the enemy minds crossing one // RELIC_PRICE by rarity: common, uncommon, rare
 const itemCap=()=>ITEM_CAP+relicCount("saddle"); // Parsnip's Saddlebags: a slot each
+const carryMax=id=>!!ITEMS[id].max&&camp.items.filter(x=>x===id).length>=ITEMS[id].max; // already carrying as many as it allows
 const priceOf=p=>Math.round(p*(camp.relics.includes("token")?1-TOKEN_OFF:1)*(camp.relics.includes("chest")?1-CHEST_OFF:1)); // Marcus's Loyalty Token, Boss's War Chest
 const IICON={
  draught:'<path d="M14 4h4v4q7 3 7 10q0 7-9 7t-9-7q0-7 7-10z" fill="rgba(200,60,50,.55)" stroke="#2a1410" stroke-width="1.100"/><path d="M8.600 17q0 6 7.400 6.500q7.400-.5 7.400-6.500z" fill="#b8372d"/><rect x="13.400" y="2" width="5.200" height="3.400" rx="1" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M10 13q-1 4 0 7" stroke="#fff" stroke-width="1.100" fill="none" opacity=".6"/><path d="M14 16h4M16 14v4" stroke="#fff4f0" stroke-width="1.300" stroke-linecap="round"/>',
@@ -3910,6 +3911,7 @@ const MARCUS={
  mercSwap:"Done. I'll let % know their services are no longer required. They'll take it well. Probably.",
  poor:"Ah. Your purse is lighter than my conscience. Come back with more coin.",
  full:"Pack's full, friend? Swap something out. I won't tell.",
+ onlyone:"One of those at a time, friend. Two in one pack and the fumes start arguing with each other.",
  bye:"Safe roads! And if you see Herbert, tell him I'm still waiting for my mug money."};
 // what a Merchant stocks on your visit: 3 consumables and 2 or 3 relics, drawn by rarity
 function shopStock(){
@@ -3931,7 +3933,7 @@ function renderShop(){
   $("shgold").innerHTML=`${PURSE}<b>${camp.gold}</b> gold<span class="shpack">Pack: ${camp.items.length} of ${itemCap()}${camp.items.length>=itemCap()?" \u00b7 buying swaps one out":""}</span>`;
   const row=(kind,id,name,price,label,desc,icon,why,rc)=>`<button class="rcard shitem" data-kind="${kind}" data-id="${id}" style="--rc:${rc}"${why?" aria-disabled=\"true\"":""}><span class="ri">${icon}</span><span class="rr">${label}</span><b>${name}</b><small>${desc}</small><span class="shprice${why?" off":""}">${why||price+" gold"}</span></button>`;
   const need=p=>camp.gold<p?`Need ${p-camp.gold} more`:"";
-  $("shlist").innerHTML='<div class="shsec">Consumables</div>'+(n.stock.items||Object.keys(ITEMS).filter(id=>!ITEMS[id].r)).map(id=>{const I=ITEMS[id],pr=priceOf(I.price);return row("item",id,I.name,pr,(I.r?RARITY[I.r][0]+" consumable":"Consumable")+" \u00b7 one use",I.desc,itemIcon(id,38),need(pr),I.r?RARITY[I.r][1]:"#a08a64")}).join("")
+  $("shlist").innerHTML='<div class="shsec">Consumables</div>'+(n.stock.items||Object.keys(ITEMS).filter(id=>!ITEMS[id].r)).map(id=>{const I=ITEMS[id],pr=priceOf(I.price);return row("item",id,I.name,pr,(I.r?RARITY[I.r][0]+" consumable":"Consumable")+" \u00b7 one use",I.desc,itemIcon(id,38),carryMax(id)?"Carrying one":need(pr),I.r?RARITY[I.r][1]:"#a08a64")}).join("")
     +((n.stock.mercs||[]).length?'<div class="shsec">Mercenary contracts</div>'+n.stock.mercs.map((m,i)=>{const pr=priceOf(m.price);return row("merc",i,m.name,pr,"Contract \u00b7 "+MERC_TERM+" battles",mercDesc(m),`<span class="mdisc">${disc(m.t,COLORS[camp.cfg.c],1,1)}</span>`,m.hired?"Hired":need(pr),"#6a7f8f")}).join(""):"")
     +'<div class="shsec">Relics</div>'+(n.stock.relics.length?n.stock.relics.map(id=>{const R=RELICS[id],[rn,rc]=RARITY[R.r],pr=priceOf(RELIC_PRICE[R.r]);return row("relic",id,R.name,pr,rn+" relic",R.desc,relicIcon(id,38),n.stock.sold.includes(id)?"Sold":relicCount(id)>=(R.max||1)?"Owned":need(pr),rc)}).join(""):'<p class="rsub">Marcus has no relics for you today.</p>');
   $("shlist").querySelectorAll(".shitem").forEach(b=>b.onclick=()=>buy(b.dataset.kind,b.dataset.id));
@@ -3940,7 +3942,7 @@ const boughtFromMarcus=()=>{unlocks.buys=(unlocks.buys||0)+1;saveU();if(unlocks.
 function buy(kind,id){
   const n=shopNode;
   if(kind==="item"){
-    const I=ITEMS[id],pr=priceOf(I.price);if(camp.gold<pr)return marcusSays(MARCUS.poor);if(camp.items.length>=itemCap()){marcusSays(MARCUS.full);return swapItem(id,null,()=>buy(kind,id))}
+    const I=ITEMS[id],pr=priceOf(I.price);if(carryMax(id))return marcusSays(MARCUS.onlyone);if(camp.gold<pr)return marcusSays(MARCUS.poor);if(camp.items.length>=itemCap()){marcusSays(MARCUS.full);return swapItem(id,null,()=>buy(kind,id))}
     camp.gold-=pr;camp.items.push(id);boughtFromMarcus();marcusSays(typeof MARCUS[id]==="string"?MARCUS[id]:MARCUS.buy[Math.floor(Math.random()*MARCUS.buy.length)]);
   }else if(kind==="merc"){
     const m=n.stock.mercs[+id],pr=priceOf(m.price);if(m.hired)return;if(camp.gold<pr)return marcusSays(MARCUS.poor);
