@@ -2676,15 +2676,16 @@ const BTEXT={
  volcanic:"Molten wastes. Rivers and pools of lava block the way, magma crust scorches anyone who lingers on it, and volcanoes rumble overhead.",
  sakura:"Sakura Vale. Cherry groves in full bloom, wildflower fields, and still koi ponds whose calm restores the weary."};
 const NAMES={
- forest:["Whispering Woods","Mossy Ford","Bramble Wood","Thornfield"],
+ forest:["Whispering Woods","Mossy Ford","Bramble Wood","Thornfield","Forest of Twilight","The Blackwoods","Weisswald"],
  plain:["Ashen Pass","Iron Bridge","Cinder Fields","Grey Marsh"],
- fort:["Stonewatch Keep","Redstone Gate","Hollow Crag","Lantern Hill"],
+ fort:["Stonewatch Keep","Redstone Gate","Hollow Crag","Lantern Hill","Fortress of the Lost","Fortress of the Found","Fort Fury"],
  wild:["Wolf Hollow","Crow's Rest","Duskwater","Ember Vale"],
  swamp:["Blackwater Bog","Gloomfen","Murkmire","Rotting Hollow"],
  wetlands:["Mirewater Fen","Sodden Reach","Heron's Marsh","Drowned Meadow"],
  graveyard:["Mourner's Rest","Ashen Barrow","Lantern Crypts","Hollow Chapel"],
  volcanic:["Brimstone Ridge","Scorched Hollow","Emberforge Caldera","Smoldering Gulch"],
- sakura:["Petalfall Garden","Blossom Terrace","Koi Mirror Pool","Whispering Petals"],
+ sakura:["Petalfall Garden","Blossom Terrace","Koi Mirror Pool","Whispering Petals","Stoic Grove","Valley of Spring","Grove of Renewal"],
+ heal:["Sunspring Glade","Quiet Hollow","Healer's Rest","Mercy Well","Nomadic Druid's Caravan","Traveling Apothecary","Mossy Monastery"], // healing spots
  boss:["Blackspire","Ironcrown Citadel","Skullcrag Fortress","Duskhold","Ravenmoor Keep","Ashfall Citadel"]}; // boss locations
 const BOSS_NAMES=["Timwell the Troll","Cass, Obsessive Vicar","Anthony the Gold","Gorman, Dragon's Pet","Linda of Tillingsburg","Ted, the Damp Rag"]; // who holds each boss location (not shown yet)
 // draws from a list without repeating within the campaign; once every entry has been used, starts over (never the one just used)
@@ -2711,7 +2712,7 @@ function genWorld(){
   if(!camp.bossUsed)camp.bossUsed={loc:[],name:[]};
   nodes.push({id:nodes.length,name:fresh(NAMES.boss,camp.bossUsed.loc),boss:fresh(BOSS_NAMES,camp.bossUsed.name),x:Math.round(rr(140,260)),y:80,type:"boss",b:"boss",text:"The enemy stronghold. A fortress is guaranteed, and the enemy brings an extra unit."});
   layers.push([nodes.length-1]);
-  const HN=["Sunspring Glade","Quiet Hollow","Healer's Rest","Mercy Well"].sort(()=>Math.random()-.5),pl=[2+R(2)]; // exactly one healing spot per map
+  const HN=NAMES.heal.slice().sort(()=>Math.random()-.5),pl=[2+R(2)]; // exactly one healing spot per map
   pl.forEach((li,k)=>{const n=nodes[layers[li][R(layers[li].length)]];Object.assign(n,{name:HN[k],type:"heal",b:"heal",text:HEAL_TEXT,herb:!!unlocks.campsite&&Math.random()<HERB_SPOT})}); // herb: Herbert is quietly camped here
   { // exactly one Merchant per map, in a different row from the healing spot
     const li=[1,2,3].filter(l=>!pl.includes(l))[R(2)],c=layers[li].map(i=>nodes[i]).filter(n=>n.type==="battle");
