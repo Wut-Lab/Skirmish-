@@ -72,6 +72,8 @@ h1{font-size:1.4rem;margin:0 0 4px}
 .hp{position:absolute;left:14%;right:14%;bottom:2%;height:4px;background:rgba(0,0,0,.4);border-radius:2px}
 .hp i{display:block;height:100%;background:#f2f2f2;border-radius:2px}
 .bar{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
+#acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+#acts .b{width:100%;min-height:48px;margin:0}
 button.b[aria-pressed=true]{background:var(--you);border-color:var(--you);color:#fff}
 button.b:disabled{opacity:.5;cursor:default}
 button.b:focus-visible{outline:3px solid var(--you);outline-offset:2px}
@@ -259,6 +261,8 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .pmenu button small{font-size:.7rem;opacity:.85}
 .pmenu button small.bd{font-size:.62rem;opacity:.75}
 .pmenu button:disabled{opacity:.5;cursor:default}
+.pmenu.umenu{width:172px;gap:4px;padding:6px}
+.pmenu.umenu button{padding:4px 9px}
 .pmenu button:focus-visible{outline:3px solid #fff;outline-offset:1px}
 .htitle{text-align:center;margin:6px 0 10px}
 .hcard{font-size:.9rem;line-height:1.55;background:var(--panel);border-radius:8px;padding:12px 16px;text-align:left;box-shadow:0 2px 8px rgba(0,0,0,.15)}
@@ -527,10 +531,10 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 <p id="status" class="sr" aria-live="polite"></p>
 <div id="mods"></div>
 <div id="bw"><div id="board" role="grid" aria-label="Battle board"></div><div id="fx"></div></div>
-<div class="turnrow"><div id="turn"></div><button class="b pri" id="end">End Turn</button></div>
+<div class="turnrow"><div id="turn"></div></div>
+<div class="bar" id="acts"><button class="b" id="undo">Undo Move</button><button class="b pri" id="end">End Turn</button></div>
 <div id="tinfo" class="pb empty"></div>
 <div id="info" class="pb empty"></div>
-<div class="bar" id="acts"></div>
 <div class="foot"><button class="b big" id="tomenu">Menu</button></div>
 <div class="ov" id="tguide" hidden>
 <div class="panel" role="dialog" aria-label="Terrain guide">
@@ -825,7 +829,7 @@ function discover(){ // a short "New Discovery!" banner that fades away on whate
   document.body.append(d);setTimeout(()=>d.remove(),3000);
 }
 const XB_DMG=4; // exploding barrel damage
-let BARRELS=new Set(),XBAR=new Set(),CAMPS=new Set(),bchoice=null,choiceMv=null,lastMove=null; // XBAR: the barrels that explode
+let HI={hard:new Set(),soft:new Set()},umHide=null,BARRELS=new Set(),XBAR=new Set(),CAMPS=new Set(),bchoice=null,choiceMv=null,lastMove=null; // XBAR: the barrels that explode
 let WALLV=0,FORTV=new Map(),FORTK=new Set(); // one wall style per map; each connected fortress group shares one style; FORTK: the tile holding each fortress's keep
 const solid=k=>WALLS.has(k)||DEEP.has(k)||BARRELS.has(k)||CAMPS.has(k)||GRAVES.has(k)||LAVA.has(k)||VOLC.has(k)||KOI.has(k);
 // each connected fortress group shares one style; its first tile holds the keep
@@ -1559,6 +1563,7 @@ function render(){
     rc.forEach(k=>ig.add(k));
     atkZone(insp,spotsOf(insp,rc),ir);
   }
+  HI={hard:new Set([...mv,...it,...bt,...[...tg,...hs].map(b=>b.x+","+b.y)]),soft:pr}; // what the unit menu should not cover: moves and targets, then the wider attack zone
   // the whole board is built as one string and parsed once; clicks reach click() through one listener (see below)
   let html="",stepped=0;
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
@@ -1720,7 +1725,7 @@ function buildMenu(){
     menuAt(m,t);
     $("fx").append(m);return;
   }
-  if(!(choice&&sel&&units.includes(choice)&&!over&&turn==="y"))return;
+  if(!(choice&&sel&&units.includes(choice)&&!over&&turn==="y"))return unitMenu();
   const t=choice,[px,py]=pushDest(sel,t),n=Math.abs(px-t.x)+Math.abs(py-t.y);
   const m=document.createElement("div");m.className="pmenu";
   const opt=(html,fn,off)=>{const b=document.createElement("button");b.innerHTML=html;b.onclick=fn;b.disabled=!!off;m.append(b)};
@@ -1746,24 +1751,60 @@ function buildMenu(){
   }
   $("fx").append(m);
 }
-function acts(){
-  const a=$("acts");a.innerHTML="";
-  if(over||busy||locked||turn!=="y"||!units.length)return;
-  const add=(t,f)=>{const b=document.createElement("button");b.className="b";b.textContent=t;b.onclick=f;a.append(b);return b};
-  if(choice&&units.includes(choice))return; // options are shown next to the target
-  if(lastMove&&units.includes(lastMove.u)&&!lastMove.u.acted&&!mode)add("Undo Move",undoMove);
-  if(!sel)return;
-  if(sel.cloak&&!sel.cloakUsed&&!sel.moved&&!mode&&sel.team==="y")add("Teleport (Cloak)",()=>{mode="ctp";say("Choose an open tile on the far edge.");render()});
-  if(mods.y==="TP"&&!tpUsed.y&&!sel.moved)add("Teleport",()=>{mode="tp";say("Choose an open tile on the far edge.");render()});
-  if(sel.t==="K"&&!sel.acted&&units.some(b=>b.team==="y"&&pushable(sel,b)))add("Push Ally",()=>{mode="push";say("Choose an adjacent ally to push.");render()});
-  if(!mode&&canTrumpet(sel))add("Sound Trumpet",()=>doTrumpet(sel));
-  if(!mode&&canBugle(sel))add("Sound the Bugle",()=>doBugle(sel));
-  if(!mode&&canHalo(sel))add("Invigorating Halo",()=>doHalo(sel));
-  if(!mode&&canBombard(sel))add("Wall-breaker Charge",()=>{mode="bombard";say("Choose a fortress tile in range to blast into rubble.");render()});
-  if(!mode&&camp.battle&&!chal&&camp.items&&camp.items.some(id=>!ITEMS[id].passive)&&sel.team==="y"&&(!sel.acted||camp.items.some(id=>ITEMS[id].free&&!ITEMS[id].passive))&&!sel.auto)add("Use Item",()=>{mode="items";say("Choose an item to use.");render()});
-  if(mode==="items")[...new Set(camp.items)].filter(id=>!ITEMS[id].passive&&(!sel.acted||ITEMS[id].free)).forEach(id=>{const k=camp.items.filter(i=>i===id).length;add(ITEMS[id].name+(k>1?" \u00d7"+k:""),()=>{mode="item:"+id;say(itemPrompt(id));render()})});
-  if(!mode&&canMuster(sel))add("Muster Militia",()=>{const n=muster(sel);unlock("seaside");sel=null;insp=null;lastMove=null;say(`Mustered ${n} militia. They can act next turn.`);render()});
-  if(mode)add("Cancel",()=>{mode=null;say("Move, attack, or pick another unit.");render()});
+function acts(){ // the bar under the board: Undo Move and End Turn; everything a unit can do is in its own menu (unitMenu)
+  const off=over||busy||locked||turn!=="y"||!units.length;
+  $("undo").disabled=off||!(lastMove&&units.includes(lastMove.u)&&!lastMove.u.acted&&!mode&&!choice);
+}
+$("undo").onclick=()=>{if(!$("undo").disabled)undoMove()};
+// the selected unit's actions, listed only when they can be done right now
+const itemsFor=u=>camp.battle&&!chal&&camp.items&&!u.auto&&u.team==="y"?[...new Set(camp.items)].filter(id=>!ITEMS[id].passive&&(!u.acted||ITEMS[id].free)&&itemTargets(u,id).size):[];
+function unitActs(u){
+  const L=[],add=(t,sm,f)=>L.push([t,sm,f]),hide=msg=>()=>{umHide={u,m:u.moved,a:u.acted};say(msg);render()};
+  if(mode==="items"){
+    itemsFor(u).forEach(id=>{const k=camp.items.filter(i=>i===id).length;add(ITEMS[id].name+(k>1?" \u00d7"+k:""),ITEMS[id].free?"Doesn't use an action":"Uses this unit's action",()=>{mode="item:"+id;say(itemPrompt(id));render()})});
+    add("Back","",()=>{mode=null;say("Move, attack, or pick another unit.");render()});return L;
+  }
+  if(mode){add("Cancel","",()=>{mode=null;say("Move, attack, or pick another unit.");render()});return L}
+  if(!u.moved&&reach(u).length)add("Move","Tap a green tile",hide("Tap a green tile to move."));
+  if(!u.acted&&targets(u).length)add("Attack","Tap a red enemy",hide("Tap a red enemy to attack."+(u.t==="E"?" You can hex it from there too.":"")));
+  if(!u.acted&&healTargets(u).length)add("Heal","Tap a marked ally",hide("Tap a marked ally to heal it."));
+  if(u.cloak&&!u.cloakUsed&&!u.moved)add("Teleport (Cloak)","Once per battle",()=>{mode="ctp";say("Choose an open tile on the far edge.");render()});
+  if(mods.y==="TP"&&!tpUsed.y&&!u.moved)add("Teleport","To the far edge",()=>{mode="tp";say("Choose an open tile on the far edge.");render()});
+  if(u.t==="K"&&!u.acted&&units.some(b=>b.team==="y"&&pushable(u,b)))add("Push Ally","Reposition an ally",()=>{mode="push";say("Choose an adjacent ally to push.");render()});
+  if(canTrumpet(u))add("Sound Trumpet","",()=>doTrumpet(u));
+  if(canBugle(u))add("Sound the Bugle","",()=>doBugle(u));
+  if(canHalo(u))add("Invigorating Halo","",()=>doHalo(u));
+  if(canBombard(u))add("Wall-breaker Charge","",()=>{mode="bombard";say("Choose a fortress tile in range to blast into rubble.");render()});
+  if(itemsFor(u).length)add("Use Item","",()=>{mode="items";say("Choose an item to use.");render()});
+  if(canMuster(u))add("Muster Militia","",()=>{const n=muster(u);unlock("seaside");sel=null;insp=null;lastMove=null;say(`Mustered ${n} militia. They can act next turn.`);render()});
+  return L;
+}
+// opens centred above the unit, clear of its move and target tiles (and of its wider attack zone when it can);
+// if nothing above fits, the same below; failing both, wherever it covers the least
+function placeUnitMenu(m,u){
+  const fr=$("fx").getBoundingClientRect(),t0=board.querySelector('.t[data-x="0"][data-y="0"]').getBoundingClientRect(),tn=board.querySelector(`.t[data-x="${W-1}"][data-y="${H-1}"]`).getBoundingClientRect();
+  const ox=t0.left-fr.left,oy=t0.top-fr.top,ts=(tn.right-t0.left)/W,th=(tn.bottom-t0.top)/H,bw=fr.width,bh=fr.height,w=m.offsetWidth,h=m.offsetHeight,gap=6; // in the overlay's pixels
+  const cx=Math.max(2,Math.min(bw-w-2,ox+(u.x+.5)*ts-w/2)); // centred on the unit, kept on the board
+  const covers=(left,top,set)=>{let n=0;set.forEach(k=>{const[x,y]=pk(k),tx=ox+x*ts,ty=oy+y*th;if(tx<left+w&&tx+ts>left&&ty<top+h&&ty+th>top)n++});return n};
+  const me=new Set([u.x+","+u.y]),tops=[];
+  for(let r=u.y;r>=0;r--){const top=oy+r*th-gap-h;if(top>=0)tops.push(top)} // above: from the unit's own row upward
+  const above=tops.length;
+  for(let r=u.y+1;r<=H;r++){const top=oy+r*th+gap;if(top+h<=bh)tops.push(top)} // then below, downward
+  const lefts=[cx];for(let i=1;i<W;i++)[cx-i*ts,cx+i*ts].forEach(l=>{if(l>=2&&l<=bw-w-2)lefts.push(l)}); // sideways steps, nearest first
+  const find=(ls,f)=>{for(const l of ls)for(const t of tops)if(!covers(l,t,me)&&f(l,t))return [l,t];return null};
+  let at=find([cx],(l,t)=>!covers(l,t,HI.hard)&&!covers(l,t,HI.soft))||find([cx],(l,t)=>!covers(l,t,HI.hard))||find(lefts,(l,t)=>!covers(l,t,HI.hard)); // centred if it can, sideways before covering a move or target
+  if(!at){const all=[];lefts.forEach((l,j)=>tops.forEach((t,i)=>all.push([l,t,covers(l,t,me)*99+covers(l,t,HI.hard)*10+covers(l,t,HI.soft)+(i<above?0:.5)+j*.01])));all.sort((p,q)=>p[2]-q[2]);at=all.length?all[0]:[cx,Math.max(0,oy+u.y*th-h-gap)]}
+  const[left,top]=at;
+  m.style.left=left+"px";m.style.top=top+"px";m.style.transform="none";
+}
+function unitMenu(){
+  const u=sel;
+  if(!u||over||busy||locked||turn!=="y"||u.team!=="y"||u.auto||mode==="ushove"||!units.includes(u))return;
+  if(umHide&&umHide.u===u&&umHide.m===u.moved&&umHide.a===u.acted&&!mode)return; // tucked away to see the board; back after the unit's next step
+  const L=unitActs(u);if(!L.length)return;
+  const m=document.createElement("div");m.className="pmenu umenu";m.style.visibility="hidden";
+  L.forEach(([t,sm,f])=>{const b=document.createElement("button");b.innerHTML=`<b>${t}</b>${sm?`<small>${sm}</small>`:""}`;b.onclick=f;m.append(b)});
+  $("fx").append(m);placeUnitMenu(m,u);m.style.visibility="";
 }
 
 // a move picked by tapping an enemy that can only be hit after moving; valid while that enemy is the open choice
@@ -1788,7 +1829,7 @@ function undoMove(){
   const m=lastMove;lastMove=null;
   if(!m||!units.includes(m.u)||m.u.acted||at(m.x,m.y))return render();
   m.u.x=m.x;m.u.y=m.y;m.u.moved=0;delete m.u.mvFrom;delete m.u.rough;if(m.tp)tpUsed.y=0;if(m.ctp)m.u.cloakUsed=0;
-  sel=m.u;info=m.u;insp=null;mode=null;choice=null;bchoice=null;
+  sel=m.u;info=m.u;insp=null;mode=null;choice=null;bchoice=null;umHide=null;
   say("Move undone. Pick a new tile.");render();
 }
 function click(x,y){
@@ -3325,7 +3366,7 @@ const HOWTO=[
  {id:"goal",title:"Goal",art:()=>hBoard(7,3,[".......",".......","......."],[["K","f",1,0],["A","f",3,0],["C","f",5,0],["K","y",1,2],["A","y",3,2],["C","y",5,2]]),
   body:()=>"<p>Destroy every enemy unit.</p>"},
  {id:"turn",title:"Your Turn",art:()=>hBoard(7,5,["..m....",".mmm...","mm.mma.",".mmm...","..m...."],[["K","y",2,2],["K","f",5,2]]),
-  body:()=>"<p>Tap a unit. Green tiles show where it can move and pale red tiles show what it can hit. Tap a green tile to move, then tap a red enemy to attack.</p><p>Each unit moves once and attacks once, and attacking ends its turn. Press End Turn when you're done.</p><p>Tapping an enemy opens a short action menu, so nothing happens until you choose. If the enemy is only in reach after a move, tapping it marks the tile your unit will move to, and the menu offers Move &amp; Attack.</p><p>Moved to the wrong tile? Press Undo Move before that unit acts. Tap empty ground to deselect.</p>"},
+  body:()=>"<p>Tap a unit. Green tiles show where it can move and pale red tiles show what it can hit. Tap a green tile to move, then tap a red enemy to attack.</p><p>Selecting a unit also opens its menu, listing only what it can do right now: Move, Attack, Use Item, and any special actions. Tap a tile directly any time; Move and Attack just tuck the menu away so you can see the board.</p><p>Each unit moves once and attacks once, and attacking ends its turn. Press End Turn when you're done.</p><p>Tapping an enemy opens a short action menu, so nothing happens until you choose. If the enemy is only in reach after a move, tapping it marks the tile your unit will move to, and the menu offers Move &amp; Attack.</p><p>Moved to the wrong tile? Press Undo Move before that unit acts. Tap empty ground to deselect.</p>"},
  {id:"armies",title:"Armies",art:()=>{let s='<svg class="hart" viewBox="0 0 300 70" role="img" aria-hidden="true">';["K","A","C"].forEach((t,i)=>{s+=hDisc(t,HCOL.y,30+i*60,35,24)});[3,4].forEach(i=>{s+=`<circle cx="${30+i*60}" cy="35" r="24" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-dasharray="5 4"/><text x="${30+i*60}" y="44" text-anchor="middle" font-size="26" font-weight="700" fill="var(--ink)">?</text>`});return s+"</svg>"},
   body:()=>`<p>Each side fields five units: one knight, one archer, one cavalry unit, and two more. You choose your two extras, and the enemy's are random. Each army can include only ${listAnd(poolNow().split("").filter(t=>LIMIT1.includes(t)).map(t=>"one "+cap(NAME[t])))}.</p>`},
  {id:"units",title:"Units",art:()=>"",
@@ -3350,7 +3391,7 @@ const HOWTO=[
         :k==="boss"?nest(FORT_ICON[1],x-14,y-14,28)
         :`<path d="M${x-6} ${y-6}L${x+6} ${y+6}M${x+6} ${y-6}L${x-6} ${y+6}" stroke="#3b2a14" stroke-width="3" stroke-linecap="round"/>`});
     return s+"</svg>"},
-  body:()=>`<p>Travel along the paths on the world map. Each new location starts a battle, and winning clears it. Paths marked with arrows are one-way: there's no coming back, so places you skip may be cut off for good, and something may happen along the way. Every campaign uses a new random map. Defeat the boss at the top to finish, or travel on to new lands: a fresh map in a new region, with your army, relics and gold carried over.</p><p>You choose your extra units, modifier, and color once. Your units keep their health between battles. After each win, surviving units recover ${Math.round(CAMP_HEAL*100)}% of their max health, and a unit that falls returns with 1 HP. But if your whole army falls, or you concede, the campaign ends there: choose your battles carefully.</p><p>Each new region is tougher than the last. From region ${escFrom("elite")}, Elite enemies (ringed in gold, with +2 HP and +1 damage) lead every army, more in each new region, and from region ${escFrom("extra")} the enemy armies grow larger too. The boss's garrison carries consumables it isn't shy about using${escFrom("items")>1?` from region ${escFrom("items")}`:""}, and from region ${escFrom("relics")} relics of its own.</p><p>Every soldier has a name. A unit that falls in a battle you win comes back wounded, with 1 less max HP for the rest of the campaign (up to ${WOUND_MAX} wounds, marked \u2020 on the world map). The healing space mends one wound per unit, and Herbert's fire mends them all. Brave deeds earn honors, like "the Bold" or "the Unbroken", and the roll of honor remembers it all when you conquer a region.</p><p>Each victory also earns gold, shown by the coin purse on the world map, and lets you choose one of two or three relics. Relics last for the rest of the campaign: rarer ones are stronger.</p><p>Teal wave spaces are wetlands: battles fought across lakes, ponds and rivers. One or two appear on each map. Dark reed spaces are murky swamps, thick with mud that stops units in their tracks.</p><p>Each map has one healing space (a green cross). Visiting it restores 70% of each unit's health, once.</p><p>Each map also has one Merchant (a gold coin purse), where Marcus sells potions, bombs and relics for gold. His wagon carries just three consumables at a time, one of each, so rarer ones are a lucky find. You can visit once. Your pack holds up to ${ITEM_CAP} items: in battle, select a unit and tap <b>Use Item</b>. Using an item takes that unit's action.</p>`},
+  body:()=>`<p>Travel along the paths on the world map. Each new location starts a battle, and winning clears it. Paths marked with arrows are one-way: there's no coming back, so places you skip may be cut off for good, and something may happen along the way. Every campaign uses a new random map. Defeat the boss at the top to finish, or travel on to new lands: a fresh map in a new region, with your army, relics and gold carried over.</p><p>You choose your extra units, modifier, and color once. Your units keep their health between battles. After each win, surviving units recover ${Math.round(CAMP_HEAL*100)}% of their max health, and a unit that falls returns with 1 HP. But if your whole army falls, or you concede, the campaign ends there: choose your battles carefully.</p><p>Each new region is tougher than the last. From region ${escFrom("elite")}, Elite enemies (ringed in gold, with +2 HP and +1 damage) lead every army, more in each new region, and from region ${escFrom("extra")} the enemy armies grow larger too. The boss's garrison carries consumables it isn't shy about using${escFrom("items")>1?` from region ${escFrom("items")}`:""}, and from region ${escFrom("relics")} relics of its own.</p><p>Every soldier has a name. A unit that falls in a battle you win comes back wounded, with 1 less max HP for the rest of the campaign (up to ${WOUND_MAX} wounds, marked \u2020 on the world map). The healing space mends one wound per unit, and Herbert's fire mends them all. Brave deeds earn honors, like "the Bold" or "the Unbroken", and the roll of honor remembers it all when you conquer a region.</p><p>Each victory also earns gold, shown by the coin purse on the world map, and lets you choose one of two or three relics. Relics last for the rest of the campaign: rarer ones are stronger.</p><p>Teal wave spaces are wetlands: battles fought across lakes, ponds and rivers. One or two appear on each map. Dark reed spaces are murky swamps, thick with mud that stops units in their tracks.</p><p>Each map has one healing space (a green cross). Visiting it restores 70% of each unit's health, once.</p><p>Each map also has one Merchant (a gold coin purse), where Marcus sells potions, bombs and relics for gold. His wagon carries just three consumables at a time, one of each, so rarer ones are a lucky find. You can visit once. Your pack holds up to ${ITEM_CAP} items: in battle, select a unit and choose <b>Use Item</b> from its menu (it shows when an item has something to work on). Using an item takes that unit's action.</p>`},
  {id:"scout",title:"Scouting",art:()=>{const m=[];for(let y=0;y<7;y++){let r="";for(let x=0;x<7;x++){const d=Math.abs(x-3)+Math.abs(y-3);r+=d===0?".":d<=2?"g":d===3?"p":"."}m.push(r)}return hBoard(7,7,m,[["K","f",3,3]],38)},
   body:()=>"<p>Tap any unit to see its details, including its health. Tap an enemy to see where it can move (gray) and hit (red). Tap it again to hide.</p>"}
 ];
