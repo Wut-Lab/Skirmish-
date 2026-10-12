@@ -1538,6 +1538,16 @@ function atkZone(u,spots,set,bar){
     }
   });
 }
+// the terrain's art, kept until the terrain itself changes (a barrel breaks, a fortress falls...)
+let boardHTML=[],artMemo={sig:""};
+function terrainArt(){
+  const tk=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++)tk.push(terrainKey(x+","+y));
+  const sig=[W,H,seed,WALLV,+HAUNTED,+VOLCANIC,+VALE,[...FORTV].join(";"),[...FORTK].join(";"),tk.join("")].join("|");
+  if(artMemo.sig===sig)return artMemo;
+  const art=[],jn=[],bl=[],wm=[];
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){art.push(tileArt(x,y));jn.push(joins(x,y));bl.push(blush(x,y));const m=wallMask(x,y);wm.push((m&1?" jn":"")+(m&4?" js":""))}
+  return artMemo={sig,tk,art,jn,bl,wm};
+}
 function render(){
   units.forEach(u=>{if(u.slow&&calm(u)){delete u.slow;delete u.hex;delete u.hexPend;floatText(u.x,u.y,"Calm","bless")}});
   board.classList.toggle("murky",MURKY);board.classList.toggle("haunted",HAUNTED);board.classList.toggle("volcanic",VOLCANIC);
@@ -1569,13 +1579,14 @@ function render(){
   }
   HI={hard:new Set([...mv,...it,...bt,...[...tg,...hs].map(b=>b.x+","+b.y)]),soft:pr}; // what the unit menu should not cover: moves and targets, then the wider attack zone
   // the whole board is built as one string and parsed once; clicks reach click() through one listener (see below)
-  let html="",stepped=0;
+  const A=terrainArt(),ua=new Map(units.map(u=>[u.x+","+u.y,u]).reverse()),out=[];let stepped=0;
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
-    const k=x+","+y,w=WALLS.has(k),dp=DEEP.has(k),sh=SHALLOW.has(k),f=FOREST.has(k),fr=FORT.has(k),bar=BARRELS.has(k),u=at(x,y);
-    const cls="t"+(bar?" brl":"")+(w?" w"+(wallMask(x,y)&1?" jn":"")+(wallMask(x,y)&4?" js":""):"")+(dp?" dp":"")+(sh?" sh":"")+(SWAMP.has(k)?" sw":"")+(LAVA.has(k)?" lv":"")+(MAGMA.has(k)?" mg":"")+(VOLC.has(k)?" vo":"")+(WISP.has(k)?" wo":"")+(KOI.has(k)?" ko":"")+(f?" fo":"")+(MEADOW.has(k)||GREENW.has(k)?" gr":"")+blush(x,y)+(fr?" fr":"")+(tile&&tile.x===x&&tile.y===y?" ts":"")+(ig.has(k)?" ig":"")+(ir.has(k)?" ir":"")+(pr.has(k)?" pr":"")+(mv.has(k)?" m":"")+((u&&tg.has(u))||bt.has(k)?" a":"")+(u&&tg.has(u)&&sel&&pushable(sel,u)?" pp":"")+(u&&hs.has(u)?" hl":"")+(u&&u===choice?" ch":"")+(pd&&pd.k===k?" pd":"")+(cm&&cm.x===x&&cm.y===y?" mt":"")+(bl.has(k)?" bl":"")+(CAMPS.has(k)?" cmp":"")+(cv.has(k)?" cv":"")+(it.has(k)?" it":"");
-    const label=u?(u.team==="y"?"Your ":u.team==="w"?"Wild ":"Enemy ")+NAME[u.t]+", "+u.hp+" health"+(u.slow?", slowed":""):(mv.has(k)?"Move here, ":"")+TERRAIN[terrainKey(k)].name;
+    const k=x+","+y,i=y*W+x,w=WALLS.has(k),dp=DEEP.has(k),sh=SHALLOW.has(k),f=FOREST.has(k),fr=FORT.has(k),bar=BARRELS.has(k),u=ua.get(k);
+    let html="";
+    const cls="t"+(bar?" brl":"")+(w?" w"+A.wm[i]:"")+(dp?" dp":"")+(sh?" sh":"")+(SWAMP.has(k)?" sw":"")+(LAVA.has(k)?" lv":"")+(MAGMA.has(k)?" mg":"")+(VOLC.has(k)?" vo":"")+(WISP.has(k)?" wo":"")+(KOI.has(k)?" ko":"")+(f?" fo":"")+(MEADOW.has(k)||GREENW.has(k)?" gr":"")+A.bl[i]+(fr?" fr":"")+(tile&&tile.x===x&&tile.y===y?" ts":"")+(ig.has(k)?" ig":"")+(ir.has(k)?" ir":"")+(pr.has(k)?" pr":"")+(mv.has(k)?" m":"")+((u&&tg.has(u))||bt.has(k)?" a":"")+(u&&tg.has(u)&&sel&&pushable(sel,u)?" pp":"")+(u&&hs.has(u)?" hl":"")+(u&&u===choice?" ch":"")+(pd&&pd.k===k?" pd":"")+(cm&&cm.x===x&&cm.y===y?" mt":"")+(bl.has(k)?" bl":"")+(CAMPS.has(k)?" cmp":"")+(cv.has(k)?" cv":"")+(it.has(k)?" it":"");
+    const label=u?(u.team==="y"?"Your ":u.team==="w"?"Wild ":"Enemy ")+NAME[u.t]+", "+u.hp+" health"+(u.slow?", slowed":""):(mv.has(k)?"Move here, ":"")+TERRAIN[A.tk[i]].name;
     html+=`<button class="${cls}" data-x="${x}" data-y="${y}"${pd&&pd.k===k?` data-arrow="${pd.a}"`:""} aria-label="${label.replace(/"/g,"&quot;")}">`
-      +'<i class="lt"></i>'+tileArt(x,y)+(fr?'<i class="tint"></i>':"")+(SMOKE.has(k)?'<i class="smoke"></i>':"")+(CALTROPS.has(k)?CALT_ART:"")+joins(x,y); // fortress art covers its tile, so highlights go on a see-through layer above it
+      +'<i class="lt"></i>'+A.art[i]+(fr?'<i class="tint"></i>':"")+(SMOKE.has(k)?'<i class="smoke"></i>':"")+(CALTROPS.has(k)?CALT_ART:"")+A.jn[i]; // fortress art covers its tile, so highlights go on a see-through layer above it
     if(u){
       let uc="u "+u.team+(u.merc?" merc":"")+(u.auto&&u.team==="y"?" free":spent(u)?" done":"")+(u.slow?" slow":"")+(u.stun?" stun":"")+(u.rage||u.oil?" rage":"")+(u.chill?" chill":"")+(u.ash?" ash":"")+(inspired(u)?" insp":"")+(blessed(u)||rested(u)?" blessed":"")+(u.t==="E"&&rel(u,"redtome")?" redglow":"")+(rallied(u)?" rallied":"")+(muled(u)?" mule":"")+(u.dug?" dug":"")+(u.elite?" elite":"")+(u.champ||u.cshield||u.cloak?" champ":"")+(u.ublade||u.ubulwark||u.ushroud?" usurp":"")+(u===sel||u===insp?" sel":""),mvs="";
       if(u.spawn){uc+=" tpin";delete u.spawn}
@@ -1589,9 +1600,13 @@ function render(){
       html+=`<div class="${uc}" data-t="${u.t}" data-team="${u.team}" style="background:${bg};--tc:${bg};--ic:${c[2]}${mvs}">${u.merc?'<b class="ms"></b>':""}${u.trio?CHAMP_ICON:u.utrio?USURP_ICON:ICON[u.t]}${u.aim?'<i class="aimk" aria-label="Holding aim"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" fill="none" stroke="#9fe0b0" stroke-width="1.600"/><path d="M8 1v4M8 11v4M1 8h4M11 8h4" stroke="#9fe0b0" stroke-width="1.600"/></svg></i>':""}</div>`
         +`<div class="hp"><i style="width:${100*hr}%;background-color:${hr>.5?"#5fd068":hr>.25?"#f0c33a":"#ee5a45"}"></i></div>`;
     }
-    html+="</button>";
+    out.push(html+"</button>");
   }
-  board.innerHTML=html;if(stepped)sfx("step");
+  // only redraw the tiles that changed: rebuilding every tile's art each time was most of the cost of a redraw
+  const ch=out.reduce((n,h,i)=>n+(h!==boardHTML[i]),0);
+  if(board.children.length!==out.length||ch>out.length/3)board.innerHTML=out.join("");
+  else if(ch)out.forEach((h,i)=>{if(h!==boardHTML[i])board.children[i].outerHTML=h});
+  boardHTML=out;if(stepped)sfx("step");
   $("end").disabled=over||busy||locked||turn!=="y"||!units.length;
   const mine=units.filter(u=>u.team==="y");
   $("end").classList.toggle("ready",!$("end").disabled&&mine.length>0&&mine.every(spent)); // nothing left to do: nudge toward End Turn
@@ -1717,7 +1732,7 @@ function buildMenu(){
     const t=bchoice,m=document.createElement("div");m.className="pmenu";
     const opt=(html,fn)=>{const b=document.createElement("button");b.innerHTML=html;b.onclick=fn;m.append(b)};
     if(t.calt){ // Bag of Caltrops: pick the line's direction; pointing at a choice previews it
-      const show=dir=>{t.dir=dir;board.querySelectorAll(".t.bl").forEach(e=>e.classList.remove("bl"));calLine(t.x,t.y,dir).forEach(k=>{const[x,y]=pk(k),e=board.querySelector(`.t[data-x="${x}"][data-y="${y}"]`);if(e)e.classList.add("bl")})};
+      const show=dir=>{t.dir=dir;boardHTML=[];board.querySelectorAll(".t.bl").forEach(e=>e.classList.remove("bl"));calLine(t.x,t.y,dir).forEach(k=>{const[x,y]=pk(k),e=board.querySelector(`.t[data-x="${x}"][data-y="${y}"]`);if(e)e.classList.add("bl")})};
       [["h","Across \u2194"],["v","Down \u2195"]].forEach(([dir,nm])=>{opt(`<b>${nm}</b><small>Uses this unit's action</small>`,()=>{bchoice=null;useItem(sel,"caltrops",t.x,t.y,undefined,dir)});const b=m.lastChild;b.onmouseenter=b.onfocus=()=>show(dir)});
       opt("<b>Cancel</b>",()=>{bchoice=null;say(itemPrompt("caltrops"));render()});
       menuAt(m,t);$("fx").append(m);return;
@@ -1990,6 +2005,7 @@ function doTrumpet(a){ // Trumpet of Encouragement: nearby allies that have move
 const SKEY="skirmish_sound",MKEY="skirmish_music",pref=(k)=>{try{return localStorage.getItem(k)!=="off"}catch(e){return true}};
 let actx=null,sfxOn=pref(SKEY),musicOn=pref(MKEY),mus=null;const sfxLast={};
 const SFX_VOL=.07,MUSIC_VOL=.08,SFX_GAIN={whisk:2.5,step:3,swing:3,charge:3.5,bawk:2,shove:2.5,warp:1.5,boom:.75}; // SFX_GAIN: per-effect boost over SFX_VOL
+const NOISE=new Map(),noiseBuf=n=>{let b=NOISE.get(n);if(!b){b=actx.createBuffer(1,n,actx.sampleRate);const d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;NOISE.set(n,b)}return b}; // white noise, made once per length
 function audio(){actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume();return actx}
 function sfx(name){
   if(!sfxOn)return;
@@ -1999,7 +2015,7 @@ function sfx(name){
     const t0=actx.currentTime+.01,out=actx.createGain(),vr=1+(Math.random()-.5)*.08;out.gain.value=SFX_VOL*(SFX_GAIN[name]||1);out.connect(actx.destination); // vr: a little pitch variety so repeats don't grate
     const env=(s,a,hold,rel,peak=1)=>{const g=actx.createGain();g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(peak,s+a);g.gain.setValueAtTime(peak,s+a+hold);g.gain.exponentialRampToValueAtTime(.001,s+a+hold+rel);return g};
     const tone=(type,f,s,len,peak=1,f2)=>{const o=actx.createOscillator(),g=env(s,.008,0,len,peak);o.type=type;o.frequency.setValueAtTime(f,s);if(f2)o.frequency.exponentialRampToValueAtTime(f2,s+len);o.connect(g);g.connect(out);o.start(s);o.stop(s+len+.05)};
-    const noise=(s,len,ftype,f,q,peak=1,f2)=>{const n=actx.createBufferSource(),b=actx.createBuffer(1,Math.ceil(actx.sampleRate*(len+.05)),actx.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+    const noise=(s,len,ftype,f,q,peak=1,f2)=>{const n=actx.createBufferSource(),b=noiseBuf(Math.ceil(actx.sampleRate*(len+.05)));
       const fl=actx.createBiquadFilter(),g=env(s,.004,0,len,peak);fl.type=ftype;fl.frequency.setValueAtTime(f,s);if(f2)fl.frequency.exponentialRampToValueAtTime(f2,s+len);fl.Q.value=q;n.buffer=b;n.connect(fl);fl.connect(g);g.connect(out);n.start(s);n.stop(s+len+.05)};
     const bell=(f,s,len,peak)=>{tone("sine",f,s,len,peak);tone("sine",f*2.76,s,len*.35,peak*.18);tone("sine",f*5.4,s,len*.15,peak*.06)}; // a struck bell: fundamental plus quick inharmonic partials
     switch(name){
