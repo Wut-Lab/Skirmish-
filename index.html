@@ -370,6 +370,7 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .pop.bless{color:#c8f0ff;text-shadow:0 0 6px #4ab8ff,0 0 3px #000,0 1px 4px #000}
 .pop.rally{color:#ffe7a0;text-shadow:0 0 6px #d9a02a,0 0 3px #000,0 1px 4px #000}
 .u.rallied:not(.blessed){box-shadow:0 0 0 2px rgba(255,240,200,.9),0 0 10px 3px rgba(230,180,60,.7),var(--bev)}
+.u.dug{box-shadow:0 0 0 2.5px #8a6236,0 3px 0 2.5px #5a3e22,var(--bev)} /* a dug-in Badger sits in a ring of churned earth */
 .u.mule:not(.blessed):not(.rallied){box-shadow:0 0 0 2px rgba(240,220,190,.9),0 0 9px 3px rgba(150,95,45,.8),var(--bev)}
 .u.champ::before{content:"\2726";position:absolute;bottom:-5px;left:-5px;width:16px;height:16px;border-radius:50%;background:#fff6c8;color:#8a6418;font-size:.7rem;font-weight:800;line-height:16px;text-align:center;box-shadow:0 0 0 1.5px #8a6418,0 0 8px 2px rgba(255,236,150,.8);z-index:3}
 .vgiven{margin:2px 0 0;text-align:center;font-weight:700;font-size:.9rem;opacity:.85;display:flex;align-items:center;justify-content:center;gap:6px}.vgiven svg{width:22px;height:22px}
@@ -651,7 +652,8 @@ function rollMerc(t){
 const mercLine=m=>{const T={...TYPES[m.t],...m.st};return `${cap(NAME[m.t])}: HP ${T.hp}, move ${T.mv}, damage ${T.dmg}`+(T.ar?`, armor ${T.ar}`:"")+(T.pi?`, pierce ${T.pi}`:"")+(T.ev?`, evasion ${pct(T.ev)}`:"")+`. ${m.q}: ${m.qt}.`};
 const mercDesc=m=>mercLine(m)+` Serves ${MERC_TERM} battles, fighting on its own after your turn.`+(camp.merc?` Hiring dismisses ${camp.merc.name}.`:"");
 function hireMerc(m){const old=camp.merc;camp.merc={t:m.t,name:m.name,q:m.q,qt:m.qt,st:m.st,hp:m.st.hp,left:MERC_TERM};camp.mercNote="";return old}
-const LIMIT1="PETNQ",CORE="KAC",WILD="WBH"; // LIMIT1: one of each per army; CORE: in every army; WILD: the neutral animals
+const LIMIT1="PETNQ",CORE="KAC",WILD="WBHD"; // LIMIT1: one of each per army; CORE: in every army; WILD: the neutral animals
+const DIG_TURNS=2,DIG_AR=1; // Badger: digs in after moving on this many turns, and gains this much armor
 const UNIT_UNLOCK={T:"captain",N:"banner",Q:"conquistador"}; // unlockable units and the unlock each needs
 const poolNow=()=>CORE+"RPE"+Object.keys(UNIT_UNLOCK).filter(t=>unlocks[UNIT_UNLOCK[t]]).join(""); // units an army may pick right now
 // Can Retaliate / Can't Retaliate: a unit retaliates when it is in the first list and not in the second (the second wins)
@@ -1355,7 +1357,7 @@ const pct=v=>Math.round(v*100)+"%";
 const unitStats=t=>{const T=TYPES[t];return `HP ${T.hp}, move ${T.mv}, range ${rangeTxt(T)}, damage ${T.dmg}`+(T.ar?`, armor ${T.ar}`:"")+(T.pi?`, pierce ${T.pi}`:"")+(T.ev?`, evasion ${pct(T.ev)}`:"")};
 const ABILITY={K:"Can push an adjacent unit up to 2 tiles instead of attacking, ally or enemy. Artillery and cavalry are too heavy.",P:`Heals an ally in range for up to ${TYPES.P.heal} HP instead of attacking.`,E:"Its magic ignores armor. Can hex an enemy in range instead of attacking: on its next turn it moves only 1 tile, and the units it attacks get +10% evasion against it.",
  T:`Instead of attacking, can muster 1-2 militia onto open tiles beside it. Twice per battle, with at most ${MUSTER_ALIVE} of its militia at a time.`,
- N:`Allies within ${BANNER_RANGE} tiles deal +1 damage.`,Q:"Trailblazer: forests and shallow water cost it no extra movement, and a swamp doesn't end its move.",M:"Mustered by a Captain. Weak, but useful for blocking and finishing off foes.",
+ N:`Allies within ${BANNER_RANGE} tiles deal +1 damage.`,Q:"Trailblazer: forests and shallow water cost it no extra movement, and a swamp doesn't end its move.",D:`Heads for the nearest choke point and digs in after ${DIG_TURNS} turns, or as soon as it gets there. Dug in, it never moves or attacks on its own turn, can't be pushed and gets +${DIG_AR} armor, but strikes the first unit to move next to it each turn, before that unit can act. That unit can't retaliate.`,M:"Mustered by a Captain. Weak, but useful for blocking and finishing off foes.",
  G:"Burst out of the Chicken Suit. Fights for you on its own: at the end of each of your turns it charges the nearest enemy. Forests and shallow water don't slow it."};
 const TAG={K:"Pushes",P:"Heals",E:"Hexes; ignores armor",T:"Musters militia",N:"+1 damage aura",Q:"Trailblazer"}; // short ability labels for the setup cards
 const listAnd=a=>a.length<2?a.join(""):a.slice(0,-1).join(", ")+" and "+a[a.length-1];
@@ -1413,7 +1415,7 @@ function combat(a,b,from=a){
   add("Imposing Banner",units.some(v=>v.t==="N"&&v.team!==a.team&&v.team!=="w"&&rel(v,"imposing")&&d(v,from)<=BANNER_RANGE)?-1:0); // striking in the banner's shadow
   add("Vasco's Falcata",a.conq||0);
   const sc=scouting(a);add("Scouted Ahead",sc?1:0);
-  const armor=[["Armor",B.ar||0],["Shield Wall",walled(b)?1:0],["Forest Tactics",mods[b.team]==="FT"&&A.rg>1&&WOODS(k)?1:0],["Fortress",FORT.has(k)?1:0],["Sturdy Shields",b.t==="K"&&rel(b,"shield")?1:0],["Lightened Armor",b.t==="K"&&rel(b,"lightarmor")?-1:0],["Barding",b.t==="C"&&rel(b,"bard")?1:0],["Banner of the Fallen Keep",b.keep?1:0],["Vasco's Morion",b.vang?1:0],["Stubborn as a Mule",muled(b)?MULE_AR:0],["Improvised Armor",desperate(b,"hide")&&units.some(v=>v.team===b.team&&v.t==="K"&&d(v,b)===1)?1:0]];
+  const armor=[["Armor",B.ar||0],["Shield Wall",walled(b)?1:0],["Forest Tactics",mods[b.team]==="FT"&&A.rg>1&&WOODS(k)?1:0],["Fortress",FORT.has(k)?1:0],["Dug in",b.dug?DIG_AR:0],["Sturdy Shields",b.t==="K"&&rel(b,"shield")?1:0],["Lightened Armor",b.t==="K"&&rel(b,"lightarmor")?-1:0],["Barding",b.t==="C"&&rel(b,"bard")?1:0],["Banner of the Fallen Keep",b.keep?1:0],["Vasco's Morion",b.vang?1:0],["Stubborn as a Mule",muled(b)?MULE_AR:0],["Improvised Armor",desperate(b,"hide")&&units.some(v=>v.team===b.team&&v.t==="K"&&d(v,b)===1)?1:0]];
   armor.forEach(([l,v])=>add(l,-v));
   add("Pierce",Math.min(a.t==="E"?99:a.bruise?1:Math.max(0,(A.pi||0)+(charging(a,from)?2:0)+(rel(a,"bluemagma")?1:0)+(rel(a,"crown")?1:0)+(a.t==="K"&&rel(a,"sallet")?1:0)+(a.t==="R"&&rel(a,"ammo")?1:0)+(a.champ?1:0)+(sc?1:0)+(a.ublade&&b.hp>maxHp(b)/2?1:0)-(b.cshield?1:0)),armor.reduce((t,x)=>t+x[1],0))); // Blue Magma and the Champion's Sword add pierce, the Usurper's Blade against the healthy; the Champion's Shield turns 1 aside
   add("Pavise",b.t==="A"&&A.rg>1&&rel(b,"pavise")?-1:0); // a shield wall, not armor: pierce can't get past it
@@ -1433,7 +1435,8 @@ const dmgTo=(a,b,from)=>combat(a,b,from).dmg;
 const combatNote=c=>c.parts.length>1?c.parts.map(([l,v],i)=>i?`${v>0?"+":"\u2212"}${Math.abs(v)} ${l}`:`${v} base`).join(" "):"";
 const open=(x,y)=>x>=0&&y>=0&&x<W&&y<H&&!solid(x+","+y)&&!at(x,y);
 const farRow=t=>{const y=t==="y"?0:H-1,r=[];for(let x=0;x<W;x++)if(open(x,y))r.push([x,y]);return r};
-const pushable=(a,b)=>a.t==="K"&&b!==a&&!muled(b)&&b.t!=="R"&&b.t!=="C"&&d(a,b)===1;
+const rooted=u=>muled(u)||!!u.dug; // can't be pushed, shoved or knocked back: Stubborn as a Mule, or a dug-in Badger
+const pushable=(a,b)=>a.t==="K"&&b!==a&&!rooted(b)&&b.t!=="R"&&b.t!=="C"&&d(a,b)===1;
 const pushLen=a=>2+(a.t==="K"&&rel(a,"bruiser")&&a.moved?1:0); // Gauntlets of the Bruiser: a Knight that moved first pushes 3
 const bruises=(a,b)=>a.t==="K"&&rel(a,"bruiser")&&b.team!==a.team; // Gauntlets of the Bruiser: the push strikes too
 function pushDest(a,b){const dx=b.x-a.x,dy=b.y-a.y;let x=b.x,y=b.y;for(let i=0;i<pushLen(a);i++){if(!open(x+dx,y+dy))break;x+=dx;y+=dy}return[x,y]}
@@ -1560,7 +1563,7 @@ function render(){
     html+=`<button class="${cls}" data-x="${x}" data-y="${y}"${pd&&pd.k===k?` data-arrow="${pd.a}"`:""} aria-label="${label.replace(/"/g,"&quot;")}">`
       +'<i class="lt"></i>'+tileArt(x,y)+(fr?'<i class="tint"></i>':"")+(SMOKE.has(k)?'<i class="smoke"></i>':"")+(CALTROPS.has(k)?CALT_ART:"")+joins(x,y); // fortress art covers its tile, so highlights go on a see-through layer above it
     if(u){
-      let uc="u "+u.team+(u.merc?" merc":"")+(u.auto&&u.team==="y"?" free":spent(u)?" done":"")+(u.slow?" slow":"")+(inspired(u)?" insp":"")+(blessed(u)||rested(u)?" blessed":"")+(u.t==="E"&&rel(u,"redtome")?" redglow":"")+(rallied(u)?" rallied":"")+(muled(u)?" mule":"")+(u.elite?" elite":"")+(u.champ||u.cshield?" champ":"")+(u.ublade||u.ubulwark||u.ushroud?" usurp":"")+(u===sel||u===insp?" sel":""),mvs="";
+      let uc="u "+u.team+(u.merc?" merc":"")+(u.auto&&u.team==="y"?" free":spent(u)?" done":"")+(u.slow?" slow":"")+(inspired(u)?" insp":"")+(blessed(u)||rested(u)?" blessed":"")+(u.t==="E"&&rel(u,"redtome")?" redglow":"")+(rallied(u)?" rallied":"")+(muled(u)?" mule":"")+(u.dug?" dug":"")+(u.elite?" elite":"")+(u.champ||u.cshield?" champ":"")+(u.ublade||u.ubulwark||u.ushroud?" usurp":"")+(u===sel||u===insp?" sel":""),mvs="";
       if(u.spawn){uc+=" tpin";delete u.spawn}
       const pp=prevPos.get(u);prevPos.set(u,[x,y]);
       if(pp&&(pp[0]!==x||pp[1]!==y)){ // slide in from where it was last drawn (a long jump fades in instead)
@@ -1616,7 +1619,7 @@ function renderInfo(){
   if(info&&!units.includes(info))info=null;
   if(!info){el.className="pb empty";el.style.borderLeft="";el.innerHTML='<div class="lbl">Unit</div><div class="ph">Tap a unit to see its details.</div>';return}
   const u=info,T=ST(u),c=COLORS[col[u.team]],fo=WOODS(u.x+","+u.y),r=u.hp/maxHp(u),notes=[],hero=camp.battle&&!chal&&u.team==="y"&&u.ci!=null&&camp.names;
-  if(u.team==="w")notes.push("Wild: wanders at random and attacks any unit in range.");
+  if(u.team==="w")notes.push(u.t!=="D"?"Wild: wanders at random and attacks any unit in range.":u.dug?`Dug in: +${DIG_AR} armor and can't be pushed. Strikes the first unit to move next to it each turn.`:`Wild: heads for a choke point and digs in there, or after ${DIG_TURNS} turns.`);
   if(u.merc&&u.team==="y")notes.push(`Mercenary: fights on its own at the end of your turn.${camp.merc?` ${camp.merc.left} battle${camp.merc.left>1?"s":""} left on its contract.`:""}`);
   if(ABILITY[u.t])notes.push(u.t==="P"?ABILITY.P.replace(TYPES.P.heal+" HP",healOf(u)+" HP"):ABILITY[u.t]); // the Apothecary's note carries its heal, relics included
   if(u.t==="T")notes.push(`Musters left this battle: ${musterUses(u)-(u.musters||0)}.`);
@@ -1767,7 +1770,7 @@ function attackSpot(a,t){
 function moveThen(a,cm,fn){
   const dist=Math.abs(a.x-cm.x)+Math.abs(a.y-cm.y),g=gid;
   walk(a,cm.x,cm.y);a.moved=1;choiceMv=null;lastMove=null;locked=true;render();
-  later(()=>{if(g!==gid)return;locked=false;if(units.includes(a))fn();else afterAction()},Math.round((.1+.06*dist)*1000)+60); // let the slide finish first
+  later(()=>{if(g!==gid)return;badgerAmbush(a,()=>{if(g!==gid)return;locked=false;if(units.includes(a))fn();else afterAction()})},Math.round((.1+.06*dist)*1000)+60); // let the slide finish first
 }
 function undoMove(){
   const m=lastMove;lastMove=null;
@@ -1819,6 +1822,7 @@ function click(x,y){
     lastMove={u:sel,x:sel.x,y:sel.y};
     if(walk(sel,x,y)){lastMove=null;if(!units.includes(sel)){sel=null;info=null;say("Your unit fell on the caltrops.");return afterAction()}} // stepping on caltrops can't be undone
     sel.moved=1;delete sel.stepOnly;
+    if(ambusher(sel)){const a=sel;lastMove=null;busy=true;render();return badgerAmbush(a,()=>{busy=false;if(!units.includes(a)){sel=null;info=null}afterAction()})} // no undoing a move into an ambush
     say(sel.acted?"Moved. This unit has already acted this turn.":targets(sel).length?"Tap a red enemy to attack.":healTargets(sel).length?"Tap a marked ally to heal it.":breakables(sel).length?"Tap the barrels to break them.":"No enemy in range. Pick another unit, undo the move, or end turn.");
     return render();
   }
@@ -2232,7 +2236,7 @@ function hitFor(a,b,c,back){ // resolve one blow from a to b: dodge roll, damage
     if(a.bleed&&rel(a,"statue")){delete a.bleed;later(()=>{if(units.includes(a))floatText(a.x,a.y,"Staunched","heal")},300)} // Bleeding Statue: a kill stops your own bleeding
     if(a.team==="y"&&units.some(v=>v!==a&&v.team==="y"&&d(v,b)===1)){unlocks.wp=(unlocks.wp||0)+1;saveU();if(unlocks.wp>=20)unlock("wolfpack")} // kills on a surrounded enemy teach the pack
     say(sent(who(a))+(back?" retaliated and destroyed ":" destroyed ")+who(b)+".")}
-  else{say(sent(who(a))+(back?" retaliated against ":" hit ")+who(b)+" for "+c.dmg+" damage.");if(a.ublade&&!back&&!muled(b))a.ushove=b} // the Usurper's Blade: a shove after a landed blow
+  else{say(sent(who(a))+(back?" retaliated against ":" hit ")+who(b)+" for "+c.dmg+" damage.");if(a.ublade&&!back&&!rooted(b))a.ushove=b} // the Usurper's Blade: a shove after a landed blow
   if(a.ublade&&units.includes(a)&&a.hp<maxHp(a)){a.hp+=1;later(()=>{if(units.includes(a))floatText(a.x,a.y,"+1","heal")},300)} // ...and it feeds its bearer
   if(b.ubulwark&&adj&&a.team!==b.team&&units.includes(a)){later(()=>sfx("hit"),150);if(hurt(a,1))credit(b,a)} // the Usurper's Bulwark: thorns
   return true;
@@ -2243,7 +2247,7 @@ function applyAttack(a,b){
   const bx=b.x,by=b.y;
   const c=combat(a,b);if(scouting(a)){camp.scout=0;saveCamp()} // the scouts' tip-off is spent on this blow
   const charged=charging(a),landed=hitFor(a,b,c);
-  if(landed&&charged&&units.includes(b)&&!muled(b)){const dx=Math.sign(b.x-a.x),dy=dx?0:Math.sign(b.y-a.y);if(open(b.x+dx,b.y+dy)){b.x+=dx;b.y+=dy;later(()=>{if(units.includes(b))floatText(b.x,b.y,"Knocked back","slow")},250)}} // the charge drives it back
+  if(landed&&charged&&units.includes(b)&&!rooted(b)){const dx=Math.sign(b.x-a.x),dy=dx?0:Math.sign(b.y-a.y);if(open(b.x+dx,b.y+dy)){b.x+=dx;b.y+=dy;later(()=>{if(units.includes(b))floatText(b.x,b.y,"Knocked back","slow")},250)}} // the charge drives it back
   if(b.t==="E"&&rel(b,"hexbook")&&a.team!==b.team&&d(a,{x:bx,y:by})===1&&units.includes(a)){a.cursed=1;later(()=>{if(units.includes(a))floatText(a.x,a.y,"Cursed","slow")},300);if(hurt(a,1))credit(b,a)} // Book of Combat Hexes: striking an Enchanter up close has a price
   if(landed&&a.t==="R"&&rel(a,"debris")) // Debris Shot: shrapnel hits enemies around the target
     blastOf(bx+","+by).forEach(([x,y])=>{const v=at(x,y);if(v&&v.team!==a.team&&hurt(v,DEBRIS_DMG))credit(a,v)});
@@ -2547,6 +2551,25 @@ function evalTile(u,x,y,D,foes,xv){
   }else s+=D[y][x];
   return s;
 }
+// choke points: open tiles squeezed between two blocked sides (walls, deep water, the map edge...), with a way through
+const blockedAt=(x,y)=>x<0||y<0||x>=W||y>=H||solid(x+","+y);
+const choke=(x,y)=>!blockedAt(x,y)&&[[1,0],[0,1]].some(([dx,dy])=>blockedAt(x-dx,y-dy)&&blockedAt(x+dx,y+dy)&&!(blockedAt(x-dy,y-dx)&&blockedAt(x+dy,y+dx)));
+// a dug-in Badger strikes the first unit to move next to it each turn, before it can act; go() runs after
+const ambusher=u=>units.includes(u)&&units.find(v=>v.dug&&v.amb!==turn+pturn&&v.team!==u.team&&d(v,u)===1);
+function badgerAmbush(u,go){
+  const b=ambusher(u);if(!b)return go();
+  b.amb=turn+pturn;
+  animAttack(b,u,()=>{hitFor(b,u,combat(b,u),false);if(units.includes(b))floatText(b.x,b.y,"Ambush","bless");render();later(go,350)});
+}
+// the Badger's turn: head for the nearest free choke point, then dig in there, or once it has moved on DIG_TURNS turns
+function badgerTurn(u){
+  if(u.dug)return;
+  const ch=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(choke(x,y)&&(!at(x,y)||at(x,y)===u))ch.push({x,y});
+  const D=ch.length?distMap(ch):null,sc=k=>{const[x,y]=pk(k);return D?D[y][x]+Math.random()*.5:Math.random()};
+  const best=[u.x+","+u.y,...reach(u)].sort((a,b)=>sc(a)-sc(b))[0],[bx,by]=pk(best);
+  if(bx!==u.x||by!==u.y){walk(u,bx,by);u.dt=(u.dt||0)+1}
+  if(units.includes(u)&&(u.dt>=DIG_TURNS||D&&!D[u.y][u.x])){u.dug=1;floatText(u.x,u.y,"Dug in","bless");say("The wild badger dug in.")}
+}
 function enemyTurn(note=""){
   const used=FOE_ITEMS.length?foeUseItems():"";if(used)note+=used+" ";if(over||checkEnd())return;
   turn="f";sel=null;mode=null;choice=null;insp=null;info=null;busy=true;lastMove=null;units.forEach(u=>{if(u.team==="f")u.moved=u.acted=0});say(note+"Enemy is moving...");render();
@@ -2632,12 +2655,14 @@ function enemyTurn(note=""){
       if(dest[0]!==u.x||dest[1]!==u.y){u.moved=1;movedAny=true}
       if(tp)[u.x,u.y]=dest;else if(walk(u,dest[0],dest[1])&&!units.includes(u)){say(`The enemy ${NAME[u.t]} fell on the caltrops.`);if(checkEnd())return;render();return later(step,500)}
       render();
-      later(()=>u.moved?sentinel(u,()=>act(u)):act(u),350);
+      const goOn=()=>units.includes(u)?sentinel(u,()=>act(u)):checkEnd()||later(step,500);
+      later(()=>u.moved?badgerAmbush(u,goOn):act(u),350);
       return;
     }
     if(wi<wq.length){
       const u=wq[wi++];
       if(!units.includes(u))return step();
+      if(u.t==="D"){badgerTurn(u);if(!units.includes(u)&&checkEnd())return;render();return later(step,u.dug?500:350)} // the Badger never attacks on its own turn
       if(Math.random()<.6){ // wander to a random reachable tile; never chases anyone
         const opts=reach(u).map(k=>pk(k));
         if(opts.length){walk(u,...opts[Math.floor(Math.random()*opts.length)]);if(!units.includes(u)){if(checkEnd())return;render();return later(step,500)}render()}
@@ -3284,7 +3309,7 @@ const HOWTO=[
  {id:"mods",title:"Modifiers",art:()=>"",
   body:()=>"<p>Each side gets one modifier. You see the enemy's before you choose yours.</p>"+Object.values(MODS).map(m=>`<p class="hmod"><b>${m.name}</b><br>${m.desc}</p>`).join("")},
  {id:"wild",title:"Wild Animals",art:()=>"",
-  body:()=>`<div class="hthree">${[["W","Wolf"],["B","Bear"],["H","Hawk"]].map(([t,n])=>`<div><div class="hico">${hIcon(t,"w")}</div><b>${n}</b></div>`).join("")}</div><p>Rarely, a wolf, bear, or hawk roams the map. Wild animals wander at random and never chase anyone, but at the end of each round they attack any unit in range, from either side. You can destroy them, but you don't have to.</p>`},
+  body:()=>`<div class="hthree">${[...WILD].map(t=>`<div><div class="hico">${hIcon(t,"w")}</div><b>${cap(NAME[t])}</b></div>`).join("")}</div><p>Rarely, a ${listAnd([...WILD].map(t=>NAME[t])).replace(/ and (?=[^ ]+$)/," or ")} roams the map. Wild animals wander at random and never chase anyone, but at the end of each round they attack any unit in range, from either side. The badger is the exception: it digs in at a choke point and strikes whoever comes next to it. You can destroy them, but you don't have to.</p>`},
  {id:"camp",title:"Campaign",art:()=>{
     const N=[[150,158,"camp"],[80,112,"b"],[220,112,"b"],[80,62,"h"],[220,62,"w"],[150,26,"boss"]],E=[[0,1],[0,2],[1,3],[2,4],[3,5],[4,5]];
     let s='<svg class="hart" viewBox="0 0 300 182" role="img" aria-hidden="true">';
