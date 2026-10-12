@@ -2627,7 +2627,7 @@ const blastPlan=()=>[...XBAR].map(k=>[k,blastValue(k)]).filter(e=>e[1]>=4);
 function evalTile(u,x,y,D,foes,xv){
   const g={x,y},k=x+","+y,T=ST(u),rg=T.rg,inR=foes.filter(p=>d(g,p)<=rg&&d(g,p)>=T.mn);
   const gh={...u,x,y},threat=foes.reduce((s,p)=>s+(d(g,p)<=mvOf(p)+rgOf(p)?dmgTo(p,gh):0),0),wt=units.filter(w=>w.team==="w").reduce((n,w)=>n+(d(g,w)<=ST(w).rg?dmgTo(w,gh)*1.5:d(g,w)<=ST(w).rg+ST(w).mv?dmgTo(w,gh)*.5:0),0);
-  const care=.5+(1-u.hp/T.hp)*.9; // wounded units value safety more
+  const care=(.5+(1-u.hp/T.hp)*.9)/(1+(u.idle||0)); // wounded units value safety more; patience (idle turns) wears it down
   let s=(threat+wt)*care+(WOODS(k)?(mods[u.team]==="FT"?-1.5:1.5):0)+(CHERRY.has(k)?.5-(1-u.hp/T.hp):0)+(FORT.has(k)?-2:0)+(SHALLOW.has(k)?1.5:0); // forests slow the next move, but Forest Tactics likes them
   s+=blastOf(k).filter(([a,b])=>XBAR.has(a+","+b)).length*2; // don't loiter beside exploding barrels
   s+=(MAGMA.has(k)?3:0)+blastOf(k).filter(([a,b])=>VOLC.has(a+","+b)).length*.6+([...blastOf(k),pk(k)].filter(([a,b])=>WISP.has(a+","+b)).length)*.4; // ...and wisps might slow // magma burns at turn end; volcanoes might erupt
@@ -2637,7 +2637,7 @@ function evalTile(u,x,y,D,foes,xv){
   if(atk||bv){
     s-=Math.max(atk,bv);
     if(rg>1&&inR.length)s-=Math.min(...inR.map(p=>d(g,p)))*0.5; // ranged units fire from max distance
-  }else s+=D[y][x];
+  }else s+=D[y][x]*(1+(u.idle||0)/2); // ...and makes closing in matter more, so nobody waits at the edge of your reach forever
   return s;
 }
 function enemyTurn(note=""){
@@ -2649,7 +2649,7 @@ function enemyTurn(note=""){
   function planFor(u,pl,D,xv){
     const hurt=u.t==="P"?units.filter(p=>p.team==="f"&&p!==u&&p.hp<maxHp(p)):[];
     // a healer heads for wounded allies while keeping out of danger; otherwise it acts like any other unit
-    const sc=hurt.length?(x,y)=>{const q={x,y},th=pl.reduce((n,p)=>n+(d(q,p)<=mvOf(p)+rgOf(p)?dmgTo(p,{...u,x,y}):0),0);return th*.5+(hurt.some(p=>d(q,p)<=TYPES.P.rg)?-10:Math.min(...hurt.map(p=>d(q,p))))}:u.t==="N"?(x,y)=>evalTile(u,x,y,D,pl,xv)-3*units.filter(a=>a.team==="f"&&a!==u&&Math.abs(a.x-x)+Math.abs(a.y-y)<=BANNER_RANGE).length // the bearer stays close to its allies
+    const sc=hurt.length?(x,y)=>{const q={x,y},th=pl.reduce((n,p)=>n+(d(q,p)<=mvOf(p)+rgOf(p)?dmgTo(p,{...u,x,y}):0),0);return th*.5/(1+(u.idle||0))+(hurt.some(p=>d(q,p)<=TYPES.P.rg)?-10:Math.min(...hurt.map(p=>d(q,p))))}:u.t==="N"?(x,y)=>evalTile(u,x,y,D,pl,xv)-3*units.filter(a=>a.team==="f"&&a!==u&&Math.abs(a.x-x)+Math.abs(a.y-y)<=BANNER_RANGE).length // the bearer stays close to its allies
       :(x,y)=>evalTile(u,x,y,D,pl,xv);
     const p={u,s:sc(u.x,u.y),best:[u.x,u.y],tp:false,mS:1e9,mB:null,mTp:false},rt=CALTROPS.size?routes(u):null;
     for(const k of reach(u)){
@@ -2706,6 +2706,7 @@ function enemyTurn(note=""){
       }
       if(!pushed){attack(u,ts[0],()=>{champRetreat(u);usurpShove(u);fin()});return}
     }
+    if(!u.moved)u.idle=(u.idle||0)+1; // patience: a turn spent neither moving nor acting
     fin();
   }
   function step(){
@@ -2722,7 +2723,7 @@ function enemyTurn(note=""){
       }
       const u=p.u;done.add(u);
       if(tp){tpUsed.f=1;sfx("warp");say("Enemy teleported a "+NAME[u.t]+"!")}
-      if(dest[0]!==u.x||dest[1]!==u.y){u.moved=1;movedAny=true}
+      if(dest[0]!==u.x||dest[1]!==u.y){u.moved=1;movedAny=true;u.idle=0}
       if(tp)[u.x,u.y]=dest;else if(walk(u,dest[0],dest[1])&&!units.includes(u)){say(`The enemy ${NAME[u.t]} fell on the caltrops.`);if(checkEnd())return;render();return later(step,500)}
       render();
       later(()=>u.moved?sentinel(u,()=>act(u)):act(u),350);
