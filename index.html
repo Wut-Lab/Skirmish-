@@ -2092,6 +2092,7 @@ function areas(skip){
 }
 const splits=k=>areas(k)>areas(null);
 const calLine=(x,y,dir)=>[-1,0,1].map(i=>dir==="v"?[x,y+i]:[x+i,y]).filter(([a,b])=>a>=0&&b>=0&&a<W&&b<H&&!solid(a+","+b)).map(([a,b])=>a+","+b); // Bag of Caltrops: 3 tiles, across (h) or down (v)
+const dazed=u=>!!(u.slow||u.hex||u.weak||u.cursed||u.stun); // what Waking Herbs clear
 function itemTargets(u,id){
   const out=new Set();
   if(id==="draught")units.forEach(b=>{if(b.team==="y"&&d(u,b)<=1&&b.hp<maxHp(b))out.add(b.x+","+b.y)});
@@ -2101,6 +2102,7 @@ function itemTargets(u,id){
   else if(id==="medkit")units.forEach(b=>{if(b.team==="y"&&d(u,b)<=1&&b.wounds)out.add(b.x+","+b.y)});
   else if(id==="feather")units.forEach(b=>{if(b.team==="y"&&b!==u&&d(u,b)<=2)out.add(b.x+","+b.y)});
   else if(id==="fire"||id==="lightning")units.forEach(b=>{if(b.team!=="y"&&d(u,b)<=3)out.add(b.x+","+b.y)});
+  else if(id==="wake")units.forEach(b=>{if(b.team==="y"&&!b.auto&&d(u,b)<=1&&dazed(b))out.add(b.x+","+b.y)});
   else if(id==="flash")units.forEach(b=>{if(b.team!=="y"&&d(u,b)<=2)out.add(b.x+","+b.y)});
   else if(id==="incense")units.forEach(b=>{if(b.team==="y"&&!b.auto&&d(u,b)<=1&&!b.rage)out.add(b.x+","+b.y)});
   else if(id==="dryice")units.forEach(b=>{if(d(u,b)<=3)out.add(b.x+","+b.y)});
@@ -2122,6 +2124,10 @@ function useItem(a,id,x,y,rub,dir){
   if(id==="tonic"){ // a burst of speed this turn; the unit keeps its action
     a.haste=TONIC_MV;sel=a;mode=null;choice=null;lastMove=null;insp=null;info=a;sfx("whisk");floatText(a.x,a.y,"+"+TONIC_MV+" move","bless");
     say(`Your ${NAME[a.t]} drank the Courier's Tonic: +${TONIC_MV} movement this turn.`);return render();
+  }
+  if(id==="wake"){ // a free sniff: the unit and its target keep their move and action
+    const b=at(x,y);["slow","hex","hexPend","weak","cursed","stun"].forEach(k=>delete b[k]);sel=a;mode=null;choice=null;lastMove=null;insp=null;info=b;sfx("bless");floatText(b.x,b.y,"Wide awake!","bless");
+    say(`Your ${NAME[a.t]} used the Waking Herbs${b===a?"":" on your "+NAME[b.t]}: no longer slowed, hexed or cursed.`);return render();
   }
   if(id==="feather"){ // a gust swaps the two; neither spends its move or action
     const b=at(x,y);[a.x,a.y,b.x,b.y]=[b.x,b.y,a.x,a.y];sel=a;mode=null;choice=null;lastMove=null;insp=null;info=a;sfx("whisk");
@@ -3859,6 +3865,7 @@ const ITEMS={ // consumables, used in battle (campaign only); using one takes th
  tonic:{name:"Courier's Tonic",price:40,r:1,free:1,desc:"Drink before moving: this unit gets +2 movement this turn. Drinking it doesn't use the unit's action."},
  koijar:{name:"Jar of Koi",price:50,r:1,lock:"sakura",desc:"Pour it out on an empty tile next to this unit to make a Koi Pond: it blocks movement, and each side's units beside it recover 1 HP at the end of their turn. Can't go on impassable terrain, or where it would cut off part of the field."},
  medkit:{name:"Advanced Med Kit",price:45,r:1,desc:"Mend 1 wound on this unit or an adjacent ally (campaign wounds, restoring 1 max HP). An Apothecary using it has a 25% chance to mend 2."},
+ wake:{name:"Waking Herbs",price:20,free:1,desc:"Crush them under this unit's nose or an adjacent ally's: it shakes off being slowed, hexed or cursed. Using them doesn't use either unit's move or action. One sniff and you're wide awake, and possibly crying."},
  dryice:{name:"Bucket of Dry Ice",price:15,desc:"Tip it out by a unit within 3: cold fog rolls over it and every unit in the 8 tiles around it, friend or foe, giving each +3% evasion until your next turn. Mostly, it just looks spooky."},
  flash:{name:"Flash Vial",price:70,r:2,desc:"Throw at an enemy within 2: a blinding burst deals 1 damage, ignoring armor, and the target can't move or attack on its next turn."},
  incense:{name:"Enraging Incense",price:80,r:2,max:1,desc:"You can carry only one. Burn it beside this unit or an adjacent ally: for the rest of the battle it gets +1 damage, +1 movement and +1 pierce, but 5% less evasion. The smoke smells of iron and bad decisions."},
@@ -3882,6 +3889,7 @@ const IICON={
  flash:'<g stroke="#fff3a0" stroke-width="1.300" stroke-linecap="round" opacity=".9"><path d="M16 1v3M4 8l2.500 2M28 8l-2.500 2M2 20h3M27 20h3"/></g><path d="M13.500 4h5v4h-5z" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M13 8h6v2q7 3 7 10q0 8-10 8T6 20q0-7 7-10z" fill="rgba(255,250,220,.5)" stroke="#3a3420" stroke-width="1.100"/><circle cx="16" cy="19.500" r="6.500" fill="#fff6b0"/><path d="M16 13l1.500 4.500l4.500 1.500l-4.500 1.500l-1.500 4.500l-1.500-4.500l-4.500-1.500l4.500-1.500z" fill="#fff"/><circle cx="16" cy="19.500" r="8.500" fill="#fffbd0" opacity=".35"/>',
  incense:'<path d="M11 4q-3 3 0 6t0 6M16 2q-3 3 0 6t0 6M21 4q-3 3 0 6t0 6" stroke="#e0703a" stroke-width="1.300" fill="none" opacity=".75" stroke-linecap="round"/><path d="M5 17h22q-1 8-11 9q-10-1-11-9z" fill="#8a4a24" stroke="#2a1408" stroke-width="1.100" stroke-linejoin="round"/><path d="M5 17h22" stroke="#d8a24a" stroke-width="1.600"/><circle cx="16" cy="16" r="2.200" fill="#ff5a1a"/><circle cx="16" cy="16" r="4" fill="#ff8a2a" opacity=".3"/><path d="M12 26l-2 3h12l-2-3" fill="#5a3014" stroke="#2a1408" stroke-width=".9" stroke-linejoin="round"/><path d="M9 21q7 2 14 0" stroke="#b8642e" stroke-width=".8" fill="none"/>',
  dryice:'<path d="M7 11h18l-2 16q0 2-2 2H11q-2 0-2-2z" fill="#9a6a3a" stroke="#3a2412" stroke-width="1.100" stroke-linejoin="round"/><path d="M8 15h16M8.700 23h14.600" stroke="#4a4a4e" stroke-width="1.600"/><path d="M8 11q8-9 16 0" stroke="#4a4a4e" stroke-width="1.100" fill="none"/><g fill="#eef8ff" opacity=".85"><circle cx="11" cy="10" r="3.200"/><circle cx="16" cy="8.500" r="3.800"/><circle cx="21" cy="10" r="3.200"/><circle cx="25" cy="13" r="2.400"/><circle cx="27.500" cy="17" r="2"/></g><g fill="#d8eefa" opacity=".6"><circle cx="28" cy="22" r="2.400"/><circle cx="4.500" cy="25" r="2"/><circle cx="25" cy="27" r="2.200"/></g>',
+ wake:'<path d="M6 24q10 6 20 0l-2 4H8z" fill="#7a5a3a" stroke="#2a1a0c" stroke-width="1" stroke-linejoin="round"/><path d="M5 22h22q-2 4-11 4T5 22z" fill="#a07a4a" stroke="#2a1a0c" stroke-width="1.100"/><path d="M10 22q-2-8 4-13M16 22q0-9 6-13M21 22q3-6 0-11" stroke="#3f7a3a" stroke-width="1.300" fill="none" stroke-linecap="round"/><path d="M14 9q-5-1-6 3q5 1 6-3zM22 9q1-5 5-5q0 5-5 5zM21 11q-4-2-6 1q4 2 6-1zM10 15q-4 0-5 3q4 1 5-3z" fill="#6ab04a" stroke="#2a4a1a" stroke-width=".7"/><path d="M24 3l1 2M27 7l2-1M20 2l0 2" stroke="#fff3a0" stroke-width="1.200" stroke-linecap="round"/>',
  fire:'<path d="M10 28v-10q0-7 6-9q6 2 6 9v10z" fill="#e2531a" stroke="#2a1410" stroke-width="1.100"/><path d="M13.500 9h5V5h-5z" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><circle cx="16" cy="20" r="7" fill="#ff8a2a" opacity=".28"/><path d="M16 25q-4-4 0-10q4 6 0 10z" fill="#ffd27a"/><path d="M12 16q-1 5 0 9" stroke="#fff" stroke-width="1" opacity=".45" fill="none"/>'};
 const itemIcon=(id,sz=32)=>`<svg viewBox="0 0 32 32" width="${sz}" height="${sz}" aria-hidden="true">${IICON[id]}</svg>`;
 const MARCUS={
