@@ -2215,14 +2215,16 @@ function chickensAct(done){
     const foes=units.filter(e=>e.team==="f");if(!foes.length)return done();
     const D=distMap(foes),score=c.merc?([x,y])=>evalTile(c,x,y,D,foes)+(CALTROPS.size&&routes(c).get(x+","+y)?routes(c).get(x+","+y).n*CALTROP_AVOID:0):([x,y])=>{const adj=foes.filter(e=>Math.abs(e.x-x)+Math.abs(e.y-y)===1);return adj.length?-100+Math.min(...adj.map(e=>e.hp)):D[y][x]};
     const best=[[c.x,c.y],...reach(c).map(pk)].reduce((a,b)=>score(b)<score(a)?b:a);
-    if(best[0]!==c.x||best[1]!==c.y){walk(c,best[0],best[1]);render();if(!units.includes(c))return later(next,300)}
-    later(()=>{
+    const mv=best[0]!==c.x||best[1]!==c.y;
+    if(mv){walk(c,best[0],best[1]);render();if(!units.includes(c))return later(next,300)}
+    later(()=>(mv?badgerAmbush:(u,go)=>go())(c,()=>{ // a dug-in Badger strikes the first to move next to it
       if(g!==gid||over)return;
+      if(!units.includes(c)){if(!checkEnd())later(next,300);return}
       const pri=p=>(dmgTo(c,p)>=p.hp?100:0)+(VAL[p.t]||0)-p.hp*.5; // a mercenary takes the sure kill, then the soft, valuable target
       const ts=c.merc?targets(c).filter(e=>e.team==="f"&&!(dmgTo(c,e)<e.hp&&(r=>r&&r.dmg>=c.hp&&r.hit>.5)(retaliation(c,e)))).sort((a,b)=>pri(b)-pri(a)):targets(c).filter(e=>e.team==="f").sort((a,b)=>a.hp-b.hp);
       if(!ts.length)return later(next,150);
       attack(c,ts[0],()=>{if(!checkEnd()){render();later(next,300)}});
-    },350);
+    }),350);
   };
   next();
 }
@@ -2554,11 +2556,11 @@ function evalTile(u,x,y,D,foes,xv){
 // choke points: open tiles squeezed between two blocked sides (walls, deep water, the map edge...), with a way through
 const blockedAt=(x,y)=>x<0||y<0||x>=W||y>=H||solid(x+","+y);
 const choke=(x,y)=>!blockedAt(x,y)&&[[1,0],[0,1]].some(([dx,dy])=>blockedAt(x-dx,y-dy)&&blockedAt(x+dx,y+dy)&&!(blockedAt(x-dy,y-dx)&&blockedAt(x+dy,y+dx)));
-// a dug-in Badger strikes the first unit to move next to it each turn, before it can act; go() runs after
-const ambusher=u=>units.includes(u)&&units.find(v=>v.dug&&v.amb!==turn+pturn&&v.team!==u.team&&d(v,u)===1);
+// a dug-in Badger strikes the first unit to move next to it each turn (amb: used this turn; your units that act on their own share yours), before it can act; go() runs after
+const ambusher=u=>units.includes(u)&&units.find(v=>v.dug&&!v.amb&&v.team!==u.team&&d(v,u)===1);
 function badgerAmbush(u,go){
   const b=ambusher(u);if(!b)return go();
-  b.amb=turn+pturn;
+  b.amb=1;
   animAttack(b,u,()=>{hitFor(b,u,combat(b,u),false);if(units.includes(b))floatText(b.x,b.y,"Ambush","bless");render();later(go,350)});
 }
 // the Badger's turn: head for the nearest free choke point, then dig in there, or once it has moved on DIG_TURNS turns
@@ -2572,7 +2574,7 @@ function badgerTurn(u){
 }
 function enemyTurn(note=""){
   const used=FOE_ITEMS.length?foeUseItems():"";if(used)note+=used+" ";if(over||checkEnd())return;
-  turn="f";sel=null;mode=null;choice=null;insp=null;info=null;busy=true;lastMove=null;units.forEach(u=>{if(u.team==="f")u.moved=u.acted=0});say(note+"Enemy is moving...");render();
+  turn="f";sel=null;mode=null;choice=null;insp=null;info=null;busy=true;lastMove=null;units.forEach(u=>{if(u.team==="f")u.moved=u.acted=0;delete u.amb});say(note+"Enemy is moving...");render();
   const wq=units.filter(u=>u.team==="w"),done=new Set();let wi=0,movedAny=false;
   const g=gid;
   // works out where u would like to stand: its best tile overall, and its best tile that isn't where it is now
@@ -2678,7 +2680,7 @@ function enemyTurn(note=""){
     hazards("f",()=>{
       SMOKE=new Set(); // the smoke drifts away as your turn begins
       const healed=mods.f==="REST"?rest("f"):0;
-      units.forEach(u=>{u.moved=u.acted=0;delete u.aim;delete u.mvFrom;if(u.team!=="y"){delete u.slow;delete u.hex;delete u.hexPend;delete u.weak;if(u.cursed){u.weak=1;delete u.cursed}}});
+      units.forEach(u=>{u.moved=u.acted=0;delete u.aim;delete u.mvFrom;delete u.amb;if(u.team!=="y"){delete u.slow;delete u.hex;delete u.hexPend;delete u.weak;if(u.cursed){u.weak=1;delete u.cursed}}});
       const wisped=wispsAct();
       vanguard();turn="y";busy=false;say((wisped?wisped+" ":"")+"Your turn. Select one of your units."+(healed?" Resting enemy units recovered HP.":""));render();notify("Enemy turn ended — your move");
     });
