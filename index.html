@@ -2575,7 +2575,7 @@ function evalTile(u,x,y,D,foes,xv){
 }
 function enemyTurn(note=""){
   const used=FOE_ITEMS.length?foeUseItems():"";if(used)note+=used+" ";if(over||checkEnd())return;
-  turn="f";sel=null;mode=null;choice=null;insp=null;info=null;busy=true;lastMove=null;units.forEach(u=>{if(u.team==="f"){u.moved=u.acted=0;delete u.mvFrom;delete u.rough;if(u.stun){u.moved=u.acted=1;floatText(u.x,u.y,"Stunned","slow")}}}); // a Flash Vial's victim sits this turn outsay(note+"Enemy is moving...");render();
+  turn="f";sel=null;mode=null;choice=null;insp=null;info=null;busy=true;lastMove=null;units.forEach(u=>{if(u.team==="f"){u.moved=u.acted=0;delete u.mvFrom;delete u.rough;if(u.stun){u.moved=u.acted=1;floatText(u.x,u.y,"Stunned","slow")}}});say(note+"Enemy is moving...");render(); // a Flash Vial's victim sits this turn out
   const wq=units.filter(u=>u.team==="w"),done=new Set();let wi=0,movedAny=false;
   const g=gid;
   // works out where u would like to stand: its best tile overall, and its best tile that isn't where it is now
