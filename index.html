@@ -32,6 +32,10 @@ h1{font-size:1.4rem;margin:0 0 4px}
 .volcanic{--tile:#8a7d72;--tile2:#83766b} /* Molten Wastes: ashen rock underfoot */
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .volcanic{--tile:#3e3631;--tile2:#39312c}}
 :root[data-theme="dark"] .volcanic{--tile:#3e3631;--tile2:#39312c}
+.sim{--tile:#5a4c8c;--tile2:#544684;--wall:#2c2450} /* The Warped Sim: purple-blue ground, dark stone under the quartz */
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .sim{--tile:#2e2752;--tile2:#2a234c}}
+:root[data-theme="dark"] .sim{--tile:#2e2752;--tile2:#2a234c}
+.t.chs{background:#0c0718;cursor:default;box-shadow:none}.t.cxs{box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 0 12px rgba(192,106,255,.45)}
 .volcanic .t.fo{background-image:linear-gradient(rgba(40,24,18,.25),rgba(40,24,18,.25))} /* charred woods */
 .erupt{position:absolute;pointer-events:none;border-radius:30%;background:radial-gradient(circle,#fff3b0 0,#ff8a2a 40%,rgba(226,83,26,.6) 65%,rgba(226,83,26,0) 75%);z-index:7}
 .t.fo{background-image:linear-gradient(rgba(60,140,80,.25),rgba(60,140,80,.25))}
@@ -820,7 +824,7 @@ const MODS={
  SW:{name:"Shield Wall Formations",desc:"Your units get +1 armor while next to an ally."},
  AIM:{name:"Steady Aim",desc:`Enemies get ${AIM_EV*100}% less evasion against your attacks.`},
  REST:{name:"Field Rest",desc:"At the end of your turn, each of your units that neither moved nor attacked that turn recovers 2 HP."}};
-let RUBBLE=new Set(),MURKY=false,HAUNTED=false,VOLCANIC=false,CHERRY=new Set(),SMOKE=new Set(),CALTROPS=new Set(),LAVA=new Set(),MAGMA=new Set(),VOLC=new Set(),WISP=new Set(),FLOWERS=new Set(),MEADOW=new Set(),GREENW=new Set(),KOI=new Set(),VALE=false,GRAVES=new Set(),WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set(),SWAMP=new Set();
+let RUBBLE=new Set(),MURKY=false,HAUNTED=false,VOLCANIC=false,CHERRY=new Set(),SMOKE=new Set(),CALTROPS=new Set(),LAVA=new Set(),MAGMA=new Set(),VOLC=new Set(),WISP=new Set(),FLOWERS=new Set(),MEADOW=new Set(),GREENW=new Set(),KOI=new Set(),VALE=false,CHASM=new Set(),CHAOS=new Set(),SIM=false,GRAVES=new Set(),WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set(),SWAMP=new Set();
 // Bump PROGRESS_EPOCH to wipe unlocks and the campaign save once on next load (editor drafts and sound settings stay).
 const PROGRESS_EPOCH=2;try{if(+localStorage.getItem("skirmish_epoch")!==PROGRESS_EPOCH){localStorage.removeItem("skirmish_unlocks_v1");localStorage.removeItem("skirmish-campaign");["quick","camp","chal"].forEach(m=>localStorage.removeItem("skirmish_hold_"+m));localStorage.setItem("skirmish_epoch",PROGRESS_EPOCH)}}catch(e){}
 const UKEY="skirmish_unlocks_v1",unlocks=(()=>{try{return JSON.parse(localStorage.getItem(UKEY)||"{}")||{}}catch(e){return{}}})();
@@ -836,7 +840,7 @@ function discover(){ // a short "New Discovery!" banner that fades away on whate
 const XB_DMG=4; // exploding barrel damage
 let HI={hard:new Set(),soft:new Set()},umHide=null,BARRELS=new Set(),XBAR=new Set(),CAMPS=new Set(),bchoice=null,choiceMv=null,lastMove=null; // XBAR: the barrels that explode
 let WALLV=0,FORTV=new Map(),FORTK=new Set(); // one wall style per map; each connected fortress group shares one style; FORTK: the tile holding each fortress's keep
-const solid=k=>WALLS.has(k)||DEEP.has(k)||BARRELS.has(k)||CAMPS.has(k)||GRAVES.has(k)||LAVA.has(k)||VOLC.has(k)||KOI.has(k);
+const solid=k=>CHASM.has(k)||WALLS.has(k)||DEEP.has(k)||BARRELS.has(k)||CAMPS.has(k)||GRAVES.has(k)||LAVA.has(k)||VOLC.has(k)||KOI.has(k);
 // each connected fortress group shares one style; its first tile holds the keep
 function groupForts(style){
   FORTV=new Map();FORTK=new Set();
@@ -852,7 +856,7 @@ function genMap(o={}){
   const wantCamp=unlocks.campsite&&Math.random()<.2; // decided once, so retried layouts don't change the odds
   for(;;){
     const walls=new Set(),forest=new Set(),R=n=>Math.floor(Math.random()*n);
-    const deep=new Set(),shal=new Set(),K=(a,b)=>a+","+b,inb=(a,b)=>a>=0&&a<W&&b>=2&&b<=H-3,taken=(a,b)=>deep.has(K(a,b))||shal.has(K(a,b));
+    const deep=new Set(),shal=new Set(),chasm=new Set(),K=(a,b)=>a+","+b,inb=(a,b)=>a>=0&&a<W&&b>=2&&b<=H-3,taken=(a,b)=>deep.has(K(a,b))||shal.has(K(a,b))||chasm.has(K(a,b));
     const both=(set,a,b)=>{set.add(K(a,b));set.add(K(W-1-a,H-1-b))};
     const grow=(n,x0,y0)=>{const t=[[x0,y0]];for(let i=0;i<150&&t.length<n;i++){const[bx,by]=t[R(t.length)],[dx,dy]=DIRS[R(4)],nx=bx+dx,ny=by+dy;if(inb(nx,ny)&&!t.some(p=>p[0]===nx&&p[1]===ny))t.push([nx,ny])}return t};
     const shore=(tiles,pd)=>tiles.forEach(([a,b])=>{for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++){const x=a+dx,y=b+dy;if((dx||dy)&&inb(x,y)&&Math.random()<(dx&&dy?.45:.9))both(shal,x,y)}});
@@ -882,7 +886,7 @@ function genMap(o={}){
     };
     // Water is not guaranteed (about 45% of maps have none). Otherwise it covers a random 3 tiles up to 2/3 of the map, favouring smaller bodies.
     const wsz=()=>deep.size+shal.size,cap=Math.floor(W*H*2/3);
-    const T=o.lava||o.sakura?0:o.water?Math.round(24+Math.random()*26):o.pond?Math.round(6+Math.random()*8):Math.random()<.45?0:Math.round(3+(cap-3)*Math.pow(Math.random(),1.6));
+    const T=o.lava||o.sakura||o.chasm?0:o.water?Math.round(24+Math.random()*26):o.pond?Math.round(6+Math.random()*8):Math.random()<.45?0:Math.round(3+(cap-3)*Math.pow(Math.random(),1.6));
     if(T>0&&T<=5){ // a tiny pond: a few tiles, not mirrored
       const tl=grow(T,1+R(W-2),3+R(H-6));
       tl.forEach(([a,b],i)=>(i===0&&Math.random()<.5&&T>=3?deep:shal).add(K(a,b)));
@@ -922,6 +926,10 @@ function genMap(o={}){
       for(let n=1+R(2),t=0;n>0&&t<80;t++){const tl=grow(1+R(2),R(W),3+R(H-6));if(tl.some(([a,b])=>hot(a,b)||hot(W-1-a,H-1-b)))continue;tl.forEach(([a,b])=>both(magma,a,b));n--}
       [...magma].forEach(k=>{if(lava.has(k)||volc.has(k))magma.delete(k)});
     }
+    if(o.chasm)for(let b=2;b<=H/2-1;b++){ // The Fractured Chasm: a ragged gap down the middle, clear of both start lines (mirrored, so the lower half matches)
+      const l=b===2?4-R(2):3+R(2)-(Math.random()<.2?1:0),r=b===2?5+R(2):5+R(2)+(Math.random()<.2?1:0);
+      for(let a=l;a<=r;a++)both(chasm,a,b);
+    }
     const graves=new Set(); // gravestones (Haunted Graveyard): single impassable stones
     const free=(a,b)=>a>=0&&a<W&&!walls.has(a+","+b)&&!forest.has(a+","+b)&&!graves.has(a+","+b)&&!taken(a,b)&&!hot(a,b);
     const put=(set,pairs,chunk)=>{
@@ -933,7 +941,7 @@ function genMap(o={}){
       }
     };
     if(o.graves)put(graves,5+R(3),false);
-    put(walls,o.graves?2+R(2):3+R(3),true);put(forest,o.forest||4+R(4),false);
+    put(walls,o.graves?2+R(2):3+R(3),true);put(forest,o.chasm?0:o.forest||4+R(4),false);
     const cherry=new Set(),DIRS8=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]; // a cherry grove: a little orchard of 2-5 joined tiles (mirrored), which plays exactly like forest
     if(o.sakura){ // Sakura Vale: 3 to 5 separate groves, in mirrored pairs plus one on the middle rows when the count is odd
       const want=3+R(3),apart=(a,b)=>free(a,b)&&!cherry.has(K(a,b))&&DIRS8.every(([dx,dy])=>!cherry.has(K(a+dx,b+dy)));
@@ -945,13 +953,13 @@ function genMap(o={}){
         put(tl);put(mir);n--;
       }
     }
-    else if(unlocks.cherry&&!o.graves&&!o.lava&&!(o.swamp>=3)&&Math.random()<(o.cherry===undefined?.3:o.cherry))for(let t=0;t<60;t++){
+    else if(unlocks.cherry&&!o.graves&&!o.lava&&!o.chasm&&!(o.swamp>=3)&&Math.random()<(o.cherry===undefined?.3:o.cherry))for(let t=0;t<60;t++){
       const tl=grow(2+R(4),1+R(W-2),3+R(H-6));
       if(!tl.every(([a,b])=>free(a,b)&&free(W-1-a,H-1-b))||tl.some(([a,b])=>tl.some(([c,d])=>c===W-1-a&&d===H-1-b)))continue;
       tl.forEach(([a,b])=>{both(forest,a,b);both(cherry,a,b)});break;
     }
     const swamp=new Set(); // swamp patches: entering one ends a unit's move
-    const SW=o.lava?{n:0,size:2}:o.swamp>=3?{n:5+R(3),size:3}:o.swamp?{n:Math.random()<.6?1+R(2):0,size:2}:{n:Math.random()<.12?1:0,size:2}; // patches (mirrored) and their size
+    const SW=o.lava||o.chasm?{n:0,size:2}:o.swamp>=3?{n:5+R(3),size:3}:o.swamp?{n:Math.random()<.6?1+R(2):0,size:2}:{n:Math.random()<.12?1:0,size:2}; // patches (mirrored) and their size
     for(let n=SW.n,t=0;n>0&&t<200;t++){
       const tl=grow(SW.size+R(3),1+R(W-2),3+R(H-6));
       if(!tl.every(([a,b])=>free(a,b)&&free(W-1-a,H-1-b)&&!swamp.has(K(a,b))&&!swamp.has(K(W-1-a,H-1-b))))continue;
@@ -959,7 +967,7 @@ function genMap(o={}){
     }
     if(walls.size<5)continue;
     const fort=new Set();
-    if(o.fort||Math.random()<.25){ // fortress groupings of 2 to 4 tiles
+    if(o.fort||!o.chasm&&Math.random()<.25){ // fortress groupings of 2 to 4 tiles
       const cnt=1+R(2),occ=(a,b)=>walls.has(a+","+b)||graves.has(a+","+b)||forest.has(a+","+b)||fort.has(a+","+b)||swamp.has(a+","+b)||taken(a,b)||hot(a,b);
       const blob=(n,x0,y0)=>{
         const t=[[x0,y0]];
@@ -984,7 +992,7 @@ function genMap(o={}){
     const xbars=new Set(); // exploding barrels (unlockable): each barrel has a 25% chance
     if(unlocks.xbarrels)bars.forEach(k=>{if(Math.random()<.25)xbars.add(k)});
     const camps=new Set(); // mysterious camp site (unlockable): a fifth of maps get one, somewhere in the middle with open ground beside it
-    if(wantCamp)for(let t=0;t<200&&!camps.size;t++){
+    if(wantCamp&&!o.sim)for(let t=0;t<200&&!camps.size;t++){
       const x=R(W),y=4+R(H-8),ok=(a,b)=>a>=0&&a<W&&!walls.has(K(a,b))&&!graves.has(K(a,b))&&!fort.has(K(a,b))&&!swamp.has(K(a,b))&&!bars.has(K(a,b))&&!deep.has(K(a,b))&&!hot(a,b);
       if(ok(x,y)&&!forest.has(K(x,y))&&!shal.has(K(x,y))&&DIRS.filter(([dx,dy])=>ok(x+dx,y+dy)).length>=3)camps.add(K(x,y));
     }
@@ -1007,19 +1015,21 @@ function genMap(o={}){
       for(let n=1+R(3),t=0;n>0&&t<60;t++){const tl=grow(1+R(3),R(W),2+R(H-4));if(tl.every(([a,b])=>open(a,b))){tl.forEach(([a,b])=>flowers.add(K(a,b)));n--}}
     }
     const meadow=new Set(),greenw=new Set(); // cosmetic green patches (mirrored): open ground inside becomes Green Meadow, plain forest becomes Greenwood; not on ashen graveyard or volcanic maps
-    if(!o.graves&&!o.lava&&Math.random()<.6)for(let n=1+R(3);n>0;n--)grow(4+R(6),R(W),R(H)).forEach(([a,b])=>[[a,b],[W-1-a,H-1-b]].forEach(([x,y])=>{const k=K(x,y);
+    if(!o.graves&&!o.lava&&!o.sim&&Math.random()<.6)for(let n=1+R(3);n>0;n--)grow(4+R(6),R(W),R(H)).forEach(([a,b])=>[[a,b],[W-1-a,H-1-b]].forEach(([x,y])=>{const k=K(x,y);
       if(forest.has(k)){if(!cherry.has(k))greenw.add(k)}else if(![walls,deep,shal,swamp,fort,bars,camps,graves,lava,magma,volc,wisps,koi,flowers].some(st=>st.has(k)))meadow.add(k)}));
+    const chaos=new Set(); // the Fractured Chasm's Chaos Spring: one per map, on a middle row, with room around it
+    if(o.chasm)for(let t=0;t<200&&!chaos.size;t++){const a=R(W),b=5+R(2),k=K(a,b);if(!chasm.has(k)&&!walls.has(k)&&blastOf(k).filter(([x,y])=>!chasm.has(K(x,y))&&!walls.has(K(x,y))).length>=5)chaos.add(k)}
     const seen=new Set(["0,0"]),q=[[0,0]];
     while(q.length){
       const[x,y]=q.pop();
       for(const[dx,dy] of DIRS){
         const nx=x+dx,ny=y+dy,k=nx+","+ny;
-        if(nx<0||ny<0||nx>=W||ny>=H||walls.has(k)||deep.has(k)||bars.has(k)||camps.has(k)||graves.has(k)||lava.has(k)||volc.has(k)||koi.has(k)||seen.has(k))continue;
+        if(nx<0||ny<0||nx>=W||ny>=H||walls.has(k)||chasm.has(k)||deep.has(k)||bars.has(k)||camps.has(k)||graves.has(k)||lava.has(k)||volc.has(k)||koi.has(k)||seen.has(k))continue;
         seen.add(k);q.push([nx,ny]);
       }
     }
-    if(seen.size===W*H-walls.size-deep.size-bars.size-camps.size-graves.size-lava.size-volc.size-koi.size){ // every open tile connects: lava never cuts anyone off
-      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;SWAMP=swamp;MURKY=o.swamp>=3;GRAVES=graves;HAUNTED=!!o.graves;LAVA=lava;MAGMA=magma;VOLC=volc;WISP=wisps;FLOWERS=flowers;MEADOW=meadow;GREENW=greenw;KOI=koi;VALE=!!o.sakura;VOLCANIC=!!o.lava;CHERRY=cherry;BARRELS=bars;XBAR=xbars;CAMPS=camps;WALLV=R(4);
+    if(seen.size===W*H-walls.size-chasm.size-deep.size-bars.size-camps.size-graves.size-lava.size-volc.size-koi.size){ // every open tile connects: lava never cuts anyone off
+      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;SWAMP=swamp;MURKY=o.swamp>=3;GRAVES=graves;HAUNTED=!!o.graves;LAVA=lava;MAGMA=magma;VOLC=volc;WISP=wisps;FLOWERS=flowers;MEADOW=meadow;GREENW=greenw;KOI=koi;VALE=!!o.sakura;VOLCANIC=!!o.lava;CHASM=chasm;CHAOS=chaos;SIM=!!o.sim;CHERRY=cherry;BARRELS=bars;XBAR=xbars;CAMPS=camps;WALLV=R(4);
       groupForts(()=>R(2));
       return;
     }
@@ -1151,6 +1161,45 @@ const koiArt=(f)=>svg(`<ellipse cx="20" cy="21" rx="17" ry="15" fill="#8a8a7e" s
   +`<g transform="rotate(${f?60:-120} 20 21)"><path d="M14 25q4-3 8 0q-4 3-8 0z" fill="#fbfaf2"/><path d="M14 25l-3-2v4z" fill="#fbfaf2"/><circle cx="19" cy="24.400" r="1.100" fill="#e5554f"/></g>`
   +`<path d="M${f?25:14} 13a3.600 3.600 0 1 0 .1 0l-.1 3.600z" fill="#5f9a3a" stroke="#3a6a24" stroke-width=".6"/><circle cx="${f?27:30}" cy="${f?28:15}" r="1.300" fill="#f7c6d8"/><circle cx="${f?11:8}" cy="${f?11:27}" r="1" fill="#f7c6d8" opacity=".8"/>`);
 const KOI_V=[koiArt(0),koiArt(1)];
+/* ---- The Warped Sim's terrain ---- */
+// Glitched Ground: ordinary ground recoloured in purple and blue, with a patch of faint grid showing through on some tiles
+function simGround(x,y,fv){
+  const v=fv===undefined?tv(x,y,6):fv,p=(n,k)=>tv(x,y,n,k+79);
+  let g=(v<4?ground(x,y,v):"").replace(/^<svg class="dec" viewBox="0 0 40 40">|<\/svg>$/g,"").replace(/#6f8f3f/g,"#8ad8ff").replace(/#a6987d/g,"#a99ae0").replace(/#a88f63/g,"#8a76e0").replace(/#f4f0e8/g,"#e8f8ff").replace(/#f0c94a/g,"#7ae8ff").replace(/#e98fb0/g,"#d8a0ff").replace(/#c88a1a/g,"#5a3ab0").replace(/rgba\(120,90,50,\.16\)/g,"rgba(40,20,120,.2)").replace(/rgba\(60,45,25,\.25\)/g,"rgba(20,10,60,.3)").replace(/rgba\(255,255,240,\.35\)/g,"rgba(230,240,255,.4)");
+  if(v===4||p(5,1)<2){const gx=4+p(18,2),gy=4+p(18,3),c=p(2,4)?"#8ad8ff":"#c8a0ff";let L="";for(let i=0;i<=4;i++)L+=`M${gx+i*4} ${gy}v16M${gx} ${gy+i*4}h16`;g+=`<path d="${L}" stroke="${c}" stroke-width=".6" opacity="${v===4?.22:.3}"/>`;}
+  if(p(4,5)===0)g+=`<rect x="${4+p(30,6)}" y="${4+p(30,7)}" width="2.500" height="2.500" fill="${p(2,8)?"#7ae8ff":"#d8b0ff"}" opacity=".55"/>`;
+  return g?svg(g):"";
+}
+// Quartz Rocks: two to four giant faceted crystals on dark stone (one tile in seven is an ordinary grey boulder among smaller crystals)
+function quartzArt(v){
+  const C=[["#f2eeff","#b4a6ea","#7a68c8"],["#e6f8ff","#9ad0ee","#5a92c4"],["#f4e6ff","#c8a0f0","#8a5ad0"]];
+  const xt=(cx,by,w,h,a,c)=>{const[L,M,D]=C[c],sh=h*.72,f=n=>n.toFixed(1),P=(...q)=>q.map(([u,v])=>f(u)+" "+f(v)).join("L");
+    const bl=[cx-w/2,by],br=[cx+w/2,by],sl=[cx-w/2,by-sh],sr=[cx+w/2,by-sh],tp=[cx+w*.08,by-h],md=[cx+w*.08,by-sh+1],mb=[cx+w*.08,by];
+    return `<g transform="rotate(${a} ${cx} ${by})"><path d="M${P(bl,sl,md,mb)}z" fill="${L}"/><path d="M${P(mb,md,sr,br)}z" fill="${M}"/><path d="M${P(sl,tp,md)}z" fill="#fff"/><path d="M${P(md,tp,sr)}z" fill="${D}"/><path d="M${P(bl,sl,tp,sr,br)}z" fill="none" stroke="#1c1438" stroke-width="1" stroke-linejoin="round"/><path d="M${P(sl,md,sr)}M${P(md,mb)}" fill="none" stroke="${c===1?"#7ae8ff":"#e8dcff"}" stroke-width=".55" opacity=".9"/></g>`};
+  const boulder=`<path d="M6 36l-2-9 6-8 10-2 8 5 2 9-4 6z" fill="#8d98a1" stroke="#2a2e34" stroke-width="1" stroke-linejoin="round"/><path d="M10 19l10-2 8 5-10 3z" fill="rgba(255,255,255,.22)"/><path d="M18 25l4 11" stroke="rgba(0,0,0,.25)" stroke-width=".8"/>`;
+  const sets=[[[13,36,9,26,-12,0],[25,37,10,30,8,0],[33,36,6,16,22,1]],[[11,37,8,20,-20,2],[21,36,11,32,-2,0],[31,37,8,22,16,0]],[[16,37,12,30,-6,1],[29,36,9,24,14,0],[7,37,5,12,-28,2]],
+    [[12,37,9,24,-10,0],[24,37,9,28,10,2]],[[20,37,12,32,4,0],[9,37,6,15,-24,1],[31,37,6,14,24,0],[26,37,4,9,34,2]],[[14,36,10,28,-14,2],[27,36,10,26,12,1]]];
+  const g=v===6?boulder+xt(28,36,7,18,14,0)+xt(34,37,4,10,28,1):sets[v].map(a=>xt(...a)).join("");
+  return svg(`<ellipse cx="20" cy="36.500" rx="17" ry="3" fill="rgba(0,0,0,.35)"/>${g}`);
+}
+// Chasm: near-black depths; each side that meets solid ground lightens through violet to blue in pixel steps
+const chasmMask=(x,y)=>{const open=(a,b)=>a>=0&&b>=0&&a<W&&b<H&&!CHASM.has(a+","+b);return(open(x,y-1)?1:0)|(open(x+1,y)?2:0)|(open(x,y+1)?4:0)|(open(x-1,y)?8:0)|(open(x-1,y-1)?16:0)|(open(x+1,y-1)?32:0)|(open(x+1,y+1)?64:0)|(open(x-1,y+1)?128:0)};
+function chasmArt(m,v){
+  let g="";const r=(n,k)=>((n*37+k*61+v*13)%97)/97,STEP=["#bcaaff","#8e6ef0","#6040c0","#3a2484","#20124e"],GL=["#a8ecff","#6ac4fa","#3a86dc","#1e4c96","#102a5a"];
+  for(let i=0;i<9;i++)g+=`<rect x="${(4+r(i,1)*30).toFixed(1)}" y="${(4+r(i,2)*30).toFixed(1)}" width="${i%3?2:3}" height="${i%3?2:3}" fill="${i%4?"#2a1650":"#1c3a78"}" opacity="${(.35+r(i,3)*.4).toFixed(2)}"/>`; // drifting specks in the dark
+  const side=(bit,rot)=>{if(!(m&bit))return "";let t="";for(let c=0;c<8;c++){const deep=3+Math.floor(r(c,bit)*3);for(let k=0;k<deep;k++)t+=`<rect x="${c*5}" y="${k*3}" width="5" height="3.100" fill="${(c+k+bit)%3===0?GL[k]:STEP[k]}" opacity="${(.95-k*.13).toFixed(2)}"/>`}
+    return `<g transform="rotate(${rot} 20 20)">${t}<path d="M0 .6H40" stroke="#c8f4ff" stroke-width="1.200" opacity=".85"/></g>`};
+  g+=side(1,0)+side(2,90)+side(4,180)+side(8,270);
+  [[16,0,0],[32,40,0],[64,40,40],[128,0,40]].forEach(([bit,cx,cy])=>{if(m&bit&&!(m&(bit===16?9:bit===32?3:bit===64?6:12)))g+=`<rect x="${cx?34:0}" y="${cy?34:0}" width="6" height="6" fill="${STEP[0]}" opacity=".85"/><rect x="${cx?31:0}" y="${cy?31:0}" width="9" height="9" fill="${STEP[1]}" opacity=".4"/>`}); // inner corners
+  return svg(g);
+}
+// Chaos Spring: neon sparkles in purple, blue and yellow over a faint gridded circle
+const CHAOS_HP=1;
+const CHAOS_V=(()=>{let L="";for(let i=-2;i<=2;i++)L+=`M${20+i*4} 9V31M9 ${20+i*4}H31`;
+  const sp=(x,y,r,c,k)=>`<path class="twk" style="animation-delay:${-k*.45}s" d="M${x} ${y-r}l${r*.28} ${r*.72}l${r*.72} ${r*.28}l${-r*.72} ${r*.28}l${-r*.28} ${r*.72}l${-r*.28} ${-r*.72}l${-r*.72} ${-r*.28}l${r*.72} ${-r*.28}z" fill="${c}"/>`;
+  return svg(`<defs><clipPath id="chaosclip"><circle cx="20" cy="20" r="11"/></clipPath></defs><circle cx="20" cy="20" r="13" fill="#c06aff" opacity=".18"/><circle cx="20" cy="20" r="11" fill="#1c1040" opacity=".35"/><path d="${L}" stroke="#8ad8ff" stroke-width=".55" opacity=".55" clip-path="url(#chaosclip)"/><circle cx="20" cy="20" r="11" fill="none" stroke="#c8a0ff" stroke-width=".9" opacity=".8"/>`
+    +[[8,8,4,"#d070ff",0],[31,10,3.400,"#7ae8ff",1],[33,29,4.200,"#ffe066",2],[9,31,3,"#7ae8ff",3],[20,20,3.600,"#fff6c8",4],[25,5,2.400,"#ffe066",5],[5,20,2.400,"#d070ff",6],[35,19,2.200,"#d070ff",7],[17,35,2.600,"#ffe066",8]].map(a=>sp(...a)).join(""));
+})();
 // wildflower field: a scatter of daisies and bright blooms among grass tufts (three mixes)
 const FLOWER_V=[svg(`<rect width="40" height="40" fill="#7fae4e" opacity=".28"/><ellipse cx="20" cy="22" rx="17" ry="14" fill="#8fbe5a" opacity=".22"/><g stroke="#4f7a34" stroke-width=".9" stroke-linecap="round" fill="none"><path d="M18.5 26.4q1.0 -2.500 0 -4"/><path d="M33.6 23.4q-0.4 -2.500 0 -4"/><path d="M9.9 24.9q-0.9 -2.500 0 -4"/><path d="M24.2 33.6q0.7 -2.500 0 -4"/><path d="M7.0 18.4q-1.0 -2.500 0 -4"/><path d="M6.9 34.1q0.9 -2.500 0 -4"/><path d="M26.2 10.3q1.0 -2.500 0 -4"/><path d="M35.4 38.9q0.1 -2.500 0 -4"/><path d="M24.9 28.1q-0.5 -2.500 0 -4"/><path d="M9.0 9.5q-1.0 -2.500 0 -4"/><path d="M20.9 10.8q-0.8 -2.500 0 -4"/><path d="M5.0 23.4q-1.0 -2.500 0 -4"/><path d="M18.1 35.1q-0.6 -2.500 0 -4"/><path d="M18.6 17.6q-0.6 -2.500 0 -4"/><path d="M16.0 19.8l-1 -2.500M16.0 19.8l.4 -3M16.0 19.8l1.400 -2.200" stroke="#5f9a3a"/><path d="M36.7 8.0l-1 -2.500M36.7 8.0l.4 -3M36.7 8.0l1.400 -2.200" stroke="#5f9a3a"/><path d="M32.4 37.2l-1 -2.500M32.4 37.2l.4 -3M32.4 37.2l1.400 -2.200" stroke="#5f9a3a"/><path d="M23.2 37.9l-1 -2.500M23.2 37.9l.4 -3M23.2 37.9l1.400 -2.200" stroke="#5f9a3a"/><path d="M3.7 13.6l-1 -2.500M3.7 13.6l.4 -3M3.7 13.6l1.400 -2.200" stroke="#5f9a3a"/><path d="M36.9 26.1l-1 -2.500M36.9 26.1l.4 -3M36.9 26.1l1.400 -2.200" stroke="#5f9a3a"/><path d="M22.6 9.3l-1 -2.500M22.6 9.3l.4 -3M22.6 9.3l1.400 -2.200" stroke="#5f9a3a"/><path d="M8.0 21.2l-1 -2.500M8.0 21.2l.4 -3M8.0 21.2l1.400 -2.200" stroke="#5f9a3a"/><path d="M3.3 26.3l-1 -2.500M3.3 26.3l.4 -3M3.3 26.3l1.400 -2.200" stroke="#5f9a3a"/></g><circle cx="19.8" cy="22.4" r="1.34" fill="#f2c94c"/><circle cx="18.5" cy="23.7" r="1.34" fill="#f2c94c"/><circle cx="17.2" cy="22.4" r="1.34" fill="#f2c94c"/><circle cx="18.5" cy="21.1" r="1.34" fill="#f2c94c"/><circle cx="18.5" cy="22.4" r="0.69" fill="#fff3b0"/><ellipse cx="33.6" cy="17.4" rx="0.90" ry="2.01" fill="#fbfaf2" transform="rotate(0 33.6 19.4)"/><ellipse cx="33.6" cy="17.4" rx="0.90" ry="2.01" fill="#fbfaf2" transform="rotate(60 33.6 19.4)"/><ellipse cx="33.6" cy="17.4" rx="0.90" ry="2.01" fill="#fbfaf2" transform="rotate(120 33.6 19.4)"/><ellipse cx="33.6" cy="17.4" rx="0.90" ry="2.01" fill="#fbfaf2" transform="rotate(180 33.6 19.4)"/><ellipse cx="33.6" cy="17.4" rx="0.90" ry="2.01" fill="#fbfaf2" transform="rotate(240 33.6 19.4)"/><ellipse cx="33.6" cy="17.4" rx="0.90" ry="2.01" fill="#fbfaf2" transform="rotate(300 33.6 19.4)"/><circle cx="33.6" cy="19.4" r="1.01" fill="#e8b830"/><circle cx="11.1" cy="20.9" r="1.19" fill="#f2c94c"/><circle cx="9.9" cy="22.0" r="1.19" fill="#f2c94c"/><circle cx="8.8" cy="20.9" r="1.19" fill="#f2c94c"/><circle cx="9.9" cy="19.7" r="1.19" fill="#f2c94c"/><circle cx="9.9" cy="20.9" r="0.61" fill="#fff3b0"/><circle cx="25.1" cy="29.6" r="1.03" fill="#f2c94c"/><circle cx="24.2" cy="30.6" r="1.03" fill="#f2c94c"/><circle cx="23.2" cy="29.6" r="1.03" fill="#f2c94c"/><circle cx="24.2" cy="28.6" r="1.03" fill="#f2c94c"/><circle cx="24.2" cy="29.6" r="0.53" fill="#fff3b0"/><circle cx="8.1" cy="14.4" r="1.10" fill="#f2c94c"/><circle cx="7.0" cy="15.5" r="1.10" fill="#f2c94c"/><circle cx="5.9" cy="14.4" r="1.10" fill="#f2c94c"/><circle cx="7.0" cy="13.3" r="1.10" fill="#f2c94c"/><circle cx="7.0" cy="14.4" r="0.57" fill="#fff3b0"/><circle cx="8.1" cy="30.1" r="1.23" fill="#f2c94c"/><circle cx="6.9" cy="31.3" r="1.23" fill="#f2c94c"/><circle cx="5.7" cy="30.1" r="1.23" fill="#f2c94c"/><circle cx="6.9" cy="28.9" r="1.23" fill="#f2c94c"/><circle cx="6.9" cy="30.1" r="0.63" fill="#fff3b0"/><circle cx="27.4" cy="6.3" r="1.20" fill="#f2c94c"/><circle cx="26.2" cy="7.5" r="1.20" fill="#f2c94c"/><circle cx="25.0" cy="6.3" r="1.20" fill="#f2c94c"/><circle cx="26.2" cy="5.1" r="1.20" fill="#f2c94c"/><circle cx="26.2" cy="6.3" r="0.62" fill="#fff3b0"/><ellipse cx="35.4" cy="32.7" rx="1.00" ry="2.22" fill="#fbfaf2" transform="rotate(0 35.4 34.9)"/><ellipse cx="35.4" cy="32.7" rx="1.00" ry="2.22" fill="#fbfaf2" transform="rotate(60 35.4 34.9)"/><ellipse cx="35.4" cy="32.7" rx="1.00" ry="2.22" fill="#fbfaf2" transform="rotate(120 35.4 34.9)"/><ellipse cx="35.4" cy="32.7" rx="1.00" ry="2.22" fill="#fbfaf2" transform="rotate(180 35.4 34.9)"/><ellipse cx="35.4" cy="32.7" rx="1.00" ry="2.22" fill="#fbfaf2" transform="rotate(240 35.4 34.9)"/><ellipse cx="35.4" cy="32.7" rx="1.00" ry="2.22" fill="#fbfaf2" transform="rotate(300 35.4 34.9)"/><circle cx="35.4" cy="34.9" r="1.11" fill="#e8b830"/><circle cx="26.0" cy="24.1" r="1.15" fill="#f2c94c"/><circle cx="24.9" cy="25.2" r="1.15" fill="#f2c94c"/><circle cx="23.8" cy="24.1" r="1.15" fill="#f2c94c"/><circle cx="24.9" cy="23.0" r="1.15" fill="#f2c94c"/><circle cx="24.9" cy="24.1" r="0.59" fill="#fff3b0"/><circle cx="10.4" cy="5.5" r="1.37" fill="#f2c94c"/><circle cx="9.0" cy="6.8" r="1.37" fill="#f2c94c"/><circle cx="7.7" cy="5.5" r="1.37" fill="#f2c94c"/><circle cx="9.0" cy="4.1" r="1.37" fill="#f2c94c"/><circle cx="9.0" cy="5.5" r="0.71" fill="#fff3b0"/><ellipse cx="20.9" cy="4.7" rx="0.97" ry="2.17" fill="#fbfaf2" transform="rotate(0 20.9 6.8)"/><ellipse cx="20.9" cy="4.7" rx="0.97" ry="2.17" fill="#fbfaf2" transform="rotate(60 20.9 6.8)"/><ellipse cx="20.9" cy="4.7" rx="0.97" ry="2.17" fill="#fbfaf2" transform="rotate(120 20.9 6.8)"/><ellipse cx="20.9" cy="4.7" rx="0.97" ry="2.17" fill="#fbfaf2" transform="rotate(180 20.9 6.8)"/><ellipse cx="20.9" cy="4.7" rx="0.97" ry="2.17" fill="#fbfaf2" transform="rotate(240 20.9 6.8)"/><ellipse cx="20.9" cy="4.7" rx="0.97" ry="2.17" fill="#fbfaf2" transform="rotate(300 20.9 6.8)"/><circle cx="20.9" cy="6.8" r="1.08" fill="#e8b830"/><circle cx="6.3" cy="19.4" r="1.39" fill="#f2c94c"/><circle cx="5.0" cy="20.7" r="1.39" fill="#f2c94c"/><circle cx="3.6" cy="19.4" r="1.39" fill="#f2c94c"/><circle cx="5.0" cy="18.0" r="1.39" fill="#f2c94c"/><circle cx="5.0" cy="19.4" r="0.72" fill="#fff3b0"/><ellipse cx="18.1" cy="29.2" rx="0.88" ry="1.96" fill="#fbfaf2" transform="rotate(0 18.1 31.1)"/><ellipse cx="18.1" cy="29.2" rx="0.88" ry="1.96" fill="#fbfaf2" transform="rotate(60 18.1 31.1)"/><ellipse cx="18.1" cy="29.2" rx="0.88" ry="1.96" fill="#fbfaf2" transform="rotate(120 18.1 31.1)"/><ellipse cx="18.1" cy="29.2" rx="0.88" ry="1.96" fill="#fbfaf2" transform="rotate(180 18.1 31.1)"/><ellipse cx="18.1" cy="29.2" rx="0.88" ry="1.96" fill="#fbfaf2" transform="rotate(240 18.1 31.1)"/><ellipse cx="18.1" cy="29.2" rx="0.88" ry="1.96" fill="#fbfaf2" transform="rotate(300 18.1 31.1)"/><circle cx="18.1" cy="31.1" r="0.98" fill="#e8b830"/><ellipse cx="18.6" cy="11.7" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(0 18.6 13.6)"/><ellipse cx="18.6" cy="11.7" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(60 18.6 13.6)"/><ellipse cx="18.6" cy="11.7" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(120 18.6 13.6)"/><ellipse cx="18.6" cy="11.7" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(180 18.6 13.6)"/><ellipse cx="18.6" cy="11.7" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(240 18.6 13.6)"/><ellipse cx="18.6" cy="11.7" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(300 18.6 13.6)"/><circle cx="18.6" cy="13.6" r="0.97" fill="#e8b830"/>`),svg(`<rect width="40" height="40" fill="#7fae4e" opacity=".28"/><ellipse cx="20" cy="22" rx="17" ry="14" fill="#8fbe5a" opacity=".22"/><g stroke="#4f7a34" stroke-width=".9" stroke-linecap="round" fill="none"><path d="M33.6 38.4q0.2 -2.500 0 -4"/><path d="M32.6 11.6q1.0 -2.500 0 -4"/><path d="M22.9 22.1q-0.2 -2.500 0 -4"/><path d="M21.0 13.0q0.4 -2.500 0 -4"/><path d="M10.1 22.8q0.9 -2.500 0 -4"/><path d="M4.8 11.7q-0.3 -2.500 0 -4"/><path d="M20.4 31.8q-0.9 -2.500 0 -4"/><path d="M15.5 10.8q-0.6 -2.500 0 -4"/><path d="M29.1 27.3q-0.6 -2.500 0 -4"/><path d="M35.1 20.2q0.3 -2.500 0 -4"/><path d="M28.3 20.4q-0.2 -2.500 0 -4"/><path d="M5.2 17.5q-0.3 -2.500 0 -4"/><path d="M13.2 18.4q0.8 -2.500 0 -4"/><path d="M21.5 37.5q0.9 -2.500 0 -4"/><path d="M17.5 17.0l-1 -2.500M17.5 17.0l.4 -3M17.5 17.0l1.400 -2.200" stroke="#5f9a3a"/><path d="M32.3 26.3l-1 -2.500M32.3 26.3l.4 -3M32.3 26.3l1.400 -2.200" stroke="#5f9a3a"/><path d="M4.8 16.5l-1 -2.500M4.8 16.5l.4 -3M4.8 16.5l1.400 -2.200" stroke="#5f9a3a"/><path d="M3.9 12.2l-1 -2.500M3.9 12.2l.4 -3M3.9 12.2l1.400 -2.200" stroke="#5f9a3a"/><path d="M35.8 29.9l-1 -2.500M35.8 29.9l.4 -3M35.8 29.9l1.400 -2.200" stroke="#5f9a3a"/><path d="M17.6 13.0l-1 -2.500M17.6 13.0l.4 -3M17.6 13.0l1.400 -2.200" stroke="#5f9a3a"/><path d="M25.5 18.1l-1 -2.500M25.5 18.1l.4 -3M25.5 18.1l1.400 -2.200" stroke="#5f9a3a"/><path d="M26.4 11.4l-1 -2.500M26.4 11.4l.4 -3M26.4 11.4l1.400 -2.200" stroke="#5f9a3a"/><path d="M33.2 36.7l-1 -2.500M33.2 36.7l.4 -3M33.2 36.7l1.400 -2.200" stroke="#5f9a3a"/></g><circle cx="34.6" cy="34.4" r="1.07" fill="#e5554f"/><circle cx="33.6" cy="35.4" r="1.07" fill="#e5554f"/><circle cx="32.6" cy="34.4" r="1.07" fill="#e5554f"/><circle cx="33.6" cy="33.4" r="1.07" fill="#e5554f"/><circle cx="33.6" cy="34.4" r="0.55" fill="#fff3b0"/><circle cx="33.8" cy="7.6" r="1.30" fill="#e5554f"/><circle cx="32.6" cy="8.9" r="1.30" fill="#e5554f"/><circle cx="31.3" cy="7.6" r="1.30" fill="#e5554f"/><circle cx="32.6" cy="6.3" r="1.30" fill="#e5554f"/><circle cx="32.6" cy="7.6" r="0.67" fill="#fff3b0"/><ellipse cx="22.9" cy="15.9" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(0 22.9 18.1)"/><ellipse cx="22.9" cy="15.9" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(60 22.9 18.1)"/><ellipse cx="22.9" cy="15.9" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(120 22.9 18.1)"/><ellipse cx="22.9" cy="15.9" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(180 22.9 18.1)"/><ellipse cx="22.9" cy="15.9" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(240 22.9 18.1)"/><ellipse cx="22.9" cy="15.9" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(300 22.9 18.1)"/><circle cx="22.9" cy="18.1" r="1.12" fill="#e8b830"/><ellipse cx="21.0" cy="6.8" rx="1.01" ry="2.24" fill="#fbfaf2" transform="rotate(0 21.0 9.0)"/><ellipse cx="21.0" cy="6.8" rx="1.01" ry="2.24" fill="#fbfaf2" transform="rotate(60 21.0 9.0)"/><ellipse cx="21.0" cy="6.8" rx="1.01" ry="2.24" fill="#fbfaf2" transform="rotate(120 21.0 9.0)"/><ellipse cx="21.0" cy="6.8" rx="1.01" ry="2.24" fill="#fbfaf2" transform="rotate(180 21.0 9.0)"/><ellipse cx="21.0" cy="6.8" rx="1.01" ry="2.24" fill="#fbfaf2" transform="rotate(240 21.0 9.0)"/><ellipse cx="21.0" cy="6.8" rx="1.01" ry="2.24" fill="#fbfaf2" transform="rotate(300 21.0 9.0)"/><circle cx="21.0" cy="9.0" r="1.12" fill="#e8b830"/><circle cx="11.5" cy="18.8" r="1.36" fill="#e5554f"/><circle cx="10.1" cy="20.1" r="1.36" fill="#e5554f"/><circle cx="8.8" cy="18.8" r="1.36" fill="#e5554f"/><circle cx="10.1" cy="17.5" r="1.36" fill="#e5554f"/><circle cx="10.1" cy="18.8" r="0.70" fill="#fff3b0"/><circle cx="6.0" cy="7.7" r="1.24" fill="#e5554f"/><circle cx="4.8" cy="8.9" r="1.24" fill="#e5554f"/><circle cx="3.6" cy="7.7" r="1.24" fill="#e5554f"/><circle cx="4.8" cy="6.5" r="1.24" fill="#e5554f"/><circle cx="4.8" cy="7.7" r="0.64" fill="#fff3b0"/><circle cx="21.6" cy="27.8" r="1.22" fill="#f2c94c"/><circle cx="20.4" cy="28.9" r="1.22" fill="#f2c94c"/><circle cx="19.2" cy="27.8" r="1.22" fill="#f2c94c"/><circle cx="20.4" cy="26.6" r="1.22" fill="#f2c94c"/><circle cx="20.4" cy="27.8" r="0.63" fill="#fff3b0"/><circle cx="16.9" cy="6.8" r="1.46" fill="#e5554f"/><circle cx="15.5" cy="8.2" r="1.46" fill="#e5554f"/><circle cx="14.1" cy="6.8" r="1.46" fill="#e5554f"/><circle cx="15.5" cy="5.4" r="1.46" fill="#e5554f"/><circle cx="15.5" cy="6.8" r="0.76" fill="#fff3b0"/><circle cx="30.3" cy="23.3" r="1.27" fill="#e5554f"/><circle cx="29.1" cy="24.5" r="1.27" fill="#e5554f"/><circle cx="27.8" cy="23.3" r="1.27" fill="#e5554f"/><circle cx="29.1" cy="22.0" r="1.27" fill="#e5554f"/><circle cx="29.1" cy="23.3" r="0.65" fill="#fff3b0"/><ellipse cx="35.1" cy="14.4" rx="0.81" ry="1.80" fill="#fbfaf2" transform="rotate(0 35.1 16.2)"/><ellipse cx="35.1" cy="14.4" rx="0.81" ry="1.80" fill="#fbfaf2" transform="rotate(60 35.1 16.2)"/><ellipse cx="35.1" cy="14.4" rx="0.81" ry="1.80" fill="#fbfaf2" transform="rotate(120 35.1 16.2)"/><ellipse cx="35.1" cy="14.4" rx="0.81" ry="1.80" fill="#fbfaf2" transform="rotate(180 35.1 16.2)"/><ellipse cx="35.1" cy="14.4" rx="0.81" ry="1.80" fill="#fbfaf2" transform="rotate(240 35.1 16.2)"/><ellipse cx="35.1" cy="14.4" rx="0.81" ry="1.80" fill="#fbfaf2" transform="rotate(300 35.1 16.2)"/><circle cx="35.1" cy="16.2" r="0.90" fill="#e8b830"/><circle cx="29.5" cy="16.4" r="1.21" fill="#e5554f"/><circle cx="28.3" cy="17.6" r="1.21" fill="#e5554f"/><circle cx="27.1" cy="16.4" r="1.21" fill="#e5554f"/><circle cx="28.3" cy="15.3" r="1.21" fill="#e5554f"/><circle cx="28.3" cy="16.4" r="0.63" fill="#fff3b0"/><circle cx="6.6" cy="13.5" r="1.40" fill="#e5554f"/><circle cx="5.2" cy="14.9" r="1.40" fill="#e5554f"/><circle cx="3.9" cy="13.5" r="1.40" fill="#e5554f"/><circle cx="5.2" cy="12.2" r="1.40" fill="#e5554f"/><circle cx="5.2" cy="13.5" r="0.72" fill="#fff3b0"/><circle cx="14.2" cy="14.4" r="1.03" fill="#e5554f"/><circle cx="13.2" cy="15.4" r="1.03" fill="#e5554f"/><circle cx="12.2" cy="14.4" r="1.03" fill="#e5554f"/><circle cx="13.2" cy="13.5" r="1.03" fill="#e5554f"/><circle cx="13.2" cy="14.4" r="0.53" fill="#fff3b0"/><ellipse cx="21.5" cy="31.4" rx="0.92" ry="2.04" fill="#fbfaf2" transform="rotate(0 21.5 33.5)"/><ellipse cx="21.5" cy="31.4" rx="0.92" ry="2.04" fill="#fbfaf2" transform="rotate(60 21.5 33.5)"/><ellipse cx="21.5" cy="31.4" rx="0.92" ry="2.04" fill="#fbfaf2" transform="rotate(120 21.5 33.5)"/><ellipse cx="21.5" cy="31.4" rx="0.92" ry="2.04" fill="#fbfaf2" transform="rotate(180 21.5 33.5)"/><ellipse cx="21.5" cy="31.4" rx="0.92" ry="2.04" fill="#fbfaf2" transform="rotate(240 21.5 33.5)"/><ellipse cx="21.5" cy="31.4" rx="0.92" ry="2.04" fill="#fbfaf2" transform="rotate(300 21.5 33.5)"/><circle cx="21.5" cy="33.5" r="1.02" fill="#e8b830"/>`),svg(`<rect width="40" height="40" fill="#7fae4e" opacity=".28"/><ellipse cx="20" cy="22" rx="17" ry="14" fill="#8fbe5a" opacity=".22"/><g stroke="#4f7a34" stroke-width=".9" stroke-linecap="round" fill="none"><path d="M25.8 11.8q-0.9 -2.500 0 -4"/><path d="M23.8 35.1q0.3 -2.500 0 -4"/><path d="M30.7 25.0q-0.8 -2.500 0 -4"/><path d="M24.2 20.4q-0.9 -2.500 0 -4"/><path d="M25.9 27.6q-0.7 -2.500 0 -4"/><path d="M13.0 20.7q-0.4 -2.500 0 -4"/><path d="M34.7 39.1q0.1 -2.500 0 -4"/><path d="M6.4 17.9q-0.8 -2.500 0 -4"/><path d="M15.6 30.9q0.0 -2.500 0 -4"/><path d="M5.1 25.3q-0.9 -2.500 0 -4"/><path d="M33.1 11.1q-0.7 -2.500 0 -4"/><path d="M15.3 13.9q-0.6 -2.500 0 -4"/><path d="M31.5 31.6q0.6 -2.500 0 -4"/><path d="M10.8 28.2q0.4 -2.500 0 -4"/><path d="M12.5 26.0l-1 -2.500M12.5 26.0l.4 -3M12.5 26.0l1.400 -2.200" stroke="#5f9a3a"/><path d="M31.8 24.3l-1 -2.500M31.8 24.3l.4 -3M31.8 24.3l1.400 -2.200" stroke="#5f9a3a"/><path d="M30.5 29.6l-1 -2.500M30.5 29.6l.4 -3M30.5 29.6l1.400 -2.200" stroke="#5f9a3a"/><path d="M31.7 27.2l-1 -2.500M31.7 27.2l.4 -3M31.7 27.2l1.400 -2.200" stroke="#5f9a3a"/><path d="M35.3 25.4l-1 -2.500M35.3 25.4l.4 -3M35.3 25.4l1.400 -2.200" stroke="#5f9a3a"/><path d="M32.7 15.8l-1 -2.500M32.7 15.8l.4 -3M32.7 15.8l1.400 -2.200" stroke="#5f9a3a"/><path d="M35.8 14.6l-1 -2.500M35.8 14.6l.4 -3M35.8 14.6l1.400 -2.200" stroke="#5f9a3a"/><path d="M36.7 32.8l-1 -2.500M36.7 32.8l.4 -3M36.7 32.8l1.400 -2.200" stroke="#5f9a3a"/><path d="M15.1 14.2l-1 -2.500M15.1 14.2l.4 -3M15.1 14.2l1.400 -2.200" stroke="#5f9a3a"/></g><circle cx="26.8" cy="7.8" r="1.04" fill="#f0a0c0"/><circle cx="25.8" cy="8.9" r="1.04" fill="#f0a0c0"/><circle cx="24.8" cy="7.8" r="1.04" fill="#f0a0c0"/><circle cx="25.8" cy="6.8" r="1.04" fill="#f0a0c0"/><circle cx="25.8" cy="7.8" r="0.54" fill="#fff3b0"/><circle cx="25.0" cy="31.1" r="1.31" fill="#b07cd8"/><circle cx="23.8" cy="32.4" r="1.31" fill="#b07cd8"/><circle cx="22.5" cy="31.1" r="1.31" fill="#b07cd8"/><circle cx="23.8" cy="29.8" r="1.31" fill="#b07cd8"/><circle cx="23.8" cy="31.1" r="0.68" fill="#fff3b0"/><ellipse cx="30.7" cy="19.1" rx="0.84" ry="1.87" fill="#fbfaf2" transform="rotate(0 30.7 21.0)"/><ellipse cx="30.7" cy="19.1" rx="0.84" ry="1.87" fill="#fbfaf2" transform="rotate(60 30.7 21.0)"/><ellipse cx="30.7" cy="19.1" rx="0.84" ry="1.87" fill="#fbfaf2" transform="rotate(120 30.7 21.0)"/><ellipse cx="30.7" cy="19.1" rx="0.84" ry="1.87" fill="#fbfaf2" transform="rotate(180 30.7 21.0)"/><ellipse cx="30.7" cy="19.1" rx="0.84" ry="1.87" fill="#fbfaf2" transform="rotate(240 30.7 21.0)"/><ellipse cx="30.7" cy="19.1" rx="0.84" ry="1.87" fill="#fbfaf2" transform="rotate(300 30.7 21.0)"/><circle cx="30.7" cy="21.0" r="0.94" fill="#e8b830"/><ellipse cx="24.2" cy="14.8" rx="0.74" ry="1.65" fill="#fbfaf2" transform="rotate(0 24.2 16.4)"/><ellipse cx="24.2" cy="14.8" rx="0.74" ry="1.65" fill="#fbfaf2" transform="rotate(60 24.2 16.4)"/><ellipse cx="24.2" cy="14.8" rx="0.74" ry="1.65" fill="#fbfaf2" transform="rotate(120 24.2 16.4)"/><ellipse cx="24.2" cy="14.8" rx="0.74" ry="1.65" fill="#fbfaf2" transform="rotate(180 24.2 16.4)"/><ellipse cx="24.2" cy="14.8" rx="0.74" ry="1.65" fill="#fbfaf2" transform="rotate(240 24.2 16.4)"/><ellipse cx="24.2" cy="14.8" rx="0.74" ry="1.65" fill="#fbfaf2" transform="rotate(300 24.2 16.4)"/><circle cx="24.2" cy="16.4" r="0.83" fill="#e8b830"/><ellipse cx="25.9" cy="21.4" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(0 25.9 23.6)"/><ellipse cx="25.9" cy="21.4" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(60 25.9 23.6)"/><ellipse cx="25.9" cy="21.4" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(120 25.9 23.6)"/><ellipse cx="25.9" cy="21.4" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(180 25.9 23.6)"/><ellipse cx="25.9" cy="21.4" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(240 25.9 23.6)"/><ellipse cx="25.9" cy="21.4" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(300 25.9 23.6)"/><circle cx="25.9" cy="23.6" r="1.13" fill="#e8b830"/><circle cx="14.3" cy="16.7" r="1.28" fill="#7aa8e0"/><circle cx="13.0" cy="18.0" r="1.28" fill="#7aa8e0"/><circle cx="11.8" cy="16.7" r="1.28" fill="#7aa8e0"/><circle cx="13.0" cy="15.5" r="1.28" fill="#7aa8e0"/><circle cx="13.0" cy="16.7" r="0.66" fill="#fff3b0"/><circle cx="35.7" cy="35.1" r="1.06" fill="#b07cd8"/><circle cx="34.7" cy="36.1" r="1.06" fill="#b07cd8"/><circle cx="33.7" cy="35.1" r="1.06" fill="#b07cd8"/><circle cx="34.7" cy="34.1" r="1.06" fill="#b07cd8"/><circle cx="34.7" cy="35.1" r="0.55" fill="#fff3b0"/><ellipse cx="6.4" cy="12.0" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(0 6.4 13.9)"/><ellipse cx="6.4" cy="12.0" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(60 6.4 13.9)"/><ellipse cx="6.4" cy="12.0" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(120 6.4 13.9)"/><ellipse cx="6.4" cy="12.0" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(180 6.4 13.9)"/><ellipse cx="6.4" cy="12.0" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(240 6.4 13.9)"/><ellipse cx="6.4" cy="12.0" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(300 6.4 13.9)"/><circle cx="6.4" cy="13.9" r="0.97" fill="#e8b830"/><circle cx="16.7" cy="26.9" r="1.17" fill="#7aa8e0"/><circle cx="15.6" cy="28.0" r="1.17" fill="#7aa8e0"/><circle cx="14.4" cy="26.9" r="1.17" fill="#7aa8e0"/><circle cx="15.6" cy="25.7" r="1.17" fill="#7aa8e0"/><circle cx="15.6" cy="26.9" r="0.60" fill="#fff3b0"/><circle cx="6.2" cy="21.3" r="1.10" fill="#7aa8e0"/><circle cx="5.1" cy="22.4" r="1.10" fill="#7aa8e0"/><circle cx="4.0" cy="21.3" r="1.10" fill="#7aa8e0"/><circle cx="5.1" cy="20.3" r="1.10" fill="#7aa8e0"/><circle cx="5.1" cy="21.3" r="0.57" fill="#fff3b0"/><circle cx="34.2" cy="7.1" r="1.15" fill="#f0a0c0"/><circle cx="33.1" cy="8.2" r="1.15" fill="#f0a0c0"/><circle cx="32.0" cy="7.1" r="1.15" fill="#f0a0c0"/><circle cx="33.1" cy="6.0" r="1.15" fill="#f0a0c0"/><circle cx="33.1" cy="7.1" r="0.59" fill="#fff3b0"/><circle cx="16.2" cy="9.9" r="1.02" fill="#b07cd8"/><circle cx="15.3" cy="10.9" r="1.02" fill="#b07cd8"/><circle cx="14.3" cy="9.9" r="1.02" fill="#b07cd8"/><circle cx="15.3" cy="9.0" r="1.02" fill="#b07cd8"/><circle cx="15.3" cy="9.9" r="0.52" fill="#fff3b0"/><circle cx="32.9" cy="27.6" r="1.44" fill="#f0a0c0"/><circle cx="31.5" cy="29.0" r="1.44" fill="#f0a0c0"/><circle cx="30.1" cy="27.6" r="1.44" fill="#f0a0c0"/><circle cx="31.5" cy="26.2" r="1.44" fill="#f0a0c0"/><circle cx="31.5" cy="27.6" r="0.74" fill="#fff3b0"/><circle cx="12.1" cy="24.2" r="1.37" fill="#b07cd8"/><circle cx="10.8" cy="25.5" r="1.37" fill="#b07cd8"/><circle cx="9.5" cy="24.2" r="1.37" fill="#b07cd8"/><circle cx="10.8" cy="22.8" r="1.37" fill="#b07cd8"/><circle cx="10.8" cy="24.2" r="0.71" fill="#fff3b0"/>`)];
 function ashGround(x,y){ // ash-strewn rock in place of grass and flowers
@@ -1312,11 +1361,15 @@ function joins(x,y){
     const P=SAKURA[sakuraPal(x,y)],r=CHERRY.has((x+1)+","+y),b=CHERRY.has(x+","+(y+1)),bar=(st,dir)=>`<i class="jb" style="${st};background:linear-gradient(${dir},transparent 30%,${P[0]} 32%,${P[1]} 40%,${P[1]} 60%,${P[0]} 68%,transparent 70%)"></i>`;
     return (r?bar("top:0;right:-2px;width:2px;height:100%","180deg"):"")+(b?bar("left:0;bottom:-2px;height:2px;width:100%","90deg"):"");
   }
+  if(CHASM.has(k)){ // the chasm runs on, unbroken, across the gap into chasm beside it
+    const r=CHASM.has((x+1)+","+y),b=CHASM.has(x+","+(y+1)),c=r&&b&&CHASM.has((x+1)+","+(y+1)),bar=st=>`<i class="jb" style="${st};background:#0c0718"></i>`;
+    return (r?bar(`top:0;right:-2px;width:2px;height:${c?"calc(100% + 2px)":"100%"}`):"")+(b?bar("left:0;bottom:-2px;height:2px;width:100%"):"");
+  }
   if(LAVA.has(k)){ // lava flows on across the gap into lava beside it
     const r=LAVA.has((x+1)+","+y),b=LAVA.has(x+","+(y+1)),c=r&&b&&LAVA.has((x+1)+","+(y+1)),bar=st=>`<i class="jb" style="${st};background:#e2531a"></i>`;
     return (r?bar(`top:0;right:-2px;width:2px;height:${c?"calc(100% + 2px)":"100%"}`):"")+(b?bar("left:0;bottom:-2px;height:2px;width:100%"):"");
   }
-  if(!isW&&!FORT.has(k))return "";
+  if(!isW&&!FORT.has(k)||isW&&SIM)return ""; // the Sim's quartz rocks stand alone
   const m=isW?wallMask(x,y):fortMask(x,y),same=isW?(kk=>WALLS.has(kk)):(kk=>FORT.has(kk)&&FORTV.get(kk)===FORTV.get(k));
   const corner=(m&2)&&(m&4)&&same((x+1)+","+(y+1)),bar=(st,bg)=>`<i class="jb" style="${st};background:${bg}"></i>`;
   let right,below;
@@ -1355,8 +1408,12 @@ const TERRAIN={
  volcano:{name:"Volcano",bg:"",art:()=>VOLC_V,unlock:"volcanic",desc:"Impassable. 1 to 3 per map. At the end of each turn it has a small chance to erupt, dealing 2 damage (ignoring armor) to any unit on 3 random tiles around it."},
  rubble:{name:"Rubble",bg:"background:#8f877a",art:()=>RUBBLE_V,desc:"What's left of a fortress after a Wall-breaker Charge. Entering it costs 1 extra movement, and it gives no armor."},
  wall:{name:"Wall",bg:"background:var(--wall)",art:()=>[0,1,2,3].map(v=>wallArt(v,0)),desc:"Impassable. Units can't enter or cross it, but attacks can pass over it."},
+ glitch:{name:"Glitched Ground",bg:"background:#5a4c8c",art:()=>[0,1,2,3].map(v=>simGround(3,4,v)),unlock:"warpedsim",desc:"Open ground that isn't quite right: purple and blue, with a faint grid showing through. No special effect."},
+ quartz:{name:"Quartz Rocks",bg:"background:#2c2450",art:()=>[0,1,2].map(v=>quartzArt(v)),unlock:"warpedsim",desc:"Impassable. Giant quartz crystals, with the odd ordinary rock among them. Units can't enter or cross them, but attacks can pass over."},
+ chasm:{name:"Chasm",bg:"background:#0c0718",art:()=>[chasmArt(0,0),chasmArt(5,1)],unlock:"warpedsim",desc:"Impassable. A gap in the world, dark all the way down. Units can't enter or cross it, but attacks can pass over it. Splits the Fractured Chasm down the middle."},
+ chaos:{name:"Chaos Spring",bg:"background:#5a4c8c",art:()=>[CHAOS_V],unlock:"warpedsim",desc:`One per Fractured Chasm map. At the end of each side's turn, each of that side's units on it or the 8 tiles around it has an even chance to recover ${CHAOS_HP} HP or take ${CHAOS_HP} damage (ignoring armor).`},
  fort:{name:"Fortress",bg:FR,art:()=>[fortArt(0,0,true),fortArt(0,1,true)],desc:"Uncommon. A unit standing on one gets +1 armor."}};
-const terrainKey=k=>RUBBLE.has(k)?"rubble":CAMPS.has(k)?"campsite":GRAVES.has(k)?"grave":VOLC.has(k)?"volcano":WISP.has(k)?"wisp":KOI.has(k)?"koi":FLOWERS.has(k)?"flowers":LAVA.has(k)?"lava":MAGMA.has(k)?"magma":BARRELS.has(k)?(XBAR.has(k)?"xbarrel":"barrels"):WALLS.has(k)?"wall":DEEP.has(k)?"deep":SHALLOW.has(k)?"shallow":SWAMP.has(k)?"swamp":CHERRY.has(k)?"cherry":FOREST.has(k)?(GREENW.has(k)?"greenwood":"forest"):FORT.has(k)?"fort":MEADOW.has(k)?"meadow":"ground";
+const terrainKey=k=>CHASM.has(k)?"chasm":CHAOS.has(k)?"chaos":RUBBLE.has(k)?"rubble":CAMPS.has(k)?"campsite":GRAVES.has(k)?"grave":VOLC.has(k)?"volcano":WISP.has(k)?"wisp":KOI.has(k)?"koi":FLOWERS.has(k)?"flowers":LAVA.has(k)?"lava":MAGMA.has(k)?"magma":BARRELS.has(k)?(XBAR.has(k)?"xbarrel":"barrels"):WALLS.has(k)?(SIM?"quartz":"wall"):DEEP.has(k)?"deep":SHALLOW.has(k)?"shallow":SWAMP.has(k)?"swamp":CHERRY.has(k)?"cherry":FOREST.has(k)?(GREENW.has(k)?"greenwood":"forest"):FORT.has(k)?"fort":MEADOW.has(k)?"meadow":SIM?"glitch":"ground";
 function tileArt(x,y){ // the art for one board tile, picking a stable variant per tile
   const k=x+","+y;
   switch(terrainKey(k)){
@@ -1365,6 +1422,7 @@ function tileArt(x,y){ // the art for one board tile, picking a stable variant p
     case "cherry":return cherryArt(tv(x,y,3,43),joinMask(x,y,kk=>CHERRY.has(kk)),x,y);
     case "volcano":return VOLC_V[tv(x,y,2,25)];case "wisp":return WISP_V[tv(x,y,2,47)];case "flowers":return FLOWER_V[tv(x,y,3,53)];case "koi":return KOI_V[tv(x,y,2,59)];case "lava":return LAVA_V[tv(x,y,3,27)];case "magma":return MAGMA_V[tv(x,y,3,29)];
     case "rubble":return RUBBLE_V[tv(x,y,2,61)];
+    case "chasm":return chasmArt(chasmMask(x,y),tv(x,y,3,71));case "chaos":return simGround(x,y,4)+CHAOS_V;case "glitch":return simGround(x,y);case "quartz":return quartzArt(tv(x,y,7,73));
     case "fort":return fortArt(fortMask(x,y),FORTV.get(k)||0,FORTK.has(k));default:return VOLCANIC?ashGround(x,y):ground(x,y);
   }
 }
@@ -1562,7 +1620,7 @@ function atkZone(u,spots,set,bar){
 let boardHTML=[],artMemo={sig:""};
 function terrainArt(){
   const tk=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++)tk.push(terrainKey(x+","+y));
-  const sig=[W,H,seed,WALLV,+HAUNTED,+VOLCANIC,+VALE,[...FORTV].join(";"),[...FORTK].join(";"),tk.join("")].join("|");
+  const sig=[W,H,seed,WALLV,+HAUNTED,+VOLCANIC,+VALE,+SIM,[...FORTV].join(";"),[...FORTK].join(";"),tk.join("")].join("|");
   if(artMemo.sig===sig)return artMemo;
   const art=[],jn=[],bl=[],wm=[];
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){art.push(tileArt(x,y));jn.push(joins(x,y));bl.push(blush(x,y));const m=wallMask(x,y);wm.push((m&1?" jn":"")+(m&4?" js":""))}
@@ -1570,7 +1628,7 @@ function terrainArt(){
 }
 function render(){
   units.forEach(u=>{if(u.slow&&calm(u)){delete u.slow;delete u.hex;delete u.hexPend;floatText(u.x,u.y,"Calm","bless")}});
-  board.classList.toggle("murky",MURKY);board.classList.toggle("haunted",HAUNTED);board.classList.toggle("volcanic",VOLCANIC);
+  board.classList.toggle("murky",MURKY);board.classList.toggle("haunted",HAUNTED);board.classList.toggle("volcanic",VOLCANIC);board.classList.toggle("sim",SIM);
   const mv=new Set(),tg=new Set(),ig=new Set(),ir=new Set(),pr=new Set(),hs=new Set(),bt=new Set(),it=mode==="bombard"&&sel?new Set(bombTargets(sel)):mode&&mode.startsWith("item:")&&sel&&turn==="y"?itemTargets(sel,mode.slice(5)):new Set();
   if(sel&&turn==="y"&&!over){
     if(mode==="ushove"&&shoveT)shoveT.ds.forEach(k=>mv.add(k));
@@ -1603,7 +1661,7 @@ function render(){
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     const k=x+","+y,i=y*W+x,w=WALLS.has(k),dp=DEEP.has(k),sh=SHALLOW.has(k),f=FOREST.has(k),fr=FORT.has(k),bar=BARRELS.has(k),u=ua.get(k);
     let html="";
-    const cls="t"+(bar?" brl":"")+(w?" w"+A.wm[i]:"")+(dp?" dp":"")+(sh?" sh":"")+(SWAMP.has(k)?" sw":"")+(LAVA.has(k)?" lv":"")+(MAGMA.has(k)?" mg":"")+(VOLC.has(k)?" vo":"")+(WISP.has(k)?" wo":"")+(KOI.has(k)?" ko":"")+(f?" fo":"")+(MEADOW.has(k)||GREENW.has(k)?" gr":"")+A.bl[i]+(fr?" fr":"")+(tile&&tile.x===x&&tile.y===y?" ts":"")+(ig.has(k)?" ig":"")+(ir.has(k)?" ir":"")+(pr.has(k)?" pr":"")+(mv.has(k)?" m":"")+((u&&tg.has(u))||bt.has(k)?" a":"")+(u&&tg.has(u)&&sel&&pushable(sel,u)?" pp":"")+(u&&hs.has(u)?" hl":"")+(u&&u===choice?" ch":"")+(pd&&pd.k===k?" pd":"")+(cm&&cm.x===x&&cm.y===y?" mt":"")+(bl.has(k)?" bl":"")+(CAMPS.has(k)?" cmp":"")+(cv.has(k)?" cv":"")+(it.has(k)?" it":"");
+    const cls="t"+(bar?" brl":"")+(w?" w"+A.wm[i]:"")+(dp?" dp":"")+(sh?" sh":"")+(SWAMP.has(k)?" sw":"")+(LAVA.has(k)?" lv":"")+(MAGMA.has(k)?" mg":"")+(VOLC.has(k)?" vo":"")+(WISP.has(k)?" wo":"")+(KOI.has(k)?" ko":"")+(CHASM.has(k)?" chs":"")+(CHAOS.has(k)?" cxs":"")+(f?" fo":"")+(MEADOW.has(k)||GREENW.has(k)?" gr":"")+A.bl[i]+(fr?" fr":"")+(tile&&tile.x===x&&tile.y===y?" ts":"")+(ig.has(k)?" ig":"")+(ir.has(k)?" ir":"")+(pr.has(k)?" pr":"")+(mv.has(k)?" m":"")+((u&&tg.has(u))||bt.has(k)?" a":"")+(u&&tg.has(u)&&sel&&pushable(sel,u)?" pp":"")+(u&&hs.has(u)?" hl":"")+(u&&u===choice?" ch":"")+(pd&&pd.k===k?" pd":"")+(cm&&cm.x===x&&cm.y===y?" mt":"")+(bl.has(k)?" bl":"")+(CAMPS.has(k)?" cmp":"")+(cv.has(k)?" cv":"")+(it.has(k)?" it":"");
     const label=u?(u.team==="y"?"Your ":u.team==="w"?"Wild ":"Enemy ")+NAME[u.t]+", "+u.hp+" health"+(u.slow?", slowed":""):(mv.has(k)?"Move here, ":"")+TERRAIN[A.tk[i]].name;
     html+=`<button class="${cls}" data-x="${x}" data-y="${y}"${pd&&pd.k===k?` data-arrow="${pd.a}"`:""} aria-label="${label.replace(/"/g,"&quot;")}">`
       +'<i class="lt"></i>'+A.art[i]+(fr?'<i class="tint"></i>':"")+(SMOKE.has(k)?'<i class="smoke"></i>':"")+(CALTROPS.has(k)?CALT_ART:"")+A.jn[i]; // fortress art covers its tile, so highlights go on a see-through layer above it
@@ -1655,7 +1713,7 @@ function renderTile(){
   if(SMOKE.has(k))lines.push("Smoke: your units here get +20% evasion until your next turn.");
   if(CALTROPS.has(k))lines.push("Caltrops: an enemy that crosses this tile takes 1 damage, ignoring armor. Your own units should know better, but 50% of the time they don't.");
   if(u)lines.push("Occupied by "+(u.team==="y"?"your ":u.team==="f"?"an enemy ":"a wild ")+NAME[u.t]+".");
-  el.className="pb"+(MURKY?" murky":"")+(HAUNTED?" haunted":"")+(VOLCANIC?" volcanic":""); // murky water on Murky Swamp maps, ashen ground in graveyards
+  el.className="pb"+(MURKY?" murky":"")+(HAUNTED?" haunted":"")+(VOLCANIC?" volcanic":"")+(SIM?" sim":""); // murky water on Murky Swamp maps, ashen ground in graveyards
   el.innerHTML=`<div class="lbl">Terrain</div><div class="row">${terrainSwatch(key,tileArt(x,y))}<div class="ib"><div class="nm"><strong>${T.name}</strong><span>Tile ${String.fromCharCode(65+x)}${y+1}</span></div>${lines.map(l=>`<small>${l}</small>`).join("")}</div></div>`;
 }
 function renderInfo(){
@@ -2460,6 +2518,9 @@ function hazards(team,done){
   const calmed=KOI.size?units.filter(u=>mine(u)&&u.hp<maxHp(u)&&blastOf(u.x+","+u.y).some(([a,b])=>KOI.has(a+","+b))):[]; // koi ponds: a little rest
   calmed.forEach(u=>{u.hp+=1;floatText(u.x,u.y,"+1","heal")});
   if(calmed.length)msg.push(calmed.length===1?`The koi pond's calm restored ${who(calmed[0])}.`:`The koi ponds' calm restored ${calmed.length} units.`);
+  const chaos=CHAOS.size?units.filter(u=>mine(u)&&[...CHAOS].some(c=>{const[a,b]=pk(c);return Math.abs(a-u.x)<=1&&Math.abs(b-u.y)<=1})):[],mended=[],hit=[]; // the Chaos Spring: a coin toss for each unit by it
+  chaos.forEach(u=>{if(Math.random()<.5){mended.push(u);if(u.hp<maxHp(u)){u.hp=Math.min(maxHp(u),u.hp+CHAOS_HP);floatText(u.x,u.y,"+"+CHAOS_HP,"heal")}else floatText(u.x,u.y,"Full","heal")}else{hit.push(u);hurt(u,CHAOS_HP)}});
+  if(chaos.length)msg.push(chaos.length===1?`The Chaos Spring ${mended.length?"mended":"bit"} ${who(chaos[0])}.`:`The Chaos Spring mended ${mended.length} and bit ${hit.length}.`);
   const burnt=units.filter(u=>mine(u)&&MAGMA.has(u.x+","+u.y));
   burnt.forEach(u=>hurt(u,MAGMA_DMG));
   if(burnt.length)msg.push(burnt.length===1?"Magma burned "+who(burnt[0])+".":`Magma burned ${burnt.length} units.`);
@@ -2479,7 +2540,7 @@ function hazards(team,done){
   if(prey){prey.hp-=1;floatText(prey.x,prey.y,"-1");msg.push(`The Hollow King's Crown fed on ${who(prey)}.`)}
   const bled=units.filter(u=>u.team===team&&u.bleed&&u.hp>1); // the Bleeding Statue (never the last HP)
   bled.forEach(u=>{u.hp-=1;floatText(u.x,u.y,"-1")});if(bled.length)msg.push(`The Bleeding Statue drew blood from ${who(bled[0])}.`);
-  if(!burnt.length&&!blasts.length&&!calmed.length&&!prey&&!bled.length)return done();
+  if(!burnt.length&&!blasts.length&&!calmed.length&&!prey&&!bled.length&&!chaos.length)return done();
   busy=true;say(msg.join(" "));render();blasts.forEach(([x,y])=>eruptFx(x,y));
   if(checkEnd())return;
   later(()=>{if(g===gid&&!over)done()},900);
@@ -2821,6 +2882,7 @@ function enemyTurn(note=""){
 /* ---------- World map ---------- */
 let WORLD=[],EDGES=[],DECO={trees:[],rocks:[],river:""};
 const BTEXT={
+ chasm:"The Fractured Chasm. A great gap splits the battlefield down the middle; only the ground behind each army joins the two sides. Arrows and spells still fly across it.",
  swamp:"Murky swamp. Thick mud covers the battlefield and stops units in their tracks, between stagnant ponds and dark woods.",
  wetlands:"Wetlands. Lakes, ponds, rivers and swamps cover the battlefield. Shallow water slows movement, swamps stop it, and deep water blocks it.",
  forest:"Thick woods. Extra forests on the battlefield.",
@@ -2922,10 +2984,10 @@ function genWorld(){
   const reeds=[];for(let t=0;t<30&&reeds.length<6;t++){const[x,y]=riv[2+R(37)],o=Math.random()<.5?-12:12;if(x>20&&x<380&&nodes.every(n=>Math.hypot(n.x-x,n.y-y-o)>34))reeds.push([Math.round(x),Math.round(y+o)])}
   DECO={trees:scatter(12).filter(dry).concat(spot(6,12)),rocks:scatter(5).filter(dry),ranges,hills:spot(7,12),grass:spot(14,6),reeds,river:`M-10 ${Y[0]} C 70 ${Y[1]} 120 ${Y[2]} 220 ${Y[3]} S 340 ${Y[4]} 420 ${Y[5]}`};
 }
-const BIOME_NAME={forest:"Forest",plain:"Plains",fort:"Stronghold",wild:"Wilds",wetlands:"Wetlands",swamp:"Murky Swamp",graveyard:"Haunted Graveyard",volcanic:"Molten Wastes",sakura:"Sakura Vale",boss:"Enemy Stronghold"};
+const BIOME_NAME={chasm:"The Fractured Chasm",forest:"Forest",plain:"Plains",fort:"Stronghold",wild:"Wilds",wetlands:"Wetlands",swamp:"Murky Swamp",graveyard:"Haunted Graveyard",volcanic:"Molten Wastes",sakura:"Sakura Vale",boss:"Enemy Stronghold"};
 // a Quick Battle map has no biome of its own, so name it from what was generated
-const guessBiome=()=>VALE||KOI.size?"sakura":LAVA.size||VOLC.size?"volcanic":GRAVES.size?"graveyard":SWAMP.size>=10?"swamp":DEEP.size+SHALLOW.size>=20?"wetlands":FORT.size?"fort":units.some(u=>u.team==="w")?"wild":FOREST.size>=16?"forest":"plain";
-const BIOME={mixed:{},sakura:{sakura:1,forest:2,flowers:1},forest:{forest:9,flowers:1},plain:{forest:2,flowers:1},fort:{fort:1},wild:{wild:1,flowers:1},boss:{fort:1,boss:1},wetlands:{water:1,forest:3,swamp:1},swamp:{swamp:3,pond:1,forest:6},graveyard:{graves:1,forest:5},volcanic:{lava:1,forest:3}};
+const guessBiome=()=>CHASM.size?"chasm":VALE||KOI.size?"sakura":LAVA.size||VOLC.size?"volcanic":GRAVES.size?"graveyard":SWAMP.size>=10?"swamp":DEEP.size+SHALLOW.size>=20?"wetlands":FORT.size?"fort":units.some(u=>u.team==="w")?"wild":FOREST.size>=16?"forest":"plain";
+const BIOME={mixed:{},chasm:{chasm:1,sim:1},sakura:{sakura:1,forest:2,flowers:1},forest:{forest:9,flowers:1},plain:{forest:2,flowers:1},fort:{fort:1},wild:{wild:1,flowers:1},boss:{fort:1,boss:1},wetlands:{water:1,forest:3,swamp:1},swamp:{swamp:3,pond:1,forest:6},graveyard:{graves:1,forest:5},volcanic:{lava:1,forest:3}};
 const ONEWAY_SHARE=2/3,ROAD_EVENT=.25;
 const edgeOf=(a,b)=>EDGES.find(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a)); // e[2]: one-way (only from e[0] up to e[1]); e[3]: its road event has been rolled
 const canGo=(a,b)=>{const e=edgeOf(a,b);return !!e&&(!e[2]||b===e[1])};
@@ -4253,7 +4315,7 @@ function applyMap(def){
   const S={ground:new Set(),forest:new Set(),shallow:new Set(),deep:new Set(),swamp:new Set(),wall:new Set(),fort:new Set(),barrels:new Set(),xbarrel:new Set(),grave:new Set(),campsite:new Set(),lava:new Set(),magma:new Set(),volcano:new Set(),cherry:new Set(),wisp:new Set(),flowers:new Set(),koi:new Set(),meadow:new Set(),greenwood:new Set()};
   def.rows.forEach((r,y)=>[...r].forEach((c,x)=>{const k=MAPCH[c]||"ground";S[k].add(x+","+y);if(k==="xbarrel")S.barrels.add(x+","+y)}));
   WALLS=S.wall;FOREST=S.forest;FORT=S.fort;DEEP=S.deep;SHALLOW=S.shallow;SWAMP=S.swamp;GRAVES=S.grave;BARRELS=S.barrels;XBAR=S.xbarrel;CAMPS=S.campsite;LAVA=S.lava;MAGMA=S.magma;VOLC=S.volcano;WISP=S.wisp;FLOWERS=S.flowers;KOI=S.koi;CHERRY=S.cherry;S.cherry.forEach(k=>FOREST.add(k));MEADOW=S.meadow;GREENW=S.greenwood;GREENW.forEach(k=>FOREST.add(k));
-  MURKY=def.biome==="swamp";HAUNTED=def.biome==="graveyard";VOLCANIC=def.biome==="volcanic";VALE=def.biome==="sakura";WALLV=def.wallStyle||0;groupForts(()=>0);
+  MURKY=def.biome==="swamp";HAUNTED=def.biome==="graveyard";VOLCANIC=def.biome==="volcanic";VALE=def.biome==="sakura";WALLV=def.wallStyle||0;CHASM=new Set();CHAOS=new Set();SIM=false;groupForts(()=>0);
 }
 // what's wrong with a map, if anything (an empty list means it's playable); notes are warnings that don't block play
 function mapProblems(def,notes=[]){
@@ -4546,8 +4608,8 @@ const getHold=m=>{try{return JSON.parse(localStorage.getItem(HOLD(m))||"null")}c
 $("phold").onclick=()=>{
   if(turn!=="y"||busy||over)return;
   const A=x=>[...x],m=chal?"chal":camp.battle?"camp":"quick";
-  const h={t:[WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS,WISP,FLOWERS,KOI,CALTROPS,MEADOW,GREENW,RUBBLE].map(A),
-    f:{MURKY,HAUNTED,VOLCANIC,VALE,WALLV,seed,BIOME_KEY,herbertMet,firstTurn,pturn},fv:A(FORTV),fk:A(FORTK),
+  const h={t:[WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS,WISP,FLOWERS,KOI,CALTROPS,MEADOW,GREENW,RUBBLE,CHASM,CHAOS].map(A),
+    f:{MURKY,HAUNTED,VOLCANIC,VALE,SIM,WALLV,seed,BIOME_KEY,herbertMet,firstTurn,pturn},fv:A(FORTV),fk:A(FORTK),
     units,mods,col,tpUsed,relic:A(RELIC),foeRelic:A(FOE_RELIC),foeItems:FOE_ITEMS.slice(),relicUsed,pick,def:chal&&chal.def,node:camp.battle?camp.battle.node:null,items0:camp.battle&&camp.battle.items0,wounds0:camp.battle&&camp.battle.wounds0,biome:$("biome").innerHTML};
   try{localStorage.setItem(HOLD(m),JSON.stringify(h))}catch(e){return}
   if(m==="camp")saveCamp();
@@ -4556,8 +4618,8 @@ $("phold").onclick=()=>{
 };
 function resumeHold(h){
   resetBattle();
-  [WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS,WISP=new Set(),FLOWERS=new Set(),KOI=new Set(),CALTROPS=new Set(),MEADOW=new Set(),GREENW=new Set(),RUBBLE=new Set()]=h.t.map(a=>new Set(a));
-  ({MURKY,HAUNTED,VOLCANIC,VALE=false,WALLV,seed,BIOME_KEY,herbertMet,firstTurn,pturn}=h.f);
+  [WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS,WISP=new Set(),FLOWERS=new Set(),KOI=new Set(),CALTROPS=new Set(),MEADOW=new Set(),GREENW=new Set(),RUBBLE=new Set(),CHASM=new Set(),CHAOS=new Set()]=h.t.map(a=>new Set(a));
+  ({MURKY,HAUNTED,VOLCANIC,VALE=false,SIM=false,WALLV,seed,BIOME_KEY,herbertMet,firstTurn,pturn}=h.f);
   FORTV=new Map(h.fv);FORTK=new Set(h.fk);units=h.units;mods={y:modOk(h.mods.y),f:modOk(h.mods.f)};col=h.col;tpUsed=h.tpUsed;RELIC=new Set(h.relic);FOE_RELIC=new Set(h.foeRelic||[]);FOE_ITEMS=(h.foeItems||[]).slice();relicUsed=h.relicUsed;pick=h.pick;
   chal=h.def?{def:h.def,test:false}:null;camp.battle=h.node!=null?{node:h.node,items0:h.items0,wounds0:h.wounds0}:null;
   $("biome").innerHTML=h.biome;show("game");say("Battle resumed. Your turn. Select one of your units.");render();
