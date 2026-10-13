@@ -738,6 +738,7 @@ const RELICS={
  luck:{name:"Lucky Charm",r:1,desc:"All your units get +5% evasion."},
  long:{name:"Long Bows",r:1,desc:"Archers get +1 range."},
  bowstring:{name:"Sentinel's Bowstring",r:2,src:"both",need:"A",desc:"An Archer that ends your turn without moving or acting holds aim: on the enemy turn, it shoots the first enemy that moves into its range, before that enemy can act. The target can't retaliate. Waxed and drawn taut, it can be held at full draw for an age."},
+ ward:{name:"Recovery-Linked Ward",r:0,src:"both",lock:"ward",desc:"Whenever one of your units recovers HP, your most damaged unit gets +1 armor until the start of your next turn."},
  splinter:{name:"Splinter Shells",r:1,src:"both",need:"R",desc:"Your Artillery's shells burst on impact: every hit also deals 1 damage to any unit, friend or foe, on the 3 tiles just behind the target. Stacks with Debris Shot."},
  debris:{name:"Debris Shot",r:1,need:"R",desc:"When your Artillery hits, every enemy on the 8 tiles around the target takes 1 damage."},
  drills:{name:"Boots of a Forced March",r:0,lock:"drills",desc:"Well-worn boots that set a brisk pace: your units get +1 movement on your first turn of each battle."},
@@ -1426,7 +1427,7 @@ function combat(a,b,from=a){
   add("Imposing Banner",units.some(v=>v.t==="N"&&v.team!==a.team&&v.team!=="w"&&rel(v,"imposing")&&d(v,from)<=BANNER_RANGE)?-1:0); // striking in the banner's shadow
   add("Vasco's Falcata",a.conq||0);
   const sc=scouting(a);add("Scouted Ahead",sc?1:0);
-  const armor=[["Armor",B.ar||0],["Shield Wall",walled(b)?1:0],["Forest Tactics",mods[b.team]==="FT"&&A.rg>1&&WOODS(k)?1:0],["Fortress",FORT.has(k)?1:0],["Dug in",b.dug?DIG_AR:0],["Sturdy Shields",b.t==="K"&&rel(b,"shield")?1:0],["Lightened Armor",b.t==="K"&&rel(b,"lightarmor")?-1:0],["Barding",b.t==="C"&&rel(b,"bard")?1:0],["Banner of the Fallen Keep",b.keep?1:0],["Vasco's Morion",b.vang?1:0],["Stubborn as a Mule",muled(b)?MULE_AR:0],["Improvised Armor",desperate(b,"hide")&&units.some(v=>v.team===b.team&&v.t==="K"&&d(v,b)===1)?1:0]];
+  const armor=[["Armor",B.ar||0],["Shield Wall",walled(b)?1:0],["Forest Tactics",mods[b.team]==="FT"&&A.rg>1&&WOODS(k)?1:0],["Fortress",FORT.has(k)?1:0],["Dug in",b.dug?DIG_AR:0],["Sturdy Shields",b.t==="K"&&rel(b,"shield")?1:0],["Lightened Armor",b.t==="K"&&rel(b,"lightarmor")?-1:0],["Barding",b.t==="C"&&rel(b,"bard")?1:0],["Banner of the Fallen Keep",b.keep?1:0],["Vasco's Morion",b.vang?1:0],["Recovery-Linked Ward",b.ward?1:0],["Stubborn as a Mule",muled(b)?MULE_AR:0],["Improvised Armor",desperate(b,"hide")&&units.some(v=>v.team===b.team&&v.t==="K"&&d(v,b)===1)?1:0]];
   if(acided(b)&&armor.reduce((t,x)=>t+x[1],0)>0)armor.push(["Acid Flask",-1]); // never below 0 armor
   armor.forEach(([l,v])=>add(l,-v));
   add("Pierce",Math.min(a.t==="E"?99:a.bruise?1:Math.max(0,(A.pi||0)+(charging(a,from)?2:0)+(rel(a,"bluemagma")?1:0)+(rel(a,"crown")?1:0)+(a.t==="K"&&rel(a,"sallet")?1:0)+(a.t==="R"&&rel(a,"ammo")?1:0)+(a.t==="Q"&&rel(a,"escaupil")&&a.rough?1:0)+(a.rage?1:0)+(a.champ?1:0)+(sc?1:0)+(a.ublade&&b.hp>maxHp(b)/2?1:0)-(b.cshield?1:0)),armor.reduce((t,x)=>t+x[1],0))); // Blue Magma and the Champion's Sword add pierce, the Usurper's Blade against the healthy; the Champion's Shield turns 1 aside
@@ -1453,6 +1454,12 @@ const pushLen=a=>2+(a.t==="K"&&rel(a,"bruiser")&&a.moved?1:0); // Gauntlets of t
 const bruises=(a,b)=>a.t==="K"&&rel(a,"bruiser")&&b.team!==a.team; // Gauntlets of the Bruiser: the push strikes too
 function pushDest(a,b){const dx=b.x-a.x,dy=b.y-a.y;let x=b.x,y=b.y;for(let i=0;i<pushLen(a);i++){if(!open(x+dx,y+dy))break;x+=dx;y+=dy}return[x,y]}
 const later=(fn,ms)=>setTimeout(function w(){if(paused)setTimeout(w,200);else fn()},ms);
+function mended(u){ // Recovery-Linked Ward: any heal shields that side's most damaged unit
+  if(!rel(u,"ward"))return;
+  const hurt=units.filter(v=>v.team===u.team&&v.hp<maxHp(v)).sort((a,b)=>(maxHp(b)-b.hp)-(maxHp(a)-a.hp)||a.hp-b.hp)[0];
+  if(!hurt||hurt.ward)return;
+  units.forEach(v=>{if(v.team===u.team)delete v.ward});hurt.ward=1;floatText(hurt.x,hurt.y,"Ward","bless");
+}
 function rest(team){ // Field Rest: idle units recover 2 HP
   const idle=units.filter(u=>u.team===team&&!u.moved&&!u.acted&&u.hp<maxHp(u));
   idle.forEach(u=>{const n=Math.min(2,maxHp(u)-u.hp);u.hp+=n;floatText(u.x,u.y,"+"+n,"heal")});
@@ -1677,8 +1684,9 @@ function renderInfo(){
   if(u.t==="A"&&rel(u,"pavise"))notes.push("Pavise: takes 1 less damage from ranged attacks.");
   if(mods[u.team]==="FT"&&fo)notes.push("Forest Tactics: +1 armor against ranged attacks here.");
   if(u.auto);else if(u.team==="y"&&u.acted&&!u.moved)notes.push("Rallied: can move again, but has already acted.");else if(u.team==="y"&&u.acted)notes.push("Finished for this turn.");else if(u.team==="y"&&u.moved)notes.push("Has moved this turn.");
-  const arm=(T.ar||0)+(walled(u)?1:0)+(u.t==="K"&&rel(u,"shield")?1:0)-(u.t==="K"&&rel(u,"lightarmor")?1:0)+(u.t==="C"&&rel(u,"bard")?1:0)+(u.keep?1:0)+(u.vang?1:0)-(acided(u)?1:0);
+  const arm=(T.ar||0)+(walled(u)?1:0)+(u.t==="K"&&rel(u,"shield")?1:0)-(u.t==="K"&&rel(u,"lightarmor")?1:0)+(u.t==="C"&&rel(u,"bard")?1:0)+(u.keep?1:0)+(u.vang?1:0)+(u.ward?1:0)-(acided(u)?1:0);
   if(u.keep)notes.push("Banner of the Fallen Keep: +1 armor this battle.");
+  if(u.ward)notes.push("Recovery-Linked Ward: +1 armor until your next turn.");
   if(u.vang)notes.push("Vasco's Morion: leading the way, +1 armor until your next turn.");
   if(u.conq)notes.push(`Vasco's Falcata: +${u.conq} damage this battle.`);
   if(scouting(u))notes.push("Scouted Ahead: its first attack this battle always hits, with +1 damage and +1 pierce.");
@@ -1715,6 +1723,7 @@ function renderInfo(){
   el.innerHTML=`<div class="lbl">Unit</div><div class="row top"><div class="pv">${u.trio||u.utrio?disc(u.t,c).replace(ICON[u.t],u.trio?CHAMP_ICON:USURP_ICON):disc(u.t,c,u.merc,u.auto&&u.team==="y")}</div><div class="ib"><div class="nm"><strong>${u.merc?u.mname:hero?heroName(u.ci):cap(NAME[u.t])}</strong><span>${u.trio?"The Champion":u.utrio?"The Usurper":u.merc?(u.team==="y"?"Your mercenary ":"Enemy mercenary ")+NAME[u.t]:hero?cap(NAME[u.t]):u.team==="y"?"Your unit":u.team==="w"?"Wild":"Enemy"}</span></div><div class="hprow"><span>HP</span><b>${u.hp} / ${maxHp(u)}</b></div><div class="hpb"><i style="width:${100*r}%;background:${r>.5?"#4caf50":r>.25?"#e0b21c":"#d64b3a"}"></i></div><div class="stats">${stats}</div>${notes.map(n=>`<small>${n}</small>`).join("")}</div></div>`;
 }
 function floatText(x,y,t,miss){
+  if(miss==="heal"&&t!=="+0"){const u=at(x,y);if(u)mended(u)} // every heal shows its "+n" here
   const p=document.createElement("div");p.className="pop"+(miss===true?" miss":miss==="heal"?" heal":miss==="slow"?" slow":miss==="thanks"?" thanks":miss==="bless"?" bless":miss==="rally"?" rally":"");p.textContent=t;
   p.style.left=`calc(2px + (100% - 4px) * ${(x+.5)/W})`;p.style.top=`calc(2px + (100% - 4px) * ${(y+.5)/H})`;
   $("fx").append(p);setTimeout(()=>p.remove(),miss==="thanks"?2300:1100);
@@ -2684,7 +2693,7 @@ function badgerTurn(u){
 }
 function enemyTurn(note=""){
   const used=FOE_ITEMS.length?foeUseItems():"";if(used)note+=used+" ";if(over||checkEnd())return;
-  turn="f";sel=null;mode=null;choice=null;insp=null;info=null;busy=true;lastMove=null;units.forEach(u=>{delete u.oil;delete u.amb;if(u.team==="y")delete u.ash;if(u.team==="f"){u.moved=u.acted=0;delete u.mvFrom;delete u.rough;if(u.stun){u.moved=u.acted=1;floatText(u.x,u.y,"Stunned","slow")}}});say(note+"Enemy is moving...");render(); // a Flash Vial's victim sits this turn out
+  turn="f";sel=null;mode=null;choice=null;insp=null;info=null;busy=true;lastMove=null;units.forEach(u=>{delete u.oil;delete u.amb;if(u.team==="y")delete u.ash;if(u.team==="f"){u.moved=u.acted=0;delete u.ward;delete u.mvFrom;delete u.rough;if(u.stun){u.moved=u.acted=1;floatText(u.x,u.y,"Stunned","slow")}}});say(note+"Enemy is moving...");render(); // a Flash Vial's victim sits this turn out
   const wq=units.filter(u=>u.team==="w"),done=new Set();let wi=0,movedAny=false;
   const g=gid;
   // works out where u would like to stand: its best tile overall, and its best tile that isn't where it is now
@@ -2791,7 +2800,7 @@ function enemyTurn(note=""){
     hazards("f",()=>{
       SMOKE=new Set(); // the smoke drifts away as your turn begins
       const healed=mods.f==="REST"?rest("f"):0;
-      units.forEach(u=>{u.moved=u.acted=0;delete u.aim;delete u.mvFrom;delete u.amb;delete u.rough;delete u.chill;delete u.ash;if(u.team!=="y"){delete u.stun;delete u.slow;delete u.hex;delete u.hexPend;delete u.weak;if(u.cursed){u.weak=1;delete u.cursed}}});
+      units.forEach(u=>{u.moved=u.acted=0;if(u.team==="y")delete u.ward;delete u.aim;delete u.mvFrom;delete u.amb;delete u.rough;delete u.chill;delete u.ash;if(u.team!=="y"){delete u.stun;delete u.slow;delete u.hex;delete u.hexPend;delete u.weak;if(u.cursed){u.weak=1;delete u.cursed}}});
       const wisped=wispsAct();
       vanguard();turn="y";busy=false;say((wisped?wisped+" ":"")+"Your turn. Select one of your units."+(healed?" Resting enemy units recovered HP.":""));render();notify("Enemy turn ended — your move");
     });
@@ -3930,6 +3939,7 @@ const RICON={ // small 32-unit relic icons
  token:'<circle cx="16" cy="16" r="12" fill="#d8b24a" stroke="#6a4c10" stroke-width="1.300"/><circle cx="16" cy="16" r="9" fill="none" stroke="#f4dc8a" stroke-width="1"/><circle cx="16" cy="14" r="3.600" fill="#f2ead8" stroke="#6a4c10" stroke-width=".9"/><circle cx="14.700" cy="13.600" r=".9" fill="#3a2a14"/><circle cx="17.300" cy="13.600" r=".9" fill="#3a2a14"/><path d="M14.600 16h2.800" stroke="#3a2a14" stroke-width=".7"/><path d="M11 22q5-3 10 0" stroke="#6a4c10" stroke-width="1.100" fill="none"/><path d="M10 9l2 2M22 9l-2 2" stroke="#f4dc8a" stroke-width=".8"/>',
  coin:'<circle cx="16" cy="16" r="12" fill="#b8693a" stroke="#5a2a10" stroke-width="1.300"/><circle cx="16" cy="16" r="9" fill="none" stroke="#e09a5a" stroke-width="1"/><g fill="#3f7a3a" stroke="#1e4a1c" stroke-width=".7"><circle cx="14" cy="13" r="2.400"/><circle cx="18" cy="13" r="2.400"/><circle cx="14" cy="17" r="2.400"/><circle cx="18" cy="17" r="2.400"/></g><path d="M16 17q1 4 3 6" stroke="#1e4a1c" stroke-width="1" fill="none"/><path d="M8 11q3-5 8-6" stroke="#f0c08a" stroke-width="1.200" fill="none" opacity=".7"/>',
  whet:'<path d="M5 21l17-12q4-2 5 1t-2 5L9 25q-4 2-5-1t1-3z" fill="#8f979e" stroke="#2e3338" stroke-width="1.200"/><path d="M8 21l15-10" stroke="#d2d8dd" stroke-width="1.300" opacity=".7"/><path d="M9 24l14-10" stroke="#5c646b" stroke-width="1" opacity=".6"/>',
+ ward:'<path d="M15 3l10 3v8q0 8.500-10 12.500Q5 22.500 5 14V6z" fill="#7fd0c0" fill-opacity=".45" stroke="#1f5a50" stroke-width="1.300"/><path d="M15 5.600l7.600 2.300v6.100q0 6.300-7.600 9.800" stroke="#e8fff8" stroke-width="1" fill="none" opacity=".7"/><path d="M13 9.500h4v3h3v4h-3v3h-4v-3h-3v-4h3z" fill="#4fbf6a" stroke="#1d5a2a" stroke-width=".9" stroke-linejoin="round"/><path d="M14 10.700h1.600" stroke="#c8f5d0" stroke-width=".8"/><circle cx="21.500" cy="25" r="3.300" fill="none" stroke="#3a2c0c" stroke-width="2.300"/><circle cx="21.500" cy="25" r="3.300" fill="none" stroke="#e8c050" stroke-width="1.200"/><circle cx="26" cy="22" r="3.300" fill="none" stroke="#3a2c0c" stroke-width="2.300"/><circle cx="26" cy="22" r="3.300" fill="none" stroke="#e8c050" stroke-width="1.200"/><path d="M23.700 22.600a3.300 3.300 0 0 1 1 -.2" stroke="#e8c050" stroke-width="1.200" fill="none"/><path d="M26 5l.6 1.400 1.400.6-1.400.6-.6 1.400-.6-1.400-1.400-.6 1.400-.6z" fill="#bff5e6"/>',
  shield:'<path d="M16 4l10 3v8q0 9-10 13q-10-4-10-13V7z" fill="#7f8a95" stroke="#262b31" stroke-width="1.300"/><path d="M16 4v24q10-4 10-13V7z" fill="#000" opacity=".15"/><path d="M16 7l7 2v6q0 6-7 9.500" stroke="#c8d0d8" stroke-width="1" fill="none" opacity=".5"/><circle cx="16" cy="14" r="2.800" fill="#c9962a" stroke="#6a4c10" stroke-width=".9"/>',
  rations:'<path d="M5 20q0-7 11-7t11 7q0 4-11 4T5 20z" fill="#c8924a" stroke="#5a3a18" stroke-width="1.200"/><path d="M10 15l2 3M15 14l2 3M20 14l2 3" stroke="#8a5a22" stroke-width="1.200" stroke-linecap="round"/><path d="M7 25q9 3 18 0l-1 3H8z" fill="#b8a07a" stroke="#5a4a30" stroke-width="1"/><path d="M8 18q3-3 8-3.500" stroke="#f0c888" stroke-width="1" fill="none"/>',
  bandages:'<ellipse cx="16" cy="27" rx="10" ry="2" fill="rgba(0,0,0,.2)"/><path d="M6 12q0-4 7-4h8q5 0 5 4v10q0 4-5 4h-8q-7 0-7-4z" fill="#efe6d2" stroke="#4a3a28" stroke-width="1.200"/><ellipse cx="9.500" cy="17" rx="4" ry="8.500" fill="#f8f2e4" stroke="#4a3a28" stroke-width="1.100"/><ellipse cx="9.500" cy="17" rx="1.800" ry="4" fill="none" stroke="#b8a888" stroke-width="1"/><path d="M15 9v16M19.500 9v16" stroke="#d6cab0" stroke-width="1"/><path d="M26 22q3 1 4 4l-3 1q-1-3-3-4z" fill="#f8f2e4" stroke="#4a3a28" stroke-width="1"/><path d="M14 15h6M17 12v6" stroke="#b8372d" stroke-width="2.200" stroke-linecap="round"/>',
@@ -4208,7 +4218,10 @@ const CHALLENGES=[
   units:[["K","f",0,6],["K","y",4,11],["H","w",6,4],["K","y",5,11],["T","f",0,4],["K","f",0,5],["A","f",0,3],["P","y",6,11],["M","f",1,4],["M","f",1,3],["T","y",7,11]]},
  {id:"harrow",diff:2,lock:"harrow",after:"seaside",reward:"baton",hint:"a relic",name:"Harrowmere Crossing",desc:"Two narrow fords, one fortified bank. Your Captain will need every hand it can muster.",biome:"fort",mods:{y:null,f:"FT"},
   rows:["f...ww...f","f..wFFw..f","...wFFw...",".ff....ff.","..........","ddsddddsdd","ddsddddsdd","..........","..f....f..","..........","..........",".........."],
-  units:[["R","f",4,2],["T","f",5,2],["A","f",2,3],["A","f",7,3],["K","f",2,4],["K","f",7,4],["K","y",2,10],["K","y",7,10],["T","y",4,11],["A","y",5,11],["P","y",6,11]]}
+  units:[["R","f",4,2],["T","f",5,2],["A","f",2,3],["A","f",7,3],["K","f",2,4],["K","f",7,4],["K","y",2,10],["K","y",7,10],["T","y",4,11],["A","y",5,11],["P","y",6,11]]},
+ {id:"keep",diff:0,reward:"ward",hint:"a relic",name:"Forest Knights' Keep",desc:"Two knights holed up in a fortress, watching each other's backs. Lure one out and see what happens.",biome:"plain",mods:{y:"REST",f:"SW"},
+  rows:["FssssssssF","FFFFFFFFFF","Fwff..ffwF","wwfnn..fww","...nnn..nn","n....n...n",".nn...n...",".nnn...nn.","...nn..nnn","....n....n","n........n","nn.......n"],
+  units:[["K","f",2,1],["K","f",7,1],["K","y",4,11],["A","y",5,11],["R","y",3,11],["W","w",5,4]]},
 ];
 const chalOpen=c=>!c.lock||!!unlocks[c.lock]; // locked maps show only in the Unlocks menu until earned
 let chal=null; // the fixed map being played: {def, test}
@@ -4397,6 +4410,7 @@ const UNLOCKS=[
  {id:"pitchfork",relic:"pitchfork",hint:"Conquer the Seaside Grove challenge."},
  {id:"harrow",chal:"harrow",hint:"Conquer the Seaside Grove challenge."},
  {id:"baton",relic:"baton",hint:"Conquer the Harrowmere Crossing challenge."},
+ {id:"ward",relic:"ward",hint:"Conquer the Forest Knights' Keep challenge."},
  {id:"vgloves",relic:"vgloves",hint:"A small kindness, remembered."},
  {id:"vmorion",relic:"vmorion",hint:"Some debts are repaid in steel."},
  {id:"vfalcata",relic:"vfalcata",hint:"His men are well funded."},
