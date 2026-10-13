@@ -358,7 +358,7 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .relics:empty{display:none}
 .rchip{display:grid;place-items:center;width:36px;height:36px;padding:0;border:0;border-radius:50%;cursor:pointer;background:radial-gradient(circle at 40% 35%,#fffaf0,#d8c49a);box-shadow:0 0 0 2px var(--rc,#8a8f96),0 2px 0 rgba(0,0,0,.25);transition:transform .12s}
 .rchip:hover,.rchip:focus-visible{transform:translateY(-2px);outline:none;box-shadow:0 0 0 3px var(--rc,#8a8f96),0 3px 0 rgba(0,0,0,.3)}
-#relinfo .panel{width:min(360px,100%)}#relinfo #ribody{width:100%}#relinfo .rcard{cursor:default;box-sizing:border-box;width:100%}#relinfo .rcard:hover{transform:none}#relinfo .slist{gap:5px;max-height:min(60vh,520px);overflow-y:auto;padding:3px}#relinfo .rcard.slim{grid-template-columns:30px 1fr;gap:0 10px;padding:4px 10px;cursor:pointer}#relinfo .rcard.slim .ri{width:30px;height:30px;grid-row:auto}#relinfo .rcard.slim b{font-size:.92rem}#relinfo .rcard.slim:hover,#relinfo .rcard.slim:focus-visible{filter:brightness(1.05);outline:2px solid var(--rc);outline-offset:1px}
+#relinfo .panel{width:min(360px,100%)}#relinfo #ribody{width:100%}#relinfo .rcard{cursor:default;box-sizing:border-box;width:100%}#relinfo .rcard:hover{transform:none}#relinfo .plbl{display:flex;justify-content:space-between;width:100%;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#e8d6ae;margin:2px 0 4px}#relinfo .plbl span{opacity:.75}#relinfo .pgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:7px;width:100%;max-height:min(50vh,420px);overflow-y:auto;padding:3px;box-sizing:border-box}#relinfo .prow{display:flex;justify-content:space-evenly;flex-wrap:wrap;gap:7px;width:100%;padding:3px;margin-bottom:8px;box-sizing:border-box}.ptile{display:grid;place-items:center;aspect-ratio:1;padding:0;border:2px solid #1a0f07;border-radius:7px;background:#f3e6c4;box-shadow:inset 0 0 0 2px var(--rc),inset 0 0 8px rgba(120,80,30,.25);cursor:pointer;font:inherit}.prow .ptile{width:calc((100% - 35px)/6)}.ptile svg{width:72%;height:auto;display:block;filter:drop-shadow(0 1px 1.200px rgba(0,0,0,.35))}.ptile:hover,.ptile:focus-visible{filter:brightness(1.07);outline:2px solid var(--rc);outline-offset:1px}.ptile.pempty{background:rgba(243,230,196,.12);border:2px dashed rgba(232,214,174,.45);box-shadow:none;cursor:default;box-sizing:border-box}
 #riclose{justify-self:center;background:#3a2616;color:#f1e4c6;border-color:#1a0f07}
 .rchip svg,.rcard svg{display:block}
 .rpan{width:min(460px,100%)}#relicv{overflow-y:auto;place-items:safe center} /* up to five choices with Copper Coins: let a short screen scroll */
@@ -4104,10 +4104,12 @@ function swapItem(id,from,take){
 function showPack(from,foe){ // every relic and item you (or the garrison) carry, from the "...": a slim list, tap one for its details
   const by=foe?"Carried by the enemy \u00b7 ":"",all=[...(foe?[...FOE_RELIC]:camp.relics).map(id=>{const R=RELICS[id];return {ic:relicIcon(id,38),sm:relicIcon(id,26),rr:by+RARITY[R.r][0]+" relic"+(!foe&&R.set?" \u00b7 "+RELIC_SETS[R.set].name:""),rc:RARITY[R.r][1],nm:R.name,desc:R.desc}}),
     ...(foe?FOE_ITEMS:camp.items).map(id=>({ic:itemIcon(id,38),sm:itemIcon(id,26),rr:by+(foe?"consumable":"Consumable \u00b7 one use"),rc:"#a08a64",nm:ITEMS[id].name,desc:ITEMS[id].desc}))];
-  const title=foe?"Garrison Carries":"Your Relics and Items";
-  const list=at=>{$("rititle").textContent=title;
-    $("ribody").innerHTML=`<div class="plist slist">${all.map((e,i)=>`<button class="rcard slim" data-i="${i}" style="--rc:${e.rc}" title="${e.rr}"><span class="ri">${e.sm}</span><b>${e.nm}</b></button>`).join("")}</div>`;
-    $("ribody").querySelectorAll(".rcard").forEach(b=>b.onclick=()=>one(+b.dataset.i));
+  const title=foe?"Garrison Carries":"Your Relics and Items",nr=(foe?FOE_RELIC.size:camp.relics.length),ni=all.length-nr,cap=foe?ni:Math.max(itemCap(),ni);
+  const tile=(e,i)=>`<button class="ptile" data-i="${i}" style="--rc:${e.rc}" title="${e.nm}" aria-label="${e.nm}">${e.sm}</button>`;
+  const list=at=>{$("rititle").textContent=title; // consumables on their own line on top (empty slots show the room left), then the relics in rows of six
+    $("ribody").innerHTML=(ni||!foe?`<div class="plbl">Consumables <span>${foe?ni:ni+"/"+cap}</span></div><div class="prow">${all.slice(nr).map((e,k)=>tile(e,nr+k)).join("")+'<i class="ptile pempty"></i>'.repeat(cap-ni)}</div>`:"")
+      +(nr?`<div class="plbl">Relics <span>${nr}</span></div><div class="pgrid">${all.slice(0,nr).map(tile).join("")}</div>`:"");
+    $("ribody").querySelectorAll(".ptile[data-i]").forEach(b=>b.onclick=()=>one(+b.dataset.i));
     ($("ribody").querySelector(`[data-i="${at}"]`)||$("riclose")).focus()};
   const one=i=>{const e=all[i];$("rititle").textContent=e.nm;
     $("ribody").innerHTML=`<div class="rcard" style="--rc:${e.rc}"><span class="ri">${e.ic}</span><span class="rr">${e.rr}</span><small>${e.desc}</small></div><div class="menubtns"><button class="b" id="pkback">Back to the list</button></div>`;
