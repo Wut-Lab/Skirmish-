@@ -1277,7 +1277,7 @@ function wallArt(v,m){
 const FORT_PAL=[{floor:"#c49a5e",plank:"rgba(90,58,24,.38)",wall:"#e4dccb",dark:"#5a4128",roof:"#9a5034",roofD:"#5e2c18"},{floor:"#a97d4b",plank:"rgba(60,38,14,.4)",wall:"#e4dccb",dark:"#4a3420",roof:"#56677a",roofD:"#323e4c"}];
 const FORT_B=5; // battlement thickness, shared with the gap fill in joins()
 // a fortress tile: a wooden plank floor, low stone battlements on open edges, roofed turrets on outer corners, and a flagged keep on one tile per fortress
-function fortArt(m,v,keep){
+function fortArt(m,v,keep,sim){ // sim: the Warped Sim's stronghold, whose corners fade out into neon grid where the turrets would stand
   const P=FORT_PAL[v]||FORT_PAL[0],n=m&1,e=m&2,s=m&4,w=m&8,B=FORT_B,st=`stroke="${P.dark}" stroke-width="1.1"`;
   let g=`<rect width="40" height="40" fill="${P.floor}"/><path d="M0 6.500H40M0 13.500H40M0 20.500H40M0 27.500H40M0 34.500H40" stroke="${P.plank}" stroke-width="1"/>`
     +`<path d="M12 0V6.500M30 6.500V13.500M6 13.500V20.500M22 20.500V27.500M36 20.500V27.500M14 27.500V34.500M28 34.500V40" stroke="${P.plank}" stroke-width="1"/>`;
@@ -1290,7 +1290,17 @@ function fortArt(m,v,keep){
   const turret=(cx,cy)=>`<circle cx="${cx}" cy="${cy}" r="7.500" fill="${P.roof}" stroke="${P.roofD}" stroke-width="1.300"/>`
     +`<path d="M${cx} ${cy}L${cx-7.500} ${cy}M${cx} ${cy}L${cx+7.500} ${cy}M${cx} ${cy}L${cx} ${cy-7.500}M${cx} ${cy}L${cx} ${cy+7.500}M${cx} ${cy}l-5.300-5.300M${cx} ${cy}l5.300-5.300M${cx} ${cy}l-5.300 5.300M${cx} ${cy}l5.300 5.300" stroke="${P.roofD}" stroke-width=".8" opacity=".7"/>`
     +`<path d="M${cx-5} ${cy-2}a5.500 5.500 0 0 1 4-4" stroke="rgba(255,255,255,.45)" stroke-width="1.300" fill="none"/><circle cx="${cx}" cy="${cy}" r="1.300" fill="${P.roofD}"/>`;
-  if(!n&&!w)g+=turret(7,7);if(!n&&!e)g+=turret(33,7);if(!s&&!w)g+=turret(7,33);if(!s&&!e)g+=turret(33,33);
+  const fade=(cx,cy)=>{ // the corner has faded out: the walls break into blocks that thin toward the corner, under a neon grid that takes their place
+    const X=v=>cx<20?v:40-v,Y=v=>cy<20?v:40-v,Z=15,C=2.500,r=(x,y,w,h)=>`x="${Math.min(X(x),X(x+w)).toFixed(2)}" y="${Math.min(Y(y),Y(y+h)).toFixed(2)}" width="${w}" height="${h}"`,hs=(i,j)=>((i*7+j*13+cx*3+cy)%11)/11;
+    let t=`<rect ${r(0,0,Z,Z)} fill="${P.floor}"/>`;
+    for(let i=0;i<6;i++)for(let j=0;j<6;j++){const d=Math.max(i,j)/6;if(hs(j,i)>d*.9)t+=`<rect ${r(i*C,j*C,C,C)} fill="#24106a" opacity="${(.75-d*.55).toFixed(2)}"/>`} // the dark of the Sim showing through, in blocks
+    for(let i=0;i<6;i++)for(let j=0;j<6;j++){const x=i*C,y=j*C;if(x>=B+.1&&y>=B+.1)continue;const d=Math.max(x,y)/Z;if(hs(i,j)<d*1.15)t+=`<rect ${r(x,y,C,C)} fill="${P.wall}" opacity="${(.3+d*.7).toFixed(2)}"/>`} // the wall walkway, blocks thinning out toward the corner
+    for(let k=0;k<=6;k++){const d=k*C,o=(.9-k*.12).toFixed(2);const L=`M${X(d)} ${Y(0)}V${Y(Z+2-k*1.4)}M${X(0)} ${Y(d)}H${X(Z+2-k*1.4)}`,c=k%2?"#c86aff":"#3ad8ff";t+=`<path d="${L}" stroke="${c}" stroke-width="1.800" opacity="${(o*.35).toFixed(2)}"/><path d="${L}" stroke="${c}" stroke-width=".7" opacity="${o}"/>`}
+    t+=`<path d="M${X(0)} ${Y(B)}H${X(Z)}M${X(B)} ${Y(B)}V${Y(Z)}" stroke="#7ae8ff" stroke-width="1.800" opacity=".3"/><path d="M${X(0)} ${Y(B)}H${X(Z)}M${X(B)} ${Y(B)}V${Y(Z)}" stroke="#bff6ff" stroke-width=".5"/>`
+      +[[16.500,1.200,1.800],[18.800,2.600,1.200],[1.400,16.800,1.600],[2.800,19,1],[8,8,1.100]].map(([x,y,z],i)=>`<rect ${r(x,y,z,z)} fill="${i===4?"#bff6ff":P.wall}" opacity="${i===4?.9:.7}"/>`).join("");
+    return t};
+  const corner=sim?fade:turret;
+  if(!n&&!w)g+=corner(7,7);if(!n&&!e)g+=corner(33,7);if(!s&&!w)g+=corner(7,33);if(!s&&!e)g+=corner(33,33);
   if(keep)g+=`<rect x="11" y="11" width="18" height="18" fill="${P.roof}" stroke="${P.roofD}" stroke-width="1.300"/><path d="M11 11L20 20L29 11M11 29L20 20L29 29" stroke="${P.roofD}" stroke-width="1" fill="none"/>`
     +`<path d="M12.500 12.500L20 20L12.500 27.500z" fill="rgba(255,255,255,.18)"/><path d="M20 20V6.500" stroke="#3a2a1a" stroke-width="1.300"/><path d="M20 6.500l7.500 2.300-7.500 2.300z" fill="#f2c230" stroke="#7a5a10" stroke-width=".8"/>`;
   return svg(g);
