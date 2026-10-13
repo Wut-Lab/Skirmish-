@@ -736,6 +736,7 @@ const RELICS={
  rsaddle:{name:"Swift Rider's Saddle",r:1,src:"both",need:"C",desc:"Your Cavalry can ride through enemy units as well as your own (never stopping on one), and a Cavalry unit that has moved gets +5% evasion until your next turn."},
  bard:{name:"Barding",r:0,desc:"Cavalry get +1 armor but 1 less movement."},
  luck:{name:"Lucky Charm",r:1,desc:"All your units get +5% evasion."},
+ buckler:{name:"Charmed Buckler",r:1,lock:"buckler",desc:"All your units get +2% evasion for every 2 armor among your living units (up to +6%). Counts each unit's own armor, not terrain or formations."},
  long:{name:"Long Bows",r:1,desc:"Archers get +1 range."},
  bowstring:{name:"Sentinel's Bowstring",r:2,src:"both",need:"A",desc:"An Archer that ends your turn without moving or acting holds aim: on the enemy turn, it shoots the first enemy that moves into its range, before that enemy can act. The target can't retaliate. Waxed and drawn taut, it can be held at full draw for an age."},
  ward:{name:"Recovery-Linked Ward",r:0,src:"both",lock:"ward",desc:"Whenever one of your units recovers HP, your most damaged unit gets +1 armor until the start of your next turn."},
@@ -778,6 +779,9 @@ const rel=(u,id)=>u.team==="y"?RELIC.has(id):u.team==="f"&&FOE_RELIC.has(id); //
 const BLESS_EV=.05;
 const blessed=u=>u.team==="y"&&u.blessUntil>=pturn; // Font of the Wise Ones: lasts through the enemy turn and your next one
 const canBless=(a,b)=>rel(a,"font")&&!a.blessUsed&&!a.acted&&b!==a&&b.team==="y"&&d(a,b)===1; // adjacent allies only
+const BUCKLER_STEP=.02,BUCKLER_MAX=.06,BUCKLER_UNLOCK=40; // Charmed Buckler: +2% evasion per 2 armor across the army; unlocked by 40 damage turned aside by your armor
+const ownArmor=u=>Math.max(0,(ST(u).ar||0)+(u.t==="K"&&rel(u,"shield")?1:0)-(u.t==="K"&&rel(u,"lightarmor")?1:0)+(u.t==="C"&&rel(u,"bard")?1:0)+(u.keep?1:0)+(u.vang?1:0)+(muled(u)?MULE_AR:0)-(acided(u)?1:0)); // a unit's own armor, without terrain or formations
+const bucklerEv=u=>rel(u,"buckler")?Math.min(BUCKLER_MAX,BUCKLER_STEP*Math.floor(units.filter(v=>v.team===u.team).reduce((t,v)=>t+ownArmor(v),0)/2)):0;
 const PEBBLE_EV=.01,KEEN_EV=.03,NONCOMBAT=["P","E","N"],LOW_HP=1/3,REST_EV=.02,low=u=>u.hp<=maxHp(u)*LOW_HP,desperate=(u,id)=>rel(u,id)&&NONCOMBAT.includes(u.t)&&low(u); // the Improvised relics: non-combat units at or below a third of their health
 const rested=u=>u.team==="y"&&RELIC.has("warm")&&(relicUsed.warm===pturn||relicUsed.warm===pturn-1&&turn==="f"); // Warm Mug: through the enemy turn after you leave Herbert's camp (pturn ticks when you end your turn)
 const RALLY_EV=.05,RALLY_RANGE=2,FAN_EV=.1,TRIO_EV=.05,SAKURA_WINS=5;
@@ -1432,8 +1436,9 @@ function combat(a,b,from=a){
   armor.forEach(([l,v])=>add(l,-v));
   add("Pierce",Math.min(a.t==="E"?99:a.bruise?1:Math.max(0,(A.pi||0)+(charging(a,from)?2:0)+(rel(a,"bluemagma")?1:0)+(rel(a,"crown")?1:0)+(a.t==="K"&&rel(a,"sallet")?1:0)+(a.t==="R"&&rel(a,"ammo")?1:0)+(a.t==="Q"&&rel(a,"escaupil")&&a.rough?1:0)+(a.rage?1:0)+(a.champ?1:0)+(sc?1:0)+(a.ublade&&b.hp>maxHp(b)/2?1:0)-(b.cshield?1:0)),armor.reduce((t,x)=>t+x[1],0))); // Blue Magma and the Champion's Sword add pierce, the Usurper's Blade against the healthy; the Champion's Shield turns 1 aside
   add("Pavise",b.t==="A"&&A.rg>1&&rel(b,"pavise")?-1:0); // a shield wall, not armor: pierce can't get past it
-  const ev=Math.max(0,-(rel(a,"keen")&&rgOf(a)>1?KEEN_EV:0)-(mods[a.team]==="AIM"?AIM_EV:0)-(b.t==="N"&&rel(b,"helm")?HELM_EV:0)-(b.hex&&b.hexPend?PENDANT_EV:0)-(b.rage?INCENSE_EV:0)+Math.min(EV_CAP,(B.ev||0)+(b.chill?DRYICE_EV:0)+(b.ash?PHOENIX_EV:0)+(rides(b)&&b.moved?RIDER_EV:0)+(b.t==="K"&&rel(b,"lightarmor")?LIGHT_EV:0)+(b.t==="Q"&&rel(b,"escaupil")?(b.rough?ESCA_ROUGH_EV:ESCA_EV):0)+(b.t==="E"&&rel(b,"hexbook")?HEXBOOK_EV:0)+(a.hex?HEX_EV:0)+(rel(b,"luck")?.05:0)+(b.trio?TRIO_EV:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(rel(b,"sakurafan")&&[...blastOf(k),[b.x,b.y]].some(([x,y])=>CHERRY.has(x+","+y))?FAN_EV:0)+(blessed(b)?BLESS_EV:0)+(rested(b)?REST_EV:0)+(rel(b,"pebble")?PEBBLE_EV:0)+(rallied(b)?RALLY_EV:0)+(b.team==="y"&&SMOKE.has(k)?SMOKE_EV:0)+(WOODS(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0))); // Keen Eye Charm: ranged attacks see through a little of it; Steady Aim, any attack
-  return {dmg:Math.max(1,parts.reduce((t,p)=>t+p[1],0)),hit:sc?1:1-ev,parts}; // every hit deals at least 1; a scouted first strike never misses
+  const ev=Math.max(0,-(rel(a,"keen")&&rgOf(a)>1?KEEN_EV:0)-(mods[a.team]==="AIM"?AIM_EV:0)-(b.t==="N"&&rel(b,"helm")?HELM_EV:0)-(b.hex&&b.hexPend?PENDANT_EV:0)-(b.rage?INCENSE_EV:0)+Math.min(EV_CAP,(B.ev||0)+(b.chill?DRYICE_EV:0)+(b.ash?PHOENIX_EV:0)+(rides(b)&&b.moved?RIDER_EV:0)+(b.t==="K"&&rel(b,"lightarmor")?LIGHT_EV:0)+(b.t==="Q"&&rel(b,"escaupil")?(b.rough?ESCA_ROUGH_EV:ESCA_EV):0)+(b.t==="E"&&rel(b,"hexbook")?HEXBOOK_EV:0)+(a.hex?HEX_EV:0)+(rel(b,"luck")?.05:0)+(b.trio?TRIO_EV:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(rel(b,"sakurafan")&&[...blastOf(k),[b.x,b.y]].some(([x,y])=>CHERRY.has(x+","+y))?FAN_EV:0)+(blessed(b)?BLESS_EV:0)+(rested(b)?REST_EV:0)+(rel(b,"pebble")?PEBBLE_EV:0)+bucklerEv(b)+(rallied(b)?RALLY_EV:0)+(b.team==="y"&&SMOKE.has(k)?SMOKE_EV:0)+(WOODS(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0))); // Keen Eye Charm: ranged attacks see through a little of it; Steady Aim, any attack
+  const blk=Math.max(0,-parts.filter(p=>armor.some(x=>x[0]===p[0])).reduce((t,p)=>t+p[1],0)-(parts.find(p=>p[0]==="Pierce")||[0,0])[1]); // damage the armor actually turned aside
+  return {dmg:Math.max(1,parts.reduce((t,p)=>t+p[1],0)),hit:sc?1:1-ev,parts,blk}; // every hit deals at least 1; a scouted first strike never misses
 }
 // a unit with `ret` retaliates against an attacker within its own range for half damage, at least 1 (the attacker may evade it); null when it can't
 function retaliation(att,def,from=att){
@@ -1671,6 +1676,7 @@ function renderInfo(){
   if(rested(u))notes.push("Rested (Warm Mug): +2% evasion until the end of the enemy's next turn.");
   if(["rock","stick","hide"].some(id=>desperate(u,id)))notes.push("Desperate: at a third of its health or less, so its Improvised relics are in play.");
   if(rallied(u))notes.push("Rallied: +5% evasion until the end of your next turn.");
+  if(bucklerEv(u))notes.push(`Charmed Buckler: +${pct(bucklerEv(u))} evasion, from the armor across its army.`);
   if(u.wounds)notes.push(`Wounded ${u.wounds===1?"once":u.wounds+" times"}: max HP ${maxHp(u)} instead of ${T.hp}.`);
   if(u.bleed)notes.push("Bleeding Statue: loses 1 HP at the end of each of its side's turns (never the last).");
   if(muled(u))notes.push("Stubborn as a Mule: +2 armor and can't be pushed or slowed until the end of your next turn.");
@@ -2351,6 +2357,7 @@ function thanks(u){later(()=>{if(units.includes(u))floatText(u.x,u.y,"Thanks Her
 function hitFor(a,b,c,back){ // resolve one blow from a to b: dodge roll, damage, removal; true when it landed
   if(Math.random()<1-c.hit){floatText(b.x,b.y,"Evade",true);sfx("evade");say(sent(who(b))+" evaded "+(back?"the retaliation.":"the attack."));return false}
   if(b.team==="y"&&b.t==="A"&&a.team!=="y"&&ST(a).rg>1){unlocks.ah=(unlocks.ah||0)+1;saveU();if(unlocks.ah>=10)unlock("pavise")} // archers under arrow fire learn to raise a wall
+  if(b.team==="y"&&c.blk){unlocks.ab=(unlocks.ab||0)+c.blk;saveU();if(unlocks.ab>=BUCKLER_UNLOCK)unlock("buckler")} // blows turned aside by your armor
   if(a.champ&&!back)a.champStep=1; // the Champion's Sword: a step after a landed blow
   const adj=d(a,b)===1;
   if(hurt(b,c.dmg)){credit(a,b);if(rel(a,"vfalcata")&&(a.conq||0)<2)a.conq=(a.conq||0)+1; // Vasco's Falcata: each conquest sharpens it
@@ -2506,7 +2513,7 @@ const ESC=[
 ];
 const ELITE_HP=2,esc=r=>{const n=ESC.length,e=ESC[Math.min(r,n)-1];return r>n?{...e,relics:e.relics+Math.floor((r-n)/2)}:e},escFrom=k=>ESC.findIndex(e=>e[k]>0)+1;
 // relics an enemy army can make use of (no player-only actions, once-per-battle tricks or gold), and the unit each needs
-const FOE_OK={ipennant:"N",imposing:"N",helm:"N",ammo:"R",stud:["C","Q"],csword:"",cshield:"",ublade:"",ubulwark:"",ushroud:"",whet:"A",shield:"K",bard:"C",luck:"",long:"A",debris:"R",wolfpack:"",mercy:"",gauntlets:"",pavise:"A",pennant:"",hatchet:"",keep:"",ram:"",blossom:"",crown:"",statue:"",spurs:"C",grog:"",pebble:"",warpaint:""};
+const FOE_OK={ipennant:"N",imposing:"N",helm:"N",ammo:"R",stud:["C","Q"],csword:"",cshield:"",ublade:"",ubulwark:"",ushroud:"",whet:"A",shield:"K",bard:"C",luck:"",buckler:"",long:"A",debris:"R",wolfpack:"",mercy:"",gauntlets:"",pavise:"A",pennant:"",hatchet:"",keep:"",ram:"",blossom:"",crown:"",statue:"",spurs:"C",grog:"",pebble:"",warpaint:""};
 function foeLoadout(r){
   const army=units.filter(u=>u.team==="f").map(u=>u.t),ok=id=>id in FOE_OK&&(!FOE_OK[id]||[].concat(FOE_OK[id]).some(t=>army.includes(t)))&&!FOE_RELIC.has(id)&&(!RELICS[id].lock||unlocks[RELICS[id].lock])&&!clash(id,[...FOE_RELIC]);
   const boss=Object.keys(RELICS).filter(id=>RELICS[id].src==="boss"&&ok(id)),other=Object.keys(RELICS).filter(id=>RELICS[id].src!=="boss"&&ok(id));
@@ -3944,6 +3951,7 @@ const RICON={ // small 32-unit relic icons
  rations:'<path d="M5 20q0-7 11-7t11 7q0 4-11 4T5 20z" fill="#c8924a" stroke="#5a3a18" stroke-width="1.200"/><path d="M10 15l2 3M15 14l2 3M20 14l2 3" stroke="#8a5a22" stroke-width="1.200" stroke-linecap="round"/><path d="M7 25q9 3 18 0l-1 3H8z" fill="#b8a07a" stroke="#5a4a30" stroke-width="1"/><path d="M8 18q3-3 8-3.500" stroke="#f0c888" stroke-width="1" fill="none"/>',
  bandages:'<ellipse cx="16" cy="27" rx="10" ry="2" fill="rgba(0,0,0,.2)"/><path d="M6 12q0-4 7-4h8q5 0 5 4v10q0 4-5 4h-8q-7 0-7-4z" fill="#efe6d2" stroke="#4a3a28" stroke-width="1.200"/><ellipse cx="9.500" cy="17" rx="4" ry="8.500" fill="#f8f2e4" stroke="#4a3a28" stroke-width="1.100"/><ellipse cx="9.500" cy="17" rx="1.800" ry="4" fill="none" stroke="#b8a888" stroke-width="1"/><path d="M15 9v16M19.500 9v16" stroke="#d6cab0" stroke-width="1"/><path d="M26 22q3 1 4 4l-3 1q-1-3-3-4z" fill="#f8f2e4" stroke="#4a3a28" stroke-width="1"/><path d="M14 15h6M17 12v6" stroke="#b8372d" stroke-width="2.200" stroke-linecap="round"/>',
  bard:'<path d="M9 27V16q0-8 8-11l2-2l1 4q6 4 6 10l-3 2l-4-3l-2 2v9z" fill="#e2d6c0" stroke="#3a3024" stroke-width="1.200" stroke-linejoin="round"/><path d="M9 18h11v9H9z" fill="#8a2a24" stroke="#3a1210" stroke-width="1"/><path d="M9 20h11M9 24h11" stroke="#d9b84a" stroke-width="1.100"/><path d="M14 9l9 6l-3 2l-6-4z" fill="#7f8a95" stroke="#262b31" stroke-width="1"/><circle cx="21" cy="11" r="1" fill="#3a3024"/>',
+ buckler:'<circle cx="16" cy="16" r="12" fill="#9a6a3a" stroke="#3a2412" stroke-width="1.200"/><circle cx="16" cy="16" r="9.500" fill="none" stroke="#c8ced4" stroke-width="1.600"/><g fill="#3f9a5a" stroke="#1e5a30" stroke-width=".7"><circle cx="16" cy="12.600" r="2.600"/><circle cx="12.600" cy="16" r="2.600"/><circle cx="19.400" cy="16" r="2.600"/><circle cx="16" cy="19.400" r="2.600"/></g><circle cx="16" cy="16" r="1.400" fill="#e8c860" stroke="#7a5a18" stroke-width=".6"/><path d="M9 9q3-3 7-3.500" stroke="#fff" stroke-width="1" opacity=".5" fill="none"/>',
  luck:'<g fill="#3f9a5a" stroke="#1e5a30" stroke-width="1.100"><path d="M16 15q-6-1-6-6q0-4 3.500-3.500q2.500 1 2.500 4q0-3 2.500-4q3.500-.5 3.500 3.500q0 5-6 6z"/><path d="M16 15q-6 1-6 6q0 4 3.500 3.500q2.500-1 2.500-4q0 3 2.500 4q3.500.5 3.500-3.500q0-5-6-6z" transform="rotate(90 16 15)"/></g><path d="M16 15q1 7 4 12" stroke="#1e5a30" stroke-width="1.600" fill="none" stroke-linecap="round"/><circle cx="16" cy="15" r="1.400" fill="#d9e8a0"/>',
  long:'<path d="M9 3q14 13 0 26" fill="none" stroke="#7a4a22" stroke-width="2.600" stroke-linecap="round"/><path d="M9 3v26" stroke="#e8e0cc" stroke-width=".8"/><path d="M4 16h24" stroke="#5a3a1c" stroke-width="1.400"/><path d="M28 16l-4-2.500v5z" fill="#8f979e" stroke="#2e3338" stroke-width=".8"/><path d="M4 16l-1.500-2.500M4 16l-1.500 2.500M6 16l-1.500-2.500M6 16l-1.500 2.500" stroke="#c8372d" stroke-width="1.100"/>',
  splinter:'<path d="M3 26L14 15" stroke="#8a6a40" stroke-width="1.200" stroke-dasharray="2 2" opacity=".7"/><circle cx="16" cy="13" r="5" fill="#4a4540" stroke="#1e1a16" stroke-width="1.200"/><path d="M13.500 11q1-1.500 2.500-1.500" stroke="#fff" stroke-width="1" fill="none" opacity=".5"/><path d="M19.500 9.500l5-4.500l-1.500 4zM21 13.500l7-.5l-6 2.500zM19.500 17l5 4.500l-6-2.500z" fill="#c8a060" stroke="#5a3a1c" stroke-width=".8" stroke-linejoin="round"/><path d="M23 4l1-2M28.500 12l2.500-.5M25 22.500l1.500 2" stroke="#e8a030" stroke-width="1.100" stroke-linecap="round"/><path d="M16 18.500v2M11 14.500h-1.500" stroke="#c8a060" stroke-width=".9" stroke-linecap="round" opacity=".8"/>',
@@ -4405,6 +4413,7 @@ const UNLOCKS=[
  {id:"wolfpack",relic:"wolfpack",hint:"Wolves never hunt alone."},
  {id:"chicken",relic:"chicken",hint:"Conquer the Fort Wharton challenge."},
  {id:"pavise",relic:"pavise",hint:"Those who stand in the rain of arrows learn to carry a wall."},
+ {id:"buckler",relic:"buckler",hint:"Turn aside enough blows, and luck starts to follow.",prog:()=>[Math.min(BUCKLER_UNLOCK,unlocks.ab||0),BUCKLER_UNLOCK,"damage blocked by your armor"]},
  {id:"mule",item:"mule",hint:"Marcus saves his strangest stock for his best customers."},
  {id:"seaside",chal:"seaside",hint:"Answer a captain's first call to arms, and word comes from the shore."},
  {id:"pitchfork",relic:"pitchfork",hint:"Conquer the Seaside Grove challenge."},
