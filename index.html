@@ -35,6 +35,7 @@ h1{font-size:1.4rem;margin:0 0 4px}
 .sim{--tile:#5a4c8c;--tile2:#544684;--wall:#2c2450} /* The Warped Sim: purple-blue ground, dark stone under the quartz */
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .sim{--tile:#2e2752;--tile2:#2a234c}}
 :root[data-theme="dark"] .sim{--tile:#2e2752;--tile2:#2a234c}
+.sim .t.w{background:var(--tile);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 -3px 0 rgba(0,0,0,.14)} /* quartz stands on the same ground as its neighbours */
 .t.chs{background:#0c0718;cursor:default;box-shadow:none}.t.cxs{box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 0 12px rgba(192,106,255,.45)}
 .volcanic .t.fo{background-image:linear-gradient(rgba(40,24,18,.25),rgba(40,24,18,.25))} /* charred woods */
 .erupt{position:absolute;pointer-events:none;border-radius:30%;background:radial-gradient(circle,#fff3b0 0,#ff8a2a 40%,rgba(226,83,26,.6) 65%,rgba(226,83,26,0) 75%);z-index:7}
@@ -1180,7 +1181,8 @@ function quartzArt(v){
   const sets=[[[13,36,9,26,-12,0],[25,37,10,30,8,0],[33,36,6,16,22,1]],[[11,37,8,20,-20,2],[21,36,11,32,-2,0],[31,37,8,22,16,0]],[[16,37,12,30,-6,1],[29,36,9,24,14,0],[7,37,5,12,-28,2]],
     [[12,37,9,24,-10,0],[24,37,9,28,10,2]],[[20,37,12,32,4,0],[9,37,6,15,-24,1],[31,37,6,14,24,0],[26,37,4,9,34,2]],[[14,36,10,28,-14,2],[27,36,10,26,12,1]]];
   const g=v===6?boulder+xt(28,36,7,18,14,0)+xt(34,37,4,10,28,1):sets[v].map(a=>xt(...a)).join("");
-  return svg(`<ellipse cx="20" cy="36.500" rx="17" ry="3" fill="rgba(0,0,0,.35)"/>${g}`);
+  const base=[["M3 38q-1-6 5-8q4-4 10-3q6-3 12 0q7 1 8 7q1 4-2 5z","M26 30q6 0 9 5"],["M2 38q0-5 6-7q5-5 12-3q8-2 12 2q6 2 6 7z","M8 31q4-2 7-1"],["M4 38q-2-5 4-8q6-5 13-3q7-2 11 2q5 3 4 9z","M22 28q5 0 8 3"]][v%3]; // the crystals grow out of a low mound of dark rock, ragged-edged so the ground runs right up to it
+  return svg(`<path d="${base[0]}" fill="#000" opacity=".22" transform="translate(1 1.500)"/><path d="${base[0]}" fill="#3a2f6a" stroke="#1c1438" stroke-width=".9" stroke-linejoin="round"/><path d="${base[1]}" stroke="#7a6ad0" stroke-width=".9" fill="none" stroke-linecap="round"/><circle cx="${6+v*3}" cy="39" r="1.300" fill="#3a2f6a"/><circle cx="${35-v*2}" cy="38.500" r="1" fill="#3a2f6a"/>${g}`);
 }
 // Chasm: near-black depths; each side that meets solid ground lightens through violet to blue in pixel steps
 const chasmMask=(x,y)=>{const open=(a,b)=>a>=0&&b>=0&&a<W&&b<H&&!CHASM.has(a+","+b);return(open(x,y-1)?1:0)|(open(x+1,y)?2:0)|(open(x,y+1)?4:0)|(open(x-1,y)?8:0)|(open(x-1,y-1)?16:0)|(open(x+1,y-1)?32:0)|(open(x+1,y+1)?64:0)|(open(x-1,y+1)?128:0)};
@@ -1409,7 +1411,7 @@ const TERRAIN={
  rubble:{name:"Rubble",bg:"background:#8f877a",art:()=>RUBBLE_V,desc:"What's left of a fortress after a Wall-breaker Charge. Entering it costs 1 extra movement, and it gives no armor."},
  wall:{name:"Wall",bg:"background:var(--wall)",art:()=>[0,1,2,3].map(v=>wallArt(v,0)),desc:"Impassable. Units can't enter or cross it, but attacks can pass over it."},
  glitch:{name:"Glitched Ground",bg:"background:#5a4c8c",art:()=>[0,1,2,3].map(v=>simGround(3,4,v)),unlock:"warpedsim",desc:"Open ground that isn't quite right: purple and blue, with a faint grid showing through. No special effect."},
- quartz:{name:"Quartz Rocks",bg:"background:#2c2450",art:()=>[0,1,2].map(v=>quartzArt(v)),unlock:"warpedsim",desc:"Impassable. Giant quartz crystals, with the odd ordinary rock among them. Units can't enter or cross them, but attacks can pass over."},
+ quartz:{name:"Quartz Rocks",bg:"background:#5a4c8c",art:()=>[0,1,2].map(v=>quartzArt(v)),unlock:"warpedsim",desc:"Impassable. Giant quartz crystals, with the odd ordinary rock among them. Units can't enter or cross them, but attacks can pass over."},
  chasm:{name:"Chasm",bg:"background:#0c0718",art:()=>[chasmArt(0,0),chasmArt(5,1)],unlock:"warpedsim",desc:"Impassable. A gap in the world, dark all the way down. Units can't enter or cross it, but attacks can pass over it. Splits the Fractured Chasm down the middle."},
  chaos:{name:"Chaos Spring",bg:"background:#5a4c8c",art:()=>[CHAOS_V],unlock:"warpedsim",desc:`One per Fractured Chasm map. At the end of each side's turn, each of that side's units on it or the 8 tiles around it has an even chance to recover ${CHAOS_HP} HP or take ${CHAOS_HP} damage (ignoring armor).`},
  fort:{name:"Fortress",bg:FR,art:()=>[fortArt(0,0,true),fortArt(0,1,true)],desc:"Uncommon. A unit standing on one gets +1 armor."}};
