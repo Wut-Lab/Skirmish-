@@ -2198,21 +2198,26 @@ function sfx(name){
 }
 /* Music: endless generative tunes, so they never loop exactly. Notes are chosen as they play (a random walk that leans on the chord of the moment).
    calm: D dorian, plucked lute-like notes over a low drone, a soft echo, and a faint brass choir that swells in now and then.
-   boss: D minor and twice as driving — galloping low strings, war drums and brass calls. Plays during campaign boss battles. */
+   boss: D minor and twice as driving — galloping low strings, war drums and brass calls. Plays during campaign boss battles.
+   sim: the Warped Sim — D lydian, soft synth pads, a slow ringing arpeggio of electronic blips, glassy bell notes and a long echo; now and then it stutters.
+   simboss: the Sim's boss — the same voices in D minor at full tilt: a pulsing saw bass, a four-on-the-floor kick, hi-hats and a synth lead. */
 const SCALE=[0,2,3,5,7,9,10],CHORDS=[[0,2,4],[6,1,3],[2,4,6],[0,2,4],[4,6,1],[6,1,3],[0,2,4],[0,2,4]]; // scale degrees: i, VII, III, i, v, VII, i, i
 const BSCALE=[0,2,3,5,7,8,10],BCHORDS=[[0,2,4],[0,2,4],[5,0,2],[6,1,3],[0,2,4],[3,5,0],[4,6,1],[4,6,1]]; // boss: i, i, VI, VII, i, iv, v, v
+const SSCALE=[0,2,4,6,7,9,11],SCHORDS=[[0,2,4],[0,2,4],[1,3,5],[1,3,5],[5,0,2],[3,5,0],[4,6,1],[0,2,4]]; // sim: I, I, II, II, vi, IV, V, I
+const SBCHORDS=[[0,2,4],[0,2,4],[5,0,2],[5,0,2],[3,5,0],[3,5,0],[6,1,3],[4,6,1]]; // sim boss: i, i, VI, VI, iv, iv, VII, v
 const deg=(n,base=62,sc=SCALE)=>440*Math.pow(2,(base+12*Math.floor(n/7)+sc[((n%7)+7)%7]-69)/12); // scale degree -> Hz (62 = D4)
-const musicStyle=()=>!$("game").hidden&&!over&&camp.battle&&!chal&&WORLD[camp.battle.node]&&WORLD[camp.battle.node].type==="boss"?"boss":"calm";
+const musicStyle=()=>{const cb=!$("game").hidden&&camp.battle&&!chal&&WORLD[camp.battle.node],boss=cb&&!over&&cb.type==="boss",sim=camp.inSim&&(cb||!$("world").hidden);
+  return sim?(boss?"simboss":"sim"):boss?"boss":"calm"};
 function startMusic(){
   if(!musicOn||mus||document.hidden)return;
   try{
-    const a=audio(),boss=musicStyle()==="boss",sc=boss?BSCALE:SCALE,CH=boss?BCHORDS:CHORDS;
+    const a=audio(),style=musicStyle(),boss=style==="boss"||style==="simboss",sim=style==="sim"||style==="simboss",sc=sim?(boss?BSCALE:SSCALE):boss?BSCALE:SCALE,CH=sim?(boss?SBCHORDS:SCHORDS):boss?BCHORDS:CHORDS;
     const out=a.createGain(),bus=a.createGain(),dl=a.createDelay(),fb=a.createGain(),lp=a.createBiquadFilter(),wet=a.createGain();
     out.gain.setValueAtTime(0,a.currentTime);out.gain.linearRampToValueAtTime(MUSIC_VOL*(boss?1.1:1),a.currentTime+(boss?2:4));out.connect(a.destination);
-    dl.delayTime.value=boss?.25:.36;fb.gain.value=boss?.22:.3;lp.type="lowpass";lp.frequency.value=1600;wet.gain.value=boss?.25:.4;
+    dl.delayTime.value=sim?(boss?.27:.63):boss?.25:.36;fb.gain.value=sim?(boss?.3:.48):boss?.22:.3;lp.type="lowpass";lp.frequency.value=sim?2600:1600;wet.gain.value=sim?(boss?.3:.6):boss?.25:.4; // the Sim's echo is long and bright
     bus.connect(out);bus.connect(dl);dl.connect(lp);lp.connect(fb);fb.connect(dl);lp.connect(wet);wet.connect(out);
     const drone=[73.42,110].map((f,i)=>{const o=a.createOscillator(),g=a.createGain(),f2=a.createBiquadFilter(),l=a.createOscillator(),lg=a.createGain();
-      o.type=boss?"sawtooth":i?"sine":"triangle";o.frequency.value=f;f2.type="lowpass";f2.frequency.value=boss?300:380;g.gain.value=boss?.12:.16;l.frequency.value=.05+i*.03;lg.gain.value=.07;
+      o.type=boss?"sawtooth":i||sim?"sine":"triangle";o.frequency.value=f;f2.type="lowpass";f2.frequency.value=boss?300:380;g.gain.value=boss?.12:.16;l.frequency.value=.05+i*.03;lg.gain.value=.07;
       l.connect(lg);lg.connect(g.gain);o.connect(f2);f2.connect(g);g.connect(bus);o.start();l.start();return[o,l]}).flat();
     const pluck=(f,t,len,vol)=>{const o=a.createOscillator(),o2=a.createOscillator(),g=a.createGain(),g2=a.createGain(),f2=a.createBiquadFilter();
       o.type="triangle";o.frequency.value=f;o2.type="sine";o2.frequency.value=f*2;g2.gain.value=.25;f2.type="lowpass";f2.frequency.setValueAtTime(2600,t);f2.frequency.exponentialRampToValueAtTime(700,t+len);
@@ -2227,7 +2232,19 @@ function startMusic(){
       g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.005);g.gain.exponentialRampToValueAtTime(.001,t+.32);o.connect(g);g.connect(out);o.start(t);o.stop(t+.35);
       const n=a.createBufferSource(),bf=a.createBuffer(1,a.sampleRate*.12|0,a.sampleRate),d=bf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*(1-i/d.length);
       const nf=a.createBiquadFilter(),ng=a.createGain();nf.type="lowpass";nf.frequency.value=700;ng.gain.value=vol*.5;n.buffer=bf;n.connect(nf);nf.connect(ng);ng.connect(out);n.start(t)};
-    const st={next:a.currentTime+.3,step:0,mel:7,beat:boss?.2:.4,horn:0};
+    // the Sim's electronic voices: a blip (one oscillator through a low-pass), a soft detuned pad, an FM bell, and hi-hat noise
+    const blip=(f,t,len,vol,type="square",cut=f*3)=>{const o=a.createOscillator(),g=a.createGain(),fl=a.createBiquadFilter();o.type=type;o.frequency.value=f;fl.type="lowpass";fl.frequency.value=Math.min(cut,6000);fl.Q.value=3;
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.005);g.gain.exponentialRampToValueAtTime(.001,t+len);o.connect(fl);fl.connect(g);g.connect(bus);o.start(t);o.stop(t+len+.05)};
+    const pad=(f,t,len,vol)=>{const g=a.createGain(),fl=a.createBiquadFilter();fl.type="lowpass";fl.frequency.value=1100;
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+len*.35);g.gain.setValueAtTime(vol,t+len*.6);g.gain.linearRampToValueAtTime(0,t+len);
+      fl.connect(g);g.connect(bus);for(const det of[-9,9]){const o=a.createOscillator();o.type="triangle";o.frequency.value=f;o.detune.value=det;o.connect(fl);o.start(t);o.stop(t+len+.05)}};
+    const bell=(f,t,len,vol)=>{const c=a.createOscillator(),m=a.createOscillator(),mg=a.createGain(),g=a.createGain();c.type=m.type="sine";c.frequency.value=f;m.frequency.value=f*3.5;
+      mg.gain.setValueAtTime(f*1.6,t);mg.gain.exponentialRampToValueAtTime(1,t+len);m.connect(mg);mg.connect(c.frequency);
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.01);g.gain.exponentialRampToValueAtTime(.001,t+len);c.connect(g);g.connect(bus);c.start(t);m.start(t);c.stop(t+len+.05);m.stop(t+len+.05)};
+    let nbuf=null;const hat=(t,vol,len=.05)=>{if(!nbuf){nbuf=a.createBuffer(1,a.sampleRate*.3|0,a.sampleRate);const d=nbuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}
+      const n=a.createBufferSource(),hp=a.createBiquadFilter(),g=a.createGain();n.buffer=nbuf;hp.type="highpass";hp.frequency.value=7000;
+      g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+len);n.connect(hp);hp.connect(g);g.connect(out);n.start(t);n.stop(t+len+.02)};
+    const st={next:a.currentTime+.3,step:0,mel:7,beat:sim?(boss?.17:.42):boss?.2:.4,horn:0};
     const calm=(t,s,ch,phrase)=>{
       if(phrase<60){ // the last few steps of each phrase are left to the drone, to breathe
         if(s%8===0)pluck(deg(ch[0],38),t,2.6,.5); // the chord's root, low
@@ -2261,17 +2278,40 @@ function startMusic(){
         if(Math.random()<.5)pluck(deg(ch[s%3],62,sc),t,.4,.12); // a quick high figure over it all
       }
     };
+    const ARP=[0,1,2,3,4,3,2,1],arp=(ch,i)=>ch[ARP[i%8]%3]+7*Math.floor(ARP[i%8]/3); // up two octaves of the chord and back
+    const drift=(ch,s)=>{ // the tune's random walk, nudged onto a chord tone on the strong beats
+      st.mel=Math.max(4,Math.min(13,st.mel+[-2,-1,-1,0,1,1,2][Math.floor(Math.random()*7)]));
+      if(s%4===0&&!ch.includes(((st.mel%7)+7)%7))st.mel+=ch.includes(((st.mel+1)%7+7)%7)?1:-1;return st.mel};
+    const simCalm=(t,s,ch,phrase)=>{
+      if(s%16===0){pad(deg(ch[0],38,sc),t,st.beat*17,.06);ch.forEach(n=>pad(deg(n,50,sc),t,st.beat*17,.035))} // a slow wash under each pair of bars
+      if(phrase>=56)return; // breathe at the end of each phrase
+      blip(deg(arp(ch,s),62,sc),t,.5,s%8===0?.07:.045,"square",1500); // the ringing arpeggio; the echo turns it into a shimmer
+      if(Math.random()<(s%4===0?.4:.1))bell(deg(drift(ch,s),62,sc),t,2.2,.13); // sparse glassy notes up high
+      if(s%32===31&&Math.random()<.35)[0,1,2,3].forEach(i=>blip(deg(ch[0]+14,62,sc)*(1-i*.06),t+i*.05,.08,.05)); // a glitchy stutter, now and then
+    };
+    const simFight=(t,s,ch,phrase)=>{
+      const root=ch[0];
+      if(s%4===0)drum(t,.8,150);if(phrase>=60)drum(t,.3+(phrase-60)*.12,180); // a four-on-the-floor kick, with a roll into each phrase
+      if(s%2)hat(t,s%4===3?.07:.045,s%8===7?.18:.05);
+      blip(deg(root,26,sc),t,.16,s%4===0?.2:.32,"sawtooth",300+500*((s%64)/64)); // the pulsing bass; its filter opens over each phrase
+      if(s%8===0)ch.forEach(n=>pad(deg(n,50,sc),t,st.beat*8.5,.04));
+      if(phrase<60){
+        blip(deg(arp(ch,s),62,sc),t,.14,s%4===0?.07:.05,"square",2600); // a racing arpeggio
+        if(phrase>=16&&s%2===0&&Math.random()<(s%4===0?.75:.3))blip(deg(drift(ch,s),62,sc),t,st.beat*(s%4===0?3:1.5),.08,"sawtooth",2200); // the lead
+        if(s%16===0)bell(deg(root+14,62,sc),t,1.6,.1);
+      }
+    };
     const tick=()=>{
       while(st.next<a.currentTime+.5){
         const t=st.next,s=st.step,ch=CH[Math.floor(s/8)%CH.length],phrase=s%64;
-        (boss?fight:calm)(t,s,ch,phrase);
-        st.next+=boss?st.beat:st.beat*(s%2?.92:1.08);st.step++; // the calm tune has a slight lilt
+        (sim?(boss?simFight:simCalm):boss?fight:calm)(t,s,ch,phrase);
+        st.next+=boss||sim?st.beat:st.beat*(s%2?.92:1.08);st.step++; // the calm tune has a slight lilt
       }
     };
-    tick();mus={out,drone,timer:setInterval(tick,120),style:boss?"boss":"calm"};
+    tick();mus={out,drone,timer:setInterval(tick,120),style};
   }catch(e){mus=null}
 }
-// switches tracks when the scene calls for the other one (a boss battle starting or ending)
+// switches tracks when the scene calls for another one (a boss battle starting or ending, or stepping into or out of the Sim)
 function syncMusic(){if(mus&&mus.style!==musicStyle()){stopMusic();startMusic()}}
 function stopMusic(){
   if(!mus)return;const m=mus;mus=null;clearInterval(m.timer);
