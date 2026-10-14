@@ -1008,8 +1008,8 @@ function genMap(o={}){
     const xbars=new Set(); // exploding barrels (unlockable): each barrel has a 25% chance
     if(unlocks.xbarrels)bars.forEach(k=>{if(Math.random()<.25)xbars.add(k)});
     const camps=new Set(); // mysterious camp site (unlockable): a fifth of maps get one, somewhere in the middle with open ground beside it
-    if(wantCamp&&!o.sim)for(let t=0;t<200&&!camps.size;t++){
-      const x=R(W),y=4+R(H-8),ok=(a,b)=>a>=0&&a<W&&!walls.has(K(a,b))&&!graves.has(K(a,b))&&!fort.has(K(a,b))&&!swamp.has(K(a,b))&&!bars.has(K(a,b))&&!deep.has(K(a,b))&&!hot(a,b);
+    if(wantCamp)for(let t=0;t<200&&!camps.size;t++){
+      const x=R(W),y=4+R(H-8),ok=(a,b)=>a>=0&&a<W&&!chasm.has(K(a,b))&&!light.has(K(a,b))&&!glowing(a,b)&&!walls.has(K(a,b))&&!graves.has(K(a,b))&&!fort.has(K(a,b))&&!swamp.has(K(a,b))&&!bars.has(K(a,b))&&!deep.has(K(a,b))&&!hot(a,b);
       if(ok(x,y)&&!forest.has(K(x,y))&&!shal.has(K(x,y))&&DIRS.filter(([dx,dy])=>ok(x+dx,y+dy)).length>=3)camps.add(K(x,y));
     }
     const wisps=new Set(); // Will-o'-the-Wisp (unlockable): swamp maps often, and forest maps now and then, get one in the middle or a mirrored pair
@@ -1034,7 +1034,7 @@ function genMap(o={}){
     if(!o.graves&&!o.lava&&!o.sim&&Math.random()<.6)for(let n=1+R(3);n>0;n--)grow(4+R(6),R(W),R(H)).forEach(([a,b])=>[[a,b],[W-1-a,H-1-b]].forEach(([x,y])=>{const k=K(x,y);
       if(forest.has(k)){if(!cherry.has(k))greenw.add(k)}else if(![walls,deep,shal,swamp,fort,bars,camps,graves,lava,magma,volc,wisps,koi,flowers].some(st=>st.has(k)))meadow.add(k)}));
     // Sim features that come one per map on a middle row, or in mirrored pairs: Chaos Springs (one on the Fractured Chasm, 2-3 in Synthwave Space) and Synthwave Space's 2-3 Light Bricks
-    const chaos=new Set(),busy=k=>chasm.has(k)||walls.has(k)||chaos.has(k)||light.has(k),roomy=(a,b)=>a>=0&&a<W&&!busy(K(a,b))&&blastOf(K(a,b)).filter(([x,y])=>!busy(K(x,y))).length>=5;
+    const chaos=new Set(),busy=k=>chasm.has(k)||walls.has(k)||chaos.has(k)||light.has(k)||camps.has(k),roomy=(a,b)=>a>=0&&a<W&&!busy(K(a,b))&&blastOf(K(a,b)).filter(([x,y])=>!busy(K(x,y))).length>=5;
     if(o.chasm||o.synth)scatter(chaos,o.chasm?1:2+R(2),roomy);
     if(o.synth&&(light.size<2||chaos.size<2)||o.chasm&&!chaos.size)continue; // every Sim map gets its full set of features: if they didn't fit, roll again
     const seen=new Set(["0,0"]),q=[[0,0]];
@@ -2935,10 +2935,10 @@ const NAMES={
  volcanic:["Brimstone Ridge","Scorched Hollow","Emberforge Caldera","Smoldering Gulch","Ashen Fields","Emberlands","The Bleeding Mountains"],
  sakura:["Petalfall Garden","Blossom Terrace","Koi Mirror Pool","Whispering Petals","Stoic Grove","Valley of Spring","Grove of Renewal"],
  heal:["Sunspring Glade","Quiet Hollow","Healer's Rest","Mercy Well","Nomadic Druid's Caravan","Traveling Apothecary","Mossy Monastery"], // healing spots
- chasm:["The Shattered Divide","Null Rift","The Broken Seam","Fault Line Sigma"],
- synth:["Neon Drift","Afterglow Expanse","Starlit Grid","Chromewave Flats"],
- simheal:["Restore Point","Patch Node","Recovery Cache"], // the Warped Sim's healing spots
- simboss:["The Core Citadel","Fortress of Fading Code","The Final Render"], // and its stronghold
+ chasm:["The Shattered Divide","Null Rift","The Broken Seam","Fault Line Sigma","The Split","The Long Rift","The Open Code"],
+ synth:["Neon Drift","Afterglow Expanse","Starlit Grid","Chromewave Flats","The Glowing Horizon","Neon Latticework","Gridline Way"],
+ simheal:["Restore Point","Patch Node","Recovery Cache","Stabile Zone","Green Zone","Anti-Corruption Sphere"], // the Warped Sim's healing spots
+ simboss:["The Core Citadel","Fortress of Fading Code","The Final Render","Bit Fortress","Neon Walls","|3.0.$$"], // and its stronghold
  boss:["Blackspire","Ironcrown Citadel","Skullcrag Fortress","Duskhold","Ravenmoor Keep","Ashfall Citadel"]}; // boss locations
 const BOSS_NAMES=["Timwell the Troll","Cass, Obsessive Vicar","Anthony the Gold","Gorman, Dragon's Pet","Linda of Tillingsburg","Ted, the Damp Rag"]; // who holds each boss location (not shown yet)
 // draws from a list without repeating within the campaign; once every entry has been used, starts over (never the one just used)
@@ -3027,10 +3027,10 @@ function genWorld(){
 const SIM_HEAL_TEXT="A pocket of the Sim that hasn't glitched yet. Resting here mends one wound per unit and restores some HP.";
 function genSimWorld(){
   const R=n=>Math.floor(Math.random()*n),rr=(a,b)=>a+Math.random()*(b-a),used=new Set(),pick=l=>{const p=l.filter(n=>!used.has(n)),v=p[R(p.length)];used.add(v);return v};
-  const nodes=[{id:0,name:"Closed Portal",x:Math.round(rr(140,260)),y:462,type:"camp",text:"The way you came in. It sealed behind you; the only way out is through the Sim's stronghold."}],layers=[[0]];
+  const nodes=[{id:0,name:"Closed Portal",x:Math.round(rr(140,260)),y:462,type:"camp",text:"Sealed behind you... No way back means press forward into this strange place."}],layers=[[0]];
   [328,196].forEach(y0=>{const c=2+R(2),ids=[];for(let i=0;i<c;i++){const b=Math.random()<.5?"chasm":"synth";ids.push(nodes.length);
     nodes.push({id:nodes.length,name:pick(NAMES[b]),x:Math.round(50+300*(i+.5)/c+rr(-14,14)),y:Math.round(y0+rr(-8,8)),type:"battle",b,text:BTEXT[b]})}layers.push(ids)});
-  const h=nodes[layers[2][R(layers[2].length)]];Object.assign(h,{name:pick(NAMES.simheal),type:"heal",b:"heal",text:SIM_HEAL_TEXT});delete h.herb; // one healing spot, in the row before the boss
+  const h=nodes[layers[2][R(layers[2].length)]];Object.assign(h,{name:pick(NAMES.simheal),type:"heal",b:"heal",text:SIM_HEAL_TEXT,herb:!!unlocks.campsite&&Math.random()<HERB_SPOT}); // one healing spot, in the row before the boss (Herbert follows you in, now and then)
   if(!camp.bossUsed)camp.bossUsed={loc:[],name:[]};
   nodes.push({id:nodes.length,name:pick(NAMES.simboss),boss:fresh(BOSS_NAMES,camp.bossUsed.name),x:Math.round(rr(150,250)),y:80,type:"boss",b:"boss",text:"The Sim's stronghold. Its master holds the only way out."});
   layers.push([nodes.length-1]);
