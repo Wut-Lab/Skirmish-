@@ -395,7 +395,7 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .u.elite.glitch{box-shadow:0 0 0 2.500px #c06aff,0 0 0 4px #3ad8ff,0 0 10px 3px rgba(122,232,255,.55),var(--bev)} /* the Sim's Corrupted Elites */
 .evart svg{display:block;width:100%;height:auto;border-radius:8px;border:2px solid #1a0f07;box-shadow:0 2px 0 #1a0f07;margin-bottom:10px}
 .u.redglow svg{filter:drop-shadow(0 0 3px rgba(225,40,40,.85))}
-.u.chalk{outline:2px dotted rgba(250,248,235,.95);outline-offset:-5px} /* Spotter's Chalk: a scrawled ring inside the piece (wild units wear theirs outside) */
+.u.spot{outline:2px dotted rgba(250,248,235,.95);outline-offset:-5px} /* Spotter's Mark: a scrawled ring inside the piece (wild units wear theirs outside) */
 .u.stun::after{content:"\2737";position:absolute;top:-5px;left:-5px;width:17px;height:17px;border-radius:50%;background:#f4e27a;color:#5a4a00;font-size:.75rem;font-weight:800;line-height:17px;text-align:center;box-shadow:0 0 0 1.5px #fff,0 0 8px 2px rgba(255,250,200,.9)}
 .u.rage:not(.redglow) svg{filter:drop-shadow(0 0 3px rgba(240,110,30,.9))}
 .u.chill:not(.blessed):not(.rallied):not(.mule):not(.elite){box-shadow:0 0 0 2px rgba(225,245,255,.9),0 0 9px 3px rgba(170,215,240,.7),var(--bev)}
@@ -727,7 +727,7 @@ const RELICS={
  grog:{name:"Flask of Liquid Courage",r:1,src:"both",desc:"Cursed. All your units deal +1 damage, and take +1 damage. Courage cuts both ways."},
  pebble:{name:"Lucky Pebble",r:0,desc:"All your units get +1% evasion. Found in a boot. Probably lucky."},
  warpaint:{name:"Berserker's Warpaint",r:1,src:"both",desc:"Cursed. All your units deal +1 damage, but they never retaliate. No time to parry when you're busy screaming."},
- chalk:{name:"Spotter's Chalk",r:0,need:["A","R","H","E"],desc:"An enemy struck by one of your attacks from 2 or more tiles away is chalk-marked until the end of your next turn: the next blow one of your units lands on it from an adjacent tile deals +1 damage and wipes the mark. The archers find them; the swords finish them."},
+ spotmark:{name:"Spotter's Mark",r:0,need:["A","R","E"],desc:"The first time one of your units hits an enemy from 2 or more tiles away, that enemy is marked until the end of your next turn: the next blow one of your units lands on it from an adjacent tile deals +1 damage and wipes the mark. Each enemy can be marked once per battle. The archers find them; the swords finish them."},
  keen:{name:"Keen Eye Charm",r:0,desc:"Your ranged attacks (range 2 or more) ignore 3% of the target's evasion."},
  pendant:{name:"Glowing Pendant",r:0,src:"both",need:"E",desc:"Enemies your Enchanters hex also get 5% less evasion while the hex lasts. It glows brighter the closer it gets to a curse."},
  hexbook:{name:"Book of Combat Hexes",r:2,src:"both",need:"E",hpUp:"E",desc:"Enchanters get +1 max HP and +5% evasion. An adjacent enemy that attacks an Enchanter takes 1 damage, ignoring armor, whether or not it hits, and deals 1 less damage on its next turn. Gaining it doesn't heal them."},
@@ -805,7 +805,7 @@ const canBless=(a,b)=>rel(a,"font")&&!a.blessUsed&&!a.acted&&b!==a&&b.team==="y"
 const BUCKLER_STEP=.02,BUCKLER_MAX=.06,BUCKLER_UNLOCK=40; // Charmed Buckler: +2% evasion per 2 armor across the army; unlocked by 40 damage turned aside by your armor
 const ownArmor=u=>Math.max(0,(ST(u).ar||0)+(u.t==="K"&&rel(u,"shield")?1:0)-(u.t==="K"&&rel(u,"lightarmor")?1:0)+(u.t==="C"&&rel(u,"bard")?1:0)+(u.keep?1:0)+(u.vang?1:0)+(muled(u)?MULE_AR:0)-(acided(u)?1:0)); // a unit's own armor, without terrain or formations
 const bucklerEv=u=>rel(u,"buckler")?Math.min(BUCKLER_MAX,BUCKLER_STEP*Math.floor(units.filter(v=>v.team===u.team).reduce((t,v)=>t+ownArmor(v),0)/2)):0;
-const chalked=(u,team)=>u.chalk>=pturn&&u.chalkBy===team; // Spotter's Chalk: marked by a ranged blow from that side, through the end of its next turn
+const spotted=(u,team)=>u.spot>=pturn&&u.spotBy===team; // Spotter's Mark: marked by a ranged blow from that side, through the end of its next turn
 const PEBBLE_EV=.01,KEEN_EV=.03,NONCOMBAT=["P","E","N"],LOW_HP=1/3,REST_EV=.02,low=u=>u.hp<=maxHp(u)*LOW_HP,desperate=(u,id)=>rel(u,id)&&NONCOMBAT.includes(u.t)&&low(u); // the Improvised relics: non-combat units at or below a third of their health
 const rested=u=>u.team==="y"&&RELIC.has("warm")&&(relicUsed.warm===pturn||relicUsed.warm===pturn-1&&turn==="f"); // Warm Mug: through the enemy turn after you leave Herbert's camp (pturn ticks when you end your turn)
 const RALLY_EV=.05,RALLY_RANGE=2,FAN_EV=.1,TRIO_EV=.05,SAKURA_WINS=5;
@@ -1539,7 +1539,7 @@ function combat(a,b,from=a){
   add("Musket misfire",a.t==="Q"&&rel(a,"musket")&&d(from,b)>1?-1:0); // the musket's long shots go wide
   add("Espada de El Dorado",a.t==="Q"&&a.team==="y"&&camp.battle&&rel(a,"eldorado")&&d(from,b)<=1?Math.min(ELDORADO_MAX,Math.floor((camp.gold||0)/ELDORADO_GOLD)):0); // greed, at arm's length
   add("Combat Hex",a.weak?-1:0); // cursed for striking an Enchanter
-  add("Spotter's Chalk",turn===a.team&&rel(a,"chalk")&&chalked(b,a.team)&&d(from,b)===1?1:0); // a mark left by a ranged blow, cashed in up close
+  add("Spotter's Mark",turn===a.team&&rel(a,"spotmark")&&spotted(b,a.team)&&d(from,b)===1?1:0); // a mark left by a ranged blow, cashed in up close
   add("Goading Bugle",a.goaded===pturn&&turn===a.team?1:0);
   add("Imposing Banner",units.some(v=>v.t==="N"&&v.team!==a.team&&v.team!=="w"&&rel(v,"imposing")&&d(v,from)<=BANNER_RANGE)?-1:0); // striking in the banner's shadow
   add("Vasco's Falcata",a.conq||0);
@@ -1718,7 +1718,7 @@ function render(){
     html+=`<button class="${cls}" data-x="${x}" data-y="${y}"${pd&&pd.k===k?` data-arrow="${pd.a}"`:""} aria-label="${label.replace(/"/g,"&quot;")}">`
       +'<i class="lt"></i>'+A.art[i]+(fr?'<i class="tint"></i>':"")+(SMOKE.has(k)?'<i class="smoke"></i>':"")+(CALTROPS.has(k)?CALT_ART:"")+A.jn[i]+glowOf(k).map(([dx,dy])=>`<i class="lglow" style="background:linear-gradient(to ${dx>0?"left":dx<0?"right":dy>0?"top":"bottom"},rgba(255,226,60,.62),rgba(255,226,60,.16) 70%,rgba(255,226,60,.08))"></i>`).join(""); // fortress art covers its tile, so highlights go on a see-through layer above it
     if(u){
-      let uc="u "+u.team+(u.merc?" merc":"")+(u.auto&&u.team==="y"?" free":spent(u)?" done":"")+(u.slow||u.slowNext?" slow":"")+(u.stun?" stun":"")+(u.rage||u.oil?" rage":"")+(u.chill?" chill":"")+(u.chalk>=pturn&&u.chalkBy!==u.team?" chalk":"")+(u.ash?" ash":"")+(inspired(u)?" insp":"")+(blessed(u)||rested(u)?" blessed":"")+(u.t==="E"&&rel(u,"redtome")?" redglow":"")+(rallied(u)?" rallied":"")+(muled(u)?" mule":"")+(u.dug?" dug":"")+(u.elite?" elite":"")+(u.glitch?" glitch":"")+(u.champ||u.cshield||u.cloak?" champ":"")+(u.ublade||u.ubulwark||u.ushroud?" usurp":"")+(u===sel||u===insp?" sel":""),mvs="";
+      let uc="u "+u.team+(u.merc?" merc":"")+(u.auto&&u.team==="y"?" free":spent(u)?" done":"")+(u.slow||u.slowNext?" slow":"")+(u.stun?" stun":"")+(u.rage||u.oil?" rage":"")+(u.chill?" chill":"")+(u.spot>=pturn&&u.spotBy!==u.team?" spot":"")+(u.ash?" ash":"")+(inspired(u)?" insp":"")+(blessed(u)||rested(u)?" blessed":"")+(u.t==="E"&&rel(u,"redtome")?" redglow":"")+(rallied(u)?" rallied":"")+(muled(u)?" mule":"")+(u.dug?" dug":"")+(u.elite?" elite":"")+(u.glitch?" glitch":"")+(u.champ||u.cshield||u.cloak?" champ":"")+(u.ublade||u.ubulwark||u.ushroud?" usurp":"")+(u===sel||u===insp?" sel":""),mvs="";
       if(u.spawn){uc+=" tpin";delete u.spawn}
       const pp=prevPos.get(u);prevPos.set(u,[x,y]);
       if(pp&&(pp[0]!==x||pp[1]!==y)){ // slide in from where it was last drawn (a long jump fades in instead)
@@ -1784,7 +1784,7 @@ function renderInfo(){
   if(u.ash)notes.push("Risen from a Phoenix's Flames: +5% evasion until the end of this turn.");
   if(u.stun)notes.push("Stunned by a Flash Vial: it can't move or attack on its next turn.");
   if(u.rage)notes.push("Enraged: +1 damage, +1 movement and +1 pierce, but 5% less evasion, for the rest of the battle.");
-  if(u.chalk>=pturn&&u.chalkBy!==u.team)notes.push(`Chalk-marked (Spotter's Chalk): the next adjacent blow ${u.chalkBy==="y"?"your units land":"the enemy lands"} on it deals +1 damage.`);
+  if(u.spot>=pturn&&u.spotBy!==u.team)notes.push(`Marked (Spotter's Mark): the next adjacent blow ${u.spotBy==="y"?"your units land":"the enemy lands"} on it deals +1 damage.`);
   if(u.chill)notes.push("Chilled by dry ice fog: +3% evasion until your next turn.");
   if(u.slowNext)notes.push("Dazzled by a Light Brick: it will be slowed on its next turn, moving only 1 tile.");
   if(u.slow)notes.push("Slowed: it can move only 1 tile (always at least 1, even out of a forest or into shallow water) until the end of its next turn.");
@@ -2484,8 +2484,8 @@ function hitFor(a,b,c,back){ // resolve one blow from a to b: dodge roll, damage
   if(Math.random()<1-c.hit){floatText(b.x,b.y,"Evade",true);sfx("evade");say(sent(who(b))+" evaded "+(back?"the retaliation.":"the attack."));return false}
   if(b.team==="y"&&b.t==="A"&&a.team!=="y"&&ST(a).rg>1){unlocks.ah=(unlocks.ah||0)+1;saveU();if(unlocks.ah>=10)unlock("pavise")} // archers under arrow fire learn to raise a wall
   if(b.team==="y"&&c.blk){unlocks.ab=(unlocks.ab||0)+c.blk;saveU();if(unlocks.ab>=BUCKLER_UNLOCK)unlock("buckler")} // blows turned aside by your armor
-  if(!back&&c.parts.some(p=>p[0]==="Spotter's Chalk"))delete b.chalk; // the mark is wiped off by the blow that used it
-  else if(!back&&rel(a,"chalk")&&d(a,b)>1){b.chalk=pturn+1;b.chalkBy=a.team} // a ranged blow chalks its target
+  if(!back&&c.parts.some(p=>p[0]==="Spotter's Mark"))delete b.spot; // the mark is wiped off by the blow that used it
+  else if(!back&&rel(a,"spotmark")&&d(a,b)>1&&!b.spotOnce){b.spot=pturn+1;b.spotBy=a.team;b.spotOnce=1} // the first ranged blow on it marks its target, once per battle
   if(a.champ&&!back)a.champStep=1; // the Champion's Sword: a step after a landed blow
   const adj=d(a,b)===1;
   if(hurt(b,c.dmg)){credit(a,b);if(rel(a,"vfalcata")&&(a.conq||0)<2)a.conq=(a.conq||0)+1; // Vasco's Falcata: each conquest sharpens it
@@ -2663,7 +2663,7 @@ const ESC=[
 const ELITE_HP=2,SIM_ELITE_HP=1,GLITCH={flick:["Flickering","+10% evasion."],clock:["Overclocked","+1 movement."],code:["Chaos Code","a unit that hits it in melee takes 1 damage, ignoring armor."]},FLICK_EV=.1; // the Sim's Corrupted Elites: +1 HP, +1 damage and one glitch
 const esc=r=>{const n=ESC.length,e=ESC[Math.min(r,n)-1];return r>n?{...e,relics:e.relics+Math.floor((r-n)/2)}:e},escFrom=k=>ESC.findIndex(e=>e[k]>0)+1;
 // relics an enemy army can make use of (no player-only actions, once-per-battle tricks or gold), and the unit each needs
-const FOE_OK={ipennant:"N",imposing:"N",helm:"N",ammo:"R",stud:["C","Q"],csword:"",cshield:"",ublade:"",ubulwark:"",ushroud:"",whet:"A",shield:"K",bard:"C",luck:"",buckler:"",long:"A",debris:"R",wolfpack:"",mercy:"",gauntlets:"",pavise:"A",pennant:"",hatchet:"",keep:"",ram:"",blossom:"",crown:"",statue:"",spurs:"C",grog:"",pebble:"",warpaint:"",chalk:["A","R","H","E"]};
+const FOE_OK={ipennant:"N",imposing:"N",helm:"N",ammo:"R",stud:["C","Q"],csword:"",cshield:"",ublade:"",ubulwark:"",ushroud:"",whet:"A",shield:"K",bard:"C",luck:"",buckler:"",long:"A",debris:"R",wolfpack:"",mercy:"",gauntlets:"",pavise:"A",pennant:"",hatchet:"",keep:"",ram:"",blossom:"",crown:"",statue:"",spurs:"C",grog:"",pebble:"",warpaint:"",spotmark:["A","R","E"]};
 function foeLoadout(r){
   const army=units.filter(u=>u.team==="f").map(u=>u.t),ok=id=>id in FOE_OK&&(!FOE_OK[id]||[].concat(FOE_OK[id]).some(t=>army.includes(t)))&&!FOE_RELIC.has(id)&&(!RELICS[id].lock||unlocks[RELICS[id].lock])&&!clash(id,[...FOE_RELIC]);
   const boss=Object.keys(RELICS).filter(id=>RELICS[id].src==="boss"&&ok(id)),other=Object.keys(RELICS).filter(id=>RELICS[id].src!=="boss"&&ok(id));
@@ -4223,7 +4223,7 @@ const RICON={ // small 32-unit relic icons
  grog:'<ellipse cx="16" cy="28" rx="9" ry="1.800" fill="rgba(0,0,0,.2)"/><rect x="13" y="3" width="6" height="4" rx="1" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M13.500 7h5v3q7 2 7 9v5q0 4-4 4H10.500q-4 0-4-4v-5q0-7 7-9z" fill="#7a6a4a" stroke="#2a1e12" stroke-width="1.200" stroke-linejoin="round"/><path d="M7 17h18v6H7z" fill="#a8402a" opacity=".85"/><path d="M7 17h18M7 23h18" stroke="#2a1e12" stroke-width=".9"/><path d="M12 20h8" stroke="#f0d8a0" stroke-width="1.300" stroke-linecap="round"/><path d="M10 12q1-2 3-2" stroke="#c8b890" stroke-width="1" fill="none" stroke-linecap="round" opacity=".7"/>',
  pebble:'<ellipse cx="16" cy="25" rx="9" ry="1.800" fill="rgba(0,0,0,.18)"/><ellipse cx="16" cy="19" rx="9" ry="6.500" fill="#9aa0a6" stroke="#3a3e44" stroke-width="1.200"/><path d="M10 17q4-3 10-2" stroke="#d8dce0" stroke-width="1.300" fill="none" stroke-linecap="round"/><path d="M14.200 20.800l1.200-1.600l1.600 1.200l-.6 1.800z" fill="#5a8a5a" opacity=".85"/>',
  warpaint:'<path d="M9 5h14q3 0 3 4v8q0 9-10 12Q6 26 6 17V9q0-4 3-4z" fill="#e8d4b8" stroke="#3a2412" stroke-width="1.200" stroke-linejoin="round"/><path d="M8 12l6 2M24 12l-6 2" stroke="#2a1a10" stroke-width="1.800" stroke-linecap="round"/><path d="M8 16l5 6M24 16l-5 6M16 6v8" stroke="#b0182a" stroke-width="2.200" stroke-linecap="round"/><path d="M12 24q4 2 8 0" stroke="#3a2412" stroke-width="1.200" fill="none" stroke-linecap="round"/>',
- chalk:'<path d="M7 24l14-14l4 4l-14 14z" fill="#f4f1ea" stroke="#5a5650" stroke-width="1.100" stroke-linejoin="round"/><path d="M21 10l4 4l2-2l-4-4z" fill="#d8d2c4" stroke="#5a5650" stroke-width="1"/><path d="M5 27l2-3l4 4l-3 2z" fill="#fff" stroke="#5a5650" stroke-width=".8"/><path d="M3 9q4-5 9-3M5 13q3-2 6-1" stroke="#e8e4da" stroke-width="1.600" stroke-dasharray="2 1.500" fill="none" stroke-linecap="round"/><circle cx="25" cy="25" r="3.500" fill="none" stroke="#c84a3a" stroke-width="1.300" stroke-dasharray="2 1.300"/>',
+ spotmark:'<path d="M7 24l14-14l4 4l-14 14z" fill="#f4f1ea" stroke="#5a5650" stroke-width="1.100" stroke-linejoin="round"/><path d="M21 10l4 4l2-2l-4-4z" fill="#d8d2c4" stroke="#5a5650" stroke-width="1"/><path d="M5 27l2-3l4 4l-3 2z" fill="#fff" stroke="#5a5650" stroke-width=".8"/><path d="M3 9q4-5 9-3M5 13q3-2 6-1" stroke="#e8e4da" stroke-width="1.600" stroke-dasharray="2 1.500" fill="none" stroke-linecap="round"/><circle cx="25" cy="25" r="3.500" fill="none" stroke="#c84a3a" stroke-width="1.300" stroke-dasharray="2 1.300"/>',
  keen:'<path d="M3 16q13-12 26 0q-13 12-26 0z" fill="#f4efe2" stroke="#2a2a30" stroke-width="1.200"/><circle cx="16" cy="16" r="5.200" fill="#3a7a9a" stroke="#1a2a3a" stroke-width="1"/><circle cx="16" cy="16" r="2.200" fill="#0e1418"/><circle cx="14.300" cy="14.300" r="1.100" fill="#fff"/><path d="M16 2v4M16 26v4" stroke="#c9962a" stroke-width="1.600" stroke-linecap="round"/>',
  redtome:'<path d="M6 5h17q3 0 3 3v19H9q-3 0-3-3z" fill="#8a1a22" stroke="#2a0a0c" stroke-width="1.200" stroke-linejoin="round"/><path d="M6 24q0-3 3-3h17" stroke="#e8d8c0" stroke-width="1.600" fill="none"/><path d="M10 5v16" stroke="#5a0c12" stroke-width="1"/><path d="M17 9l2.500 4.500l-2.500 4.500l-2.500-4.500z" fill="#ffb0a0" stroke="#d8b24a" stroke-width=".8"/><circle cx="17" cy="13.500" r="6" fill="#ff4030" opacity=".18"/>',
  blacktome:'<path d="M6 5h17q3 0 3 3v19H9q-3 0-3-3z" fill="#24202a" stroke="#0a080c" stroke-width="1.200" stroke-linejoin="round"/><path d="M6 24q0-3 3-3h17" stroke="#c8c0d0" stroke-width="1.600" fill="none"/><path d="M10 5v16" stroke="#0e0c12" stroke-width="1"/><path d="M14 10q3-3 6 0q-1 2-3 2q2 0 3 3q-3 3-6 0q1-2 3-2q-2 0-3-3z" fill="#8a6ab0" stroke="#d8d0e8" stroke-width=".7"/><path d="M17 15v3" stroke="#b0182a" stroke-width="1.300" stroke-linecap="round"/><circle cx="17" cy="19" r=".9" fill="#b0182a"/>',
