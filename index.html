@@ -37,8 +37,8 @@ h1{font-size:1.4rem;margin:0 0 4px}
 :root[data-theme="dark"] .sim{--tile:#2e2752;--tile2:#2a234c}
 .sim .t.w{background:var(--tile);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 -3px 0 rgba(0,0,0,.14)} /* quartz stands on the same ground as its neighbours */
 .pbob{animation:pbob 3.600s ease-in-out infinite alternate}.pswirl{animation:pswirl 14s linear infinite}.pdrift{animation:pdrift 4.800s ease-in-out infinite alternate}.pshad{transform-box:fill-box;transform-origin:50% 50%;animation:pshad 3.600s ease-in-out infinite alternate}
-@keyframes pbob{to{transform:translateY(-4px)}}@keyframes pswirl{to{transform:rotate(-360deg)}}@keyframes pdrift{to{transform:translate(2px,-5px)}}@keyframes pshad{to{transform:scale(.9);opacity:.4}}
-@media (prefers-reduced-motion:reduce){.pbob,.pswirl,.pdrift,.pshad{animation:none}}
+@keyframes pbob{to{transform:translateY(-4px)}}@keyframes pswirl{to{transform:rotate(-360deg)}}@keyframes pdrift{to{transform:translate(2px,-5px)}}@keyframes mglitch{0%,86%,100%{transform:none;opacity:1}88%{transform:translateX(3px)}91%{transform:translateX(-2px);opacity:.55}94%{transform:translateX(1px)}}.mglitch{animation:mglitch 5s steps(1) infinite}@keyframes pshad{to{transform:scale(.9);opacity:.4}}
+@media (prefers-reduced-motion:reduce){.pbob,.pswirl,.pdrift,.pshad,.mglitch{animation:none}}
 .lglow{position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen}.t.lbk{cursor:default;box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 0 14px rgba(255,226,60,.6)}
 .t.chs{background:#0c0718;cursor:default;box-shadow:none}.t.cxs{box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 0 12px rgba(192,106,255,.45)}
 .volcanic .t.fo{background-image:linear-gradient(rgba(40,24,18,.25),rgba(40,24,18,.25))} /* charred woods */
@@ -2138,7 +2138,7 @@ function doTrumpet(a){ // Trumpet of Encouragement: nearby allies that have move
 // every effect and the music are synthesized on the fly and kept quiet; Sound and Music switch off separately (remembered per browser)
 const SKEY="skirmish_sound",MKEY="skirmish_music",pref=(k)=>{try{return localStorage.getItem(k)!=="off"}catch(e){return true}};
 let actx=null,sfxOn=pref(SKEY),musicOn=pref(MKEY),mus=null;const sfxLast={};
-const SFX_VOL=.07,MUSIC_VOL=.08,SFX_GAIN={whisk:2.5,step:3,swing:3,charge:3.5,bawk:2,shove:2.5,warp:1.5,boom:.75}; // SFX_GAIN: per-effect boost over SFX_VOL
+const SFX_VOL=.07,MUSIC_VOL=.08,SFX_GAIN={whisk:2.5,step:3,swing:3,charge:3.5,bawk:2,shove:2.5,warp:1.5,boom:.75,portal:.8,simin:.8}; // SFX_GAIN: per-effect boost over SFX_VOL
 const NOISE=new Map(),noiseBuf=n=>{let b=NOISE.get(n);if(!b){b=actx.createBuffer(1,n,actx.sampleRate);const d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;NOISE.set(n,b)}return b}; // white noise, made once per length
 function audio(){actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume();return actx}
 function sfx(name){
@@ -2159,6 +2159,11 @@ function sfx(name){
       case "evade":noise(t0,.2,"bandpass",420,1.6,.85,2800);noise(t0+.03,.14,"highpass",3000,.7,.12);break; // a quick whoosh past the target
       case "heal":bell(659.25,t0,.5,.45);bell(880,t0+.1,.65,.38);break;
       case "bless":[987.77,1318.5,1567.98].forEach((f,i)=>bell(f,t0+i*.07,.55,.22));break; // a soft shimmer
+      // the Warped Sim's sounds: digital, a little broken
+      case "glitch":for(let i=0;i<5;i++)tone("square",[1760,620,2350,880,1320][i]*vr,t0+i*.032,.026,.22);noise(t0+.05,.06,"highpass",5000,.7,.3);tone("sawtooth",95,t0,.14,.3,60);break; // a stuttered burst of wrong notes
+      case "spark":tone("square",880*vr,t0,.1,.22,1760);tone("sine",1318.5*vr,t0+.06,.3,.35);bell(2093,t0+.1,.45,.18);break; // a bright electronic chirp
+      case "portal":tone("sine",110,t0,1.4,.6,220);tone("triangle",165,t0+.1,1.2,.25,330);[587.33,739.99,880,1108.73,1318.51].forEach((f,i)=>bell(f*vr,t0+.25+i*.13,.6,.16));break; // a low hum rising into chimes
+      case "simin":tone("sine",1400*vr,t0,.7,.4,110);[1760,1318.5,987.77,659.25,440].forEach((f,i)=>tone("square",f,t0+i*.07,.05,.12));noise(t0,.5,"bandpass",3000,2,.3,300);bell(1174.66,t0+.65,.9,.25);break; // folding into light, then a clear tone
       case "win":[[523.25,0,.16],[659.25,.13,.16],[783.99,.26,.16],[1046.5,.39,.6]].forEach(([f,st,len])=>{tone("triangle",f,t0+st,len,.6);tone("sine",f/2,t0+st,len,.25)});break;
       case "lose":[[392,0,.28],[349.23,.24,.28],[293.66,.48,.75]].forEach(([f,st,len])=>{tone("triangle",f,t0+st,len,.55);tone("sine",f/2,t0+st,len,.3)});break;
       case "coin":tone("sine",1318.5,t0,.12,.55);tone("sine",1760,t0+.07,.22,.5);tone("triangle",2637,t0+.07,.12,.12);break; // the clink of coins
@@ -2533,7 +2538,7 @@ function chickensAct(done){
 }
 function thanks(u){later(()=>{if(units.includes(u))floatText(u.x,u.y,"Thanks Herbert","thanks")},450)} // a small, warm note that fades
 function hitFor(a,b,c,back){ // resolve one blow from a to b: dodge roll, damage, removal; true when it landed
-  if(Math.random()<1-c.hit){floatText(b.x,b.y,"Evade",true);sfx("evade");say(sent(who(b))+" evaded "+(back?"the retaliation.":"the attack."));return false}
+  if(Math.random()<1-c.hit){floatText(b.x,b.y,"Evade",true);sfx(b.glitch==="flick"?"glitch":"evade");say(sent(who(b))+" evaded "+(back?"the retaliation.":"the attack."));return false}
   if(b.team==="y"&&b.t==="A"&&a.team!=="y"&&ST(a).rg>1){unlocks.ah=(unlocks.ah||0)+1;saveU();if(unlocks.ah>=10)unlock("pavise")} // archers under arrow fire learn to raise a wall
   if(b.team==="y"&&c.blk){unlocks.ab=(unlocks.ab||0)+c.blk;saveU();if(unlocks.ab>=BUCKLER_UNLOCK)unlock("buckler")} // blows turned aside by your armor
   if(!back&&c.parts.some(p=>p[0]==="Spotter's Mark"))delete b.spot; // the mark is wiped off by the blow that used it
@@ -2547,7 +2552,7 @@ function hitFor(a,b,c,back){ // resolve one blow from a to b: dodge roll, damage
   else{say(sent(who(a))+(back?" retaliated against ":" hit ")+who(b)+" for "+c.dmg+" damage.");if(a.ublade&&!back&&!rooted(b))a.ushove=b} // the Usurper's Blade: a shove after a landed blow
   if(a.ublade&&units.includes(a)&&a.hp<maxHp(a)){a.hp+=1;later(()=>{if(units.includes(a))floatText(a.x,a.y,"+1","heal")},300)} // ...and it feeds its bearer
   if(b.ubulwark&&adj&&a.team!==b.team&&units.includes(a)){later(()=>sfx("hit"),150);if(hurt(a,1))credit(b,a)} // the Usurper's Bulwark: thorns
-  if(b.glitch==="code"&&adj&&a.team!==b.team&&units.includes(a)){later(()=>sfx("hit"),150);if(hurt(a,1))credit(b,a)} // a Corrupted Elite's Chaos Code bites back
+  if(b.glitch==="code"&&adj&&a.team!==b.team&&units.includes(a)){later(()=>sfx("glitch"),150);if(hurt(a,1))credit(b,a)} // a Corrupted Elite's Chaos Code bites back
   return true;
 }
 const splinterTiles=(a,bx,by)=>{const sx=Math.sign(bx-a.x),sy=Math.sign(by-a.y); // the far side of the target, seen from the shooter
@@ -2572,7 +2577,7 @@ function sparkArrives(){
   if(pturn!==3||!RELIC.has("spark")||units.some(u=>u.t==="S"))return "";
   const ys=units.filter(u=>u.team==="y"&&!u.auto).sort((a,b)=>a.hp-b.hp);
   for(const w of ys){const sp=[...DIRS,[1,1],[1,-1],[-1,1],[-1,-1]].map(([dx,dy])=>[w.x+dx,w.y+dy]).filter(([x,y])=>open(x,y)).sort(()=>Math.random()-.5).sort((p,q)=>(Math.abs(p[0]-w.x)+Math.abs(p[1]-w.y))-(Math.abs(q[0]-w.x)+Math.abs(q[1]-w.y)));
-    if(!sp.length)continue;units.push({t:"S",team:"y",auto:1,anchor:w.ci,x:sp[0][0],y:sp[0][1],hp:TYPES.S.hp,moved:0,acted:0,spawn:1});sfx("bless");
+    if(!sp.length)continue;units.push({t:"S",team:"y",auto:1,anchor:w.ci,x:sp[0][0],y:sp[0][1],hp:TYPES.S.hp,moved:0,acted:0,spawn:1});sfx("spark");
     return `A Friendly Spark flickered into being beside your ${NAME[w.t]}.`}
   return "";
 }
@@ -3495,9 +3500,9 @@ function portalScene(){
 <ellipse cx="${CX}" cy="${CY}" rx="58" ry="64" fill="none" stroke="#c8a8ff" stroke-width="7" opacity=".35" filter="url(#ptblur)"/>${inner}${ring}<g filter="url(#ptglow)" opacity=".7">${glow}</g></g>${loose}
 </svg>`;
 }
-const PORTAL={t:"A Portal Opens",tag:"A rift",rc:"#9a6ad8",go:()=>({art:portalScene(),
+const PORTAL={t:"A Portal Opens",tag:"A rift",rc:"#9a6ad8",go:()=>(sfx("portal"),{art:portalScene(),
   text:"As your army packs away the boss's hoard, the air ahead begins to hum. Pale cubes drift up out of the grass and lock together into a ring, hanging just above the ground. Inside it, a violet swirl turns slowly, flecked with faint sparks. It doesn't look like it belongs here.",
-  opts:[{label:"Carefully Enter the Portal",go:()=>{camp.portal=1;camp.portalIn=1;saveCamp();return "One careful step at a time, your army files through. The ground underfoot breaks into squares, then into light, and the world you knew folds shut behind you."}},
+  opts:[{label:"Carefully Enter the Portal",go:()=>{camp.portal=1;camp.portalIn=1;saveCamp();sfx("simin");return "One careful step at a time, your army files through. The ground underfoot breaks into squares, then into light, and the world you knew folds shut behind you."}},
     {label:"Quietly Back Away and Go Around",go:()=>{camp.portal=1;saveCamp();return "You give the ring a wide berth and take the long way around. Behind you, the cubes drift apart and the hum fades. Whatever it was, it won't wait for you again."}}]})};
 function enterSim(){ // the region you've just reached becomes the Warped Sim (its own map comes in genWorld)
   delete camp.portalIn;camp.inSim=1;camp.pos=0;camp.cleared=[];camp.done=false;camp.sel=0;camp.news="You stepped out of the portal into the Warped Sim.";
@@ -3888,6 +3893,18 @@ CAMP_SET.volcanic={sky:["#0c0302","#4a140a"],hz:"#ff5a1a",moon:"#e8865a",rune:"#
  mid:()=>`<path d="M-4 164q60-8 120-2t200-4v7q-100 8-200 4t-120 2z" fill="#e2531a" opacity=".7"/><path d="M20 165l14-2l6 2M120 162l18 1M240 160l16 1" stroke="#3a1a10" stroke-width="2.400" stroke-linecap="round"/><path d="M-4 164q60-8 120-2t200-4" stroke="#ffd27a" stroke-width=".9" fill="none" opacity=".6"/>`,
  fore:()=>`<path d="M6 214v-14l3-4l2 3l2-5l2 6v14z" fill="#1a1210"/><path d="M8 210l2-6M12 212v-5" stroke="#ff7a2a" stroke-width=".8" opacity=".7"/><path d="M28 216l6-3l5 2l4-2" stroke="#ff7a2a" stroke-width="1.200" fill="none" opacity=".6"/><circle class="emb" cx="40" cy="200" r="1" fill="#ffb83a"/>`};
 CAMP_SET.heal=CAMP_SET.plain;
+// the Warped Sim: a violet sky with a glitching moon, drifting glowing cubes, a neon horizon and a faint grid on the ground
+const simCube=(x,y,s,c,o=1)=>`<g opacity="${o}"><path d="M${x} ${y-s}l${s} ${s*.5}l${-s} ${s*.5}l${-s} ${-s*.5}z" fill="${c}"/><path d="M${x-s} ${y-s*.5}l${s} ${s*.5}v${s}l${-s} ${-s*.5}z" fill="${c}" opacity=".62"/><path d="M${x+s} ${y-s*.5}l${-s} ${s*.5}v${s}l${s} ${-s*.5}z" fill="${c}" opacity=".38"/></g>`;
+CAMP_SET.sim={sky:["#05031a","#2c1658"],hz:"#c86aff",moon:"#c8f6ff",rune:"#7df0ff",g:["#231a46","#1a1338"],fog:"#a890ff",
+ back:()=>`<g class="mglitch"><circle cx="263.500" cy="46" r="17" fill="#ff4adf" opacity=".16"/><circle cx="268.500" cy="46" r="17" fill="#4af0ff" opacity=".16"/>
+   <g fill="#c8f6ff"><rect x="252" y="38" width="34" height="3" opacity=".7" transform="translate(5 0)"/><rect x="249" y="49" width="28" height="2" opacity=".55" transform="translate(-6 0)"/><rect x="283" y="42" width="3" height="3" opacity=".5"/><rect x="246" y="54" width="2.500" height="2.500" opacity=".45"/></g>
+   <path d="M249 44.500h34" stroke="#2c1658" stroke-width="1.300" opacity=".75"/><g fill="#2c1658" opacity=".7"><rect x="270" y="33" width="3" height="3"/><rect x="258" y="56" width="4" height="2"/></g></g><rect x="249" y="29" width="34" height="34" fill="none" stroke="#7df0ff" stroke-width=".6" opacity=".35"/>
+  <g stroke="#7df0ff" stroke-width=".5" opacity=".12">${[20,40,60,80,100,120].map(y=>`<path d="M0 ${y}H320"/>`).join("")}</g>
+  <g fill="#120c2e">${[[0,150,18,128],[34,150,48,118],[60,150,70,132],[226,150,236,122],[250,150,262,110],[284,150,296,126],[306,150,320,118]].map(([a,b,c,d])=>`<path d="M${a} ${b}L${c} ${d}L${c+6} ${d+4}L${c+12} ${b}z"/>`).join("")}</g>
+  <path d="M0 148H320" stroke="#e26aff" stroke-width="1.400" opacity=".7"/><path d="M0 148H320" stroke="#ff9cf0" stroke-width="4" opacity=".18"/>
+  ${[[92,96,5,"#7df0ff",0],[176,70,4,"#e26aff",1],[40,90,3.500,"#ffd86a",2],[300,92,4,"#7df0ff",3],[128,40,3,"#e26aff",4]].map(([x,y,sz,c,k])=>`<g class="pdrift" style="animation-delay:${-k*.8}s"><circle cx="${x}" cy="${y-sz*.2}" r="${sz*2.400}" fill="${c}" opacity=".12"/>${simCube(x,y,sz,c,.9)}</g>`).join("")}`,
+ mid:()=>`<g stroke="#b06aff" stroke-width=".6" opacity=".28" fill="none"><path d="M0 154H320M0 160H320M0 168H320"/>${[-160,-80,0,80,160,240,320,400,480].map(x=>`<path d="M160 148L${x} 176"/>`).join("")}</g>`,
+ fore:()=>`<g class="pdrift">${simCube(14,206,5,"#7df0ff",.85)}</g>${simCube(32,212,3.500,"#e26aff",.8)}<circle class="twk" cx="22" cy="190" r="1.300" fill="#c8f6ff"/>`};
 CAMP_SET.sakura={...CAMP_SET.plain,sky:["#140c18","#5a3048"],hz:"#e88aa8",moon:"#ffe4ee",fog:"#e8b8c8"}; // Sakura Vale: a rose-tinted dusk
 // Marcus the skeleton pedlar and his mule Parsnip, at his lamplit wagon (the shop scene, 320x220)
 function shopScene(){
@@ -4149,17 +4166,26 @@ let herbertLast=-1,BIOME_KEY="plain",herbertMet=false; // herbertMet: this map's
 const HERBERT_MEAL=["Come in, come in! Rest your weary bones. There's stew on the fire and plenty to go around!",
  "You look like you could use a hot meal and a long nap. Lucky for you, I make a mean stew!",
  "Pull up a log, friends! Supper's nearly ready, and the bedrolls are warm."];
+// in the Warped Sim: Herbert is puzzled by the place, and cheerful about it anyway
+const HERBERT_SIM=["Don't mind the sky. It flickers sometimes. I've decided it's waving.","I tried to light the fire and it came out square! Still warm, though. Mostly.",
+ "Funny place, this. My bones keep humming. I think they like it!","Lost? Me too! But we're lost together, and that's practically found.",
+ "Watch out for the purple ones that blink. Very rude, they are.","The bedroll keeps giving me a static shock. But it's okay... it's still warm!"];
+const HERBERT_MEAL_SIM=["Followed you through that ring of cubes! Couldn't let you face this odd place hungry. Stew's on... I think it's stew.",
+ "Everything here hums, even the stew. Sit, eat, rest. The squares can wait.",
+ "Found a corner that hasn't gone all sparkly yet. Best spot in the place! Pull up a log... well, a cube.","The bedroll keeps giving me a static shock. But it's okay... it's still warm!"];
+const HERBERT_WIN_SIM=["You found the way out! I'll admit, I was starting to like the humming.","Out of the Sim and into the sun! Well, a sun. I'm checking that it's round."];
 let campDone=null; // what leaving the camp screen does
+const simCamp=()=>!!camp.inSim&&!chal; // Herbert followed you into the Warped Sim
 function openCamp(bk,line,btn,meal,done){
-  $("cscene").innerHTML=campScene(bk,meal);$("cline").innerHTML=`<b>Herbert:</b> “${line}”`;$("cleave").textContent=btn;campDone=done;
+  $("cscene").innerHTML=campScene(simCamp()?"sim":bk,meal);$("cline").innerHTML=`<b>Herbert:</b> “${line}”`;$("cleave").textContent=btn;campDone=done;
   $("campv").hidden=false;$("cleave").focus();
   if(!herbertMet){herbertMet=true;unlocks.hv=(unlocks.hv||0)+1;saveU();if(unlocks.hv>=3)unlock("graveyard")} // visits on three different maps: the way to his home
 }
 function visitCamp(){ // from the Mysterious Camp Site in battle
-  let i;do i=Math.floor(Math.random()*HERBERT.length);while(i===herbertLast&&HERBERT.length>1);herbertLast=i;
+  const H=simCamp()?HERBERT_SIM:HERBERT;let i;do i=Math.floor(Math.random()*H.length);while(i===herbertLast&&H.length>1);herbertLast=i;
   paused=true;say("You visited Herbert's camp.");
   const by=sel;
-  openCamp(BIOME_KEY,HERBERT[i],"Thank Herbert and Leave Camp",false,()=>{paused=false;
+  openCamp(BIOME_KEY,H[i],"Thank Herbert and Leave Camp",false,()=>{paused=false;
     if(RELIC.has("warm")&&!relicUsed.warm){relicUsed.warm=pturn;sfx("bless");units.filter(u=>u.team==="y").forEach(u=>floatText(u.x,u.y,"Rested","bless"));if(by)thanks(by);say("Rested: the Warm Mug gives your units +2% evasion until the end of the enemy's next turn.");render();return} // Warm Mug, once per battle
     say("Move, attack, or pick another unit.");render()});
 }
@@ -4168,7 +4194,7 @@ $("cleave").onclick=()=>{$("campv").hidden=true;const f=campDone;campDone=null;i
 $("haleave").onclick=()=>{$("herbask").hidden=true};
 $("haenter").onclick=()=>{
   $("herbask").hidden=true;herbertMet=false; // a new place: this visit counts toward his home
-  openCamp("heal",HERBERT_MEAL[Math.floor(Math.random()*HERBERT_MEAL.length)],"Rest and Share a Meal",true,()=>{
+  const M=simCamp()?HERBERT_MEAL_SIM:HERBERT_MEAL;openCamp("heal",M[Math.floor(Math.random()*M.length)],"Rest and Share a Meal",true,()=>{
     const mended=(camp.wounds||[]).reduce((a,w)=>a+(w||0),0);camp.wounds=[];camp.hp=null;if(camp.merc)camp.merc.hp=camp.merc.st.hp;saveCamp();renderWorld();$("wprog").textContent="A hot meal and a good rest by Herbert's fire restored your army to full health"+(mended?" and mended every wound.":".");healFx(WORLD[camp.pos]);
   });
 };
@@ -4558,7 +4584,7 @@ function showTriumph(nm,fallen){ // fallen: how a lost campaign ended ("lost", "
     :`You conquered <b>${nm.name}</b>`+(camp.region>1?` and won your ${["","","second","third","fourth","fifth"][camp.region]||camp.region+"th"} region!`:" and won the campaign!");
   $("tstats").innerHTML='<h3>Roll of honor</h3>'+army.map((t,i)=>{const f=(camp.falls&&camp.falls[i])||[];return `<div class="trow">${hIcon(t,"y")}<span>${heroName(i)} <small>${cap(NAME[t])}${t==="T"&&kills[i]?", with militia":""}${f.length?` · fell at ${fellAt(f)}`:" · never fell"}</small></span><b title="enemies defeated">${kills[i]}</b></div>`}).join("")
     +`<div class="ttot"><span>Total defeated: ${total}</span><span>Maps cleared: ${maps}</span></div>`;
-  $("therb").innerHTML=unlocks.campsite?`<div class="hport" aria-hidden="true">${campScene("plain").replace('viewBox="0 0 320 220"','viewBox="178 48 90 84" preserveAspectRatio="xMidYMid slice"')}</div><div class="cbub"><b>Herbert:</b> “${HERBERT_WIN[Math.floor(Math.random()*HERBERT_WIN.length)]}”</div>`:"";
+  $("therb").innerHTML=unlocks.campsite?`<div class="hport" aria-hidden="true">${campScene(camp.inSim?"sim":"plain").replace('viewBox="0 0 320 220"','viewBox="178 48 90 84" preserveAspectRatio="xMidYMid slice"')}</div><div class="cbub"><b>Herbert:</b> “${(camp.inSim?HERBERT_WIN_SIM:HERBERT_WIN)[Math.floor(Math.random()*(camp.inSim?HERBERT_WIN_SIM:HERBERT_WIN).length)]}”</div>`:"";
   if(fallen&&unlocks.campsite)$("therb").querySelector(".cbub").innerHTML=`<b>Herbert:</b> “${HERBERT_LOSS[Math.floor(Math.random()*HERBERT_LOSS.length)]}”`;
   $("triumph").hidden=false;(fallen?$("tnew"):$("ttravel")).focus();
 }
