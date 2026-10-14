@@ -3336,7 +3336,7 @@ ${seat}${who?banner:""}${cape}${legs}${body}${arms}${pauldron}${sack}${skull}${w
 /* ---------- The portal to the Warped Sim (unlocked by "warpedsim") ----------
    After you choose a boss's spoils from regions 5 to 9 (so, on arriving in regions 6 to 10), a portal may open, once per campaign whatever you choose.
    Entering turns the region you've just reached into the Warped Sim; backing away leaves it as it is. */
-const PORTAL_CHANCE=.12,SIM_BOSS_SAKURA=.75; // SIM_BOSS_SAKURA: how often the Sim's boss fights in a Sakura Vale (else a Sim biome), once Sakura Vale is unlocked
+const PORTAL_CHANCE=.12,SIM_BOSS_SAKURA=.75,SIM_ESC=2; // SIM_ESC: the Sim's enemies escalate as if this many regions further on; // SIM_BOSS_SAKURA: how often the Sim's boss fights in a Sakura Vale (else a Sim biome), once Sakura Vale is unlocked
 const portalDue=()=>unlocks.warpedsim&&!camp.portal&&!camp.inSim&&camp.region>=6&&camp.region<=10&&camp.pos===0&&Math.random()<PORTAL_CHANCE;
 // the Rift portal: a ring of crystalline cubes hovering over the field, a violet swirl at its heart
 function portalScene(){
@@ -3584,10 +3584,10 @@ function start(o={}){
   const spot=(rows,xs)=>{for(const y of rows)for(const x of xs)if(!solid(x+","+y)&&!at(x,y))return [x,y];return null};
   if(camp.battle&&!chal&&camp.merc&&camp.merc.hp>0){const m=camp.merc,sp=spot([H-1,H-2],[5,2,7,0,9,4,6,1,3,8]);if(sp)units.push({t:m.t,team:"y",auto:1,merc:1,mname:m.name,st:m.st,x:sp[0],y:sp[1],hp:Math.min(m.hp,m.st.hp),moved:1,acted:1})} // your hired sword
   FOE_RELIC=new Set();FOE_ITEMS=[];
-  if(camp.battle&&!chal){const E=esc(camp.region||1); // escalation (see ESC): extra enemy units, then Elites, then the boss's loadout
+  if(camp.battle&&!chal){const ER=(camp.region||1)+(camp.inSim?SIM_ESC:0),E=esc(ER); // escalation (see ESC): extra enemy units, then Elites, then the boss's loadout (the Sim fights as if two regions further on)
     for(let i=0;i<E.extra;i++){const t=rnd(foe),sp=spot([1,0],[4,5,2,7,0,9,3,6,1,8]);if(sp){foe.push(t);units.push({t,team:"f",x:sp[0],y:sp[1],hp:TYPES[t].hp,moved:0,acted:0})}}
     units.filter(u=>u.team==="f").sort(()=>Math.random()-.5).slice(0,E.elite).forEach(u=>{u.elite=1;u.hp+=ELITE_HP});
-    if(o.boss)foeLoadout(camp.region||1);
+    if(o.boss)foeLoadout(ER);
   }
   vanguard();
   if(FOE_RELIC.has("keep")){const fs=units.filter(u=>u.team==="f");fs[Math.floor(Math.random()*fs.length)].keep=1}
