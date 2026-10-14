@@ -37,8 +37,8 @@ h1{font-size:1.4rem;margin:0 0 4px}
 :root[data-theme="dark"] .sim{--tile:#2e2752;--tile2:#2a234c}
 .sim .t.w{background:var(--tile);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 -3px 0 rgba(0,0,0,.14)} /* quartz stands on the same ground as its neighbours */
 .pbob{animation:pbob 3.600s ease-in-out infinite alternate}.pswirl{animation:pswirl 14s linear infinite}.pdrift{animation:pdrift 4.800s ease-in-out infinite alternate}.pshad{transform-box:fill-box;transform-origin:50% 50%;animation:pshad 3.600s ease-in-out infinite alternate}
-@keyframes pbob{to{transform:translateY(-4px)}}@keyframes pswirl{to{transform:rotate(-360deg)}}@keyframes pdrift{to{transform:translate(2px,-5px)}}@keyframes pshad{to{transform:scale(.9);opacity:.4}}
-@media (prefers-reduced-motion:reduce){.pbob,.pswirl,.pdrift,.pshad{animation:none}}
+@keyframes pbob{to{transform:translateY(-4px)}}@keyframes pswirl{to{transform:rotate(-360deg)}}@keyframes pdrift{to{transform:translate(2px,-5px)}}@keyframes mglitch{0%,86%,100%{transform:none;opacity:1}88%{transform:translateX(3px)}91%{transform:translateX(-2px);opacity:.55}94%{transform:translateX(1px)}}.mglitch{animation:mglitch 5s steps(1) infinite}@keyframes pshad{to{transform:scale(.9);opacity:.4}}
+@media (prefers-reduced-motion:reduce){.pbob,.pswirl,.pdrift,.pshad,.mglitch{animation:none}}
 .lglow{position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen}.t.lbk{cursor:default;box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 0 14px rgba(255,226,60,.6)}
 .t.chs{background:#0c0718;cursor:default;box-shadow:none}.t.cxs{box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 0 12px rgba(192,106,255,.45)}
 .volcanic .t.fo{background-image:linear-gradient(rgba(40,24,18,.25),rgba(40,24,18,.25))} /* charred woods */
@@ -3896,7 +3896,9 @@ CAMP_SET.heal=CAMP_SET.plain;
 // the Warped Sim: a violet sky with a glitching moon, drifting glowing cubes, a neon horizon and a faint grid on the ground
 const simCube=(x,y,s,c,o=1)=>`<g opacity="${o}"><path d="M${x} ${y-s}l${s} ${s*.5}l${-s} ${s*.5}l${-s} ${-s*.5}z" fill="${c}"/><path d="M${x-s} ${y-s*.5}l${s} ${s*.5}v${s}l${-s} ${-s*.5}z" fill="${c}" opacity=".62"/><path d="M${x+s} ${y-s*.5}l${-s} ${s*.5}v${s}l${s} ${-s*.5}z" fill="${c}" opacity=".38"/></g>`;
 CAMP_SET.sim={sky:["#05031a","#2c1658"],hz:"#c86aff",moon:"#c8f6ff",rune:"#7df0ff",g:["#231a46","#1a1338"],fog:"#a890ff",
- back:()=>`<g fill="#c8f6ff"><rect x="250" y="38" width="34" height="3" opacity=".75" transform="translate(5 0)"/><rect x="249" y="49" width="28" height="2" opacity=".6" transform="translate(-6 0)"/></g><rect x="249" y="29" width="34" height="34" fill="none" stroke="#7df0ff" stroke-width=".6" opacity=".35"/>
+ back:()=>`<g class="mglitch"><circle cx="263.500" cy="46" r="17" fill="#ff4adf" opacity=".16"/><circle cx="268.500" cy="46" r="17" fill="#4af0ff" opacity=".16"/>
+   <g fill="#c8f6ff"><rect x="252" y="38" width="34" height="3" opacity=".7" transform="translate(5 0)"/><rect x="249" y="49" width="28" height="2" opacity=".55" transform="translate(-6 0)"/><rect x="283" y="42" width="3" height="3" opacity=".5"/><rect x="246" y="54" width="2.500" height="2.500" opacity=".45"/></g>
+   <path d="M249 44.500h34" stroke="#2c1658" stroke-width="1.300" opacity=".75"/><g fill="#2c1658" opacity=".7"><rect x="270" y="33" width="3" height="3"/><rect x="258" y="56" width="4" height="2"/></g></g><rect x="249" y="29" width="34" height="34" fill="none" stroke="#7df0ff" stroke-width=".6" opacity=".35"/>
   <g stroke="#7df0ff" stroke-width=".5" opacity=".12">${[20,40,60,80,100,120].map(y=>`<path d="M0 ${y}H320"/>`).join("")}</g>
   <g fill="#120c2e">${[[0,150,18,128],[34,150,48,118],[60,150,70,132],[226,150,236,122],[250,150,262,110],[284,150,296,126],[306,150,320,118]].map(([a,b,c,d])=>`<path d="M${a} ${b}L${c} ${d}L${c+6} ${d+4}L${c+12} ${b}z"/>`).join("")}</g>
   <path d="M0 148H320" stroke="#e26aff" stroke-width="1.400" opacity=".7"/><path d="M0 148H320" stroke="#ff9cf0" stroke-width="4" opacity=".18"/>
@@ -4167,10 +4169,10 @@ const HERBERT_MEAL=["Come in, come in! Rest your weary bones. There's stew on th
 // in the Warped Sim: Herbert is puzzled by the place, and cheerful about it anyway
 const HERBERT_SIM=["Don't mind the sky. It flickers sometimes. I've decided it's waving.","I tried to light the fire and it came out square! Still warm, though. Mostly.",
  "Funny place, this. My bones keep humming. I think they like it!","Lost? Me too! But we're lost together, and that's practically found.",
- "Watch out for the purple ones that blink. Very rude, they are."];
+ "Watch out for the purple ones that blink. Very rude, they are.","The bedroll keeps giving me a static shock. But it's okay... it's still warm!"];
 const HERBERT_MEAL_SIM=["Followed you through that ring of cubes! Couldn't let you face this odd place hungry. Stew's on... I think it's stew.",
  "Everything here hums, even the stew. Sit, eat, rest. The squares can wait.",
- "Found a corner that hasn't gone all sparkly yet. Best spot in the place! Pull up a log... well, a cube."];
+ "Found a corner that hasn't gone all sparkly yet. Best spot in the place! Pull up a log... well, a cube.","The bedroll keeps giving me a static shock. But it's okay... it's still warm!"];
 const HERBERT_WIN_SIM=["You found the way out! I'll admit, I was starting to like the humming.","Out of the Sim and into the sun! Well, a sun. I'm checking that it's round."];
 let campDone=null; // what leaving the camp screen does
 const simCamp=()=>!!camp.inSim&&!chal; // Herbert followed you into the Warped Sim
