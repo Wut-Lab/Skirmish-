@@ -1211,6 +1211,10 @@ function chasmArt(m,v){
 }
 // Chaos Spring: neon sparkles in purple, blue and yellow over a faint gridded circle
 const CHAOS_HP=1;
+// the Warped Sim's mark (its Unlocks entry): a ring of pale cubes around a violet swirl
+const SIM_ICON=(()=>{const cube=(x,y,s,c)=>{const h=s*.866,f=n=>n.toFixed(1),P=(...q)=>q.map(([u,v])=>f(x+u)+" "+f(y+v)).join("L");return `<path d="M${P([0,-s],[h,-s/2],[0,0],[-h,-s/2])}z" fill="${c?"#d8fbf6":"#efe8ff"}"/><path d="M${P([-h,-s/2],[0,0],[0,s],[-h,s/2])}z" fill="${c?"#78cfd6":"#a896e4"}"/><path d="M${P([0,0],[h,-s/2],[h,s/2],[0,s])}z" fill="${c?"#2e7486":"#5c4aa6"}"/><path d="M${P([0,-s],[h,-s/2],[h,s/2],[0,s],[-h,s/2],[-h,-s/2])}z" fill="none" stroke="#1c1238" stroke-width=".6"/>`};
+  let r="";for(let i=0;i<12;i++){const a=i/12*6.283;r+=cube(20+Math.cos(a)*13,20+Math.sin(a)*14,3.200+(i%3)*.5,i===4)}
+  return svg(`<defs><radialGradient id="simic"><stop offset="0" stop-color="#fbeaff"/><stop offset=".45" stop-color="#9a5ae0"/><stop offset="1" stop-color="#1a0c36"/></radialGradient></defs><ellipse cx="20" cy="20" rx="12" ry="13" fill="url(#simic)"/><path d="M20 20q4-2 3-6M20 20q-4 2-3 6M20 20q2 4 6 3M20 20q-2-4-6-3" stroke="#f0dcff" stroke-width="1.100" fill="none" opacity=".7" stroke-linecap="round"/>${r}`)})();
 // Light Brick: a chunky neon-yellow brick, white-hot at its edges, in a halo of its own light; its glow spills onto the 4 tiles beside it
 const LBRICK_V=svg(`<rect x="2" y="7" width="36" height="28" rx="6" fill="#ffe94a" opacity=".3"/><rect x="5" y="10" width="30" height="22" rx="3" fill="#ffd21f" stroke="#7a5a00" stroke-width="1.200"/><path d="M5 21H35M15 10V21M25 21V32" stroke="#b88a00" stroke-width="1.100"/><rect x="7" y="12" width="7" height="7.500" rx="1" fill="#fff6a8"/><rect x="16.500" y="12" width="17" height="7.500" rx="1" fill="#ffef6a"/><rect x="7" y="23" width="16.500" height="7.500" rx="1" fill="#ffe94a"/><rect x="26.500" y="23" width="7" height="7.500" rx="1" fill="#ffe24a"/><path d="M6 11.500h28" stroke="#fffde8" stroke-width="1.100" opacity=".9"/><circle cx="31" cy="8" r="1.300" fill="#fffde8"/><circle cx="8" cy="34" r="1" fill="#fffde8" opacity=".8"/>`);
 const glowOf=k=>{const[x,y]=pk(k);return LIGHT.has(k)||solid(k)?[]:DIRS.filter(([dx,dy])=>LIGHT.has((x+dx)+","+(y+dy)))}; // the bricks whose light falls on this tile (as directions to them)
@@ -2690,6 +2694,7 @@ function showEnd(win){
     if(unlocks.cw>=4)unlock("captain");
     if(nm.type==="boss")unlock("banner");
     if(nm.type==="boss"&&camp.region>=2)unlock("volcanic"); // a second land conquered in one campaign
+    if(nm.type==="boss"&&camp.region===5&&[...CORE].every(t=>armyTypes().some((a,i)=>a===t&&(camp.kills[i]||0)>0)))unlock("warpedsim"); // the Warped Sim: the fifth boss falls, and a Knight, an Archer and a Cavalry unit have each downed a foe this campaign
     if(armyTypes().every((t,i)=>units.some(v=>v.team==="y"&&v.ci===i)))unlock("cherry"); // a flawless victory: nobody fell
   }
   $("dtitle").textContent=win?"Victory":"Defeat";
@@ -4523,19 +4528,21 @@ const UNLOCKS=[
  {id:"vgloves",relic:"vgloves",hint:"A small kindness, remembered."},
  {id:"vmorion",relic:"vmorion",hint:"Some debts are repaid in steel."},
  {id:"vfalcata",relic:"vfalcata",hint:"His men are well funded."},
- {id:"conquistador",unit:"Q",hint:"The expedition begins anew."}
+ {id:"conquistador",unit:"Q",hint:"The expedition begins anew."},
+ {id:"warpedsim",sim:1,secret:1} // secret: not listed (or counted) until it's unlocked
 ];
 // name, art and description for an unlock, read from the terrain table or the unit descriptions
 const unlockInfo=o=>o.chal?(c=>({name:c.name,art:`<div class="tsw" style="${TERRAIN.fort.bg}">${FORT_ICON[0]}</div>`,desc:`${c.desc} A ${DIFF[c.diff||0][0].toLowerCase()} challenge map, played from the Challenges menu.`}))(CHALLENGES.find(c=>c.id===o.chal))
   :o.item?{name:ITEMS[o.item].name,art:itemIcon(o.item,44),desc:ITEMS[o.item].desc+` ${RARITY[ITEMS[o.item].r||0][0]} consumable, sold by Marcus.`}
   :o.relic?{name:unlocks.vmorion?RELICS[o.relic].name:RELICS[o.relic].name.replace(/^Vasco's/,"???'s"),art:relicIcon(o.relic,44),desc:RELICS[o.relic].desc+` ${/^[AEIOU]/.test(RARITY[RELICS[o.relic].r][0])?"An":"A"} ${RARITY[RELICS[o.relic].r][0].toLowerCase()} relic `+(RELICS[o.relic].find?"found only in battle, never offered as a reward.":"that can be offered after campaign victories.")}
+  :o.sim?{name:"The Warped Sim",art:`<div class="tsw" style="background:#2e2752">${SIM_ICON}</div>`,desc:"A rift into a land that isn't quite real. After you defeat a campaign boss in regions 5 to 9, a portal may open: step through for a short, harsh region of glitched terrain, Chaos Springs and Light Bricks, with spoils to match."}
   :o.biome?{name:BIOME_NAME[o.biome],art:terrainSwatch(o.terrain),desc:BTEXT[o.biome]+" Can appear in campaigns and quick battles."}
   :o.terrain?{name:TERRAIN[o.terrain].name,art:terrainSwatch(o.terrain),desc:TERRAIN[o.terrain].desc}
   :{name:cap(NAME[o.unit]),art:hIcon(o.unit,"y"),desc:`${unitStats(o.unit)}. ${ABILITY[o.unit]} Limit one per army.`};
 function unlockView(){
-  const r=$("unlockview"),got=UNLOCKS.filter(o=>unlocks[o.id]).length;
-  r.innerHTML=`<h2 class="htitle">Unlocks</h2><p class="hint" style="text-align:center">${got} of ${UNLOCKS.length} unlocked</p><div class="ulist">`
-   +UNLOCKS.map(o=>{
+  const r=$("unlockview"),UL=UNLOCKS.filter(o=>!o.secret||unlocks[o.id]),got=UL.filter(o=>unlocks[o.id]).length; // secrets stay off the list until found
+  r.innerHTML=`<h2 class="htitle">Unlocks</h2><p class="hint" style="text-align:center">${got} of ${UL.length} unlocked</p><div class="ulist">`
+   +UL.map(o=>{
      const on=!!unlocks[o.id],pr=!on&&o.prog&&o.prog(),hint=typeof o.hint==="function"?o.hint():o.hint,T=unlockInfo(o);
      return `<div class="hcard${on?"":" ulock"}" aria-label="${T.name}, ${on?"unlocked":"locked"}">`+hRow(on?T.art:LOCK_ART,`<b>${T.name}</b><small>${on?"Unlocked":"Locked"}</small>${on?T.desc:"How to unlock: "+hint}${pr?`<div class="uprog"><i style="width:${100*pr[0]/pr[1]}%"></i></div><small>${pr[0]} of ${pr[1]} ${pr[2]}</small>`:""}`)+"</div>";
    }).join("")+"</div>";
