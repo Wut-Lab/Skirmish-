@@ -391,6 +391,7 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .aimk{position:absolute;top:-5px;right:-5px;width:17px;height:17px;border-radius:50%;background:#1e3a2a;box-shadow:0 0 0 1.5px #9fe0b0;z-index:3;display:grid;place-items:center}.aimk svg{width:13px;height:13px} /* Sentinel's Bowstring: holding aim */
 .u.usurp::before{content:"\265B";position:absolute;bottom:-5px;left:-5px;width:16px;height:16px;border-radius:50%;background:#2a1a26;color:#e0a0b0;font-size:.62rem;line-height:16px;text-align:center;box-shadow:0 0 0 1.5px #b0182a,0 0 8px 2px rgba(120,30,60,.7);z-index:3} /* a Usurper piece: a dark crown */
 .u.elite{box-shadow:0 0 0 2.500px #e8c050,0 0 0 4px rgba(90,60,10,.85),0 0 10px 3px rgba(240,200,80,.55),var(--bev)}
+.u.elite.glitch{box-shadow:0 0 0 2.500px #c06aff,0 0 0 4px #3ad8ff,0 0 10px 3px rgba(122,232,255,.55),var(--bev)} /* the Sim's Corrupted Elites */
 .evart svg{display:block;width:100%;height:auto;border-radius:8px;border:2px solid #1a0f07;box-shadow:0 2px 0 #1a0f07;margin-bottom:10px}
 .u.redglow svg{filter:drop-shadow(0 0 3px rgba(225,40,40,.85))}
 .u.stun::after{content:"\2737";position:absolute;top:-5px;left:-5px;width:17px;height:17px;border-radius:50%;background:#f4e27a;color:#5a4a00;font-size:.75rem;font-weight:800;line-height:17px;text-align:center;box-shadow:0 0 0 1.5px #fff,0 0 8px 2px rgba(255,250,200,.9)}
@@ -1478,7 +1479,7 @@ const d=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 const at=(x,y)=>units.find(u=>u.x===x&&u.y===y);
 const helmed=u=>units.some(b=>b!==u&&b.t==="N"&&b.team===u.team&&rel(b,"helm")&&d(b,u)<=BANNER_RANGE); // within the Inspirational Plumed Helm's reach
 const ESCA_EV=.05,ESCA_ROUGH_EV=.1,PENDANT_EV=.05,RIDER_EV=.05,LIGHT_EV=.05,ELDORADO_GOLD=50,ELDORADO_MAX=2,LUCKYCROSS_GOLD=10,HELM_EV=.05,HEX_EV=.1,HEXBOOK_EV=.05; // HEX_EV: the Enchanter's hex makes its victim's targets harder to hit
-const mvOf=u=>{const m=ST(u).mv+(helmed(u)?1:0)+(u.t==="K"&&rel(u,"lightarmor")?1:0)-(u.t==="C"&&rel(u,"bard")?1:0)+(firstTurn&&rel(u,"drills")?1:0)+(u.haste||0)+(u.rage?1:0);if(u.stepOnly)return 1;return u.slow?Math.min(m,TYPES.E.slow):m};
+const mvOf=u=>{const m=ST(u).mv+(helmed(u)?1:0)+(u.t==="K"&&rel(u,"lightarmor")?1:0)-(u.t==="C"&&rel(u,"bard")?1:0)+(firstTurn&&rel(u,"drills")?1:0)+(u.haste||0)+(u.rage?1:0)+(u.glitch==="clock"?1:0);if(u.stepOnly)return 1;return u.slow?Math.min(m,TYPES.E.slow):m};
 const inspired=(u,at=u)=>units.some(b=>b.t==="N"&&b.team===u.team&&b!==u&&d(b,at)<=BANNER_RANGE); // within a Banner Bearer's aura (at: where u would stand)
 /* ---------- Combat: the one place an attack's damage and hit chance are worked out ----------
    Every modifier is a labelled line in `parts`, so the attack menu, the game and the AI always agree.
@@ -1529,7 +1530,7 @@ function combat(a,b,from=a){
   armor.forEach(([l,v])=>add(l,-v));
   add("Pierce",Math.min(a.t==="E"?99:a.bruise?1:Math.max(0,(A.pi||0)+(charging(a,from)?2:0)+(rel(a,"bluemagma")?1:0)+(rel(a,"crown")?1:0)+(a.t==="K"&&rel(a,"sallet")?1:0)+(a.t==="R"&&rel(a,"ammo")?1:0)+(a.t==="Q"&&rel(a,"escaupil")&&a.rough?1:0)+(a.rage?1:0)+(a.champ?1:0)+(sc?1:0)+(a.ublade&&b.hp>maxHp(b)/2?1:0)-(b.cshield?1:0)),armor.reduce((t,x)=>t+x[1],0))); // Blue Magma and the Champion's Sword add pierce, the Usurper's Blade against the healthy; the Champion's Shield turns 1 aside
   add("Pavise",b.t==="A"&&A.rg>1&&rel(b,"pavise")?-1:0); // a shield wall, not armor: pierce can't get past it
-  const ev=Math.max(0,-(rel(a,"keen")&&rgOf(a)>1?KEEN_EV:0)-(mods[a.team]==="AIM"?AIM_EV:0)-(b.t==="N"&&rel(b,"helm")?HELM_EV:0)-(b.hex&&b.hexPend?PENDANT_EV:0)-(b.rage?INCENSE_EV:0)+Math.min(EV_CAP,(B.ev||0)+(b.chill?DRYICE_EV:0)+(b.ash?PHOENIX_EV:0)+(rides(b)&&b.moved?RIDER_EV:0)+(b.t==="K"&&rel(b,"lightarmor")?LIGHT_EV:0)+(b.t==="Q"&&rel(b,"escaupil")?(b.rough?ESCA_ROUGH_EV:ESCA_EV):0)+(b.t==="E"&&rel(b,"hexbook")?HEXBOOK_EV:0)+(a.hex?HEX_EV:0)+(rel(b,"luck")?.05:0)+(b.trio?TRIO_EV:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(rel(b,"sakurafan")&&[...blastOf(k),[b.x,b.y]].some(([x,y])=>CHERRY.has(x+","+y))?FAN_EV:0)+(blessed(b)?BLESS_EV:0)+(rested(b)?REST_EV:0)+(rel(b,"pebble")?PEBBLE_EV:0)+bucklerEv(b)+(rallied(b)?RALLY_EV:0)+(b.team==="y"&&SMOKE.has(k)?SMOKE_EV:0)+(WOODS(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0))); // Keen Eye Charm: ranged attacks see through a little of it; Steady Aim, any attack
+  const ev=Math.max(0,-(rel(a,"keen")&&rgOf(a)>1?KEEN_EV:0)-(mods[a.team]==="AIM"?AIM_EV:0)-(b.t==="N"&&rel(b,"helm")?HELM_EV:0)-(b.hex&&b.hexPend?PENDANT_EV:0)-(b.rage?INCENSE_EV:0)+Math.min(EV_CAP,(B.ev||0)+(b.chill?DRYICE_EV:0)+(b.ash?PHOENIX_EV:0)+(rides(b)&&b.moved?RIDER_EV:0)+(b.t==="K"&&rel(b,"lightarmor")?LIGHT_EV:0)+(b.t==="Q"&&rel(b,"escaupil")?(b.rough?ESCA_ROUGH_EV:ESCA_EV):0)+(b.t==="E"&&rel(b,"hexbook")?HEXBOOK_EV:0)+(a.hex?HEX_EV:0)+(rel(b,"luck")?.05:0)+(b.trio?TRIO_EV:0)+(b.glitch==="flick"?FLICK_EV:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(rel(b,"sakurafan")&&[...blastOf(k),[b.x,b.y]].some(([x,y])=>CHERRY.has(x+","+y))?FAN_EV:0)+(blessed(b)?BLESS_EV:0)+(rested(b)?REST_EV:0)+(rel(b,"pebble")?PEBBLE_EV:0)+bucklerEv(b)+(rallied(b)?RALLY_EV:0)+(b.team==="y"&&SMOKE.has(k)?SMOKE_EV:0)+(WOODS(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0))); // Keen Eye Charm: ranged attacks see through a little of it; Steady Aim, any attack
   const blk=Math.max(0,-parts.filter(p=>armor.some(x=>x[0]===p[0])).reduce((t,p)=>t+p[1],0)-(parts.find(p=>p[0]==="Pierce")||[0,0])[1]); // damage the armor actually turned aside
   return {dmg:Math.max(1,parts.reduce((t,p)=>t+p[1],0)),hit:sc?1:1-ev,parts,blk}; // every hit deals at least 1; a scouted first strike never misses
 }
@@ -1694,7 +1695,7 @@ function render(){
     html+=`<button class="${cls}" data-x="${x}" data-y="${y}"${pd&&pd.k===k?` data-arrow="${pd.a}"`:""} aria-label="${label.replace(/"/g,"&quot;")}">`
       +'<i class="lt"></i>'+A.art[i]+(fr?'<i class="tint"></i>':"")+(SMOKE.has(k)?'<i class="smoke"></i>':"")+(CALTROPS.has(k)?CALT_ART:"")+A.jn[i]+glowOf(k).map(([dx,dy])=>`<i class="lglow" style="background:linear-gradient(to ${dx>0?"left":dx<0?"right":dy>0?"top":"bottom"},rgba(255,226,60,.62),rgba(255,226,60,.16) 70%,rgba(255,226,60,.08))"></i>`).join(""); // fortress art covers its tile, so highlights go on a see-through layer above it
     if(u){
-      let uc="u "+u.team+(u.merc?" merc":"")+(u.auto&&u.team==="y"?" free":spent(u)?" done":"")+(u.slow||u.slowNext?" slow":"")+(u.stun?" stun":"")+(u.rage||u.oil?" rage":"")+(u.chill?" chill":"")+(u.ash?" ash":"")+(inspired(u)?" insp":"")+(blessed(u)||rested(u)?" blessed":"")+(u.t==="E"&&rel(u,"redtome")?" redglow":"")+(rallied(u)?" rallied":"")+(muled(u)?" mule":"")+(u.dug?" dug":"")+(u.elite?" elite":"")+(u.champ||u.cshield||u.cloak?" champ":"")+(u.ublade||u.ubulwark||u.ushroud?" usurp":"")+(u===sel||u===insp?" sel":""),mvs="";
+      let uc="u "+u.team+(u.merc?" merc":"")+(u.auto&&u.team==="y"?" free":spent(u)?" done":"")+(u.slow||u.slowNext?" slow":"")+(u.stun?" stun":"")+(u.rage||u.oil?" rage":"")+(u.chill?" chill":"")+(u.ash?" ash":"")+(inspired(u)?" insp":"")+(blessed(u)||rested(u)?" blessed":"")+(u.t==="E"&&rel(u,"redtome")?" redglow":"")+(rallied(u)?" rallied":"")+(muled(u)?" mule":"")+(u.dug?" dug":"")+(u.elite?" elite":"")+(u.glitch?" glitch":"")+(u.champ||u.cshield||u.cloak?" champ":"")+(u.ublade||u.ubulwark||u.ushroud?" usurp":"")+(u===sel||u===insp?" sel":""),mvs="";
       if(u.spawn){uc+=" tpin";delete u.spawn}
       const pp=prevPos.get(u);prevPos.set(u,[x,y]);
       if(pp&&(pp[0]!==x||pp[1]!==y)){ // slide in from where it was last drawn (a long jump fades in instead)
@@ -1788,7 +1789,7 @@ function renderInfo(){
   if(u.conq)notes.push(`Vasco's Falcata: +${u.conq} damage this battle.`);
   if(scouting(u))notes.push("Scouted Ahead: its first attack this battle always hits, with +1 damage and +1 pierce.");
   if(u.team==="y"&&u.drum===pturn&&turn==="y")notes.push("War Drum: +1 damage this turn.");
-  if(u.elite)notes.push("Elite: +2 HP and +1 damage.");
+  if(u.elite)notes.push(u.glitch?`Corrupted Elite: +1 HP and +1 damage. ${GLITCH[u.glitch][0]}: ${GLITCH[u.glitch][1]}`:"Elite: +2 HP and +1 damage.");
   if(u.champ)notes.push("Champion's Sword: +1 damage and +1 pierce; can step 1 tile after a blow lands.");
   if(u.cshield)notes.push("Champion's Shield: attacks against it have 1 less pierce.");
   if(u.cloak)notes.push(u.cloakUsed?"Champion's Cloak: its teleport is spent.":"Champion's Cloak: can teleport to the far edge once this battle.");
@@ -2458,6 +2459,7 @@ function hitFor(a,b,c,back){ // resolve one blow from a to b: dodge roll, damage
   else{say(sent(who(a))+(back?" retaliated against ":" hit ")+who(b)+" for "+c.dmg+" damage.");if(a.ublade&&!back&&!rooted(b))a.ushove=b} // the Usurper's Blade: a shove after a landed blow
   if(a.ublade&&units.includes(a)&&a.hp<maxHp(a)){a.hp+=1;later(()=>{if(units.includes(a))floatText(a.x,a.y,"+1","heal")},300)} // ...and it feeds its bearer
   if(b.ubulwark&&adj&&a.team!==b.team&&units.includes(a)){later(()=>sfx("hit"),150);if(hurt(a,1))credit(b,a)} // the Usurper's Bulwark: thorns
+  if(b.glitch==="code"&&adj&&a.team!==b.team&&units.includes(a)){later(()=>sfx("hit"),150);if(hurt(a,1))credit(b,a)} // a Corrupted Elite's Chaos Code bites back
   return true;
 }
 const splinterTiles=(a,bx,by)=>{const sx=Math.sign(bx-a.x),sy=Math.sign(by-a.y); // the far side of the target, seen from the shooter
@@ -2605,7 +2607,8 @@ const ESC=[
  {elite:7,extra:3,relics:3,items:3}, // 9
  {elite:8,extra:4,relics:4,items:3}, // 10
 ];
-const ELITE_HP=2,esc=r=>{const n=ESC.length,e=ESC[Math.min(r,n)-1];return r>n?{...e,relics:e.relics+Math.floor((r-n)/2)}:e},escFrom=k=>ESC.findIndex(e=>e[k]>0)+1;
+const ELITE_HP=2,SIM_ELITE_HP=1,GLITCH={flick:["Flickering","+10% evasion."],clock:["Overclocked","+1 movement."],code:["Chaos Code","a unit that hits it in melee takes 1 damage, ignoring armor."]},FLICK_EV=.1; // the Sim's Corrupted Elites: +1 HP, +1 damage and one glitch
+const esc=r=>{const n=ESC.length,e=ESC[Math.min(r,n)-1];return r>n?{...e,relics:e.relics+Math.floor((r-n)/2)}:e},escFrom=k=>ESC.findIndex(e=>e[k]>0)+1;
 // relics an enemy army can make use of (no player-only actions, once-per-battle tricks or gold), and the unit each needs
 const FOE_OK={ipennant:"N",imposing:"N",helm:"N",ammo:"R",stud:["C","Q"],csword:"",cshield:"",ublade:"",ubulwark:"",ushroud:"",whet:"A",shield:"K",bard:"C",luck:"",buckler:"",long:"A",debris:"R",wolfpack:"",mercy:"",gauntlets:"",pavise:"A",pennant:"",hatchet:"",keep:"",ram:"",blossom:"",crown:"",statue:"",spurs:"C",grog:"",pebble:"",warpaint:""};
 function foeLoadout(r){
@@ -2642,7 +2645,7 @@ function foeUseItems(){
   return msg.join(" ");
 }
 const hpUp=(t,has)=>Object.keys(RELICS).filter(id=>[].concat(RELICS[id].hpUp||[]).includes(t)&&has(id)).length; // relics that raise a unit type's max HP (hpUp: the type, or a list of types)
-const WOUND_MAX=3,CROSS_SPARE=.15,MEDKIT_DOUBLE=.25,maxHp=u=>ST(u).hp-(u.wounds||0)+(u.elite?ELITE_HP:0)+hpUp(u.t,id=>rel(u,id));
+const WOUND_MAX=3,CROSS_SPARE=.15,MEDKIT_DOUBLE=.25,maxHp=u=>ST(u).hp-(u.wounds||0)+(u.elite?(u.glitch?SIM_ELITE_HP:ELITE_HP):0)+hpUp(u.t,id=>rel(u,id));
 const woundsOf=i=>(camp.wounds&&camp.wounds[i])||0,campMax=i=>TYPES[armyTypes()[i]].hp-woundsOf(i)+hpUp(armyTypes()[i],id=>camp.relics.includes(id));
 // taking a relic: one that raises max HP first pins the army's current HP, so gaining it never heals
 function gainRelic(id){if(RELICS[id].hpUp&&!camp.hp)camp.hp=campHps();camp.relics.push(id)}
@@ -3586,7 +3589,7 @@ function start(o={}){
   FOE_RELIC=new Set();FOE_ITEMS=[];
   if(camp.battle&&!chal){const ER=(camp.region||1)+(camp.inSim?SIM_ESC:0),E=esc(ER); // escalation (see ESC): extra enemy units, then Elites, then the boss's loadout (the Sim fights as if two regions further on)
     for(let i=0;i<E.extra;i++){const t=rnd(foe),sp=spot([1,0],[4,5,2,7,0,9,3,6,1,8]);if(sp){foe.push(t);units.push({t,team:"f",x:sp[0],y:sp[1],hp:TYPES[t].hp,moved:0,acted:0})}}
-    units.filter(u=>u.team==="f").sort(()=>Math.random()-.5).slice(0,E.elite).forEach(u=>{u.elite=1;u.hp+=ELITE_HP});
+    units.filter(u=>u.team==="f").sort(()=>Math.random()-.5).slice(0,E.elite).forEach(u=>{u.elite=1;if(camp.inSim){u.glitch=Object.keys(GLITCH)[Math.floor(Math.random()*3)];u.hp+=SIM_ELITE_HP}else u.hp+=ELITE_HP});
     if(o.boss)foeLoadout(ER);
   }
   vanguard();
