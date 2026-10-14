@@ -2935,6 +2935,10 @@ const NAMES={
  volcanic:["Brimstone Ridge","Scorched Hollow","Emberforge Caldera","Smoldering Gulch","Ashen Fields","Emberlands","The Bleeding Mountains"],
  sakura:["Petalfall Garden","Blossom Terrace","Koi Mirror Pool","Whispering Petals","Stoic Grove","Valley of Spring","Grove of Renewal"],
  heal:["Sunspring Glade","Quiet Hollow","Healer's Rest","Mercy Well","Nomadic Druid's Caravan","Traveling Apothecary","Mossy Monastery"], // healing spots
+ chasm:["The Shattered Divide","Null Rift","The Broken Seam","Fault Line Sigma"],
+ synth:["Neon Drift","Afterglow Expanse","Starlit Grid","Chromewave Flats"],
+ simheal:["Restore Point","Patch Node","Recovery Cache"], // the Warped Sim's healing spots
+ simboss:["The Core Citadel","Fortress of Fading Code","The Final Render"], // and its stronghold
  boss:["Blackspire","Ironcrown Citadel","Skullcrag Fortress","Duskhold","Ravenmoor Keep","Ashfall Citadel"]}; // boss locations
 const BOSS_NAMES=["Timwell the Troll","Cass, Obsessive Vicar","Anthony the Gold","Gorman, Dragon's Pet","Linda of Tillingsburg","Ted, the Damp Rag"]; // who holds each boss location (not shown yet)
 // draws from a list without repeating within the campaign; once every entry has been used, starts over (never the one just used)
@@ -2945,6 +2949,7 @@ function fresh(list,used){
 }
 // Builds a new random map: camp at the bottom, three rows of battles, a boss at the top.
 function genWorld(){
+  if(camp.inSim)return genSimWorld();
   const R=n=>Math.floor(Math.random()*n),rr=(a,b)=>a+Math.random()*(b-a),used=new Set();
   const nodes=[{id:0,name:"Camp",x:Math.round(rr(50,350)),y:466,type:"camp",text:"Your starting camp. Nothing to fight here."}];
   const layers=[[0]];let bag=[];
@@ -3016,6 +3021,61 @@ function genWorld(){
   const reeds=[];for(let t=0;t<30&&reeds.length<6;t++){const[x,y]=riv[2+R(37)],o=Math.random()<.5?-12:12;if(x>20&&x<380&&nodes.every(n=>Math.hypot(n.x-x,n.y-y-o)>34))reeds.push([Math.round(x),Math.round(y+o)])}
   DECO={trees:scatter(12).filter(dry).concat(spot(6,12)),rocks:scatter(5).filter(dry),ranges,hills:spot(7,12),grass:spot(14,6),reeds,river:`M-10 ${Y[0]} C 70 ${Y[1]} 120 ${Y[2]} 220 ${Y[3]} S 340 ${Y[4]} 420 ${Y[5]}`};
 }
+/* ---------- The Warped Sim's world map: short and harsh ----------
+   The Closed Portal at the bottom opens onto every one of 2-3 first locations; then 2-3 more (one a healing spot), all of which lead to the boss.
+   Battles are Fractured Chasm or Synthwave Space. The scenery (DECO.sim) is plain data, drawn by simMapArt. */
+const SIM_HEAL_TEXT="A pocket of the Sim that hasn't glitched yet. Resting here mends one wound per unit and restores some HP.";
+function genSimWorld(){
+  const R=n=>Math.floor(Math.random()*n),rr=(a,b)=>a+Math.random()*(b-a),used=new Set(),pick=l=>{const p=l.filter(n=>!used.has(n)),v=p[R(p.length)];used.add(v);return v};
+  const nodes=[{id:0,name:"Closed Portal",x:Math.round(rr(140,260)),y:462,type:"camp",text:"The way you came in. It sealed behind you; the only way out is through the Sim's stronghold."}],layers=[[0]];
+  [328,196].forEach(y0=>{const c=2+R(2),ids=[];for(let i=0;i<c;i++){const b=Math.random()<.5?"chasm":"synth";ids.push(nodes.length);
+    nodes.push({id:nodes.length,name:pick(NAMES[b]),x:Math.round(50+300*(i+.5)/c+rr(-14,14)),y:Math.round(y0+rr(-8,8)),type:"battle",b,text:BTEXT[b]})}layers.push(ids)});
+  const h=nodes[layers[2][R(layers[2].length)]];Object.assign(h,{name:pick(NAMES.simheal),type:"heal",b:"heal",text:SIM_HEAL_TEXT});delete h.herb; // one healing spot, in the row before the boss
+  if(!camp.bossUsed)camp.bossUsed={loc:[],name:[]};
+  nodes.push({id:nodes.length,name:pick(NAMES.simboss),boss:fresh(BOSS_NAMES,camp.bossUsed.name),x:Math.round(rr(150,250)),y:80,type:"boss",b:"boss",text:"The Sim's stronghold. Its master holds the only way out."});
+  layers.push([nodes.length-1]);
+  const half=n=>n.name.length*3.7+6;layers.forEach(ids=>{const row=ids.map(i=>nodes[i]).sort((a,b)=>a.x-b.x); // labels apart and inside the map, as on the normal map
+    for(let pass=0;pass<20;pass++){let moved=false;for(let i=0;i<row.length-1;i++){const a=row[i],b=row[i+1],need=half(a)+half(b)+8,gap=b.x-a.x;if(gap<need){a.x-=(need-gap)/2;b.x+=(need-gap)/2;moved=true}}
+      row.forEach(n=>{const lo=half(n),hi=400-half(n);if(n.x<lo){n.x=lo;moved=true}if(n.x>hi){n.x=hi;moved=true}});if(!moved)break}row.forEach(n=>n.x=Math.round(n.x))});
+  const es=new Set(),link=(a,b)=>es.add(a+"-"+b),A=layers[1],B=layers[2],near=(id,list)=>[...list].sort((p,q)=>Math.abs(nodes[p].x-nodes[id].x)-Math.abs(nodes[q].x-nodes[id].x));
+  A.forEach(a=>link(0,a));B.forEach(b=>link(near(b,A)[0],b));A.forEach(a=>{const o=near(a,B);link(a,o[0]);if(o[1]!==undefined&&Math.random()<.5)link(a,o[1])});B.forEach(b=>link(b,nodes.length-1));
+  const E=[...es].map(e=>e.split("-").map(Number));
+  [[0],A].forEach(L=>{const gap=E.filter(e=>L.includes(e[0])).sort(()=>Math.random()-.5);gap.slice(0,Math.floor(gap.length*ONEWAY_SHARE)).forEach(e=>e[2]=1)}); // two-thirds one-way, never into the boss
+  WORLD=nodes;EDGES=E;
+  if(nodes.some(n=>!reachFrom(n.id).has(nodes.length-1)))E.forEach(e=>e.length=2);
+  // scenery: neon traces on the grid, the void rift between the rows, rock outcrops, cube islands, cube groves and loose cubes, kept clear of locations, labels and paths
+  const segD=(x,y,ax,ay,bx,by)=>{const dx=bx-ax,dy=by-ay,t=Math.max(0,Math.min(1,((x-ax)*dx+(y-ay)*dy)/(dx*dx+dy*dy||1)));return Math.hypot(x-ax-t*dx,y-ay-t*dy)};
+  const clear=(x,y,r)=>nodes.every(n=>Math.hypot(n.x-x,n.y-y)>r+30&&!(Math.abs(n.x-x)<half(n)+r&&y>n.y&&y<n.y+44))&&E.every(([a,b])=>segD(x,y,nodes[a].x,nodes[a].y,nodes[b].x,nodes[b].y)>r+8)&&(y<230||y>300)&&!(y<r+46&&Math.abs(x-200)<130+r);
+  const placed=[],spot=r=>{for(let t=0;t<300;t++){const x=rr(14+r,386-r),y=rr(40,505-r*.4);if(clear(x,y,r)&&placed.every(([p,q,pr])=>Math.hypot(p-x,q-y)>pr+r+8)){placed.push([x,y,r]);return[Math.round(x),Math.round(y)]}}return null};
+  const traces=[];for(let i=0;i<16;i++){let x=R(20)*20,y=R(26)*20;const p=[[x,y]];for(let k=0;k<3+R(3);k++){if(Math.random()<.5)x+=(Math.random()<.5?-1:1)*20*(1+R(3));else y+=(Math.random()<.5?-1:1)*20*(1+R(2));p.push([x,y])}traces.push(p)}
+  let y=262+Math.round(rr(-6,6));const rift=[];for(let x=0;x<=420;x+=20){y=Math.max(244,Math.min(284,y+Math.round(rr(-1.4,1.4))*6));rift.push([x,y,12+((x/20)%3)*2])}
+  const rocks=[];for(let k=0;k<3;k++){const p=spot(36);if(!p)continue;const n=10+R(5),c=[];for(let i=0;i<n;i++){const a=Math.random()*6.283,d=Math.sqrt(Math.random())*20;c.push([Math.round(p[0]+Math.cos(a)*d*1.5),Math.round(p[1]+Math.sin(a)*d*.6),Math.round(8+Math.random()*7),Math.round(12+Math.random()*16),R(10)])}rocks.push({x:p[0],y:p[1],c:c.sort((a,b)=>a[1]-b[1])})}
+  const isles=[];for(let k=0;k<3;k++){const p=spot(22);if(p)isles.push([...p,5+R(3),R(1000)])}
+  const groves=[];for(let k=0;k<4;k++){const p=spot(10);if(p)groves.push([...p,2+R(2),R(1000)])}
+  const strays=[];for(let k=0;k<5;k++){const p=spot(5);if(p)strays.push([...p,R(1000)])}
+  const dots=[];for(let i=0;i<22;i++)dots.push([R(20)*20,R(26)*20]);
+  DECO={sim:{traces,rift,rocks,isles,groves,strays,dots}};
+}
+// the Sim's map art: a dark grid with neon traces, a stepped void rift, geometric rock outcrops, floating cube islands and cube groves
+function simMapArt(){
+  const D=DECO.sim,f=n=>n.toFixed(1),q=(n,k)=>((n*9301+k*49297)%233280)/233280; // fixed scatter from stored seeds, so the picture never shifts
+  const LIL=["#cfc2f4","#8a76cc","#4e3e92"],CYN=["#c8f4f0","#6cc0c8","#2e6a7a"],DK=["#6a5aa8","#40347a","#241c4a"];
+  const cube=(x,y,s,P,a=0,o=1)=>{const[T,L,Rr]=P,h=s*.866,Q=(...p)=>p.map(([u,v])=>f(x+u)+" "+f(y+v)).join("L");return `<g transform="rotate(${f(a)} ${f(x)} ${f(y)})" opacity="${o}"><path d="M${Q([0,-s],[h,-s/2],[0,0],[-h,-s/2])}z" fill="${T}"/><path d="M${Q([-h,-s/2],[0,0],[0,s],[-h,s/2])}z" fill="${L}"/><path d="M${Q([0,0],[h,-s/2],[h,s/2],[0,s])}z" fill="${Rr}"/><path d="M${Q([0,-s],[h,-s/2],[h,s/2],[0,s],[-h,s/2],[-h,-s/2])}zM${Q([-h,-s/2],[0,0],[h,-s/2])}M${f(x)} ${f(y)}v${f(s)}" fill="none" stroke="${P===CYN?"#7ae8ff":"#e8dcff"}" stroke-width=".6" stroke-linejoin="round" opacity=".85"/></g>`};
+  let g=`<defs><linearGradient id="sbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#141030"/><stop offset=".5" stop-color="#1c1640"/><stop offset="1" stop-color="#241a4a"/></linearGradient><radialGradient id="svg2" cx=".5" cy=".5" r=".6"><stop offset=".6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#05030c" stop-opacity=".7"/></radialGradient><filter id="sbl" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.200"/></filter><filter id="wsh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="2" stdDeviation="1.500" flood-color="#000" flood-opacity=".6"/></filter><radialGradient id="wnode" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/></radialGradient></defs><rect width="400" height="520" fill="url(#sbg)"/>`;
+  let gr="";for(let x=0;x<=400;x+=20)gr+=`M${x} 0v520`;for(let y=0;y<=520;y+=20)gr+=`M0 ${y}h400`;g+=`<path d="${gr}" stroke="#8a72e0" stroke-width=".5" opacity=".22"/>`;
+  D.traces.forEach(p=>{const d="M"+p.map(([x,y])=>x+" "+y).join("L"),[ex,ey]=p[p.length-1];g+=`<path d="${d}" stroke="#3ad8ff" stroke-width="3.400" fill="none" opacity=".5" filter="url(#sbl)"/><path d="${d}" stroke="#8aeeff" stroke-width="1.100" fill="none" opacity=".95"/><circle cx="${ex}" cy="${ey}" r="2.400" fill="#d8faff"/>`});
+  D.dots.forEach(([x,y],i)=>g+=`<circle cx="${x}" cy="${y}" r="1.300" fill="#7ae8ff" opacity="${f(.4+q(i,3)*.5)}"/>`);
+  const R=D.rift,top="M-10 "+R[0][1]+R.map(([x,y])=>`H${x}V${y}`).join(""),bot=[...R].reverse().map(([x,y,w])=>`H${x}V${y+w}`).join(""),last=R[R.length-1];
+  g+=`<path d="${top}H420V${last[1]+14}${bot}H-10z" fill="#06040e" stroke="#b48aff" stroke-width="1.400"/><path d="${top}" stroke="#d8b8ff" stroke-width="5" fill="none" opacity=".35" filter="url(#sbl)"/><path d="M420 ${last[1]+14}${bot}" stroke="#3ad8ff" stroke-width="1.200" fill="none" opacity=".9"/><path d="M420 ${last[1]+14}${bot}" stroke="#3ad8ff" stroke-width="4" fill="none" opacity=".3" filter="url(#sbl)"/>`;
+  D.rocks.forEach(({x,y,c})=>{g+=`<ellipse cx="${x}" cy="${y+4}" rx="40" ry="10" fill="#000" opacity=".3" filter="url(#sbl)"/>`;c.forEach(([a,b,w,h,k])=>{const A=[a-w,b],Bp=[a-w*.55,b-h*.8],C=[a+w*.1,b-h],Dp=[a+w*.7,b-h*.55],Ep=[a+w,b],M=[a+w*.05,b-h*.35],P=(...p)=>p.map(([u,v])=>f(u)+" "+f(v)).join("L");
+    g+=`<path d="M${P(A,Bp,M)}z" fill="#5a4c8a"/><path d="M${P(Bp,C,M)}z" fill="#8a7cc0"/><path d="M${P(C,Dp,M)}z" fill="#6e60a6"/><path d="M${P(Dp,Ep,M)}z" fill="#3a2e66"/><path d="M${P(A,M,Ep)}z" fill="#2c2252"/><path d="M${P(A,Bp,C,Dp,Ep)}z" fill="none" stroke="#14102a" stroke-width="1" stroke-linejoin="round"/><path d="M${P(Bp,C,Dp)}M${P(C,M)}" fill="none" stroke="${k<6?"#7ae8ff":"#e0d4ff"}" stroke-width=".8" opacity=".9"/>`})});
+  D.isles.forEach(([x,y,n,sd])=>{g+=`<ellipse cx="${x}" cy="${y+20}" rx="20" ry="4" fill="#000" opacity=".35" filter="url(#sbl)"/>`;[[0,0,9],[-12,4,7],[11,5,7.5],[-4,-10,6],[6,-8,5],[-20,9,4.5],[19,10,4]].slice(0,n).sort((a,b)=>a[1]-b[1]).forEach(([dx,dy,c],i)=>g+=cube(x+dx,y+dy,c,q(sd,i)<.15?CYN:i%2?LIL:DK,(q(sd,i+9)-.5)*12))});
+  D.groves.forEach(([x,y,n,sd])=>[[-7,2],[6,4],[0,-3]].slice(0,n).forEach(([dx,dy],i)=>{const h=2+(q(sd,i)<.5?1:0);g+=`<path d="M${x+dx} ${y+dy+8}v-4" stroke="#40347a" stroke-width="1.600"/>`;for(let j=0;j<h;j++)g+=cube(x+dx,y+dy-j*5.5,3.6-j*.5,j===h-1&&q(sd,i+5)<.4?CYN:LIL)}));
+  D.strays.forEach(([x,y,sd])=>g+=cube(x,y,3+q(sd,1)*2,q(sd,2)<.3?CYN:LIL,(q(sd,3)-.5)*40,.6));
+  g+=`<rect width="400" height="520" fill="url(#svg2)"/>`;
+  const tt=`The Warped Sim \u2013 Region ${camp.region||1}`;
+  return g+`<text x="200" y="40" text-anchor="middle" font-family="'Palatino Linotype','Book Antiqua',Palatino,Georgia,serif" font-style="italic" font-weight="700" font-size="20" fill="#efe6ff" stroke="#120c28" stroke-width="3" paint-order="stroke">${tt}</text><path d="M110 49h180" stroke="#b48aff" stroke-width="1" opacity=".75"/><path d="M110 49h180" stroke="#3ad8ff" stroke-width="3" opacity=".25" filter="url(#sbl)"/>`;
+}
 const BIOME_NAME={chasm:"The Fractured Chasm",synth:"Synthwave Space",forest:"Forest",plain:"Plains",fort:"Stronghold",wild:"Wilds",wetlands:"Wetlands",swamp:"Murky Swamp",graveyard:"Haunted Graveyard",volcanic:"Molten Wastes",sakura:"Sakura Vale",boss:"Enemy Stronghold"};
 // a Quick Battle map has no biome of its own, so name it from what was generated
 const guessBiome=()=>LIGHT.size?"synth":CHASM.size?"chasm":VALE||KOI.size?"sakura":LAVA.size||VOLC.size?"volcanic":GRAVES.size?"graveyard":SWAMP.size>=10?"swamp":DEEP.size+SHALLOW.size>=20?"wetlands":FORT.size?"fort":units.some(u=>u.team==="w")?"wild":FOREST.size>=16?"forest":"plain";
@@ -3076,21 +3136,27 @@ function renderWorld(){
   const done=new Set(camp.cleared),cur=WORLD[camp.pos],pc=COLORS[camp.cfg.c];
   if(camp.sel==null)camp.sel=camp.pos;
   const stOf=n=>n.type==="camp"||done.has(n.id)?"cleared":canGo(camp.pos,n.id)?"open":"locked",reach=reachFrom(camp.pos);
-  const label={cleared:"Cleared",open:"Battle ahead",locked:"Out of reach"},lab=n=>stOf(n)==="open"?(n.type==="heal"?"Healing spot":n.type==="shop"?"Merchant":n.b==="wetlands"?"Wetlands battle":n.b==="swamp"?"Swamp battle":n.b==="graveyard"?"Graveyard battle":n.b==="volcanic"?"Volcanic battle":n.b==="sakura"?"Sakura battle":label.open):label[stOf(n)];
-  let s='<svg viewBox="0 0 400 520" role="img" aria-label="World map">'+mapArt();
+  const label={cleared:"Cleared",open:"Battle ahead",locked:"Out of reach"},lab=n=>stOf(n)==="open"?(n.type==="heal"?"Healing spot":n.type==="shop"?"Merchant":n.b==="wetlands"?"Wetlands battle":n.b==="swamp"?"Swamp battle":n.b==="graveyard"?"Graveyard battle":n.b==="volcanic"?"Volcanic battle":n.b==="sakura"?"Sakura battle":n.b==="chasm"?"Fractured Chasm battle":n.b==="synth"?"Synthwave battle":label.open):label[stOf(n)];
+  const SW=!!(camp.inSim&&DECO.sim); // the Warped Sim: neon paths and locations on a dark grid
+  let s='<svg viewBox="0 0 400 520" role="img" aria-label="World map">'+(SW?simMapArt():mapArt());
   EDGES.forEach(([a,b])=>{
     const A=WORLD[a],B=WORLD[b],both=stOf(A)==="cleared"&&stOf(B)==="cleared",hot=a===camp.pos||b===camp.pos;
-    s+=`<line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke="${both?"#4f7d3a":hot?"#3b2a14":"#8b6b3e"}" stroke-width="${hot?5:4}" stroke-linecap="round"${both?"":` stroke-dasharray="${hot?"9 6":"2 8"}"`}/>`;
+    s+=`<line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke="${SW?(both?"#5ae0b0":hot?"#f2eaff":"#b8a2ff"):both?"#4f7d3a":hot?"#3b2a14":"#8b6b3e"}" stroke-width="${hot?5:4}" stroke-linecap="round"${both?"":` stroke-dasharray="${hot?"9 6":"2 8"}"`}/>`;
   });
-  EDGES.forEach(([a,b,one])=>{if(!one)return; // one-way paths: worn, hand-inked chevrons pointing toward the boss
+  EDGES.forEach(([a,b,one])=>{if(!one)return; // one-way paths: worn, hand-inked chevrons pointing toward the boss (neon in the Sim)
     const A=WORLD[a],B=WORLD[b],ang=Math.atan2(B.y-A.y,B.x-A.x)*180/Math.PI,j=i=>((a*37+b*17+i*11)%10)/10;
+    if(SW){s+=`<g transform="translate(${(A.x+B.x)/2} ${(A.y+B.y)/2}) rotate(${ang.toFixed(1)})">`+[-4.500,4.500].map(o=>`<path transform="translate(${o} 0)" d="M-5 -8L3 0L-5 8" fill="none" stroke="#3ad8ff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity=".3"/><path transform="translate(${o} 0)" d="M-5 -8L3 0L-5 8" fill="none" stroke="#9ff0f0" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`).join("")+"</g>";return}
     const mx=(A.x+B.x)/2+(j(1)-.5)*1.6,my=(A.y+B.y)/2+(j(4)-.5)*1.6;
     s+=`<g transform="translate(${mx.toFixed(1)} ${my.toFixed(1)}) rotate(${(ang+(j(6)-.5)*6).toFixed(1)})">`+[-4.500,4.500].map((o,i)=>`<g transform="translate(${o} 0)" opacity="${(.68+j(i+7)*.25).toFixed(2)}"><path d="M-5 -8L3 0L-5 8" fill="none" stroke="#f4ead0" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" opacity=".7"/><path d="M-5 -8L3 0L-5 8" fill="none" stroke="#4a2e14" stroke-width="3.200" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="${i?"6 1.600 9 1.200":"8 1.400 5 1.800 9"}"/><path d="M-3.600 -6.200L1.400 -1" stroke="#f4ead0" stroke-width=".9" opacity=".55"/></g>`).join("")+"</g>";
   });
   WORLD.forEach(n=>{
     const st=stOf(n),cl=st==="cleared"&&n.type!=="camp",r=n.type==="boss"?21:17,S=n.type==="boss"?30:24;
-    const fill=n.type==="camp"?"#8c7752":n.type==="heal"?(st==="locked"?"#a39a88":cl?"#9fc9a8":"#7fd1a0"):n.type==="shop"?(st==="locked"?"#a39a88":cl?"#c8b088":"#e0a84a"):cl?"#6aa55a":st==="open"?(n.type==="boss"?"#c4483a":n.b==="wetlands"?"#5fb3c9":n.b==="swamp"?"#6d7a4f":n.b==="graveyard"?"#7d7590":n.b==="volcanic"?"#b8461f":n.b==="sakura"?"#e48aa8":"#e6b73f"):"#a39a88";
-    const icon=n.type==="shop"?`<path d="M${n.x-4} ${n.y-3}C${n.x-13} ${n.y-1} ${n.x-13} ${n.y+11} ${n.x} ${n.y+11}C${n.x+13} ${n.y+11} ${n.x+13} ${n.y-1} ${n.x+4} ${n.y-3}z" fill="#fff" stroke="#6a4426" stroke-width="1.600" stroke-linejoin="round"/>`
+    const fill=SW?(n.type==="camp"?"#1a0c36":st==="locked"?"#3e3664":cl?"#2f8a6a":n.type==="heal"?"#1c6a80":n.type==="boss"?"#8a2058":n.b==="synth"?"#b08a10":"#4e32a8"):n.type==="camp"?"#8c7752":n.type==="heal"?(st==="locked"?"#a39a88":cl?"#9fc9a8":"#7fd1a0"):n.type==="shop"?(st==="locked"?"#a39a88":cl?"#c8b088":"#e0a84a"):cl?"#6aa55a":st==="open"?(n.type==="boss"?"#c4483a":n.b==="wetlands"?"#5fb3c9":n.b==="swamp"?"#6d7a4f":n.b==="graveyard"?"#7d7590":n.b==="volcanic"?"#b8461f":n.b==="sakura"?"#e48aa8":"#e6b73f"):"#a39a88";
+    const simCube=(x,y,c)=>`<path d="M${x} ${y-2.600}l2.250 1.300v2.600L${x} ${y+2.600}l-2.250-1.300v-2.600z" fill="${c?"#9ff0f0":"#e8dcff"}" stroke="#1c1238" stroke-width=".5"/>`;
+    const icon=SW&&n.type==="camp"?[...Array(10)].map((_,i)=>simCube(n.x+Math.cos(i*.628)*11,n.y+Math.sin(i*.628)*11.5,i===3)).join("")+`<path d="M${n.x-5.500} ${n.y-5.500}l11 11M${n.x+5.500} ${n.y-5.500}l-11 11" stroke="#fff" stroke-width="1.800" stroke-linecap="round" opacity=".85"/>` // the Closed Portal
+      :n.b==="chasm"?`<path d="M${n.x-4} ${n.y-11}h6v4h3v5h-2v5h3v7h-7v-4h-3v-6h2v-5h-2z" fill="#06040e" stroke="#c8a8ff" stroke-width="1.400" stroke-linejoin="miter"/><path d="M${n.x+2} ${n.y-7}h3v5h-2v5h3v7" fill="none" stroke="#7ae8ff" stroke-width="1.200"/>` // a stepped rift
+      :n.b==="synth"?`<rect x="${n.x-9}" y="${n.y-6}" width="18" height="12" rx="1.600" fill="#ffe94a" stroke="#5a4000" stroke-width="1.300"/><path d="M${n.x-9} ${n.y}h18M${n.x-3} ${n.y-6}v6M${n.x+3} ${n.y}v6" stroke="#8a6a00" stroke-width="1"/><path d="M${n.x-8} ${n.y-4.800}h16" stroke="#fffde8" stroke-width=".9"/>` // a Light Brick
+      :n.type==="shop"?`<path d="M${n.x-4} ${n.y-3}C${n.x-13} ${n.y-1} ${n.x-13} ${n.y+11} ${n.x} ${n.y+11}C${n.x+13} ${n.y+11} ${n.x+13} ${n.y-1} ${n.x+4} ${n.y-3}z" fill="#fff" stroke="#6a4426" stroke-width="1.600" stroke-linejoin="round"/>`
       +`<path d="M${n.x-3} ${n.y-1}q-4 4-3.500 9M${n.x+0.500} ${n.y-1}v8M${n.x+3} ${n.y-1}q4 3 3.500 8" stroke="#6a4426" stroke-width=".9" fill="none" stroke-linecap="round" opacity=".55"/>`
       +`<path d="M${n.x-3.500} ${n.y-4}L${n.x-7.500} ${n.y-10}q2-1.500 3.500.500q1.500-2.200 3.500-2q2.200-.200 3.500 2q1.500-2 3.500-.500L${n.x+3.500} ${n.y-4}z" fill="#fff" stroke="#6a4426" stroke-width="1.400" stroke-linejoin="round"/>`
       +`<path d="M${n.x-5} ${n.y-3.500}h10" stroke="#6a4426" stroke-width="2.400" stroke-linecap="round"/>`
@@ -3112,9 +3178,10 @@ function renderWorld(){
       +`<circle cx="${n.x}" cy="${n.y}" r="28" fill="transparent"/>`
       +(camp.sel===n.id?`<circle cx="${n.x}" cy="${n.y}" r="${r+7}" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="5 4"/>`:"")
       +(st==="open"?`<circle class="wp" cx="${n.x}" cy="${n.y}" r="${r+4}" fill="none" stroke="#fff" stroke-width="2"/>`:"")
-      +`<circle cx="${n.x}" cy="${n.y}" r="${r}" fill="${fill}" stroke="#3b2a14" stroke-width="3" filter="url(#wsh)"/><circle cx="${n.x}" cy="${n.y}" r="${r-1.500}" fill="url(#wnode)"/>${icon}`
+      +(SW?`<circle cx="${n.x}" cy="${n.y}" r="${r+5}" fill="${n.type==="boss"?"#ff6aa0":n.type==="heal"?"#3ad8ff":n.b==="synth"?"#ffe24a":"#b48aff"}" opacity="${st==="locked"?.1:.28}" filter="url(#sbl)"/>`:"")
+      +`<circle cx="${n.x}" cy="${n.y}" r="${r}" fill="${fill}" stroke="${SW?"#e8dcff":"#3b2a14"}" stroke-width="${SW?2.600:3}" filter="url(#wsh)"/><circle cx="${n.x}" cy="${n.y}" r="${r-1.500}" fill="url(#wnode)"/>${icon}`
       +(cl?`<circle cx="${n.x+r-3}" cy="${n.y-r+3}" r="7" fill="#2f8f4e" stroke="#fff" stroke-width="2"/><path d="M${n.x+r-7} ${n.y-r+3}l3 3 5-6" stroke="#fff" stroke-width="2" fill="none"/>`:"")
-      +`<text x="${n.x}" y="${n.y+r+15}" text-anchor="middle" font-size="12" font-weight="700" fill="#2b2115" stroke="rgba(255,244,214,.92)" stroke-width="3" paint-order="stroke" style="pointer-events:none">${n.name}</text></g>`;
+      +`<text x="${n.x}" y="${n.y+r+15}" text-anchor="middle" font-size="12" font-weight="700" fill="${SW?"#efe6ff":"#2b2115"}" stroke="${SW?"#120c28":"rgba(255,244,214,.92)"}" stroke-width="3" paint-order="stroke" style="pointer-events:none">${n.name}</text></g>`;
   });
   s+=`<g id="wm" style="transform:translate(${cur.x}px,${cur.y-28}px)"><ellipse cx="0" cy="26" rx="10" ry="3" fill="rgba(0,0,0,.3)"/><circle r="15" fill="${pc[1]}" stroke="#fff" stroke-width="3"/>${nest(ICON.K,-11,-11,22,`--ic:${pc[2]};--tc:${pc[1]}`)}<path d="M-5 14L0 24 5 14z" fill="#fff"/></g></svg>`;
   $("wmap").innerHTML=s;
@@ -3125,7 +3192,7 @@ function renderWorld(){
   $("warmy").innerHTML=armyTypes().map((t,i)=>{const mx=campMax(i),h=Math.min(mx,camp.hp&&camp.hp[i]!=null?camp.hp[i]:mx),w=woundsOf(i);return `<span class="stat" title="${heroName(i)}">${camp.names?camp.names[i]:cap(NAME[t])} <small>${cap(NAME[t])}</small> <b style="color:${h<=mx*.25?"#d64b3a":"inherit"}">${h}/${mx}</b>${w?`<i class="wnd" aria-label="${w} wound${w>1?"s":""}">${"\u2020".repeat(w)}</i>`:""}</span>`}).join("")
     +(camp.merc?`<span class="stat" title="${mercLine(camp.merc)}">${camp.merc.name} <small>Mercenary ${NAME[camp.merc.t]}, ${camp.merc.left} battle${camp.merc.left>1?"s":""} left</small> <b>${camp.merc.hp}/${camp.merc.st.hp}</b></span>`:"");
   const total=WORLD.filter(n=>n.type!=="camp"&&(done.has(n.id)||reach.has(n.id))).length,lost=WORLD.filter(n=>n.type!=="camp"&&!done.has(n.id)&&!reach.has(n.id)).length;
-  $("wtitle").textContent=`World Map \u2013 Region ${camp.region||1}`;
+  $("wtitle").textContent=`${SW?"The Warped Sim":"World Map"} \u2013 Region ${camp.region||1}`;
   $("wprog").textContent=camp.done?"Campaign complete! You defeated the boss.":`Locations cleared: ${camp.cleared.length} of ${total}${lost?` (${lost} cut off)`:""}. Tap a glowing location to travel there.`+(camp.mercNote?" "+camp.mercNote:"");
   const n=WORLD[camp.sel],st=stOf(n),here=n.id===camp.pos,can=!here&&canGo(camp.pos,n.id),e=can&&edgeOf(camp.pos,n.id),cut=!here&&!done.has(n.id)&&!reach.has(n.id);
   const btn=can?(st==="cleared"?"Travel Here":n.type==="heal"?"Rest Here":n.type==="shop"?"Visit the Merchant":"Travel to Battle"):"";
@@ -3376,6 +3443,7 @@ function roadEvent(to,done,ev){
 function travel(id){
   if(worldLock)return;
   const e=edgeOf(camp.pos,id);camp.mercNote="";
+  if(e&&camp.inSim){e[3]=e[4]=1;saveCamp()} // no sellswords, beggars or carts inside the Sim
   if(e&&!e[4]){e[4]=1;saveCamp(); // any path, the first time you take it: sometimes a sellsword (or Vasco's expedition) waits along the way
     const ev=Math.random()<MERC_ROAD?SELLSWORD:unlocks.conquistador&&!camp.scout&&Math.random()<VASCO_ROAD?EXPEDITION:null;
     if(ev){e[3]=1;const A=WORLD[camp.pos],B=WORLD[id];worldLock=true;camp.sel=id;$("wm").style.transform=`translate(${Math.round((A.x+B.x)/2)}px,${Math.round((A.y+B.y)/2)-28}px)`;
