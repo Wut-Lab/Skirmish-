@@ -4530,7 +4530,7 @@ function showRelicOffer(){
     $("relicv").hidden=false;$("rchoices").querySelector(".rcard").focus();return;
   }
   const boss=camp.offerBoss;
-  $("rtitle").textContent=boss?"Spoils of the Boss":camp.offer&&camp.offer.some(e=>e.startsWith("item:"))?"Choose a Reward":"Choose a Relic"; // the Sim slips a consumable in among the relics$("relicv").querySelector(".rsub").textContent=boss?"The boss's hoard is yours. Choose one: relics last for the rest of this campaign, consumables go in your pack.":"Spoils of victory. It lasts for the rest of this campaign.";
+  $("rtitle").textContent=boss?"Spoils of the Boss":camp.offer&&camp.offer.some(e=>e.startsWith("item:"))?"Choose a Reward":"Choose a Relic";$("relicv").querySelector(".rsub").textContent=boss?"The boss's hoard is yours. Choose one: relics last for the rest of this campaign, consumables go in your pack.":camp.offer&&camp.offer.some(e=>e.startsWith("item:"))?"Spoils of victory. Choose one: relics last for the rest of this campaign, consumables go in your pack.":"Spoils of victory. It lasts for the rest of this campaign."; // a Sim battle slips a consumable in among the relics
   if(!camp.offer){$("relicv").hidden=true;return}
   const full=camp.items.length>=itemCap();
   $("rchoices").innerHTML=camp.offer.map(id=>{
