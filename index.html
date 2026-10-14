@@ -36,6 +36,9 @@ h1{font-size:1.4rem;margin:0 0 4px}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .sim{--tile:#2e2752;--tile2:#2a234c}}
 :root[data-theme="dark"] .sim{--tile:#2e2752;--tile2:#2a234c}
 .sim .t.w{background:var(--tile);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 -3px 0 rgba(0,0,0,.14)} /* quartz stands on the same ground as its neighbours */
+.pbob{animation:pbob 3.600s ease-in-out infinite alternate}.pswirl{animation:pswirl 14s linear infinite}.pdrift{animation:pdrift 4.800s ease-in-out infinite alternate}.pshad{transform-box:fill-box;transform-origin:50% 50%;animation:pshad 3.600s ease-in-out infinite alternate}
+@keyframes pbob{to{transform:translateY(-4px)}}@keyframes pswirl{to{transform:rotate(-360deg)}}@keyframes pdrift{to{transform:translate(2px,-5px)}}@keyframes pshad{to{transform:scale(.9);opacity:.4}}
+@media (prefers-reduced-motion:reduce){.pbob,.pswirl,.pdrift,.pshad{animation:none}}
 .lglow{position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen}.t.lbk{cursor:default;box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 0 14px rgba(255,226,60,.6)}
 .t.chs{background:#0c0718;cursor:default;box-shadow:none}.t.cxs{box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 0 12px rgba(192,106,255,.45)}
 .volcanic .t.fo{background-image:linear-gradient(rgba(40,24,18,.25),rgba(40,24,18,.25))} /* charred woods */
@@ -3022,8 +3025,8 @@ const edgeOf=(a,b)=>EDGES.find(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a)); /
 const canGo=(a,b)=>{const e=edgeOf(a,b);return !!e&&(!e[2]||b===e[1])};
 function reachFrom(id){const seen=new Set([id]),q=[id];while(q.length){const a=q.shift();WORLD.forEach(n=>{if(!seen.has(n.id)&&canGo(a,n.id)){seen.add(n.id);q.push(n.id)}})}return seen}
 const SAVE="skirmish-campaign";
-function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,items:camp.items,offer:camp.offer,offerBoss:camp.offerBoss,found:camp.found,kills:camp.kills,names:camp.names,wounds:camp.wounds,honors:camp.honors,falls:camp.falls,news:camp.news,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,merc:camp.merc||null,scout:camp.scout||0,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
-function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],items:d.items||[],offer:d.offer||null,offerBoss:!!d.offerBoss,found:Array.isArray(d.found)?d.found:d.found?[d.found]:[],kills:d.kills||[],names:d.names||null,wounds:d.wounds||[],honors:d.honors||[],falls:d.falls||[],news:d.news||null,region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},merc:d.merc||null,scout:d.scout||0,mercNote:"",lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
+function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,items:camp.items,offer:camp.offer,offerBoss:camp.offerBoss,found:camp.found,kills:camp.kills,names:camp.names,wounds:camp.wounds,honors:camp.honors,falls:camp.falls,news:camp.news,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,merc:camp.merc||null,scout:camp.scout||0,portal:camp.portal||0,portalIn:camp.portalIn||0,inSim:camp.inSim||0,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
+function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],items:d.items||[],offer:d.offer||null,offerBoss:!!d.offerBoss,found:Array.isArray(d.found)?d.found:d.found?[d.found]:[],kills:d.kills||[],names:d.names||null,wounds:d.wounds||[],honors:d.honors||[],falls:d.falls||[],news:d.news||null,region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},merc:d.merc||null,scout:d.scout||0,portal:d.portal||0,portalIn:d.portalIn||0,inSim:d.inSim||0,mercNote:"",lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
 const nest=(str,x,y,w,style="")=>str.replace(/<svg[^>]*>/,`<svg x="${x}" y="${y}" width="${w}" height="${w}" viewBox="0 0 40 40" style="${style}">`);
 function mapArt(){
   let g='<defs><radialGradient id="pg" cx=".5" cy=".4" r=".85"><stop offset="0" stop-color="#eadfb8"/><stop offset="1" stop-color="#cbb78a"/></radialGradient><filter id="wsh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="1.200" dy="2.400" stdDeviation="1.600" flood-color="#3a2810" flood-opacity=".45"/></filter><radialGradient id="wnode" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></radialGradient><filter id="wblur"><feGaussianBlur stdDeviation="6"/></filter><filter id="wblur2" x="-50%" y="-100%" width="200%" height="300%"><feGaussianBlur stdDeviation="2.500"/></filter><linearGradient id="wmt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a7656"/><stop offset=".6" stop-color="#9c8762" stop-opacity=".9"/><stop offset="1" stop-color="#b8a27a" stop-opacity="0"/></linearGradient></defs><rect width="400" height="520" fill="url(#pg)"/>';
@@ -3138,7 +3141,8 @@ function healFx(n){ // a gentle glow at the healing spot: rings drift outward an
   sv.insertBefore(g,$("wm"));setTimeout(()=>g.remove(),2600);
   $("warmy").querySelectorAll(".stat").forEach(c=>c.classList.add("healed"));
 }
-function openWorld(){camp.battle=null;camp.sel=camp.pos;if(camp.cfg&&!camp.names){rollNames();saveCamp()} // campaigns from before names existed
+function openWorld(){if(camp.portalIn&&$("relinfo").hidden)return enterSim(); // chose to enter the portal, then left before stepping through
+  camp.battle=null;camp.sel=camp.pos;if(camp.cfg&&!camp.names){rollNames();saveCamp()} // campaigns from before names existed
   renderWorld();if(camp.news){$("wprog").textContent=camp.news;camp.news=null;saveCamp()}show("world");renderGold();renderRelics();renderItems();showRelicOffer()}
 // The Beggar: a road-worn skeleton in ruined, oddly ornate armor, a battered kettle helm with a tattered golden plume, holding an old sack open; his seat matches the land ahead
 // who: "vasco" (bare-skulled, once he has given you his helm) or "man" (one of his men, in a plumed morion), both under the expedition's banner
@@ -3262,6 +3266,66 @@ ${seat}${who?banner:""}${cape}${legs}${body}${arms}${pauldron}${sack}${skull}${w
 <rect x="34" y="14" width="252" height="172" fill="url(#bgmoonlt)"/><rect x="34" y="14" width="252" height="172" filter="url(#bggrain)" opacity=".22" style="mix-blend-mode:multiply"/><rect x="34" y="14" width="252" height="172" fill="url(#bgvig)"/></svg>`;
 }
 // things that can happen on a one-way path (rolled once per path)
+/* ---------- The portal to the Warped Sim (unlocked by "warpedsim") ----------
+   After you choose a boss's spoils from regions 5 to 9 (so, on arriving in regions 6 to 10), a portal may open, once per campaign whatever you choose.
+   Entering turns the region you've just reached into the Warped Sim; backing away leaves it as it is. */
+const PORTAL_CHANCE=.12;
+const portalDue=()=>unlocks.warpedsim&&!camp.portal&&!camp.inSim&&camp.region>=6&&camp.region<=10&&camp.pos===0&&Math.random()<PORTAL_CHANCE;
+// the Rift portal: a ring of crystalline cubes hovering over the field, a violet swirl at its heart
+function portalScene(){
+  const rnd=(i,s)=>{const x=Math.sin(i*127.1+s*311.7)*43758.5453;return x-Math.floor(x)},f=n=>n.toFixed(1),CX=160,CY=96;
+  const PAL=[["#efe8ff","#a896e4","#5c4aa6"],["#e4dcff","#8f7ad6","#4a3a90"],["#d8fbf6","#78cfd6","#2e7486"]]; // lit top, side, shade: lilac, deeper violet, a stray cyan
+  let glow=""; // every cube's edges again, blurred on top: the lines read as lit, geometric seams
+  const cube=(x,y,s,a,p,o=1)=>{const [T,L,R]=PAL[p],h=s*.866,P=(...q)=>q.map(([u,v])=>f(x+u)+" "+f(y+v)).join("L"),rot=`rotate(${f(a)} ${f(x)} ${f(y)})`;
+    const E=`M${P([0,-s],[h,-s/2],[h,s/2],[0,s],[-h,s/2],[-h,-s/2])}zM${P([-h,-s/2],[0,0],[h,-s/2])}M${f(x)} ${f(y)}v${f(s)}`,ec=p===2?"#c8fff8":"#f2e6ff";
+    if(o===1)glow+=`<path transform="${rot}" d="${E}" stroke="${ec}" stroke-width="1.300" fill="none" stroke-linejoin="round"/>`;
+    return `<g transform="${rot}" opacity="${o}"><path d="M${P([0,-s],[h,-s/2],[0,0],[-h,-s/2])}z" fill="${T}"/><path d="M${P([-h,-s/2],[0,0],[0,s],[-h,s/2])}z" fill="${L}"/><path d="M${P([0,0],[h,-s/2],[h,s/2],[0,s])}z" fill="${R}"/><path d="${E}" fill="none" stroke="#1c1238" stroke-width="1.300" stroke-linejoin="round"/><path d="${E}" fill="none" stroke="${ec}" stroke-width=".55" stroke-linejoin="round"/>${[[0,-s],[h,-s/2],[h,s/2],[0,s],[-h,s/2],[-h,-s/2],[0,0]].map(([u,v])=>`<circle cx="${f(x+u)}" cy="${f(y+v)}" r="${f(Math.max(.35,s*.075))}" fill="#fff"/>`).join("")}</g>`};
+  // the ring: lumpy, uneven cubes, an inner course of smaller ones, a few strays drifting loose
+  let ring="",inner="",loose="";const N=30;
+  for(let i=0;i<N;i++){const a=(i+rnd(i,1)*.5)/N*6.283,r=1+(rnd(i,2)-.5)*.08,s=5.200+2.600*Math.abs(Math.sin(i*.9))+rnd(i,3)*1.800;
+    ring+=cube(CX+Math.cos(a)*58*r,CY+Math.sin(a)*64*r,s,(rnd(i,4)-.5)*28,rnd(i,5)<.13?2:rnd(i,6)<.5?1:0)}
+  for(let i=0;i<22;i++){const a=(i+rnd(i,7))/22*6.283;inner+=cube(CX+Math.cos(a)*(49+rnd(i,8)*3),CY+Math.sin(a)*(55+rnd(i,8)*3),2.600+rnd(i,9)*2,(rnd(i,10)-.5)*40,rnd(i,11)<.15?2:1,.9)}
+  [[94,52,3.200,0],[226,70,2.600,2],[222,150,3,1],[100,148,2.200,0],[132,24,2,2],[200,30,2.400,1]].forEach(([x,y,s,p],k)=>loose+=`<g class="pdrift" style="animation-delay:${-k*.8}s">${cube(x,y,s,k*17,p,.85)}</g>`);
+  // the swirl: three spiral arms over a violet well, slowly turning
+  let arms="";for(let k=0;k<3;k++){let d="";for(let t=0;t<=1.001;t+=.04){const a=k*2.094+t*7.5,r=4+t*50;d+=(t?"L":"M")+f(CX+Math.cos(a)*r*.9)+" "+f(CY+Math.sin(a)*r)}arms+=`<path d="${d}" stroke="#e8ccff" stroke-width="5" fill="none" opacity=".35" filter="url(#ptblur)"/><path d="${d}" stroke="#f6eaff" stroke-width=".8" fill="none" opacity=".35"/>`}
+  const scan=[[-30,84,40],[6,104,26],[-12,118,34]].map(([x,y,w])=>`<path d="M${CX+x} ${y}h${w}m4 0h6" stroke="#e8f8ff" stroke-width="1.200" opacity=".22"/>`).join(""); // faint scan lines: the digitized part
+  const spark=(x,y,r,k)=>`<path class="twk" style="animation-delay:${-k*.6}s" d="M${x} ${y-r}l${r*.25} ${r*.75}l${r*.75} ${r*.25}l${-r*.75} ${r*.25}l${-r*.25} ${r*.75}l${-r*.25} ${-r*.75}l${-r*.75} ${-r*.25}l${r*.75} ${-r*.25}z" fill="#fff6ff" opacity=".55"/>`;
+  const sparks=[[146,78,4,0],[178,112,3,1],[166,70,2.500,2],[140,120,3.400,3],[186,86,2.200,4]].map(([x,y,r,k])=>spark(x,y,r,k)).join("")+[[154,104],[172,94],[150,90]].map(([x,y],k)=>`<rect class="twk" style="animation-delay:${-k*1.1}s" x="${x}" y="${y}" width="1.600" height="1.600" fill="#e8f8ff" opacity=".5"/>`).join("");
+  // the ground beneath it goes faintly to squares, as if the field were being drawn anew
+  let pix="";for(let i=0;i<34;i++){const a=rnd(i,20)*6.283,d=Math.sqrt(rnd(i,21)),x=CX+Math.cos(a)*d*62,y=192+Math.sin(a)*d*10;pix+=`<rect x="${f(x)}" y="${f(y)}" width="3" height="2" fill="${rnd(i,22)<.3?"#9ff0f0":"#c8a8ff"}" opacity="${f(.15+(1-d)*.5)}"/>`}
+  // hazy vertical streaks rising from the top of the ring and falling from its base to the ground, fading at their far ends
+  const haze=(up)=>[[-34,.6,5],[-14,1,6.500],[2,.75,4],[18,.9,5.500],[36,.55,4.200]].map(([dx,l,w],k)=>{const x=CX+dx+(up?0:dx*.15),y0=up?CY-62+Math.abs(dx)*.5:CY+60-Math.abs(dx)*.4,len=(up?72:38)*l,y=up?y0-len:y0;
+    return `<rect class="twk" style="animation-delay:${-k*.7-(up?0:.35)}s;animation-duration:${3+k*.4}s" x="${f(x-w/2)}" y="${f(y)}" width="${w}" height="${f(len)}" fill="url(#${up?"pthup":"pthdn"})" filter="url(#ptblur)"/><rect x="${f(x-.4)}" y="${f(y)}" width=".8" height="${f(len)}" fill="url(#${up?"pthup":"pthdn"})"/>`}).join("");
+  // a faint grid spreading out from the streaks: square in the air above, laid flat in perspective on the ground below
+  let gup="";for(let x=CX-96;x<=CX+96;x+=8)gup+=`M${x} 0v66`;for(let y=2;y<=66;y+=8)gup+=`M${CX-96} ${y}h192`;
+  let gdn="";[176,179,183,188,194,201,209,218].forEach(y=>gdn+=`M${CX-130} ${y}h260`);for(let k=-9;k<=9;k++)gdn+=`M${CX+k*7} 160L${CX+k*34} 220`;
+  let grass="";for(let i=0;i<40;i++){const x=6+rnd(i,30)*308,y=166+rnd(i,31)*52;if(Math.abs(x-CX)<70&&y>182&&y<204)continue;grass+=`<path d="M${f(x)} ${f(y)}l-2-6M${f(x)} ${f(y)}l1-7M${f(x)} ${f(y)}l3-5" stroke="${y>190?"#2a361e":"#3a4a2a"}" stroke-width="1.100" stroke-linecap="round"/>`}
+  let stars="";for(let i=0;i<16;i++)stars+=`<circle cx="${f(rnd(i,40)*320)}" cy="${f(rnd(i,41)*70)}" r="${f(.5+rnd(i,42)*.7)}" fill="#f4eeff" opacity="${f(.3+rnd(i,43)*.5)}"/>`;
+  return `<svg viewBox="0 0 320 220" role="img" aria-label="Dusk over an empty field. A ring of pale, crystalline cubes hangs just above the grass, uneven as if it had grown there, with a slow violet swirl at its heart and a few faint sparks drifting inside. The ground beneath it has begun to break into small glowing squares.">
+<defs><linearGradient id="ptsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1c1838"/><stop offset=".55" stop-color="#4a3a6e"/><stop offset=".85" stop-color="#8a6a8a"/><stop offset="1" stop-color="#c8957e"/></linearGradient>
+<linearGradient id="ptgrd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3c4630"/><stop offset="1" stop-color="#1e2618"/></linearGradient>
+<radialGradient id="ptwell" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fbeaff"/><stop offset=".18" stop-color="#d6a8ff"/><stop offset=".5" stop-color="#8a4ad0"/><stop offset=".82" stop-color="#3e1a78"/><stop offset="1" stop-color="#1a0c36"/></radialGradient>
+<radialGradient id="pthalo" cx=".5" cy=".5" r=".5"><stop offset=".55" stop-color="#b48aff" stop-opacity=".5"/><stop offset="1" stop-color="#b48aff" stop-opacity="0"/></radialGradient>
+<filter id="ptblur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.400"/></filter>
+<filter id="ptglow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.300"/></filter><linearGradient id="pthup" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#efe2ff" stop-opacity=".95"/><stop offset="1" stop-color="#c8a8ff" stop-opacity="0"/></linearGradient><linearGradient id="pthdn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#efe2ff" stop-opacity=".9"/><stop offset="1" stop-color="#c8f4ff" stop-opacity=".1"/></linearGradient><radialGradient id="ptfade"><stop offset="0" stop-color="#fff"/><stop offset=".45" stop-color="#fff" stop-opacity=".6"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient><mask id="ptmup"><ellipse cx="${CX}" cy="20" rx="92" ry="52" fill="url(#ptfade)"/></mask><mask id="ptmdn"><ellipse cx="${CX}" cy="190" rx="120" ry="30" fill="url(#ptfade)"/></mask><clipPath id="ptclip"><ellipse cx="${CX}" cy="${CY}" rx="51" ry="57"/></clipPath></defs>
+<rect width="320" height="220" fill="url(#ptsky)"/>${stars}
+<path d="M0 150q40-14 80-6t70-8t90 4t80-10v40H0z" fill="#2e2a46"/><path d="M12 152v-16h3v-3h3v3h3v-3h3v3h4v-14h3v-3h2v3h2v-3h2v3h3v14h4v-3h3v5l2 2v13z" fill="#221e34"/><path d="M33 124h2v4h-2z" fill="#c8957e" opacity=".5"/><path d="M30 120q-5-9 2-16t-1-14" stroke="#6a5e7a" stroke-width="3" fill="none" opacity=".35" stroke-linecap="round" filter="url(#ptblur)"/>
+<path d="M0 162q80-8 160-4t160-2v64H0z" fill="url(#ptgrd)"/>
+<ellipse cx="${CX}" cy="194" rx="70" ry="13" fill="#b48aff" opacity=".22" filter="url(#ptblur)"/>${pix}
+<ellipse class="pshad" cx="${CX}" cy="194" rx="44" ry="6" fill="#0c0a14" opacity=".55" filter="url(#ptblur)"/><path d="${gdn}" stroke="#d6bcff" stroke-width=".5" fill="none" opacity=".45" mask="url(#ptmdn)"/>${grass}${haze(false)}
+<g class="pbob"><ellipse cx="${CX}" cy="${CY}" rx="80" ry="86" fill="url(#pthalo)"/><path d="${gup}" stroke="#e0ccff" stroke-width=".45" fill="none" opacity=".3" mask="url(#ptmup)"/>${haze(true)}
+<ellipse cx="${CX}" cy="${CY}" rx="52" ry="58" fill="url(#ptwell)"/><g clip-path="url(#ptclip)"><g class="pswirl" style="transform-origin:${CX}px ${CY}px">${arms}</g>${scan}</g>${sparks}
+<ellipse cx="${CX}" cy="${CY}" rx="58" ry="64" fill="none" stroke="#c8a8ff" stroke-width="7" opacity=".35" filter="url(#ptblur)"/>${inner}${ring}<g filter="url(#ptglow)" opacity=".7">${glow}</g></g>${loose}
+</svg>`;
+}
+const PORTAL={t:"A Portal Opens",tag:"A rift",rc:"#9a6ad8",go:()=>({art:portalScene(),
+  text:"As your army packs away the boss's hoard, the air ahead begins to hum. Pale cubes drift up out of the grass and lock together into a ring, hanging just above the ground. Inside it, a violet swirl turns slowly, flecked with faint sparks. It doesn't look like it belongs here.",
+  opts:[{label:"Carefully Enter the Portal",go:()=>{camp.portal=1;camp.portalIn=1;saveCamp();return "One careful step at a time, your army files through. The ground underfoot breaks into squares, then into light, and the world you knew folds shut behind you."}},
+    {label:"Quietly Back Away and Go Around",go:()=>{camp.portal=1;saveCamp();return "You give the ring a wide berth and take the long way around. Behind you, the cubes drift apart and the hum fades. Whatever it was, it won't wait for you again."}}]})};
+function enterSim(){ // the region you've just reached becomes the Warped Sim (its own map comes in genWorld)
+  delete camp.portalIn;camp.inSim=1;camp.pos=0;camp.cleared=[];camp.done=false;camp.sel=0;camp.news="You stepped out of the portal into the Warped Sim.";
+  genWorld();saveCamp();openWorld();
+}
 const ROAD_EVENTS=[
  {t:"A Broken-Down Cart",go:()=>{camp.gold+=15;sfx("coin");renderGold();return "Someone left in a hurry. Among the spilled crates, your army finds 15 gold."}},
  {t:"Abandoned Supplies",go:()=>{const k=["draught","smoke","fire","caltrops"][Math.floor(Math.random()*4)];if(camp.items.length<itemCap()){camp.items.push(k);renderItems();return `A soldier's pack lies by the trail. Inside: a ${ITEMS[k].name}.`}camp.gold+=10;sfx("coin");renderGold();return "A soldier's pack lies by the trail. Your own packs are full, so you take the 10 gold inside."}},
@@ -3302,7 +3366,7 @@ const SELLSWORD={t:"A Sellsword",go:()=>{const m=rollMerc();
    {label:`Hire ${m.name} (${m.price} gold)`,cost:m.price,go:()=>{const old=hireMerc(m);return `${m.name} pockets the coin and falls in at the back of your column.`+(old?` ${old.name} shrugs and wanders off.`:"")}},
    {label:"Decline and move on",go:()=>"The sellsword shrugs and goes back to flipping the coin."}]}}};
 function roadEvent(to,done,ev){
-  const L=ROAD_EVENTS.filter(e=>!e.when||e.when()),E=ev||L[Math.floor(Math.random()*L.length)],r=E.go(to),card=t=>(r.art?`<div class="evart">${typeof r.art==="function"?r.art():r.art}</div>`:"")+`<div class="rcard" style="--rc:#a08a64"><span class="rr">On the road</span><small>${t}</small></div>`;saveCamp();
+  const L=ROAD_EVENTS.filter(e=>!e.when||e.when()),E=ev||L[Math.floor(Math.random()*L.length)],r=E.go(to),card=t=>(r.art?`<div class="evart">${typeof r.art==="function"?r.art():r.art}</div>`:"")+`<div class="rcard" style="--rc:${E.rc||"#a08a64"}"><span class="rr">${E.tag||"On the road"}</span><small>${t}</small></div>`;saveCamp();
   $("rititle").textContent=E.t;relinfoFrom=null;riAfter=done;$("relinfo").hidden=false;
   if(typeof r==="string"){$("ribody").innerHTML=card(r);$("riclose").hidden=false;$("riclose").focus();return}
   $("ribody").innerHTML=card(r.text)+`<div class="menubtns">${r.opts.map((o,i)=>`<button class="b" data-i="${i}"${o.cost>camp.gold?" disabled":""}>${o.label}</button>`).join("")}</div>`;$("riclose").hidden=true; // a choice: pick one to carry on
@@ -4266,7 +4330,8 @@ function showRelicOffer(){
     if(id.startsWith("item:")&&camp.items.length>=itemCap())return swapItem(id.slice(5),b,()=>b.onclick()); // a full pack: discard one first
     if(id.startsWith("item:")){camp.items.push(id.slice(5));renderItems()}else gainRelic(id);
     if(id==="chest"){camp.gold+=CHEST_GOLD;camp.lastGold=CHEST_GOLD;sfx("coin");renderGold()} // the war chest pays out at once
-    camp.offer=null;camp.offerBoss=false;saveCamp();$("relicv").hidden=true;renderRelics();$("wmap").querySelector(".wn")&&renderWorld()});
+    const wasBoss=camp.offerBoss;camp.offer=null;camp.offerBoss=false;saveCamp();$("relicv").hidden=true;renderRelics();$("wmap").querySelector(".wn")&&renderWorld();
+    if(wasBoss&&portalDue())setTimeout(()=>roadEvent(0,()=>{if(camp.portalIn)enterSim()},PORTAL),350)}); // a boss's spoils in hand: sometimes, a portal
   $("relicv").hidden=false;($("rchoices").querySelector('.rcard:not([aria-disabled="true"])')||$("rchoices").querySelector(".rcard")).focus();
 }
 /* ---------- Campaign triumph: after the boss falls ---------- */
@@ -4296,7 +4361,7 @@ $("tnew").onclick=()=>{gid++;$("triumph").hidden=true;camp.battle=null;openCampS
 // keep the army, its health, relics, gold and record, and march on to a freshly rolled map
 $("ttravel").onclick=()=>{
   gid++;$("triumph").hidden=true;camp.battle=null;
-  camp.mapsPrior+=battlesWon();camp.region+=1;camp.pos=0;camp.cleared=[];camp.done=false;camp.sel=0;
+  camp.mapsPrior+=battlesWon();camp.region+=1;camp.pos=0;camp.cleared=[];camp.done=false;camp.sel=0;camp.inSim=0;
   genWorld();saveCamp();openWorld();
 };
 $("tmenu").onclick=()=>{gid++;$("triumph").hidden=true;camp.battle=null;show("menu")};
@@ -4554,7 +4619,7 @@ $("unl").onclick=()=>{$("mbtns").hidden=true;$("unlockview").hidden=false;unlock
 $("how").onclick=()=>{$("mbtns").hidden=true;$("rulesview").hidden=false;howView(howMain,null)};
 $("back").onclick=()=>show("menu");
 $("go").onclick=()=>{
-  if(campSetup){dropHold("camp");camp.cfg={x:pick.x.slice(),m:pick.m,c:pick.c};camp.pos=0;camp.cleared=[];camp.done=false;camp.hp=null;camp.gold=0;camp.relics=[];camp.items=[];camp.merc=null;camp.scout=0;camp.mercNote="";camp.offer=null;camp.found=[];camp.lastGold=0;camp.kills=[];rollNames();camp.region=1;camp.mapsPrior=0;camp.bossUsed={loc:[],name:[]};camp.sel=0;genWorld();saveCamp();openWorld()}
+  if(campSetup){dropHold("camp");camp.cfg={x:pick.x.slice(),m:pick.m,c:pick.c};camp.pos=0;camp.cleared=[];camp.done=false;camp.hp=null;camp.gold=0;camp.relics=[];camp.items=[];camp.merc=null;camp.scout=0;camp.portal=0;camp.inSim=0;camp.mercNote="";camp.offer=null;camp.found=[];camp.lastGold=0;camp.kills=[];rollNames();camp.region=1;camp.mapsPrior=0;camp.bossUsed={loc:[],name:[]};camp.sel=0;genWorld();saveCamp();openWorld()}
   else start();
 };
 $("end").onclick=()=>{
