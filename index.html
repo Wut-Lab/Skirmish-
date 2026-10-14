@@ -829,7 +829,7 @@ const MODS={
  SW:{name:"Shield Wall Formations",desc:"Your units get +1 armor while next to an ally."},
  AIM:{name:"Steady Aim",desc:`Enemies get ${AIM_EV*100}% less evasion against your attacks.`},
  REST:{name:"Field Rest",desc:"At the end of your turn, each of your units that neither moved nor attacked that turn recovers 2 HP."}};
-let RUBBLE=new Set(),MURKY=false,HAUNTED=false,VOLCANIC=false,CHERRY=new Set(),SMOKE=new Set(),CALTROPS=new Set(),LAVA=new Set(),MAGMA=new Set(),VOLC=new Set(),WISP=new Set(),FLOWERS=new Set(),MEADOW=new Set(),GREENW=new Set(),KOI=new Set(),VALE=false,CHASM=new Set(),CHAOS=new Set(),LIGHT=new Set(),SIM=false,GRAVES=new Set(),WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set(),SWAMP=new Set();
+let RUBBLE=new Set(),MURKY=false,HAUNTED=false,VOLCANIC=false,CHERRY=new Set(),SMOKE=new Set(),CALTROPS=new Set(),LAVA=new Set(),MAGMA=new Set(),VOLC=new Set(),WISP=new Set(),FLOWERS=new Set(),MEADOW=new Set(),GREENW=new Set(),KOI=new Set(),VALE=false,CHASM=new Set(),CHAOS=new Set(),LIGHT=new Set(),SIM=false,SIMFORT=false,GRAVES=new Set(),WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set(),SWAMP=new Set();
 // Bump PROGRESS_EPOCH to wipe unlocks and the campaign save once on next load (editor drafts and sound settings stay).
 const PROGRESS_EPOCH=2;try{if(+localStorage.getItem("skirmish_epoch")!==PROGRESS_EPOCH){localStorage.removeItem("skirmish_unlocks_v1");localStorage.removeItem("skirmish-campaign");["quick","camp","chal"].forEach(m=>localStorage.removeItem("skirmish_hold_"+m));localStorage.setItem("skirmish_epoch",PROGRESS_EPOCH)}}catch(e){}
 const UKEY="skirmish_unlocks_v1",unlocks=(()=>{try{return JSON.parse(localStorage.getItem(UKEY)||"{}")||{}}catch(e){return{}}})();
@@ -984,7 +984,7 @@ function genMap(o={}){
     if(walls.size<5)continue;
     const fort=new Set();
     if(o.fort||!o.sim&&Math.random()<.25){ // fortress groupings of 2 to 4 tiles
-      const cnt=1+R(2),occ=(a,b)=>walls.has(a+","+b)||graves.has(a+","+b)||forest.has(a+","+b)||fort.has(a+","+b)||swamp.has(a+","+b)||taken(a,b)||hot(a,b);
+      const cnt=1+R(2),occ=(a,b)=>light.has(a+","+b)||glowing(a,b)||walls.has(a+","+b)||graves.has(a+","+b)||forest.has(a+","+b)||fort.has(a+","+b)||swamp.has(a+","+b)||taken(a,b)||hot(a,b);
       const blob=(n,x0,y0)=>{
         const t=[[x0,y0]];
         for(let i=0;i<40&&t.length<n;i++){
@@ -1034,7 +1034,7 @@ function genMap(o={}){
     if(!o.graves&&!o.lava&&!o.sim&&Math.random()<.6)for(let n=1+R(3);n>0;n--)grow(4+R(6),R(W),R(H)).forEach(([a,b])=>[[a,b],[W-1-a,H-1-b]].forEach(([x,y])=>{const k=K(x,y);
       if(forest.has(k)){if(!cherry.has(k))greenw.add(k)}else if(![walls,deep,shal,swamp,fort,bars,camps,graves,lava,magma,volc,wisps,koi,flowers].some(st=>st.has(k)))meadow.add(k)}));
     // Sim features that come one per map on a middle row, or in mirrored pairs: Chaos Springs (one on the Fractured Chasm, 2-3 in Synthwave Space) and Synthwave Space's 2-3 Light Bricks
-    const chaos=new Set(),busy=k=>chasm.has(k)||walls.has(k)||chaos.has(k)||light.has(k)||camps.has(k),roomy=(a,b)=>a>=0&&a<W&&!busy(K(a,b))&&blastOf(K(a,b)).filter(([x,y])=>!busy(K(x,y))).length>=5;
+    const chaos=new Set(),busy=k=>chasm.has(k)||walls.has(k)||chaos.has(k)||light.has(k)||camps.has(k)||fort.has(k),roomy=(a,b)=>a>=0&&a<W&&!busy(K(a,b))&&blastOf(K(a,b)).filter(([x,y])=>!busy(K(x,y))).length>=5;
     if(o.chasm||o.synth)scatter(chaos,o.chasm?1:2+R(2),roomy);
     if(o.synth&&(light.size<2||chaos.size<2)||o.chasm&&!chaos.size)continue; // every Sim map gets its full set of features: if they didn't fit, roll again
     const seen=new Set(["0,0"]),q=[[0,0]];
@@ -1047,7 +1047,7 @@ function genMap(o={}){
       }
     }
     if(seen.size===W*H-walls.size-chasm.size-light.size-deep.size-bars.size-camps.size-graves.size-lava.size-volc.size-koi.size){ // every open tile connects: lava never cuts anyone off
-      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;SWAMP=swamp;MURKY=o.swamp>=3;GRAVES=graves;HAUNTED=!!o.graves;LAVA=lava;MAGMA=magma;VOLC=volc;WISP=wisps;FLOWERS=flowers;MEADOW=meadow;GREENW=greenw;KOI=koi;VALE=!!o.sakura;VOLCANIC=!!o.lava;CHASM=chasm;CHAOS=chaos;LIGHT=light;SIM=!!o.sim;CHERRY=cherry;BARRELS=bars;XBAR=xbars;CAMPS=camps;WALLV=R(4);
+      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;SWAMP=swamp;MURKY=o.swamp>=3;GRAVES=graves;HAUNTED=!!o.graves;LAVA=lava;MAGMA=magma;VOLC=volc;WISP=wisps;FLOWERS=flowers;MEADOW=meadow;GREENW=greenw;KOI=koi;VALE=!!o.sakura;VOLCANIC=!!o.lava;CHASM=chasm;CHAOS=chaos;LIGHT=light;SIM=!!o.sim;SIMFORT=!!o.simfort;CHERRY=cherry;BARRELS=bars;XBAR=xbars;CAMPS=camps;WALLV=R(4);
       groupForts(()=>R(2));
       return;
     }
@@ -1450,7 +1450,7 @@ function tileArt(x,y){ // the art for one board tile, picking a stable variant p
     case "volcano":return VOLC_V[tv(x,y,2,25)];case "wisp":return WISP_V[tv(x,y,2,47)];case "flowers":return FLOWER_V[tv(x,y,3,53)];case "koi":return KOI_V[tv(x,y,2,59)];case "lava":return LAVA_V[tv(x,y,3,27)];case "magma":return MAGMA_V[tv(x,y,3,29)];
     case "rubble":return RUBBLE_V[tv(x,y,2,61)];
     case "chasm":return chasmArt(chasmMask(x,y),tv(x,y,3,71));case "chaos":return simGround(x,y,4)+CHAOS_V;case "lbrick":return simGround(x,y,4)+LBRICK_V;case "glitch":return simGround(x,y);case "quartz":return quartzArt(tv(x,y,7,73));
-    case "fort":return fortArt(fortMask(x,y),FORTV.get(k)||0,FORTK.has(k));default:return VOLCANIC?ashGround(x,y):ground(x,y);
+    case "fort":return fortArt(fortMask(x,y),FORTV.get(k)||0,FORTK.has(k),SIMFORT);default:return VOLCANIC?ashGround(x,y):ground(x,y);
   }
 }
 // Rubble: a blasted fortress, broken blocks and grit on scorched ground
@@ -1648,7 +1648,7 @@ function atkZone(u,spots,set,bar){
 let boardHTML=[],artMemo={sig:""};
 function terrainArt(){
   const tk=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++)tk.push(terrainKey(x+","+y));
-  const sig=[W,H,seed,WALLV,+HAUNTED,+VOLCANIC,+VALE,+SIM,[...FORTV].join(";"),[...FORTK].join(";"),tk.join("")].join("|");
+  const sig=[W,H,seed,WALLV,+HAUNTED,+VOLCANIC,+VALE,+SIM,+SIMFORT,[...FORTV].join(";"),[...FORTK].join(";"),tk.join("")].join("|");
   if(artMemo.sig===sig)return artMemo;
   const art=[],jn=[],bl=[],wm=[];
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){art.push(tileArt(x,y));jn.push(joins(x,y));bl.push(blush(x,y));const m=wallMask(x,y);wm.push((m&1?" jn":"")+(m&4?" js":""))}
@@ -3336,7 +3336,7 @@ ${seat}${who?banner:""}${cape}${legs}${body}${arms}${pauldron}${sack}${skull}${w
 /* ---------- The portal to the Warped Sim (unlocked by "warpedsim") ----------
    After you choose a boss's spoils from regions 5 to 9 (so, on arriving in regions 6 to 10), a portal may open, once per campaign whatever you choose.
    Entering turns the region you've just reached into the Warped Sim; backing away leaves it as it is. */
-const PORTAL_CHANCE=.12;
+const PORTAL_CHANCE=.12,SIM_BOSS_SAKURA=.75; // SIM_BOSS_SAKURA: how often the Sim's boss fights in a Sakura Vale (else a Sim biome), once Sakura Vale is unlocked
 const portalDue=()=>unlocks.warpedsim&&!camp.portal&&!camp.inSim&&camp.region>=6&&camp.region<=10&&camp.pos===0&&Math.random()<PORTAL_CHANCE;
 // the Rift portal: a ring of crystalline cubes hovering over the field, a violet swirl at its heart
 function portalScene(){
@@ -3478,7 +3478,9 @@ function beginBattle(n){
   seeded(n.seed,()=>{
     resetBattle();chal=null;camp.battle={node:n.id,items0:camp.items.slice(),wounds0:(camp.wounds||[]).slice()}; // items0: the pack as the battle began, handed back if a saved battle is abandoned
     pick={x:camp.cfg.x.slice(),m:modOk(camp.cfg.m),c:camp.cfg.c};
-    start(Object.assign({},BIOME[n.b]));
+    const o=Object.assign({},BIOME[n.b]);
+    if(camp.inSim&&n.type==="boss")Object.assign(o,unlocks.sakura&&Math.random()<SIM_BOSS_SAKURA?BIOME.sakura:BIOME[Math.random()<.5?"chasm":"synth"],{fort:1,boss:1,simfort:1}); // the Sim's stronghold: mostly a Sakura Vale, its fortress fading at the corners
+    start(o);
   });
 }
 let rConfirm=0;
@@ -4477,7 +4479,7 @@ function applyMap(def){
   const S={ground:new Set(),forest:new Set(),shallow:new Set(),deep:new Set(),swamp:new Set(),wall:new Set(),fort:new Set(),barrels:new Set(),xbarrel:new Set(),grave:new Set(),campsite:new Set(),lava:new Set(),magma:new Set(),volcano:new Set(),cherry:new Set(),wisp:new Set(),flowers:new Set(),koi:new Set(),meadow:new Set(),greenwood:new Set()};
   def.rows.forEach((r,y)=>[...r].forEach((c,x)=>{const k=MAPCH[c]||"ground";S[k].add(x+","+y);if(k==="xbarrel")S.barrels.add(x+","+y)}));
   WALLS=S.wall;FOREST=S.forest;FORT=S.fort;DEEP=S.deep;SHALLOW=S.shallow;SWAMP=S.swamp;GRAVES=S.grave;BARRELS=S.barrels;XBAR=S.xbarrel;CAMPS=S.campsite;LAVA=S.lava;MAGMA=S.magma;VOLC=S.volcano;WISP=S.wisp;FLOWERS=S.flowers;KOI=S.koi;CHERRY=S.cherry;S.cherry.forEach(k=>FOREST.add(k));MEADOW=S.meadow;GREENW=S.greenwood;GREENW.forEach(k=>FOREST.add(k));
-  MURKY=def.biome==="swamp";HAUNTED=def.biome==="graveyard";VOLCANIC=def.biome==="volcanic";VALE=def.biome==="sakura";WALLV=def.wallStyle||0;CHASM=new Set();CHAOS=new Set();LIGHT=new Set();SIM=false;groupForts(()=>0);
+  MURKY=def.biome==="swamp";HAUNTED=def.biome==="graveyard";VOLCANIC=def.biome==="volcanic";VALE=def.biome==="sakura";WALLV=def.wallStyle||0;CHASM=new Set();CHAOS=new Set();LIGHT=new Set();SIM=false;SIMFORT=false;groupForts(()=>0);
 }
 // what's wrong with a map, if anything (an empty list means it's playable); notes are warnings that don't block play
 function mapProblems(def,notes=[]){
@@ -4773,7 +4775,7 @@ $("phold").onclick=()=>{
   if(turn!=="y"||busy||over)return;
   const A=x=>[...x],m=chal?"chal":camp.battle?"camp":"quick";
   const h={t:[WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS,WISP,FLOWERS,KOI,CALTROPS,MEADOW,GREENW,RUBBLE,CHASM,CHAOS,LIGHT].map(A),
-    f:{MURKY,HAUNTED,VOLCANIC,VALE,SIM,WALLV,seed,BIOME_KEY,herbertMet,firstTurn,pturn},fv:A(FORTV),fk:A(FORTK),
+    f:{MURKY,HAUNTED,VOLCANIC,VALE,SIM,SIMFORT,WALLV,seed,BIOME_KEY,herbertMet,firstTurn,pturn},fv:A(FORTV),fk:A(FORTK),
     units,mods,col,tpUsed,relic:A(RELIC),foeRelic:A(FOE_RELIC),foeItems:FOE_ITEMS.slice(),relicUsed,pick,def:chal&&chal.def,node:camp.battle?camp.battle.node:null,items0:camp.battle&&camp.battle.items0,wounds0:camp.battle&&camp.battle.wounds0,biome:$("biome").innerHTML};
   try{localStorage.setItem(HOLD(m),JSON.stringify(h))}catch(e){return}
   if(m==="camp")saveCamp();
@@ -4783,7 +4785,7 @@ $("phold").onclick=()=>{
 function resumeHold(h){
   resetBattle();
   [WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS,WISP=new Set(),FLOWERS=new Set(),KOI=new Set(),CALTROPS=new Set(),MEADOW=new Set(),GREENW=new Set(),RUBBLE=new Set(),CHASM=new Set(),CHAOS=new Set(),LIGHT=new Set()]=h.t.map(a=>new Set(a));
-  ({MURKY,HAUNTED,VOLCANIC,VALE=false,SIM=false,WALLV,seed,BIOME_KEY,herbertMet,firstTurn,pturn}=h.f);
+  ({MURKY,HAUNTED,VOLCANIC,VALE=false,SIM=false,SIMFORT=false,WALLV,seed,BIOME_KEY,herbertMet,firstTurn,pturn}=h.f);
   FORTV=new Map(h.fv);FORTK=new Set(h.fk);units=h.units;mods={y:modOk(h.mods.y),f:modOk(h.mods.f)};col=h.col;tpUsed=h.tpUsed;RELIC=new Set(h.relic);FOE_RELIC=new Set(h.foeRelic||[]);FOE_ITEMS=(h.foeItems||[]).slice();relicUsed=h.relicUsed;pick=h.pick;
   chal=h.def?{def:h.def,test:false}:null;camp.battle=h.node!=null?{node:h.node,items0:h.items0,wounds0:h.wounds0}:null;
   $("biome").innerHTML=h.biome;show("game");say("Battle resumed. Your turn. Select one of your units.");render();
