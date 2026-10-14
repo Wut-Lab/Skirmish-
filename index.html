@@ -2211,7 +2211,7 @@ const BSCALE=[0,2,3,5,7,8,10],BCHORDS=[[0,2,4],[0,2,4],[5,0,2],[6,1,3],[0,2,4],[
 const SSCALE=[0,2,4,6,7,9,11],SCHORDS=[[0,2,4],[0,2,4],[1,3,5],[1,3,5],[5,0,2],[3,5,0],[4,6,1],[0,2,4]]; // sim: I, I, II, II, vi, IV, V, I
 const SBCHORDS=[[0,2,4],[0,2,4],[5,0,2],[5,0,2],[3,5,0],[3,5,0],[6,1,3],[4,6,1]]; // sim boss: i, i, VI, VI, iv, iv, VII, v
 const deg=(n,base=62,sc=SCALE)=>440*Math.pow(2,(base+12*Math.floor(n/7)+sc[((n%7)+7)%7]-69)/12); // scale degree -> Hz (62 = D4)
-const musicStyle=()=>{const cb=!$("game").hidden&&camp.battle&&!chal&&WORLD[camp.battle.node],boss=cb&&!over&&cb.type==="boss",sim=camp.inSim&&(cb||!$("world").hidden);
+const musicStyle=()=>{const cb=!$("game").hidden&&camp.battle&&!chal&&WORLD[camp.battle.node],boss=cb&&!over&&cb.type==="boss",sim=camp.inSim&&(cb||!$("world").hidden)||SIMB(cb);
   return sim?(boss?"simboss":"sim"):boss?"boss":"calm"};
 function startMusic(){
   if(!musicOn||mus||document.hidden)return;
@@ -2805,7 +2805,7 @@ function showEnd(win){
     camp.hp=armyTypes().map((t,i)=>{const u=units.find(v=>v.team==="y"&&v.ci===i);return u?Math.min(campMax(i),u.hp+campHeal(t)+(camp.relics.includes("rations")?1:0)):Math.min(campMax(i),camp.relics.includes("bandages")?3:1)}); // survivors patch up; fallen units return at 1 HP (3 with Spare Bandages)
     findRelics(nm);mercAfter();
     const earned=goldFor(nm);camp.gold+=earned;camp.lastGold=earned; // spoils of war
-    camp.offer=nm.type==="boss"?bossOffer():relicOffer();camp.offerBoss=nm.type==="boss"; // pick a reward back on the map (a boss's spoils wait for the next region)
+    camp.offer=nm.type==="boss"?bossOffer():relicOffer(nm);camp.offerBoss=nm.type==="boss"; // pick a reward back on the map (a boss's spoils wait for the next region)
     camp.pos=nm.id;if(nm.type==="boss")camp.done=true;saveCamp();
     if(camp.cleared.filter(i=>{const n=WORLD[i];return n&&n.type!=="camp"&&n.type!=="heal"&&n.type!=="shop"}).length>=2)unlock("barrels"); // two real battles won
     unlocks.cw=(unlocks.cw||0)+1;saveU(); // campaign battle wins across every campaign
@@ -3072,7 +3072,8 @@ function genWorld(){
   [378,292,206].forEach(y0=>{
     const c=2+R(2),ids=[];
     for(let i=0;i<c;i++){
-      const b=nextBiome(),pool=NAMES[b].filter(n=>!used.has(n)),nm=pool[R(pool.length)];used.add(nm);
+      let b=nextBiome();if(b==="sakura"&&camp.escaped&&Math.random()<ESC_SIM_BIOME)b=Math.random()<.5?"chasm":"synth"; // the Sim leaks out after you escape it
+      const pool=NAMES[b].filter(n=>!used.has(n)),nm=pool[R(pool.length)];used.add(nm);
       ids.push(nodes.length);
       nodes.push({id:nodes.length,name:nm,x:Math.round(40+320*(i+.5)/c+rr(-10,10)),y:Math.round(y0+rr(-2,2)),type:"battle",b,text:BTEXT[b]});
     }
@@ -3200,8 +3201,8 @@ const edgeOf=(a,b)=>EDGES.find(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a)); /
 const canGo=(a,b)=>{const e=edgeOf(a,b);return !!e&&(!e[2]||b===e[1])};
 function reachFrom(id){const seen=new Set([id]),q=[id];while(q.length){const a=q.shift();WORLD.forEach(n=>{if(!seen.has(n.id)&&canGo(a,n.id)){seen.add(n.id);q.push(n.id)}})}return seen}
 const SAVE="skirmish-campaign";
-function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,items:camp.items,offer:camp.offer,offerBoss:camp.offerBoss,found:camp.found,kills:camp.kills,names:camp.names,wounds:camp.wounds,honors:camp.honors,falls:camp.falls,news:camp.news,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,merc:camp.merc||null,scout:camp.scout||0,portal:camp.portal||0,portalIn:camp.portalIn||0,inSim:camp.inSim||0,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
-function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],items:d.items||[],offer:d.offer||null,offerBoss:!!d.offerBoss,found:Array.isArray(d.found)?d.found:d.found?[d.found]:[],kills:d.kills||[],names:d.names||null,wounds:d.wounds||[],honors:d.honors||[],falls:d.falls||[],news:d.news||null,region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},merc:d.merc||null,scout:d.scout||0,portal:d.portal||0,portalIn:d.portalIn||0,inSim:d.inSim||0,mercNote:"",lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
+function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,items:camp.items,offer:camp.offer,offerBoss:camp.offerBoss,found:camp.found,kills:camp.kills,names:camp.names,wounds:camp.wounds,honors:camp.honors,falls:camp.falls,news:camp.news,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,merc:camp.merc||null,scout:camp.scout||0,portal:camp.portal||0,portalIn:camp.portalIn||0,inSim:camp.inSim||0,escaped:camp.escaped||0,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
+function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],items:d.items||[],offer:d.offer||null,offerBoss:!!d.offerBoss,found:Array.isArray(d.found)?d.found:d.found?[d.found]:[],kills:d.kills||[],names:d.names||null,wounds:d.wounds||[],honors:d.honors||[],falls:d.falls||[],news:d.news||null,region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},merc:d.merc||null,scout:d.scout||0,portal:d.portal||0,portalIn:d.portalIn||0,inSim:d.inSim||0,escaped:d.escaped||0,mercNote:"",lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
 const nest=(str,x,y,w,style="")=>str.replace(/<svg[^>]*>/,`<svg x="${x}" y="${y}" width="${w}" height="${w}" viewBox="0 0 40 40" style="${style}">`);
 function mapArt(){
   let g='<defs><radialGradient id="pg" cx=".5" cy=".4" r=".85"><stop offset="0" stop-color="#eadfb8"/><stop offset="1" stop-color="#cbb78a"/></radialGradient><filter id="wsh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="1.200" dy="2.400" stdDeviation="1.600" flood-color="#3a2810" flood-opacity=".45"/></filter><radialGradient id="wnode" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></radialGradient><filter id="wblur"><feGaussianBlur stdDeviation="6"/></filter><filter id="wblur2" x="-50%" y="-100%" width="200%" height="300%"><feGaussianBlur stdDeviation="2.500"/></filter><linearGradient id="wmt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a7656"/><stop offset=".6" stop-color="#9c8762" stop-opacity=".9"/><stop offset="1" stop-color="#b8a27a" stop-opacity="0"/></linearGradient></defs><rect width="400" height="520" fill="url(#pg)"/>';
@@ -3247,6 +3248,17 @@ function mapArt(){
    +`<path d="M${200-tw} 49q${tw*.5} -5 ${tw} 0t${tw} 0" fill="none" stroke="#3e2810" stroke-width="1.100" stroke-linecap="round" opacity=".6"/><path d="M196 49.500l4 -3l4 3l-4 3z" opacity=".65"/></g>`;
   return g;
 }
+// after escaping the Sim: the Closed Portal hangs faintly beside each starting camp, glitching, with a faint grid spreading from behind it to behind the camp
+function escapedArt(n){
+  const d=n.x>200?-1:1,px=n.x+d*38,py=n.y-6,cx=(n.x+px)/2,cy=(n.y+py)/2,f=v=>+v.toFixed(1);
+  let grid="",neon="";for(let x=-66;x<=66;x+=6)(x%18?0:1)?neon+=`M${f(cx+x)} ${f(cy-40)}v80`:grid+=`M${f(cx+x)} ${f(cy-40)}v80`;for(let y=-39;y<=39;y+=6)(y%18===3||y%18===-15)?neon+=`M${f(cx-66)} ${f(cy+y)}h132`:grid+=`M${f(cx-66)} ${f(cy+y)}h132`; // every third line glows neon blue
+  const cube=(x,y,c)=>`<path d="M${f(x)} ${f(y-2.300)}l2 1.150v2.300L${f(x)} ${f(y+2.300)}l-2-1.150v-2.300z" fill="${c?"#9ff0f0":"#e8dcff"}" stroke="#1c1238" stroke-width=".5"/>`;
+  const ring=[...Array(10)].map((_,i)=>cube(px+Math.cos(i*.628)*10,py+Math.sin(i*.628)*10.500,i===3)).join("");
+  return `<defs><radialGradient id="escfade"><stop offset=".25" stop-color="#fff"/><stop offset="1" stop-color="#000"/></radialGradient><mask id="escmask"><ellipse cx="${f(cx)}" cy="${f(cy)}" rx="66" ry="40" fill="url(#escfade)"/></mask></defs>
+    <g aria-hidden="true" pointer-events="none"><ellipse cx="${px}" cy="${py}" rx="17" ry="17" fill="#8a5ad8" opacity=".14"/><g mask="url(#escmask)"><path d="${grid}" stroke="#6a3ad0" stroke-width=".8" opacity=".5"/><path d="${neon}" stroke="#3ad8ff" stroke-width="2.400" opacity=".14"/><path d="${neon}" stroke="#2ac8f0" stroke-width=".9" opacity=".6"/></g>
+    <g class="mglitch" opacity=".55"><g transform="translate(1.200 0)" opacity=".5" style="mix-blend-mode:screen">${ring.replace(/#9ff0f0|#e8dcff/g,"#ff6adf")}</g>${ring}<path d="M${px-4.500} ${py-4.500}l9 9M${px+4.500} ${py-4.500}l-9 9" stroke="#fff" stroke-width="1.500" stroke-linecap="round" opacity=".8"/>
+    <rect x="${px-13}" y="${py-2}" width="9" height="1.400" fill="#e8dcff" opacity=".6"/><rect x="${px+5}" y="${py+5}" width="7" height="1.200" fill="#9ff0f0" opacity=".5"/></g></g>`;
+}
 function renderWorld(){
   const done=new Set(camp.cleared),cur=WORLD[camp.pos],pc=COLORS[camp.cfg.c];
   if(camp.sel==null)camp.sel=camp.pos;
@@ -3266,7 +3278,7 @@ function renderWorld(){
   });
   WORLD.forEach(n=>{
     const st=stOf(n),cl=st==="cleared"&&n.type!=="camp",r=n.type==="boss"?21:17,S=n.type==="boss"?30:24;
-    const fill=SW?(n.type==="camp"?"#1a0c36":st==="locked"?"#3e3664":cl?"#2f8a6a":n.type==="heal"?"#1c6a80":n.type==="boss"?"#8a2058":n.b==="synth"?"#b08a10":"#4e32a8"):n.type==="camp"?"#8c7752":n.type==="heal"?(st==="locked"?"#a39a88":cl?"#9fc9a8":"#7fd1a0"):n.type==="shop"?(st==="locked"?"#a39a88":cl?"#c8b088":"#e0a84a"):cl?"#6aa55a":st==="open"?(n.type==="boss"?"#c4483a":n.b==="wetlands"?"#5fb3c9":n.b==="swamp"?"#6d7a4f":n.b==="graveyard"?"#7d7590":n.b==="volcanic"?"#b8461f":n.b==="sakura"?"#e48aa8":"#e6b73f"):"#a39a88";
+    const fill=SW?(n.type==="camp"?"#1a0c36":st==="locked"?"#3e3664":cl?"#2f8a6a":n.type==="heal"?"#1c6a80":n.type==="boss"?"#8a2058":n.b==="synth"?"#b08a10":"#4e32a8"):n.type==="camp"?"#8c7752":n.type==="heal"?(st==="locked"?"#a39a88":cl?"#9fc9a8":"#7fd1a0"):n.type==="shop"?(st==="locked"?"#a39a88":cl?"#c8b088":"#e0a84a"):cl?"#6aa55a":st==="open"?(n.type==="boss"?"#c4483a":n.b==="wetlands"?"#5fb3c9":n.b==="swamp"?"#6d7a4f":n.b==="graveyard"?"#7d7590":n.b==="volcanic"?"#b8461f":n.b==="sakura"?"#e48aa8":n.b==="chasm"?"#6a4ac8":n.b==="synth"?"#c8409a":"#e6b73f"):"#a39a88";
     const simCube=(x,y,c)=>`<path d="M${x} ${y-2.600}l2.250 1.300v2.600L${x} ${y+2.600}l-2.250-1.300v-2.600z" fill="${c?"#9ff0f0":"#e8dcff"}" stroke="#1c1238" stroke-width=".5"/>`;
     const icon=SW&&n.type==="camp"?[...Array(10)].map((_,i)=>simCube(n.x+Math.cos(i*.628)*11,n.y+Math.sin(i*.628)*11.5,i===3)).join("")+`<path d="M${n.x-5.500} ${n.y-5.500}l11 11M${n.x+5.500} ${n.y-5.500}l-11 11" stroke="#fff" stroke-width="1.800" stroke-linecap="round" opacity=".85"/>` // the Closed Portal
       :n.b==="chasm"?`<path d="M${n.x-4} ${n.y-11}h6v4h3v5h-2v5h3v7h-7v-4h-3v-6h2v-5h-2z" fill="#06040e" stroke="#c8a8ff" stroke-width="1.400" stroke-linejoin="miter"/><path d="M${n.x+2} ${n.y-7}h3v5h-2v5h3v7" fill="none" stroke="#7ae8ff" stroke-width="1.200"/>` // a stepped rift
@@ -3289,6 +3301,7 @@ function renderWorld(){
       :n.b==="boss"?nest(FORT_ICON[1],n.x-S/2,n.y-S/2,S)
       :n.b==="wild"?nest(ICON.W,n.x-S/2,n.y-S/2,S,"--ic:#fff;--tc:#6b4a26")
       :`<path d="M${n.x-8} ${n.y-8}L${n.x+8} ${n.y+8}M${n.x+8} ${n.y-8}L${n.x-8} ${n.y+8}" stroke="#3b2a14" stroke-width="3" stroke-linecap="round"/>`;
+    if(n.type==="camp"&&!SW&&camp.escaped)s+=escapedArt(n);
     s+=`<g class="wn" data-id="${n.id}" role="button" tabindex="0" aria-label="${n.name}, ${n.id===camp.pos?"you are here":lab(n)}">`
       +`<circle cx="${n.x}" cy="${n.y}" r="28" fill="transparent"/>`
       +(camp.sel===n.id?`<circle cx="${n.x}" cy="${n.y}" r="${r+7}" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="5 4"/>`:"")
@@ -3449,10 +3462,12 @@ ${seat}${who?banner:""}${cape}${legs}${body}${arms}${pauldron}${sack}${skull}${w
 }
 // things that can happen on a one-way path (rolled once per path)
 /* ---------- The portal to the Warped Sim (unlocked by "warpedsim") ----------
-   After you choose a boss's spoils from regions 5 to 9 (so, on arriving in regions 6 to 10), a portal may open, once per campaign whatever you choose.
+   After you choose a boss's spoils from regions 5 to 8 (so, on arriving in regions 6 to 9; never region 10, where the campaign is meant to end), a portal may open, once per campaign whatever you choose.
    Entering turns the region you've just reached into the Warped Sim; backing away leaves it as it is. */
+const ESC_SIM_BIOME=.4,ESC_GLITCH=.35,ESC_GLITCH_TWO=.4; // after escaping the Sim: chance each Sakura Vale location is a Sim one instead; chance a boss's guard has Corrupted Elites (1, or 2 at ESC_GLITCH_TWO)
+const SIMB=n=>!!n&&(n.b==="chasm"||n.b==="synth"),simBattle=()=>!chal&&!!camp.battle&&SIMB(WORLD[camp.battle.node]); // a Sim location (in the Sim, or one that slipped out of it)
 const PORTAL_CHANCE=.12,SIM_BOSS_SAKURA=.75,SIM_ESC=2,SIM_GRID=.5; // SIM_GRID: chance each extra enemy in the Sim is a Grid Elemental (its boss always brings one); // SIM_ESC: the Sim's enemies escalate as if this many regions further on; // SIM_BOSS_SAKURA: how often the Sim's boss fights in a Sakura Vale (else a Sim biome), once Sakura Vale is unlocked
-const portalDue=()=>unlocks.warpedsim&&!camp.portal&&!camp.inSim&&camp.region>=6&&camp.region<=10&&camp.pos===0&&Math.random()<PORTAL_CHANCE;
+const portalDue=()=>unlocks.warpedsim&&!camp.portal&&!camp.inSim&&camp.region>=6&&camp.region<=9&&camp.pos===0&&Math.random()<PORTAL_CHANCE;
 // the Rift portal: a ring of crystalline cubes hovering over the field, a violet swirl at its heart
 function portalScene(){
   const rnd=(i,s)=>{const x=Math.sin(i*127.1+s*311.7)*43758.5453;return x-Math.floor(x)},f=n=>n.toFixed(1),CX=160,CY=96;
@@ -3700,8 +3715,10 @@ function start(o={}){
   if(camp.battle&&!chal&&camp.merc&&camp.merc.hp>0){const m=camp.merc,sp=spot([H-1,H-2],[5,2,7,0,9,4,6,1,3,8]);if(sp)units.push({t:m.t,team:"y",auto:1,merc:1,mname:m.name,st:m.st,x:sp[0],y:sp[1],hp:Math.min(m.hp,m.st.hp),moved:1,acted:1})} // your hired sword
   FOE_RELIC=new Set();FOE_ITEMS=[];
   if(camp.battle&&!chal){const ER=(camp.region||1)+(camp.inSim?SIM_ESC:0),E=esc(ER); // escalation (see ESC): extra enemy units, then Elites, then the boss's loadout (the Sim fights as if two regions further on)
-    for(let i=0;i<E.extra;i++){const t=camp.inSim&&Math.random()<SIM_GRID?"X":rnd(foe),sp=spot([1,0],[4,5,2,7,0,9,3,6,1,8]);if(sp){foe.push(t);units.push({t,team:"f",x:sp[0],y:sp[1],hp:TYPES[t].hp,moved:0,acted:0})}}
-    units.filter(u=>u.team==="f").sort(()=>Math.random()-.5).slice(0,E.elite).forEach(u=>{u.elite=1;if(camp.inSim){u.glitch=Object.keys(GLITCH)[Math.floor(Math.random()*3)];u.hp+=SIM_ELITE_HP}else u.hp+=ELITE_HP});
+    for(let i=0;i<E.extra;i++){const t=(camp.inSim||simBattle())&&Math.random()<SIM_GRID?"X":rnd(foe),sp=spot([1,0],[4,5,2,7,0,9,3,6,1,8]);if(sp){foe.push(t);units.push({t,team:"f",x:sp[0],y:sp[1],hp:TYPES[t].hp,moved:0,acted:0})}}
+    let gl=0;const glN=o.boss&&camp.escaped&&!camp.inSim&&Math.random()<ESC_GLITCH?1+(Math.random()<ESC_GLITCH_TWO?1:0):0,corrupt=()=>camp.inSim||simBattle()||gl<glN; // after escaping, 1-2 of a boss's Elites may come back Corrupted
+    units.filter(u=>u.team==="f").sort(()=>Math.random()-.5).slice(0,E.elite).forEach(u=>{u.elite=1;if(corrupt()){u.glitch=Object.keys(GLITCH)[Math.floor(Math.random()*3)];u.hp+=SIM_ELITE_HP;gl++}else u.hp+=ELITE_HP});
+    if(o.boss&&!camp.inSim&&gl)relicUsed.glitchBoss=1; // ...and then one of its spoils comes from the Sim
     if(o.boss)foeLoadout(ER);
     if(RELIC.has("gbook")){const ys=units.filter(u=>u.team==="y"&&!u.auto);if(ys.length){const u=ys[Math.floor(Math.random()*ys.length)];u.glitch=Object.keys(GLITCH)[Math.floor(Math.random()*3)];u.pages=1}} // the Glitchy Book's Corrupted Pages
   }
@@ -4175,7 +4192,7 @@ const HERBERT_MEAL_SIM=["Followed you through that ring of cubes! Couldn't let y
  "Found a corner that hasn't gone all sparkly yet. Best spot in the place! Pull up a log... well, a cube.","The bedroll keeps giving me a static shock. But it's okay... it's still warm!"];
 const HERBERT_WIN_SIM=["You found the way out! I'll admit, I was starting to like the humming.","Out of the Sim and into the sun! Well, a sun. I'm checking that it's round."];
 let campDone=null; // what leaving the camp screen does
-const simCamp=()=>!!camp.inSim&&!chal; // Herbert followed you into the Warped Sim
+const simCamp=()=>!!camp.inSim&&!chal||simBattle(); // Herbert followed you into the Warped Sim
 function openCamp(bk,line,btn,meal,done){
   $("cscene").innerHTML=campScene(simCamp()?"sim":bk,meal);$("cline").innerHTML=`<b>Herbert:</b> “${line}”`;$("cleave").textContent=btn;campDone=done;
   $("campv").hidden=false;$("cleave").focus();
@@ -4235,16 +4252,18 @@ function simItem(){
   const pool=Object.keys(ITEMS).filter(id=>!ITEMS[id].sim&&(!ITEMS[id].lock||unlocks[ITEMS[id].lock])&&!carryMax(id)),w=id=>ITEM_STOCK[ITEMS[id].r||0];
   if(!pool.length)return null;let r=Math.random()*pool.reduce((t,id)=>t+w(id),0),i=0;while(r>=w(pool[i])){r-=w(pool[i]);i++}return pool[i];
 }
-function relicOffer(){
+const simRelic=(skip=[])=>{const sp=Object.keys(RELICS).filter(id=>RELICS[id].src==="sim"&&RELICS[id].r<2&&!camp.relics.includes(id)&&!skip.includes(id));if(!sp.length)return null; // a common or uncommon Sim relic, by rarity weight
+  const tot=sp.reduce((t,id)=>t+RARITY_W[RELICS[id].r],0);let roll=Math.random()*tot,i=0;while(roll>=RARITY_W[RELICS[sp[i]].r]){roll-=RARITY_W[RELICS[sp[i]].r];i++}return sp[i]};
+function relicOffer(nm){
   const army=armyTypes(),pool=Object.keys(RELICS).filter(id=>!camp.relics.includes(id)&&!RELICS[id].find&&RELICS[id].src!=="shop"&&RELICS[id].src!=="boss"&&RELICS[id].src!=="sim"&&(!RELICS[id].lock||unlocks[RELICS[id].lock])&&needOk(RELICS[id],army)&&!clash(id,camp.relics)),out=[];
-  for(let n=2+(Math.random()<.5?1:0)+relicCount("coin");n>0&&pool.length;n--){ // each Copper Coin of Good Fortune adds a choice
+  const sim=camp.inSim||SIMB(nm),want=(sim?3:2+(Math.random()<.5?1:0))+relicCount("coin"); // the Sim always offers 3
+  for(let n=want;n>0&&pool.length;n--){ // each Copper Coin of Good Fortune adds a choice
     const tot=pool.reduce((t,id)=>t+RARITY_W[RELICS[id].r],0);let roll=Math.random()*tot,i=0;
     while(roll>=RARITY_W[RELICS[pool[i]].r]){roll-=RARITY_W[RELICS[pool[i]].r];i++}
     out.push(pool.splice(i,1)[0]);
   }
-  if(camp.inSim){const sp=Object.keys(RELICS).filter(id=>RELICS[id].src==="sim"&&RELICS[id].r<2&&!camp.relics.includes(id)&&!out.includes(id)); // the Sim always offers one of its own
-    if(sp.length){const tot=sp.reduce((t,id)=>t+RARITY_W[RELICS[id].r],0);let roll=Math.random()*tot,i=0;while(roll>=RARITY_W[RELICS[sp[i]].r]){roll-=RARITY_W[RELICS[sp[i]].r];i++}out.unshift(sp[i]);if(out.length>3+relicCount("coin"))out.pop()}
-    const it=simItem();if(it){const e="item:"+it;if(out.length>1)out[out.length-1]=e;else out.push(e)}} // ...and a consumable in place of one of the usual relics
+  if(sim){const sr=simRelic(out),it=simItem(); // the Sim (and its locations outside it): one of its own relics, a consumable, and usual relics to fill out the choice
+    return [...(sr?[sr]:[]),...out.slice(0,want-(sr?1:0)-(it?1:0)),...(it?["item:"+it]:[])]}
   return out.length?out:null;
 }
 // a boss's spoils: pick 1 of 3. One always comes from the boss list; the other two from relics offered after battles
@@ -4262,6 +4281,8 @@ function bossOffer(){
     const cand=out.filter(e=>e.startsWith("item:")).length>=2?pool.filter(e=>!e.startsWith("item:")):pool;if(!cand.length)break;
     const e=pick(cand);out.push(e);pool.splice(pool.indexOf(e),1);
   }
+  if(relicUsed.glitchBoss){const sr=simRelic(out),j=out.findIndex((e,k)=>k>0&&!e.startsWith("item:")); // Corrupted Elites among its guard: one of the other relics comes from the Sim
+    if(sr){if(j>0)out[j]=sr;else if(out.length<3)out.push(sr);else out[out.length-1]=sr}}
   return out.length?out:null;
 }
 const PURSE='<svg viewBox="0 0 32 32" aria-hidden="true"><ellipse cx="16" cy="28" rx="10" ry="2" fill="rgba(0,0,0,.18)"/><path d="M11 9q-3-4 1-5q2 2 4 1q2 1 4-1q4 1 1 5z" fill="#8a5a2a" stroke="#3a2412" stroke-width="1.200" stroke-linejoin="round"/><path d="M10.500 10q-6 5-6 11q0 6 11.500 6t11.500-6q0-6-6-11z" fill="#a8743a" stroke="#3a2412" stroke-width="1.300" stroke-linejoin="round"/><path d="M10 10.500h12" stroke="#d9b84a" stroke-width="2.200" stroke-linecap="round"/><path d="M8 18q1-5 5-7" stroke="#d8a868" stroke-width="1.400" fill="none" opacity=".7"/><circle cx="16" cy="20" r="4.200" fill="#f2c94c" stroke="#8a6410" stroke-width="1.100"/><path d="M16 17.600v4.800M14.600 18.600h2.200q1.200 0 1.200 1t-1.200 1h-1.600" stroke="#8a6410" stroke-width=".9" fill="none"/></svg>';
@@ -4581,7 +4602,7 @@ function showTriumph(nm,fallen){ // fallen: how a lost campaign ended ("lost", "
   const maps=camp.mapsPrior+battlesWon();
   $("ttitle").textContent=fallen?"Your Campaign Has Ended":"Congratulations!";$("ttravel").hidden=!!fallen;
   $("tsub").innerHTML=fallen?(fallen==="lost"?`Your army fell at <b>${nm.name}</b>.`:`You withdrew from <b>${nm.name}</b>, and the campaign ended there.`)+` You reached region ${camp.region}.`
-    :`You conquered <b>${nm.name}</b>`+(camp.region>1?` and won your ${["","","second","third","fourth","fifth"][camp.region]||camp.region+"th"} region!`:" and won the campaign!");
+    :camp.inSim?"You've escaped this strange realm! Or, have you?":`You conquered <b>${nm.name}</b>`+(camp.region>1?` and won your ${["","","second","third","fourth","fifth"][camp.region]||camp.region+"th"} region!`:" and won the campaign!");
   $("tstats").innerHTML='<h3>Roll of honor</h3>'+army.map((t,i)=>{const f=(camp.falls&&camp.falls[i])||[];return `<div class="trow">${hIcon(t,"y")}<span>${heroName(i)} <small>${cap(NAME[t])}${t==="T"&&kills[i]?", with militia":""}${f.length?` · fell at ${fellAt(f)}`:" · never fell"}</small></span><b title="enemies defeated">${kills[i]}</b></div>`}).join("")
     +`<div class="ttot"><span>Total defeated: ${total}</span><span>Maps cleared: ${maps}</span></div>`;
   $("therb").innerHTML=unlocks.campsite?`<div class="hport" aria-hidden="true">${campScene(camp.inSim?"sim":"plain").replace('viewBox="0 0 320 220"','viewBox="178 48 90 84" preserveAspectRatio="xMidYMid slice"')}</div><div class="cbub"><b>Herbert:</b> “${(camp.inSim?HERBERT_WIN_SIM:HERBERT_WIN)[Math.floor(Math.random()*(camp.inSim?HERBERT_WIN_SIM:HERBERT_WIN).length)]}”</div>`:"";
@@ -4599,7 +4620,7 @@ $("tnew").onclick=()=>{gid++;$("triumph").hidden=true;camp.battle=null;openCampS
 // keep the army, its health, relics, gold and record, and march on to a freshly rolled map
 $("ttravel").onclick=()=>{
   gid++;$("triumph").hidden=true;camp.battle=null;
-  camp.mapsPrior+=battlesWon();camp.region+=1;camp.pos=0;camp.cleared=[];camp.done=false;camp.sel=0;camp.inSim=0;
+  camp.mapsPrior+=battlesWon();camp.region+=1;camp.pos=0;camp.cleared=[];camp.done=false;camp.sel=0;if(camp.inSim)camp.escaped=1;camp.inSim=0; // escaped: the Closed Portal lingers by every camp from now on
   genWorld();saveCamp();openWorld();
 };
 $("tmenu").onclick=()=>{gid++;$("triumph").hidden=true;camp.battle=null;show("menu")};
@@ -4838,7 +4859,7 @@ const UNLOCKS=[
 const unlockInfo=o=>o.chal?(c=>({name:c.name,art:`<div class="tsw" style="${TERRAIN.fort.bg}">${FORT_ICON[0]}</div>`,desc:`${c.desc} A ${DIFF[c.diff||0][0].toLowerCase()} challenge map, played from the Challenges menu.`}))(CHALLENGES.find(c=>c.id===o.chal))
   :o.item?{name:ITEMS[o.item].name,art:itemIcon(o.item,44),desc:ITEMS[o.item].desc+` ${RARITY[ITEMS[o.item].r||0][0]} consumable, sold by Marcus.`}
   :o.relic?{name:unlocks.vmorion?RELICS[o.relic].name:RELICS[o.relic].name.replace(/^Vasco's/,"???'s"),art:relicIcon(o.relic,44),desc:RELICS[o.relic].desc+` ${/^[AEIOU]/.test(RARITY[RELICS[o.relic].r][0])?"An":"A"} ${RARITY[RELICS[o.relic].r][0].toLowerCase()} relic `+(RELICS[o.relic].find?"found only in battle, never offered as a reward.":"that can be offered after campaign victories.")}
-  :o.sim?{name:"The Warped Sim",art:`<div class="tsw" style="background:#2e2752">${SIM_ICON}</div>`,desc:"A rift into a land that isn't quite real. After you defeat a campaign boss in regions 5 to 9, a portal may open: step through for a short, harsh region of glitched terrain, Chaos Springs and Light Bricks, with spoils to match."}
+  :o.sim?{name:"The Warped Sim",art:`<div class="tsw" style="background:#2e2752">${SIM_ICON}</div>`,desc:"A rift into a land that isn't quite real. After you defeat a campaign boss in regions 5 to 8, a portal may open: step through for a short, harsh region of glitched terrain, Chaos Springs and Light Bricks, with spoils to match."}
   :o.biome?{name:BIOME_NAME[o.biome],art:terrainSwatch(o.terrain),desc:BTEXT[o.biome]+" Can appear in campaigns and quick battles."}
   :o.terrain?{name:TERRAIN[o.terrain].name,art:terrainSwatch(o.terrain),desc:TERRAIN[o.terrain].desc}
   :{name:cap(NAME[o.unit]),art:hIcon(o.unit,"y"),desc:`${unitStats(o.unit)}. ${ABILITY[o.unit]} Limit one per army.`};
@@ -4857,7 +4878,7 @@ $("unl").onclick=()=>{$("mbtns").hidden=true;$("unlockview").hidden=false;unlock
 $("how").onclick=()=>{$("mbtns").hidden=true;$("rulesview").hidden=false;howView(howMain,null)};
 $("back").onclick=()=>show("menu");
 $("go").onclick=()=>{
-  if(campSetup){dropHold("camp");camp.cfg={x:pick.x.slice(),m:pick.m,c:pick.c};camp.pos=0;camp.cleared=[];camp.done=false;camp.hp=null;camp.gold=0;camp.relics=[];camp.items=[];camp.merc=null;camp.scout=0;camp.portal=0;camp.inSim=0;camp.mercNote="";camp.offer=null;camp.found=[];camp.lastGold=0;camp.kills=[];rollNames();camp.region=1;camp.mapsPrior=0;camp.bossUsed={loc:[],name:[]};camp.sel=0;genWorld();saveCamp();openWorld()}
+  if(campSetup){dropHold("camp");camp.cfg={x:pick.x.slice(),m:pick.m,c:pick.c};camp.pos=0;camp.cleared=[];camp.done=false;camp.hp=null;camp.gold=0;camp.relics=[];camp.items=[];camp.merc=null;camp.scout=0;camp.portal=0;camp.inSim=0;camp.escaped=0;camp.mercNote="";camp.offer=null;camp.found=[];camp.lastGold=0;camp.kills=[];rollNames();camp.region=1;camp.mapsPrior=0;camp.bossUsed={loc:[],name:[]};camp.sel=0;genWorld();saveCamp();openWorld()}
   else start();
 };
 $("end").onclick=()=>{
