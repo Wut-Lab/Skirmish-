@@ -32,6 +32,15 @@ h1{font-size:1.4rem;margin:0 0 4px}
 .volcanic{--tile:#8a7d72;--tile2:#83766b} /* Molten Wastes: ashen rock underfoot */
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .volcanic{--tile:#3e3631;--tile2:#39312c}}
 :root[data-theme="dark"] .volcanic{--tile:#3e3631;--tile2:#39312c}
+.sim{--tile:#5a4c8c;--tile2:#544684;--wall:#2c2450} /* The Warped Sim: purple-blue ground, dark stone under the quartz */
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .sim{--tile:#2e2752;--tile2:#2a234c}}
+:root[data-theme="dark"] .sim{--tile:#2e2752;--tile2:#2a234c}
+.sim .t.w{background:var(--tile);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 -3px 0 rgba(0,0,0,.14)} /* quartz stands on the same ground as its neighbours */
+.pbob{animation:pbob 3.600s ease-in-out infinite alternate}.pswirl{animation:pswirl 14s linear infinite}.pdrift{animation:pdrift 4.800s ease-in-out infinite alternate}.pshad{transform-box:fill-box;transform-origin:50% 50%;animation:pshad 3.600s ease-in-out infinite alternate}
+@keyframes pbob{to{transform:translateY(-4px)}}@keyframes pswirl{to{transform:rotate(-360deg)}}@keyframes pdrift{to{transform:translate(2px,-5px)}}@keyframes pshad{to{transform:scale(.9);opacity:.4}}
+@media (prefers-reduced-motion:reduce){.pbob,.pswirl,.pdrift,.pshad{animation:none}}
+.lglow{position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen}.t.lbk{cursor:default;box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 0 14px rgba(255,226,60,.6)}
+.t.chs{background:#0c0718;cursor:default;box-shadow:none}.t.cxs{box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 0 12px rgba(192,106,255,.45)}
 .volcanic .t.fo{background-image:linear-gradient(rgba(40,24,18,.25),rgba(40,24,18,.25))} /* charred woods */
 .erupt{position:absolute;pointer-events:none;border-radius:30%;background:radial-gradient(circle,#fff3b0 0,#ff8a2a 40%,rgba(226,83,26,.6) 65%,rgba(226,83,26,0) 75%);z-index:7}
 .t.fo{background-image:linear-gradient(rgba(60,140,80,.25),rgba(60,140,80,.25))}
@@ -382,6 +391,8 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .aimk{position:absolute;top:-5px;right:-5px;width:17px;height:17px;border-radius:50%;background:#1e3a2a;box-shadow:0 0 0 1.5px #9fe0b0;z-index:3;display:grid;place-items:center}.aimk svg{width:13px;height:13px} /* Sentinel's Bowstring: holding aim */
 .u.usurp::before{content:"\265B";position:absolute;bottom:-5px;left:-5px;width:16px;height:16px;border-radius:50%;background:#2a1a26;color:#e0a0b0;font-size:.62rem;line-height:16px;text-align:center;box-shadow:0 0 0 1.5px #b0182a,0 0 8px 2px rgba(120,30,60,.7);z-index:3} /* a Usurper piece: a dark crown */
 .u.elite{box-shadow:0 0 0 2.500px #e8c050,0 0 0 4px rgba(90,60,10,.85),0 0 10px 3px rgba(240,200,80,.55),var(--bev)}
+.u.glitch:not(.elite){box-shadow:0 0 0 2px #3ad8ff,0 0 8px 2px rgba(192,106,255,.55),var(--bev)} /* Corrupted Pages */
+.u.elite.glitch{box-shadow:0 0 0 2.500px #c06aff,0 0 0 4px #3ad8ff,0 0 10px 3px rgba(122,232,255,.55),var(--bev)} /* the Sim's Corrupted Elites */
 .evart svg{display:block;width:100%;height:auto;border-radius:8px;border:2px solid #1a0f07;box-shadow:0 2px 0 #1a0f07;margin-bottom:10px}
 .u.redglow svg{filter:drop-shadow(0 0 3px rgba(225,40,40,.85))}
 .u.stun::after{content:"\2737";position:absolute;top:-5px;left:-5px;width:17px;height:17px;border-radius:50%;background:#f4e27a;color:#5a4a00;font-size:.75rem;font-weight:800;line-height:17px;text-align:center;box-shadow:0 0 0 1.5px #fff,0 0 8px 2px rgba(255,250,200,.9)}
@@ -643,7 +654,7 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 const DIRS=[[1,0],[-1,0],[0,1],[0,-1]],pk=k=>k.split(",").map(Number); // the four neighbour steps; "x,y" tile key -> [x,y]
 const W=10,H=12,
 // hp, mv move, rg/mn range, dmg damage; ar armor, pi pierce, ev evasion (dodge chance); who retaliates: CAN_RETALIATE / CANT_RETALIATE below
-TYPES={K:{hp:12,mv:3,rg:1,mn:1,dmg:5,ar:2},A:{hp:8,mv:3,rg:3,mn:1,dmg:4,pi:1,ev:.1},R:{hp:10,mv:2,rg:4,mn:2,dmg:4,pi:2},W:{hp:8,mv:2,rg:1,mn:1,dmg:4,ev:.15},B:{hp:16,mv:1,rg:1,mn:1,dmg:6,ar:1},H:{hp:5,mv:3,rg:2,mn:1,dmg:3,ev:.25},C:{hp:9,mv:5,rg:1,mn:1,dmg:4,ar:1,ev:.1},P:{hp:7,mv:3,rg:2,mn:1,dmg:1,heal:3,ev:.1},E:{hp:6,mv:3,rg:3,mn:1,dmg:2,slow:1,ev:.15},T:{hp:9,mv:3,rg:1,mn:1,dmg:3,ar:1},N:{hp:8,mv:3,rg:1,mn:1,dmg:2,ev:.05},Q:{hp:10,mv:4,rg:1,mn:1,dmg:4,ar:1,ev:.05},D:{hp:10,mv:2,rg:1,mn:1,dmg:4,ar:1},M:{hp:4,mv:2,rg:1,mn:1,dmg:2},G:{hp:3,mv:4,rg:1,mn:1,dmg:2,ev:.15}}; // G: the Angry Chicken (Chicken Suit relic)
+TYPES={K:{hp:12,mv:3,rg:1,mn:1,dmg:5,ar:2},A:{hp:8,mv:3,rg:3,mn:1,dmg:4,pi:1,ev:.1},R:{hp:10,mv:2,rg:4,mn:2,dmg:4,pi:2},W:{hp:8,mv:2,rg:1,mn:1,dmg:4,ev:.15},B:{hp:16,mv:1,rg:1,mn:1,dmg:6,ar:1},H:{hp:5,mv:3,rg:2,mn:1,dmg:3,ev:.25},C:{hp:9,mv:5,rg:1,mn:1,dmg:4,ar:1,ev:.1},P:{hp:7,mv:3,rg:2,mn:1,dmg:1,heal:3,ev:.1},E:{hp:6,mv:3,rg:3,mn:1,dmg:2,slow:1,ev:.15},T:{hp:9,mv:3,rg:1,mn:1,dmg:3,ar:1},N:{hp:8,mv:3,rg:1,mn:1,dmg:2,ev:.05},Q:{hp:10,mv:4,rg:1,mn:1,dmg:4,ar:1,ev:.05},D:{hp:10,mv:2,rg:1,mn:1,dmg:4,ar:1},M:{hp:4,mv:2,rg:1,mn:1,dmg:2},G:{hp:3,mv:4,rg:1,mn:1,dmg:2,ev:.15},X:{hp:9,mv:4,rg:1,mn:1,dmg:4,ar:1,pi:1,ev:.1},S:{hp:6,mv:5,rg:1,mn:1,dmg:0,ev:.25}}; // G: the Angry Chicken (Chicken Suit relic)
 const ST=u=>u.st?{...TYPES[u.t],...u.st}:TYPES[u.t]; // a unit's stats: its type's, unless it carries its own (mercenaries)
 // Mercenaries: a weaker, slightly randomized take on a unit type that fights on its own. One at a time, for MERC_TERM campaign battles.
 const MERC_TYPES="KARC",MERC_PRICE={K:70,A:65,R:70,C:75},MERC_TERM=4,MERC_SHOP=1/3,MERC_ROAD=.1;
@@ -663,7 +674,7 @@ const DIG_TURNS=2,DIG_AR=1; // Badger: digs in after moving on this many turns, 
 const UNIT_UNLOCK={T:"captain",N:"banner",Q:"conquistador"}; // unlockable units and the unlock each needs
 const poolNow=()=>CORE+"RPE"+Object.keys(UNIT_UNLOCK).filter(t=>unlocks[UNIT_UNLOCK[t]]).join(""); // units an army may pick right now
 // Can Retaliate / Can't Retaliate: a unit retaliates when it is in the first list and not in the second (the second wins)
-const CAN_RETALIATE="KARCPETNMWBHDGQ",CANT_RETALIATE="R";
+const CAN_RETALIATE="KARCPETNMWBHDGQX",CANT_RETALIATE="R";
 const canRetaliate=t=>CAN_RETALIATE.includes(t)&&!CANT_RETALIATE.includes(t);
 const FOREST_EV=.1,FT_FOREST_EV=.05,EV_CAP=.5,RET_SHARE=.5; // forest dodge bonus (less against Forest Tactics), dodge cap, share of damage dealt when retaliating (always at least 1)
 const MUSTER_USES=2,MUSTER_ALIVE=2,BATON_HP=2,BANNER_RANGE=2; // Captain: musters per battle, militia alive at once; Banner Bearer: aura reach
@@ -752,6 +763,16 @@ const RELICS={
  vgloves:{name:"???'s Gloves",r:0,set:"vasco",lock:"vgloves",desc:"Each battle you win pays 3 extra gold. Worn soft, and still warm."},
  vmorion:{name:"Vasco's Morion",r:1,set:"vasco",lock:"vmorion",desc:"Vanguard: at the start of each of your turns, your unit closest to the enemy gets +1 armor until your next turn."},
  vfalcata:{name:"Vasco's Falcata",r:2,set:"vasco",lock:"vfalcata",desc:"Conquest: when one of your units defeats an enemy, it gets +1 damage for the rest of the battle (at most +2)."},
+ // found only in the Warped Sim (src "sim"): its battles always offer one of the common or uncommon ones, and its boss always one of the two rares
+ scube:{name:"Small Glowing Cube",r:0,src:"sim",set:"cubes",lock:"warpedsim",desc:"A unit healed by one of your Healing Draughts recovers 1 more HP at the end of your turn. It hums, faintly, in your pocket."},
+ mcube:{name:"Medium Glowing Cube",r:1,src:"sim",set:"cubes",lock:"warpedsim",desc:"A unit that uses a Healing Draught can then step 1 tile."},
+ lcube:{name:"Large Glowing Cube",r:2,src:"sim",set:"cubes",lock:"warpedsim",desc:"Your Healing Draughts heal 1 more HP and give +1 armor until your next turn, and your units shrug off 20% of slows. Comes with a Healing Draught, if your pack has room."},
+ spark:{name:"Friendly Sentient Spark",r:2,src:"sim",lock:"warpedsim",desc:"As your third turn begins, a Friendly Spark appears beside your most wounded unit and keeps close to it, acting on its own. It never attacks, but enemies that move onto any of the 8 tiles around it are slowed on their next turn. (6 HP, move 5, 25% evasion.)"},
+ credits:{name:"Strange Credits",r:1,src:"sim",lock:"warpedsim",desc:"Worth 25 gold the moment you take them, and +10 gold from every boss after. Marcus will buy them back for 25 gold, though they're gone for good then."},
+ cshades:{name:"Cyber Shades",r:0,src:"sim",set:"cyber",lock:"warpedsim",desc:"Targeting: your units ignore 2% of the enemy's evasion when they attack or retaliate."},
+ cgaunt:{name:"Cyber Gauntlets",r:1,src:"sim",set:"cyber",lock:"warpedsim",desc:"Your units deal +1 damage and get +1 pierce when they retaliate. Adds to the Spiked Gauntlets."},
+ cplate:{name:"Cyber Breastplate",r:2,src:"sim",set:"cyber",lock:"warpedsim",desc:"Your units with less than 3 damage attack for 3 (before armor), unless other bonuses already lift them higher. When your units retaliate, they always deal at least 2 damage."},
+ gbook:{name:"Glitchy Book",r:0,src:"sim",lock:"warpedsim",desc:"Corrupted Pages: as each battle begins, one random unit of yours gets a random glitch for that battle: Flickering (+10% evasion), Overclocked (+1 movement) or Chaos Code (a unit that hits it in melee takes 1 damage)."},
  pavise:{name:"Pavise",r:0,lock:"pavise",desc:"Archers take 1 less damage from ranged attacks. Pierce can't get past it."},
  font:{name:"Font of the Wise Ones",r:2,lock:"font",find:1,desc:"Once per battle, each of your units can spend its action to bless an adjacent ally: the ally gets +5% evasion until the end of your next turn."},
  mercy:{name:"Mercy Blade",r:2,desc:"Your units deal +2 damage to enemies at half health or less."},
@@ -768,6 +789,8 @@ const RELIC_SETS={
  usurper:{name:"Tarnished Regalia of the Usurper",rule:"Every piece you carry goes to one unit at or below half health, or your most wounded (never a mercenary, the Angry Chicken or a Champion bearer).",bonus:"All three: The Usurper, +1 damage once one of your units has fallen that battle."},
  improvised:{name:"Improvised Arms",rule:"For your Apothecaries, Enchanters and Banner Bearers at a third of their health or less.",bonus:"No set bonus: each covers a different need, so together a cornered healer hits back, slips away and hides behind a Knight."},
  tomes:{name:"Tomes of the Mages' College",rule:"For your Enchanters.",bonus:"No set bonus: the Black Tome's healing pays the Red Tome's toll."},
+ cyber:{name:"Cyber Gear",rule:"Found only in the Warped Sim.",bonus:"No set bonus: all three make your counterattacks count, the Shades by finding the target, the Gauntlets and Breastplate by hitting harder."},
+ cubes:{name:"The Glowing Cubes",rule:"Found only in the Warped Sim.",bonus:"No set bonus: the Small and Large Cubes' extra healing adds up, and the Medium Cube gets the drinker out of trouble."},
  vasco:{name:"Gear of the Lost Expedition",rule:"Given by the Beggar, in thanks for the gold you've given him.",bonus:"No set bonus: the Morion shields whoever leads the push, the Falcata sharpens with every enemy it takes, and the Gloves pay the way."}};
 // excl: a relic that can't be carried alongside another (the two swords)
 const clash=(id,have)=>have.some(r=>RELICS[r].excl===id||RELICS[id].excl===r);
@@ -811,7 +834,7 @@ const BLUSH_R=2,blush=(x,y)=>{if(!VALE||!/^(ground|forest|cherry|flowers|koi|mea
 const healOf=u=>ST(u).heal+(rel(u,"salts")?1:0); // how much a healer restores, with relics
 const rgOf=u=>ST(u).rg+(u.t==="A"&&rel(u,"long")?1:0)+(u.t==="Q"&&rel(u,"musket")?1:0); // a unit's attack range, with relics
 const DEBRIS_DMG=1,SPLINTER_DMG=1; // Debris Shot splash: small, so it softens clusters without replacing a second attack
-const NAME={G:"angry chicken",K:"knight",A:"archer",R:"artillery",W:"wolf",B:"bear",H:"hawk",D:"badger",C:"cavalry",P:"apothecary",E:"enchanter",T:"captain",N:"banner bearer",Q:"conquistador",M:"militia"};
+const NAME={G:"angry chicken",K:"knight",A:"archer",R:"artillery",W:"wolf",B:"bear",H:"hawk",D:"badger",C:"cavalry",P:"apothecary",E:"enchanter",T:"captain",N:"banner bearer",Q:"conquistador",M:"militia",X:"grid elemental",S:"friendly spark"};
 const AIM_EV=.05,MOD_OLD={PUSH:"SW",PAD:"AIM"},modOk=k=>MODS[k]?k:MOD_OLD[k]||null; // retired modifiers in old saves and map codes become their replacements
 const walled=u=>mods[u.team]==="SW"&&units.some(v=>v.team===u.team&&(v.x!==u.x||v.y!==u.y)&&d(v,u)===1); // Shield Wall Formations: next to an ally
 const MODS={
@@ -820,7 +843,7 @@ const MODS={
  SW:{name:"Shield Wall Formations",desc:"Your units get +1 armor while next to an ally."},
  AIM:{name:"Steady Aim",desc:`Enemies get ${AIM_EV*100}% less evasion against your attacks.`},
  REST:{name:"Field Rest",desc:"At the end of your turn, each of your units that neither moved nor attacked that turn recovers 2 HP."}};
-let RUBBLE=new Set(),MURKY=false,HAUNTED=false,VOLCANIC=false,CHERRY=new Set(),SMOKE=new Set(),CALTROPS=new Set(),LAVA=new Set(),MAGMA=new Set(),VOLC=new Set(),WISP=new Set(),FLOWERS=new Set(),MEADOW=new Set(),GREENW=new Set(),KOI=new Set(),VALE=false,GRAVES=new Set(),WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set(),SWAMP=new Set();
+let RUBBLE=new Set(),MURKY=false,HAUNTED=false,VOLCANIC=false,CHERRY=new Set(),SMOKE=new Set(),CALTROPS=new Set(),LAVA=new Set(),MAGMA=new Set(),VOLC=new Set(),WISP=new Set(),FLOWERS=new Set(),MEADOW=new Set(),GREENW=new Set(),KOI=new Set(),VALE=false,CHASM=new Set(),CHAOS=new Set(),LIGHT=new Set(),SIM=false,SIMFORT=false,GRAVES=new Set(),WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set(),SWAMP=new Set();
 // Bump PROGRESS_EPOCH to wipe unlocks and the campaign save once on next load (editor drafts and sound settings stay).
 const PROGRESS_EPOCH=2;try{if(+localStorage.getItem("skirmish_epoch")!==PROGRESS_EPOCH){localStorage.removeItem("skirmish_unlocks_v1");localStorage.removeItem("skirmish-campaign");["quick","camp","chal"].forEach(m=>localStorage.removeItem("skirmish_hold_"+m));localStorage.setItem("skirmish_epoch",PROGRESS_EPOCH)}}catch(e){}
 const UKEY="skirmish_unlocks_v1",unlocks=(()=>{try{return JSON.parse(localStorage.getItem(UKEY)||"{}")||{}}catch(e){return{}}})();
@@ -836,7 +859,7 @@ function discover(){ // a short "New Discovery!" banner that fades away on whate
 const XB_DMG=4; // exploding barrel damage
 let HI={hard:new Set(),soft:new Set()},umHide=null,BARRELS=new Set(),XBAR=new Set(),CAMPS=new Set(),bchoice=null,choiceMv=null,lastMove=null; // XBAR: the barrels that explode
 let WALLV=0,FORTV=new Map(),FORTK=new Set(); // one wall style per map; each connected fortress group shares one style; FORTK: the tile holding each fortress's keep
-const solid=k=>WALLS.has(k)||DEEP.has(k)||BARRELS.has(k)||CAMPS.has(k)||GRAVES.has(k)||LAVA.has(k)||VOLC.has(k)||KOI.has(k);
+const solid=k=>CHASM.has(k)||LIGHT.has(k)||WALLS.has(k)||DEEP.has(k)||BARRELS.has(k)||CAMPS.has(k)||GRAVES.has(k)||LAVA.has(k)||VOLC.has(k)||KOI.has(k);
 // each connected fortress group shares one style; its first tile holds the keep
 function groupForts(style){
   FORTV=new Map();FORTK=new Set();
@@ -852,7 +875,7 @@ function genMap(o={}){
   const wantCamp=unlocks.campsite&&Math.random()<.2; // decided once, so retried layouts don't change the odds
   for(;;){
     const walls=new Set(),forest=new Set(),R=n=>Math.floor(Math.random()*n);
-    const deep=new Set(),shal=new Set(),K=(a,b)=>a+","+b,inb=(a,b)=>a>=0&&a<W&&b>=2&&b<=H-3,taken=(a,b)=>deep.has(K(a,b))||shal.has(K(a,b));
+    const deep=new Set(),shal=new Set(),chasm=new Set(),K=(a,b)=>a+","+b,inb=(a,b)=>a>=0&&a<W&&b>=2&&b<=H-3,taken=(a,b)=>deep.has(K(a,b))||shal.has(K(a,b))||chasm.has(K(a,b));
     const both=(set,a,b)=>{set.add(K(a,b));set.add(K(W-1-a,H-1-b))};
     const grow=(n,x0,y0)=>{const t=[[x0,y0]];for(let i=0;i<150&&t.length<n;i++){const[bx,by]=t[R(t.length)],[dx,dy]=DIRS[R(4)],nx=bx+dx,ny=by+dy;if(inb(nx,ny)&&!t.some(p=>p[0]===nx&&p[1]===ny))t.push([nx,ny])}return t};
     const shore=(tiles,pd)=>tiles.forEach(([a,b])=>{for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++){const x=a+dx,y=b+dy;if((dx||dy)&&inb(x,y)&&Math.random()<(dx&&dy?.45:.9))both(shal,x,y)}});
@@ -882,7 +905,7 @@ function genMap(o={}){
     };
     // Water is not guaranteed (about 45% of maps have none). Otherwise it covers a random 3 tiles up to 2/3 of the map, favouring smaller bodies.
     const wsz=()=>deep.size+shal.size,cap=Math.floor(W*H*2/3);
-    const T=o.lava||o.sakura?0:o.water?Math.round(24+Math.random()*26):o.pond?Math.round(6+Math.random()*8):Math.random()<.45?0:Math.round(3+(cap-3)*Math.pow(Math.random(),1.6));
+    const T=o.lava||o.sakura||o.sim?0:o.water?Math.round(24+Math.random()*26):o.pond?Math.round(6+Math.random()*8):Math.random()<.45?0:Math.round(3+(cap-3)*Math.pow(Math.random(),1.6));
     if(T>0&&T<=5){ // a tiny pond: a few tiles, not mirrored
       const tl=grow(T,1+R(W-2),3+R(H-6));
       tl.forEach(([a,b],i)=>(i===0&&Math.random()<.5&&T>=3?deep:shal).add(K(a,b)));
@@ -922,8 +945,23 @@ function genMap(o={}){
       for(let n=1+R(2),t=0;n>0&&t<80;t++){const tl=grow(1+R(2),R(W),3+R(H-6));if(tl.some(([a,b])=>hot(a,b)||hot(W-1-a,H-1-b)))continue;tl.forEach(([a,b])=>both(magma,a,b));n--}
       [...magma].forEach(k=>{if(lava.has(k)||volc.has(k))magma.delete(k)});
     }
+    if(o.chasm)for(let b=2;b<=H/2-1;b++){ // The Fractured Chasm: a ragged gap down the middle, clear of both start lines (mirrored, so the lower half matches)
+      const l=b===2?4-R(2):3+R(2)-(Math.random()<.2?1:0),r=b===2?5+R(2):5+R(2)+(Math.random()<.2?1:0);
+      for(let a=l;a<=r;a++)both(chasm,a,b);
+    }
+    if(o.synth)for(let n=1+R(2),t=0;n>0&&t<80;t++){ // Synthwave Space: one or two small chasm pockets, mirrored
+      const tl=grow(2+R(3),1+R(W-2),3+R(H-6));
+      if(tl.some(([a,b])=>chasm.has(K(a,b))||chasm.has(K(W-1-a,H-1-b))||(a===W-1-a&&b===H-1-b)))continue;
+      tl.forEach(([a,b])=>both(chasm,a,b));n--;
+    }
+    // Sim features that come one per map on a middle row, or in mirrored pairs (Light Bricks here; Chaos Springs further down)
+    const scatter=(set,n,ok)=>{if(n%2)for(let t=0;t<200;t++){const a=R(W),b=5+R(2);if(ok(a,b)){set.add(K(a,b));break}}
+      for(let m=n>>1,t=0;m>0&&t<300;t++){const a=R(W),b=2+R(4);if(ok(a,b)&&ok(W-1-a,H-1-b)&&(a!==W-1-a||b!==H-1-b)){both(set,a,b);m--}}};
+    const light=new Set(),glowing=(a,b)=>DIRS.some(([dx,dy])=>light.has(K(a+dx,b+dy))); // Synthwave Space's 2-3 Light Bricks, all four sides open so the whole glow shows
+    const apart=(a,b)=>[...light,K(W-1-a,H-1-b)].every(k=>{const[c,e]=pk(k);return(c===a&&e===b&&!light.has(k))||Math.abs(c-a)+Math.abs(e-b)>3}); // apart from each other (and their own mirror image), so glows never merge
+    if(o.synth)scatter(light,2+R(2),(a,b)=>b>=3&&b<=H-4&&!chasm.has(K(a,b))&&DIRS.every(([dx,dy])=>{const x=a+dx,y=b+dy;return x>=0&&x<W&&!chasm.has(K(x,y))})&&apart(a,b));
     const graves=new Set(); // gravestones (Haunted Graveyard): single impassable stones
-    const free=(a,b)=>a>=0&&a<W&&!walls.has(a+","+b)&&!forest.has(a+","+b)&&!graves.has(a+","+b)&&!taken(a,b)&&!hot(a,b);
+    const free=(a,b)=>a>=0&&a<W&&!light.has(a+","+b)&&!glowing(a,b)&&!walls.has(a+","+b)&&!forest.has(a+","+b)&&!graves.has(a+","+b)&&!taken(a,b)&&!hot(a,b);
     const put=(set,pairs,chunk)=>{
       for(let n=pairs,t=0;n>0&&t++<300;){
         const x=R(W),y=2+R(H-4),tiles=[[x,y]];
@@ -933,7 +971,7 @@ function genMap(o={}){
       }
     };
     if(o.graves)put(graves,5+R(3),false);
-    put(walls,o.graves?2+R(2):3+R(3),true);put(forest,o.forest||4+R(4),false);
+    put(walls,o.graves?2+R(2):3+R(3),true);put(forest,o.sim?0:o.forest||4+R(4),false);
     const cherry=new Set(),DIRS8=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]; // a cherry grove: a little orchard of 2-5 joined tiles (mirrored), which plays exactly like forest
     if(o.sakura){ // Sakura Vale: 3 to 5 separate groves, in mirrored pairs plus one on the middle rows when the count is odd
       const want=3+R(3),apart=(a,b)=>free(a,b)&&!cherry.has(K(a,b))&&DIRS8.every(([dx,dy])=>!cherry.has(K(a+dx,b+dy)));
@@ -945,13 +983,13 @@ function genMap(o={}){
         put(tl);put(mir);n--;
       }
     }
-    else if(unlocks.cherry&&!o.graves&&!o.lava&&!(o.swamp>=3)&&Math.random()<(o.cherry===undefined?.3:o.cherry))for(let t=0;t<60;t++){
+    else if(unlocks.cherry&&!o.graves&&!o.lava&&!o.sim&&!(o.swamp>=3)&&Math.random()<(o.cherry===undefined?.3:o.cherry))for(let t=0;t<60;t++){
       const tl=grow(2+R(4),1+R(W-2),3+R(H-6));
       if(!tl.every(([a,b])=>free(a,b)&&free(W-1-a,H-1-b))||tl.some(([a,b])=>tl.some(([c,d])=>c===W-1-a&&d===H-1-b)))continue;
       tl.forEach(([a,b])=>{both(forest,a,b);both(cherry,a,b)});break;
     }
     const swamp=new Set(); // swamp patches: entering one ends a unit's move
-    const SW=o.lava?{n:0,size:2}:o.swamp>=3?{n:5+R(3),size:3}:o.swamp?{n:Math.random()<.6?1+R(2):0,size:2}:{n:Math.random()<.12?1:0,size:2}; // patches (mirrored) and their size
+    const SW=o.lava||o.sim?{n:0,size:2}:o.swamp>=3?{n:5+R(3),size:3}:o.swamp?{n:Math.random()<.6?1+R(2):0,size:2}:{n:Math.random()<.12?1:0,size:2}; // patches (mirrored) and their size
     for(let n=SW.n,t=0;n>0&&t<200;t++){
       const tl=grow(SW.size+R(3),1+R(W-2),3+R(H-6));
       if(!tl.every(([a,b])=>free(a,b)&&free(W-1-a,H-1-b)&&!swamp.has(K(a,b))&&!swamp.has(K(W-1-a,H-1-b))))continue;
@@ -959,8 +997,8 @@ function genMap(o={}){
     }
     if(walls.size<5)continue;
     const fort=new Set();
-    if(o.fort||Math.random()<.25){ // fortress groupings of 2 to 4 tiles
-      const cnt=1+R(2),occ=(a,b)=>walls.has(a+","+b)||graves.has(a+","+b)||forest.has(a+","+b)||fort.has(a+","+b)||swamp.has(a+","+b)||taken(a,b)||hot(a,b);
+    if(o.fort||!o.sim&&Math.random()<.25){ // fortress groupings of 2 to 4 tiles
+      const cnt=1+R(2),occ=(a,b)=>light.has(a+","+b)||glowing(a,b)||walls.has(a+","+b)||graves.has(a+","+b)||forest.has(a+","+b)||fort.has(a+","+b)||swamp.has(a+","+b)||taken(a,b)||hot(a,b);
       const blob=(n,x0,y0)=>{
         const t=[[x0,y0]];
         for(let i=0;i<40&&t.length<n;i++){
@@ -985,7 +1023,7 @@ function genMap(o={}){
     if(unlocks.xbarrels)bars.forEach(k=>{if(Math.random()<.25)xbars.add(k)});
     const camps=new Set(); // mysterious camp site (unlockable): a fifth of maps get one, somewhere in the middle with open ground beside it
     if(wantCamp)for(let t=0;t<200&&!camps.size;t++){
-      const x=R(W),y=4+R(H-8),ok=(a,b)=>a>=0&&a<W&&!walls.has(K(a,b))&&!graves.has(K(a,b))&&!fort.has(K(a,b))&&!swamp.has(K(a,b))&&!bars.has(K(a,b))&&!deep.has(K(a,b))&&!hot(a,b);
+      const x=R(W),y=4+R(H-8),ok=(a,b)=>a>=0&&a<W&&!chasm.has(K(a,b))&&!light.has(K(a,b))&&!glowing(a,b)&&!walls.has(K(a,b))&&!graves.has(K(a,b))&&!fort.has(K(a,b))&&!swamp.has(K(a,b))&&!bars.has(K(a,b))&&!deep.has(K(a,b))&&!hot(a,b);
       if(ok(x,y)&&!forest.has(K(x,y))&&!shal.has(K(x,y))&&DIRS.filter(([dx,dy])=>ok(x+dx,y+dy)).length>=3)camps.add(K(x,y));
     }
     const wisps=new Set(); // Will-o'-the-Wisp (unlockable): swamp maps often, and forest maps now and then, get one in the middle or a mirrored pair
@@ -1007,19 +1045,23 @@ function genMap(o={}){
       for(let n=1+R(3),t=0;n>0&&t<60;t++){const tl=grow(1+R(3),R(W),2+R(H-4));if(tl.every(([a,b])=>open(a,b))){tl.forEach(([a,b])=>flowers.add(K(a,b)));n--}}
     }
     const meadow=new Set(),greenw=new Set(); // cosmetic green patches (mirrored): open ground inside becomes Green Meadow, plain forest becomes Greenwood; not on ashen graveyard or volcanic maps
-    if(!o.graves&&!o.lava&&Math.random()<.6)for(let n=1+R(3);n>0;n--)grow(4+R(6),R(W),R(H)).forEach(([a,b])=>[[a,b],[W-1-a,H-1-b]].forEach(([x,y])=>{const k=K(x,y);
+    if(!o.graves&&!o.lava&&!o.sim&&Math.random()<.6)for(let n=1+R(3);n>0;n--)grow(4+R(6),R(W),R(H)).forEach(([a,b])=>[[a,b],[W-1-a,H-1-b]].forEach(([x,y])=>{const k=K(x,y);
       if(forest.has(k)){if(!cherry.has(k))greenw.add(k)}else if(![walls,deep,shal,swamp,fort,bars,camps,graves,lava,magma,volc,wisps,koi,flowers].some(st=>st.has(k)))meadow.add(k)}));
+    // Sim features that come one per map on a middle row, or in mirrored pairs: Chaos Springs (one on the Fractured Chasm, 2-3 in Synthwave Space) and Synthwave Space's 2-3 Light Bricks
+    const chaos=new Set(),busy=k=>chasm.has(k)||walls.has(k)||chaos.has(k)||light.has(k)||camps.has(k)||fort.has(k),roomy=(a,b)=>a>=0&&a<W&&!busy(K(a,b))&&blastOf(K(a,b)).filter(([x,y])=>!busy(K(x,y))).length>=5;
+    if(o.chasm||o.synth)scatter(chaos,o.chasm?1:2+R(2),roomy);
+    if(o.synth&&(light.size<2||chaos.size<2)||o.chasm&&!chaos.size)continue; // every Sim map gets its full set of features: if they didn't fit, roll again
     const seen=new Set(["0,0"]),q=[[0,0]];
     while(q.length){
       const[x,y]=q.pop();
       for(const[dx,dy] of DIRS){
         const nx=x+dx,ny=y+dy,k=nx+","+ny;
-        if(nx<0||ny<0||nx>=W||ny>=H||walls.has(k)||deep.has(k)||bars.has(k)||camps.has(k)||graves.has(k)||lava.has(k)||volc.has(k)||koi.has(k)||seen.has(k))continue;
+        if(nx<0||ny<0||nx>=W||ny>=H||walls.has(k)||chasm.has(k)||light.has(k)||deep.has(k)||bars.has(k)||camps.has(k)||graves.has(k)||lava.has(k)||volc.has(k)||koi.has(k)||seen.has(k))continue;
         seen.add(k);q.push([nx,ny]);
       }
     }
-    if(seen.size===W*H-walls.size-deep.size-bars.size-camps.size-graves.size-lava.size-volc.size-koi.size){ // every open tile connects: lava never cuts anyone off
-      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;SWAMP=swamp;MURKY=o.swamp>=3;GRAVES=graves;HAUNTED=!!o.graves;LAVA=lava;MAGMA=magma;VOLC=volc;WISP=wisps;FLOWERS=flowers;MEADOW=meadow;GREENW=greenw;KOI=koi;VALE=!!o.sakura;VOLCANIC=!!o.lava;CHERRY=cherry;BARRELS=bars;XBAR=xbars;CAMPS=camps;WALLV=R(4);
+    if(seen.size===W*H-walls.size-chasm.size-light.size-deep.size-bars.size-camps.size-graves.size-lava.size-volc.size-koi.size){ // every open tile connects: lava never cuts anyone off
+      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;SWAMP=swamp;MURKY=o.swamp>=3;GRAVES=graves;HAUNTED=!!o.graves;LAVA=lava;MAGMA=magma;VOLC=volc;WISP=wisps;FLOWERS=flowers;MEADOW=meadow;GREENW=greenw;KOI=koi;VALE=!!o.sakura;VOLCANIC=!!o.lava;CHASM=chasm;CHAOS=chaos;LIGHT=light;SIM=!!o.sim;SIMFORT=!!o.simfort;CHERRY=cherry;BARRELS=bars;XBAR=xbars;CAMPS=camps;WALLV=R(4);
       groupForts(()=>R(2));
       return;
     }
@@ -1151,6 +1193,53 @@ const koiArt=(f)=>svg(`<ellipse cx="20" cy="21" rx="17" ry="15" fill="#8a8a7e" s
   +`<g transform="rotate(${f?60:-120} 20 21)"><path d="M14 25q4-3 8 0q-4 3-8 0z" fill="#fbfaf2"/><path d="M14 25l-3-2v4z" fill="#fbfaf2"/><circle cx="19" cy="24.400" r="1.100" fill="#e5554f"/></g>`
   +`<path d="M${f?25:14} 13a3.600 3.600 0 1 0 .1 0l-.1 3.600z" fill="#5f9a3a" stroke="#3a6a24" stroke-width=".6"/><circle cx="${f?27:30}" cy="${f?28:15}" r="1.300" fill="#f7c6d8"/><circle cx="${f?11:8}" cy="${f?11:27}" r="1" fill="#f7c6d8" opacity=".8"/>`);
 const KOI_V=[koiArt(0),koiArt(1)];
+/* ---- The Warped Sim's terrain ---- */
+// Glitched Ground: ordinary ground recoloured in purple and blue, with a patch of faint grid showing through on some tiles
+function simGround(x,y,fv){
+  const v=fv===undefined?tv(x,y,6):fv,p=(n,k)=>tv(x,y,n,k+79);
+  let g=(v<4?ground(x,y,v):"").replace(/^<svg class="dec" viewBox="0 0 40 40">|<\/svg>$/g,"").replace(/#6f8f3f/g,"#8ad8ff").replace(/#a6987d/g,"#a99ae0").replace(/#a88f63/g,"#8a76e0").replace(/#f4f0e8/g,"#e8f8ff").replace(/#f0c94a/g,"#7ae8ff").replace(/#e98fb0/g,"#d8a0ff").replace(/#c88a1a/g,"#5a3ab0").replace(/rgba\(120,90,50,\.16\)/g,"rgba(40,20,120,.2)").replace(/rgba\(60,45,25,\.25\)/g,"rgba(20,10,60,.3)").replace(/rgba\(255,255,240,\.35\)/g,"rgba(230,240,255,.4)");
+  if(v===4||p(5,1)<2){const gx=4+p(18,2),gy=4+p(18,3),c=p(2,4)?"#8ad8ff":"#c8a0ff";let L="";for(let i=0;i<=4;i++)L+=`M${gx+i*4} ${gy}v16M${gx} ${gy+i*4}h16`;g+=`<path d="${L}" stroke="${c}" stroke-width=".6" opacity="${v===4?.22:.3}"/>`;}
+  if(p(4,5)===0)g+=`<rect x="${4+p(30,6)}" y="${4+p(30,7)}" width="2.500" height="2.500" fill="${p(2,8)?"#7ae8ff":"#d8b0ff"}" opacity=".55"/>`;
+  return g?svg(g):"";
+}
+// Quartz Rocks: two to four giant faceted crystals on dark stone (one tile in seven is an ordinary grey boulder among smaller crystals)
+function quartzArt(v){
+  const C=[["#f2eeff","#b4a6ea","#7a68c8"],["#e6f8ff","#9ad0ee","#5a92c4"],["#f4e6ff","#c8a0f0","#8a5ad0"]];
+  const xt=(cx,by,w,h,a,c)=>{const[L,M,D]=C[c],sh=h*.72,f=n=>n.toFixed(1),P=(...q)=>q.map(([u,v])=>f(u)+" "+f(v)).join("L");
+    const bl=[cx-w/2,by],br=[cx+w/2,by],sl=[cx-w/2,by-sh],sr=[cx+w/2,by-sh],tp=[cx+w*.08,by-h],md=[cx+w*.08,by-sh+1],mb=[cx+w*.08,by];
+    return `<g transform="rotate(${a} ${cx} ${by})"><path d="M${P(bl,sl,md,mb)}z" fill="${L}"/><path d="M${P(mb,md,sr,br)}z" fill="${M}"/><path d="M${P(sl,tp,md)}z" fill="#fff"/><path d="M${P(md,tp,sr)}z" fill="${D}"/><path d="M${P(bl,sl,tp,sr,br)}z" fill="none" stroke="#1c1438" stroke-width="1" stroke-linejoin="round"/><path d="M${P(sl,md,sr)}M${P(md,mb)}" fill="none" stroke="${c===1?"#7ae8ff":"#e8dcff"}" stroke-width=".55" opacity=".9"/></g>`};
+  const boulder=`<path d="M6 36l-2-9 6-8 10-2 8 5 2 9-4 6z" fill="#8d98a1" stroke="#2a2e34" stroke-width="1" stroke-linejoin="round"/><path d="M10 19l10-2 8 5-10 3z" fill="rgba(255,255,255,.22)"/><path d="M18 25l4 11" stroke="rgba(0,0,0,.25)" stroke-width=".8"/>`;
+  const sets=[[[13,36,9,26,-12,0],[25,37,10,30,8,0],[33,36,6,16,22,1]],[[11,37,8,20,-20,2],[21,36,11,32,-2,0],[31,37,8,22,16,0]],[[16,37,12,30,-6,1],[29,36,9,24,14,0],[7,37,5,12,-28,2]],
+    [[12,37,9,24,-10,0],[24,37,9,28,10,2]],[[20,37,12,32,4,0],[9,37,6,15,-24,1],[31,37,6,14,24,0],[26,37,4,9,34,2]],[[14,36,10,28,-14,2],[27,36,10,26,12,1]]];
+  const g=v===6?boulder+xt(28,36,7,18,14,0)+xt(34,37,4,10,28,1):sets[v].map(a=>xt(...a)).join("");
+  const base=[["M3 38q-1-6 5-8q4-4 10-3q6-3 12 0q7 1 8 7q1 4-2 5z","M26 30q6 0 9 5"],["M2 38q0-5 6-7q5-5 12-3q8-2 12 2q6 2 6 7z","M8 31q4-2 7-1"],["M4 38q-2-5 4-8q6-5 13-3q7-2 11 2q5 3 4 9z","M22 28q5 0 8 3"]][v%3]; // the crystals grow out of a low mound of dark rock, ragged-edged so the ground runs right up to it
+  return svg(`<path d="${base[0]}" fill="#000" opacity=".22" transform="translate(1 1.500)"/><path d="${base[0]}" fill="#3a2f6a" stroke="#1c1438" stroke-width=".9" stroke-linejoin="round"/><path d="${base[1]}" stroke="#7a6ad0" stroke-width=".9" fill="none" stroke-linecap="round"/><circle cx="${6+v*3}" cy="39" r="1.300" fill="#3a2f6a"/><circle cx="${35-v*2}" cy="38.500" r="1" fill="#3a2f6a"/>${g}`);
+}
+// Chasm: near-black depths; each side that meets solid ground lightens through violet to blue in pixel steps
+const chasmMask=(x,y)=>{const open=(a,b)=>a>=0&&b>=0&&a<W&&b<H&&!CHASM.has(a+","+b);return(open(x,y-1)?1:0)|(open(x+1,y)?2:0)|(open(x,y+1)?4:0)|(open(x-1,y)?8:0)|(open(x-1,y-1)?16:0)|(open(x+1,y-1)?32:0)|(open(x+1,y+1)?64:0)|(open(x-1,y+1)?128:0)};
+function chasmArt(m,v){
+  let g="";const r=(n,k)=>((n*37+k*61+v*13)%97)/97,STEP=["#bcaaff","#8e6ef0","#6040c0","#3a2484","#20124e"],GL=["#a8ecff","#6ac4fa","#3a86dc","#1e4c96","#102a5a"];
+  for(let i=0;i<9;i++)g+=`<rect x="${(4+r(i,1)*30).toFixed(1)}" y="${(4+r(i,2)*30).toFixed(1)}" width="${i%3?2:3}" height="${i%3?2:3}" fill="${i%4?"#2a1650":"#1c3a78"}" opacity="${(.35+r(i,3)*.4).toFixed(2)}"/>`; // drifting specks in the dark
+  const side=(bit,rot)=>{if(!(m&bit))return "";let t="";for(let c=0;c<8;c++){const deep=3+Math.floor(r(c,bit)*3);for(let k=0;k<deep;k++)t+=`<rect x="${c*5}" y="${k*3}" width="5" height="3.100" fill="${(c+k+bit)%3===0?GL[k]:STEP[k]}" opacity="${(.95-k*.13).toFixed(2)}"/>`}
+    return `<g transform="rotate(${rot} 20 20)">${t}<path d="M0 .6H40" stroke="#c8f4ff" stroke-width="1.200" opacity=".85"/></g>`};
+  g+=side(1,0)+side(2,90)+side(4,180)+side(8,270);
+  [[16,0,0],[32,40,0],[64,40,40],[128,0,40]].forEach(([bit,cx,cy])=>{if(m&bit&&!(m&(bit===16?9:bit===32?3:bit===64?6:12)))g+=`<rect x="${cx?34:0}" y="${cy?34:0}" width="6" height="6" fill="${STEP[0]}" opacity=".85"/><rect x="${cx?31:0}" y="${cy?31:0}" width="9" height="9" fill="${STEP[1]}" opacity=".4"/>`}); // inner corners
+  return svg(g);
+}
+// Chaos Spring: neon sparkles in purple, blue and yellow over a faint gridded circle
+const CHAOS_HP=1;
+// the Warped Sim's mark (its Unlocks entry): a ring of pale cubes around a violet swirl
+const SIM_ICON=(()=>{const cube=(x,y,s,c)=>{const h=s*.866,f=n=>n.toFixed(1),P=(...q)=>q.map(([u,v])=>f(x+u)+" "+f(y+v)).join("L");return `<path d="M${P([0,-s],[h,-s/2],[0,0],[-h,-s/2])}z" fill="${c?"#d8fbf6":"#efe8ff"}"/><path d="M${P([-h,-s/2],[0,0],[0,s],[-h,s/2])}z" fill="${c?"#78cfd6":"#a896e4"}"/><path d="M${P([0,0],[h,-s/2],[h,s/2],[0,s])}z" fill="${c?"#2e7486":"#5c4aa6"}"/><path d="M${P([0,-s],[h,-s/2],[h,s/2],[0,s],[-h,s/2],[-h,-s/2])}z" fill="none" stroke="#1c1238" stroke-width=".6"/>`};
+  let r="";for(let i=0;i<12;i++){const a=i/12*6.283;r+=cube(20+Math.cos(a)*13,20+Math.sin(a)*14,3.200+(i%3)*.5,i===4)}
+  return svg(`<defs><radialGradient id="simic"><stop offset="0" stop-color="#fbeaff"/><stop offset=".45" stop-color="#9a5ae0"/><stop offset="1" stop-color="#1a0c36"/></radialGradient></defs><ellipse cx="20" cy="20" rx="12" ry="13" fill="url(#simic)"/><path d="M20 20q4-2 3-6M20 20q-4 2-3 6M20 20q2 4 6 3M20 20q-2-4-6-3" stroke="#f0dcff" stroke-width="1.100" fill="none" opacity=".7" stroke-linecap="round"/>${r}`)})();
+// Light Brick: a chunky neon-yellow brick, white-hot at its edges, in a halo of its own light; its glow spills onto the 4 tiles beside it
+const LBRICK_V=svg(`<rect x="2" y="7" width="36" height="28" rx="6" fill="#ffe94a" opacity=".3"/><rect x="5" y="10" width="30" height="22" rx="3" fill="#ffd21f" stroke="#7a5a00" stroke-width="1.200"/><path d="M5 21H35M15 10V21M25 21V32" stroke="#b88a00" stroke-width="1.100"/><rect x="7" y="12" width="7" height="7.500" rx="1" fill="#fff6a8"/><rect x="16.500" y="12" width="17" height="7.500" rx="1" fill="#ffef6a"/><rect x="7" y="23" width="16.500" height="7.500" rx="1" fill="#ffe94a"/><rect x="26.500" y="23" width="7" height="7.500" rx="1" fill="#ffe24a"/><path d="M6 11.500h28" stroke="#fffde8" stroke-width="1.100" opacity=".9"/><circle cx="31" cy="8" r="1.300" fill="#fffde8"/><circle cx="8" cy="34" r="1" fill="#fffde8" opacity=".8"/>`);
+const glowOf=k=>{const[x,y]=pk(k);return LIGHT.has(k)||solid(k)?[]:DIRS.filter(([dx,dy])=>LIGHT.has((x+dx)+","+(y+dy)))}; // the bricks whose light falls on this tile (as directions to them)
+const CHAOS_V=(()=>{let L="";for(let i=-2;i<=2;i++)L+=`M${20+i*4} 9V31M9 ${20+i*4}H31`;
+  const sp=(x,y,r,c,k)=>`<path class="twk" style="animation-delay:${-k*.45}s" d="M${x} ${y-r}l${r*.28} ${r*.72}l${r*.72} ${r*.28}l${-r*.72} ${r*.28}l${-r*.28} ${r*.72}l${-r*.28} ${-r*.72}l${-r*.72} ${-r*.28}l${r*.72} ${-r*.28}z" fill="${c}"/>`;
+  return svg(`<defs><clipPath id="chaosclip"><circle cx="20" cy="20" r="11"/></clipPath></defs><circle cx="20" cy="20" r="13" fill="#c06aff" opacity=".18"/><circle cx="20" cy="20" r="11" fill="#1c1040" opacity=".35"/><path d="${L}" stroke="#8ad8ff" stroke-width=".55" opacity=".55" clip-path="url(#chaosclip)"/><circle cx="20" cy="20" r="11" fill="none" stroke="#c8a0ff" stroke-width=".9" opacity=".8"/>`
+    +[[8,8,4,"#d070ff",0],[31,10,3.400,"#7ae8ff",1],[33,29,4.200,"#ffe066",2],[9,31,3,"#7ae8ff",3],[20,20,3.600,"#fff6c8",4],[25,5,2.400,"#ffe066",5],[5,20,2.400,"#d070ff",6],[35,19,2.200,"#d070ff",7],[17,35,2.600,"#ffe066",8]].map(a=>sp(...a)).join(""));
+})();
 // wildflower field: a scatter of daisies and bright blooms among grass tufts (three mixes)
 const FLOWER_V=[svg(`<rect width="40" height="40" fill="#7fae4e" opacity=".28"/><ellipse cx="20" cy="22" rx="17" ry="14" fill="#8fbe5a" opacity=".22"/><g stroke="#4f7a34" stroke-width=".9" stroke-linecap="round" fill="none"><path d="M18.5 26.4q1.0 -2.500 0 -4"/><path d="M33.6 23.4q-0.4 -2.500 0 -4"/><path d="M9.9 24.9q-0.9 -2.500 0 -4"/><path d="M24.2 33.6q0.7 -2.500 0 -4"/><path d="M7.0 18.4q-1.0 -2.500 0 -4"/><path d="M6.9 34.1q0.9 -2.500 0 -4"/><path d="M26.2 10.3q1.0 -2.500 0 -4"/><path d="M35.4 38.9q0.1 -2.500 0 -4"/><path d="M24.9 28.1q-0.5 -2.500 0 -4"/><path d="M9.0 9.5q-1.0 -2.500 0 -4"/><path d="M20.9 10.8q-0.8 -2.500 0 -4"/><path d="M5.0 23.4q-1.0 -2.500 0 -4"/><path d="M18.1 35.1q-0.6 -2.500 0 -4"/><path d="M18.6 17.6q-0.6 -2.500 0 -4"/><path d="M16.0 19.8l-1 -2.500M16.0 19.8l.4 -3M16.0 19.8l1.400 -2.200" stroke="#5f9a3a"/><path d="M36.7 8.0l-1 -2.500M36.7 8.0l.4 -3M36.7 8.0l1.400 -2.200" stroke="#5f9a3a"/><path d="M32.4 37.2l-1 -2.500M32.4 37.2l.4 -3M32.4 37.2l1.400 -2.200" stroke="#5f9a3a"/><path d="M23.2 37.9l-1 -2.500M23.2 37.9l.4 -3M23.2 37.9l1.400 -2.200" stroke="#5f9a3a"/><path d="M3.7 13.6l-1 -2.500M3.7 13.6l.4 -3M3.7 13.6l1.400 -2.200" stroke="#5f9a3a"/><path d="M36.9 26.1l-1 -2.500M36.9 26.1l.4 -3M36.9 26.1l1.400 -2.200" stroke="#5f9a3a"/><path d="M22.6 9.3l-1 -2.500M22.6 9.3l.4 -3M22.6 9.3l1.400 -2.200" stroke="#5f9a3a"/><path d="M8.0 21.2l-1 -2.500M8.0 21.2l.4 -3M8.0 21.2l1.400 -2.200" stroke="#5f9a3a"/><path d="M3.3 26.3l-1 -2.500M3.3 26.3l.4 -3M3.3 26.3l1.400 -2.200" stroke="#5f9a3a"/></g><circle cx="19.8" cy="22.4" r="1.34" fill="#f2c94c"/><circle cx="18.5" cy="23.7" r="1.34" fill="#f2c94c"/><circle cx="17.2" cy="22.4" r="1.34" fill="#f2c94c"/><circle cx="18.5" cy="21.1" r="1.34" fill="#f2c94c"/><circle cx="18.5" cy="22.4" r="0.69" fill="#fff3b0"/><ellipse cx="33.6" cy="17.4" rx="0.90" ry="2.01" fill="#fbfaf2" transform="rotate(0 33.6 19.4)"/><ellipse cx="33.6" cy="17.4" rx="0.90" ry="2.01" fill="#fbfaf2" transform="rotate(60 33.6 19.4)"/><ellipse cx="33.6" cy="17.4" rx="0.90" ry="2.01" fill="#fbfaf2" transform="rotate(120 33.6 19.4)"/><ellipse cx="33.6" cy="17.4" rx="0.90" ry="2.01" fill="#fbfaf2" transform="rotate(180 33.6 19.4)"/><ellipse cx="33.6" cy="17.4" rx="0.90" ry="2.01" fill="#fbfaf2" transform="rotate(240 33.6 19.4)"/><ellipse cx="33.6" cy="17.4" rx="0.90" ry="2.01" fill="#fbfaf2" transform="rotate(300 33.6 19.4)"/><circle cx="33.6" cy="19.4" r="1.01" fill="#e8b830"/><circle cx="11.1" cy="20.9" r="1.19" fill="#f2c94c"/><circle cx="9.9" cy="22.0" r="1.19" fill="#f2c94c"/><circle cx="8.8" cy="20.9" r="1.19" fill="#f2c94c"/><circle cx="9.9" cy="19.7" r="1.19" fill="#f2c94c"/><circle cx="9.9" cy="20.9" r="0.61" fill="#fff3b0"/><circle cx="25.1" cy="29.6" r="1.03" fill="#f2c94c"/><circle cx="24.2" cy="30.6" r="1.03" fill="#f2c94c"/><circle cx="23.2" cy="29.6" r="1.03" fill="#f2c94c"/><circle cx="24.2" cy="28.6" r="1.03" fill="#f2c94c"/><circle cx="24.2" cy="29.6" r="0.53" fill="#fff3b0"/><circle cx="8.1" cy="14.4" r="1.10" fill="#f2c94c"/><circle cx="7.0" cy="15.5" r="1.10" fill="#f2c94c"/><circle cx="5.9" cy="14.4" r="1.10" fill="#f2c94c"/><circle cx="7.0" cy="13.3" r="1.10" fill="#f2c94c"/><circle cx="7.0" cy="14.4" r="0.57" fill="#fff3b0"/><circle cx="8.1" cy="30.1" r="1.23" fill="#f2c94c"/><circle cx="6.9" cy="31.3" r="1.23" fill="#f2c94c"/><circle cx="5.7" cy="30.1" r="1.23" fill="#f2c94c"/><circle cx="6.9" cy="28.9" r="1.23" fill="#f2c94c"/><circle cx="6.9" cy="30.1" r="0.63" fill="#fff3b0"/><circle cx="27.4" cy="6.3" r="1.20" fill="#f2c94c"/><circle cx="26.2" cy="7.5" r="1.20" fill="#f2c94c"/><circle cx="25.0" cy="6.3" r="1.20" fill="#f2c94c"/><circle cx="26.2" cy="5.1" r="1.20" fill="#f2c94c"/><circle cx="26.2" cy="6.3" r="0.62" fill="#fff3b0"/><ellipse cx="35.4" cy="32.7" rx="1.00" ry="2.22" fill="#fbfaf2" transform="rotate(0 35.4 34.9)"/><ellipse cx="35.4" cy="32.7" rx="1.00" ry="2.22" fill="#fbfaf2" transform="rotate(60 35.4 34.9)"/><ellipse cx="35.4" cy="32.7" rx="1.00" ry="2.22" fill="#fbfaf2" transform="rotate(120 35.4 34.9)"/><ellipse cx="35.4" cy="32.7" rx="1.00" ry="2.22" fill="#fbfaf2" transform="rotate(180 35.4 34.9)"/><ellipse cx="35.4" cy="32.7" rx="1.00" ry="2.22" fill="#fbfaf2" transform="rotate(240 35.4 34.9)"/><ellipse cx="35.4" cy="32.7" rx="1.00" ry="2.22" fill="#fbfaf2" transform="rotate(300 35.4 34.9)"/><circle cx="35.4" cy="34.9" r="1.11" fill="#e8b830"/><circle cx="26.0" cy="24.1" r="1.15" fill="#f2c94c"/><circle cx="24.9" cy="25.2" r="1.15" fill="#f2c94c"/><circle cx="23.8" cy="24.1" r="1.15" fill="#f2c94c"/><circle cx="24.9" cy="23.0" r="1.15" fill="#f2c94c"/><circle cx="24.9" cy="24.1" r="0.59" fill="#fff3b0"/><circle cx="10.4" cy="5.5" r="1.37" fill="#f2c94c"/><circle cx="9.0" cy="6.8" r="1.37" fill="#f2c94c"/><circle cx="7.7" cy="5.5" r="1.37" fill="#f2c94c"/><circle cx="9.0" cy="4.1" r="1.37" fill="#f2c94c"/><circle cx="9.0" cy="5.5" r="0.71" fill="#fff3b0"/><ellipse cx="20.9" cy="4.7" rx="0.97" ry="2.17" fill="#fbfaf2" transform="rotate(0 20.9 6.8)"/><ellipse cx="20.9" cy="4.7" rx="0.97" ry="2.17" fill="#fbfaf2" transform="rotate(60 20.9 6.8)"/><ellipse cx="20.9" cy="4.7" rx="0.97" ry="2.17" fill="#fbfaf2" transform="rotate(120 20.9 6.8)"/><ellipse cx="20.9" cy="4.7" rx="0.97" ry="2.17" fill="#fbfaf2" transform="rotate(180 20.9 6.8)"/><ellipse cx="20.9" cy="4.7" rx="0.97" ry="2.17" fill="#fbfaf2" transform="rotate(240 20.9 6.8)"/><ellipse cx="20.9" cy="4.7" rx="0.97" ry="2.17" fill="#fbfaf2" transform="rotate(300 20.9 6.8)"/><circle cx="20.9" cy="6.8" r="1.08" fill="#e8b830"/><circle cx="6.3" cy="19.4" r="1.39" fill="#f2c94c"/><circle cx="5.0" cy="20.7" r="1.39" fill="#f2c94c"/><circle cx="3.6" cy="19.4" r="1.39" fill="#f2c94c"/><circle cx="5.0" cy="18.0" r="1.39" fill="#f2c94c"/><circle cx="5.0" cy="19.4" r="0.72" fill="#fff3b0"/><ellipse cx="18.1" cy="29.2" rx="0.88" ry="1.96" fill="#fbfaf2" transform="rotate(0 18.1 31.1)"/><ellipse cx="18.1" cy="29.2" rx="0.88" ry="1.96" fill="#fbfaf2" transform="rotate(60 18.1 31.1)"/><ellipse cx="18.1" cy="29.2" rx="0.88" ry="1.96" fill="#fbfaf2" transform="rotate(120 18.1 31.1)"/><ellipse cx="18.1" cy="29.2" rx="0.88" ry="1.96" fill="#fbfaf2" transform="rotate(180 18.1 31.1)"/><ellipse cx="18.1" cy="29.2" rx="0.88" ry="1.96" fill="#fbfaf2" transform="rotate(240 18.1 31.1)"/><ellipse cx="18.1" cy="29.2" rx="0.88" ry="1.96" fill="#fbfaf2" transform="rotate(300 18.1 31.1)"/><circle cx="18.1" cy="31.1" r="0.98" fill="#e8b830"/><ellipse cx="18.6" cy="11.7" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(0 18.6 13.6)"/><ellipse cx="18.6" cy="11.7" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(60 18.6 13.6)"/><ellipse cx="18.6" cy="11.7" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(120 18.6 13.6)"/><ellipse cx="18.6" cy="11.7" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(180 18.6 13.6)"/><ellipse cx="18.6" cy="11.7" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(240 18.6 13.6)"/><ellipse cx="18.6" cy="11.7" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(300 18.6 13.6)"/><circle cx="18.6" cy="13.6" r="0.97" fill="#e8b830"/>`),svg(`<rect width="40" height="40" fill="#7fae4e" opacity=".28"/><ellipse cx="20" cy="22" rx="17" ry="14" fill="#8fbe5a" opacity=".22"/><g stroke="#4f7a34" stroke-width=".9" stroke-linecap="round" fill="none"><path d="M33.6 38.4q0.2 -2.500 0 -4"/><path d="M32.6 11.6q1.0 -2.500 0 -4"/><path d="M22.9 22.1q-0.2 -2.500 0 -4"/><path d="M21.0 13.0q0.4 -2.500 0 -4"/><path d="M10.1 22.8q0.9 -2.500 0 -4"/><path d="M4.8 11.7q-0.3 -2.500 0 -4"/><path d="M20.4 31.8q-0.9 -2.500 0 -4"/><path d="M15.5 10.8q-0.6 -2.500 0 -4"/><path d="M29.1 27.3q-0.6 -2.500 0 -4"/><path d="M35.1 20.2q0.3 -2.500 0 -4"/><path d="M28.3 20.4q-0.2 -2.500 0 -4"/><path d="M5.2 17.5q-0.3 -2.500 0 -4"/><path d="M13.2 18.4q0.8 -2.500 0 -4"/><path d="M21.5 37.5q0.9 -2.500 0 -4"/><path d="M17.5 17.0l-1 -2.500M17.5 17.0l.4 -3M17.5 17.0l1.400 -2.200" stroke="#5f9a3a"/><path d="M32.3 26.3l-1 -2.500M32.3 26.3l.4 -3M32.3 26.3l1.400 -2.200" stroke="#5f9a3a"/><path d="M4.8 16.5l-1 -2.500M4.8 16.5l.4 -3M4.8 16.5l1.400 -2.200" stroke="#5f9a3a"/><path d="M3.9 12.2l-1 -2.500M3.9 12.2l.4 -3M3.9 12.2l1.400 -2.200" stroke="#5f9a3a"/><path d="M35.8 29.9l-1 -2.500M35.8 29.9l.4 -3M35.8 29.9l1.400 -2.200" stroke="#5f9a3a"/><path d="M17.6 13.0l-1 -2.500M17.6 13.0l.4 -3M17.6 13.0l1.400 -2.200" stroke="#5f9a3a"/><path d="M25.5 18.1l-1 -2.500M25.5 18.1l.4 -3M25.5 18.1l1.400 -2.200" stroke="#5f9a3a"/><path d="M26.4 11.4l-1 -2.500M26.4 11.4l.4 -3M26.4 11.4l1.400 -2.200" stroke="#5f9a3a"/><path d="M33.2 36.7l-1 -2.500M33.2 36.7l.4 -3M33.2 36.7l1.400 -2.200" stroke="#5f9a3a"/></g><circle cx="34.6" cy="34.4" r="1.07" fill="#e5554f"/><circle cx="33.6" cy="35.4" r="1.07" fill="#e5554f"/><circle cx="32.6" cy="34.4" r="1.07" fill="#e5554f"/><circle cx="33.6" cy="33.4" r="1.07" fill="#e5554f"/><circle cx="33.6" cy="34.4" r="0.55" fill="#fff3b0"/><circle cx="33.8" cy="7.6" r="1.30" fill="#e5554f"/><circle cx="32.6" cy="8.9" r="1.30" fill="#e5554f"/><circle cx="31.3" cy="7.6" r="1.30" fill="#e5554f"/><circle cx="32.6" cy="6.3" r="1.30" fill="#e5554f"/><circle cx="32.6" cy="7.6" r="0.67" fill="#fff3b0"/><ellipse cx="22.9" cy="15.9" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(0 22.9 18.1)"/><ellipse cx="22.9" cy="15.9" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(60 22.9 18.1)"/><ellipse cx="22.9" cy="15.9" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(120 22.9 18.1)"/><ellipse cx="22.9" cy="15.9" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(180 22.9 18.1)"/><ellipse cx="22.9" cy="15.9" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(240 22.9 18.1)"/><ellipse cx="22.9" cy="15.9" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(300 22.9 18.1)"/><circle cx="22.9" cy="18.1" r="1.12" fill="#e8b830"/><ellipse cx="21.0" cy="6.8" rx="1.01" ry="2.24" fill="#fbfaf2" transform="rotate(0 21.0 9.0)"/><ellipse cx="21.0" cy="6.8" rx="1.01" ry="2.24" fill="#fbfaf2" transform="rotate(60 21.0 9.0)"/><ellipse cx="21.0" cy="6.8" rx="1.01" ry="2.24" fill="#fbfaf2" transform="rotate(120 21.0 9.0)"/><ellipse cx="21.0" cy="6.8" rx="1.01" ry="2.24" fill="#fbfaf2" transform="rotate(180 21.0 9.0)"/><ellipse cx="21.0" cy="6.8" rx="1.01" ry="2.24" fill="#fbfaf2" transform="rotate(240 21.0 9.0)"/><ellipse cx="21.0" cy="6.8" rx="1.01" ry="2.24" fill="#fbfaf2" transform="rotate(300 21.0 9.0)"/><circle cx="21.0" cy="9.0" r="1.12" fill="#e8b830"/><circle cx="11.5" cy="18.8" r="1.36" fill="#e5554f"/><circle cx="10.1" cy="20.1" r="1.36" fill="#e5554f"/><circle cx="8.8" cy="18.8" r="1.36" fill="#e5554f"/><circle cx="10.1" cy="17.5" r="1.36" fill="#e5554f"/><circle cx="10.1" cy="18.8" r="0.70" fill="#fff3b0"/><circle cx="6.0" cy="7.7" r="1.24" fill="#e5554f"/><circle cx="4.8" cy="8.9" r="1.24" fill="#e5554f"/><circle cx="3.6" cy="7.7" r="1.24" fill="#e5554f"/><circle cx="4.8" cy="6.5" r="1.24" fill="#e5554f"/><circle cx="4.8" cy="7.7" r="0.64" fill="#fff3b0"/><circle cx="21.6" cy="27.8" r="1.22" fill="#f2c94c"/><circle cx="20.4" cy="28.9" r="1.22" fill="#f2c94c"/><circle cx="19.2" cy="27.8" r="1.22" fill="#f2c94c"/><circle cx="20.4" cy="26.6" r="1.22" fill="#f2c94c"/><circle cx="20.4" cy="27.8" r="0.63" fill="#fff3b0"/><circle cx="16.9" cy="6.8" r="1.46" fill="#e5554f"/><circle cx="15.5" cy="8.2" r="1.46" fill="#e5554f"/><circle cx="14.1" cy="6.8" r="1.46" fill="#e5554f"/><circle cx="15.5" cy="5.4" r="1.46" fill="#e5554f"/><circle cx="15.5" cy="6.8" r="0.76" fill="#fff3b0"/><circle cx="30.3" cy="23.3" r="1.27" fill="#e5554f"/><circle cx="29.1" cy="24.5" r="1.27" fill="#e5554f"/><circle cx="27.8" cy="23.3" r="1.27" fill="#e5554f"/><circle cx="29.1" cy="22.0" r="1.27" fill="#e5554f"/><circle cx="29.1" cy="23.3" r="0.65" fill="#fff3b0"/><ellipse cx="35.1" cy="14.4" rx="0.81" ry="1.80" fill="#fbfaf2" transform="rotate(0 35.1 16.2)"/><ellipse cx="35.1" cy="14.4" rx="0.81" ry="1.80" fill="#fbfaf2" transform="rotate(60 35.1 16.2)"/><ellipse cx="35.1" cy="14.4" rx="0.81" ry="1.80" fill="#fbfaf2" transform="rotate(120 35.1 16.2)"/><ellipse cx="35.1" cy="14.4" rx="0.81" ry="1.80" fill="#fbfaf2" transform="rotate(180 35.1 16.2)"/><ellipse cx="35.1" cy="14.4" rx="0.81" ry="1.80" fill="#fbfaf2" transform="rotate(240 35.1 16.2)"/><ellipse cx="35.1" cy="14.4" rx="0.81" ry="1.80" fill="#fbfaf2" transform="rotate(300 35.1 16.2)"/><circle cx="35.1" cy="16.2" r="0.90" fill="#e8b830"/><circle cx="29.5" cy="16.4" r="1.21" fill="#e5554f"/><circle cx="28.3" cy="17.6" r="1.21" fill="#e5554f"/><circle cx="27.1" cy="16.4" r="1.21" fill="#e5554f"/><circle cx="28.3" cy="15.3" r="1.21" fill="#e5554f"/><circle cx="28.3" cy="16.4" r="0.63" fill="#fff3b0"/><circle cx="6.6" cy="13.5" r="1.40" fill="#e5554f"/><circle cx="5.2" cy="14.9" r="1.40" fill="#e5554f"/><circle cx="3.9" cy="13.5" r="1.40" fill="#e5554f"/><circle cx="5.2" cy="12.2" r="1.40" fill="#e5554f"/><circle cx="5.2" cy="13.5" r="0.72" fill="#fff3b0"/><circle cx="14.2" cy="14.4" r="1.03" fill="#e5554f"/><circle cx="13.2" cy="15.4" r="1.03" fill="#e5554f"/><circle cx="12.2" cy="14.4" r="1.03" fill="#e5554f"/><circle cx="13.2" cy="13.5" r="1.03" fill="#e5554f"/><circle cx="13.2" cy="14.4" r="0.53" fill="#fff3b0"/><ellipse cx="21.5" cy="31.4" rx="0.92" ry="2.04" fill="#fbfaf2" transform="rotate(0 21.5 33.5)"/><ellipse cx="21.5" cy="31.4" rx="0.92" ry="2.04" fill="#fbfaf2" transform="rotate(60 21.5 33.5)"/><ellipse cx="21.5" cy="31.4" rx="0.92" ry="2.04" fill="#fbfaf2" transform="rotate(120 21.5 33.5)"/><ellipse cx="21.5" cy="31.4" rx="0.92" ry="2.04" fill="#fbfaf2" transform="rotate(180 21.5 33.5)"/><ellipse cx="21.5" cy="31.4" rx="0.92" ry="2.04" fill="#fbfaf2" transform="rotate(240 21.5 33.5)"/><ellipse cx="21.5" cy="31.4" rx="0.92" ry="2.04" fill="#fbfaf2" transform="rotate(300 21.5 33.5)"/><circle cx="21.5" cy="33.5" r="1.02" fill="#e8b830"/>`),svg(`<rect width="40" height="40" fill="#7fae4e" opacity=".28"/><ellipse cx="20" cy="22" rx="17" ry="14" fill="#8fbe5a" opacity=".22"/><g stroke="#4f7a34" stroke-width=".9" stroke-linecap="round" fill="none"><path d="M25.8 11.8q-0.9 -2.500 0 -4"/><path d="M23.8 35.1q0.3 -2.500 0 -4"/><path d="M30.7 25.0q-0.8 -2.500 0 -4"/><path d="M24.2 20.4q-0.9 -2.500 0 -4"/><path d="M25.9 27.6q-0.7 -2.500 0 -4"/><path d="M13.0 20.7q-0.4 -2.500 0 -4"/><path d="M34.7 39.1q0.1 -2.500 0 -4"/><path d="M6.4 17.9q-0.8 -2.500 0 -4"/><path d="M15.6 30.9q0.0 -2.500 0 -4"/><path d="M5.1 25.3q-0.9 -2.500 0 -4"/><path d="M33.1 11.1q-0.7 -2.500 0 -4"/><path d="M15.3 13.9q-0.6 -2.500 0 -4"/><path d="M31.5 31.6q0.6 -2.500 0 -4"/><path d="M10.8 28.2q0.4 -2.500 0 -4"/><path d="M12.5 26.0l-1 -2.500M12.5 26.0l.4 -3M12.5 26.0l1.400 -2.200" stroke="#5f9a3a"/><path d="M31.8 24.3l-1 -2.500M31.8 24.3l.4 -3M31.8 24.3l1.400 -2.200" stroke="#5f9a3a"/><path d="M30.5 29.6l-1 -2.500M30.5 29.6l.4 -3M30.5 29.6l1.400 -2.200" stroke="#5f9a3a"/><path d="M31.7 27.2l-1 -2.500M31.7 27.2l.4 -3M31.7 27.2l1.400 -2.200" stroke="#5f9a3a"/><path d="M35.3 25.4l-1 -2.500M35.3 25.4l.4 -3M35.3 25.4l1.400 -2.200" stroke="#5f9a3a"/><path d="M32.7 15.8l-1 -2.500M32.7 15.8l.4 -3M32.7 15.8l1.400 -2.200" stroke="#5f9a3a"/><path d="M35.8 14.6l-1 -2.500M35.8 14.6l.4 -3M35.8 14.6l1.400 -2.200" stroke="#5f9a3a"/><path d="M36.7 32.8l-1 -2.500M36.7 32.8l.4 -3M36.7 32.8l1.400 -2.200" stroke="#5f9a3a"/><path d="M15.1 14.2l-1 -2.500M15.1 14.2l.4 -3M15.1 14.2l1.400 -2.200" stroke="#5f9a3a"/></g><circle cx="26.8" cy="7.8" r="1.04" fill="#f0a0c0"/><circle cx="25.8" cy="8.9" r="1.04" fill="#f0a0c0"/><circle cx="24.8" cy="7.8" r="1.04" fill="#f0a0c0"/><circle cx="25.8" cy="6.8" r="1.04" fill="#f0a0c0"/><circle cx="25.8" cy="7.8" r="0.54" fill="#fff3b0"/><circle cx="25.0" cy="31.1" r="1.31" fill="#b07cd8"/><circle cx="23.8" cy="32.4" r="1.31" fill="#b07cd8"/><circle cx="22.5" cy="31.1" r="1.31" fill="#b07cd8"/><circle cx="23.8" cy="29.8" r="1.31" fill="#b07cd8"/><circle cx="23.8" cy="31.1" r="0.68" fill="#fff3b0"/><ellipse cx="30.7" cy="19.1" rx="0.84" ry="1.87" fill="#fbfaf2" transform="rotate(0 30.7 21.0)"/><ellipse cx="30.7" cy="19.1" rx="0.84" ry="1.87" fill="#fbfaf2" transform="rotate(60 30.7 21.0)"/><ellipse cx="30.7" cy="19.1" rx="0.84" ry="1.87" fill="#fbfaf2" transform="rotate(120 30.7 21.0)"/><ellipse cx="30.7" cy="19.1" rx="0.84" ry="1.87" fill="#fbfaf2" transform="rotate(180 30.7 21.0)"/><ellipse cx="30.7" cy="19.1" rx="0.84" ry="1.87" fill="#fbfaf2" transform="rotate(240 30.7 21.0)"/><ellipse cx="30.7" cy="19.1" rx="0.84" ry="1.87" fill="#fbfaf2" transform="rotate(300 30.7 21.0)"/><circle cx="30.7" cy="21.0" r="0.94" fill="#e8b830"/><ellipse cx="24.2" cy="14.8" rx="0.74" ry="1.65" fill="#fbfaf2" transform="rotate(0 24.2 16.4)"/><ellipse cx="24.2" cy="14.8" rx="0.74" ry="1.65" fill="#fbfaf2" transform="rotate(60 24.2 16.4)"/><ellipse cx="24.2" cy="14.8" rx="0.74" ry="1.65" fill="#fbfaf2" transform="rotate(120 24.2 16.4)"/><ellipse cx="24.2" cy="14.8" rx="0.74" ry="1.65" fill="#fbfaf2" transform="rotate(180 24.2 16.4)"/><ellipse cx="24.2" cy="14.8" rx="0.74" ry="1.65" fill="#fbfaf2" transform="rotate(240 24.2 16.4)"/><ellipse cx="24.2" cy="14.8" rx="0.74" ry="1.65" fill="#fbfaf2" transform="rotate(300 24.2 16.4)"/><circle cx="24.2" cy="16.4" r="0.83" fill="#e8b830"/><ellipse cx="25.9" cy="21.4" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(0 25.9 23.6)"/><ellipse cx="25.9" cy="21.4" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(60 25.9 23.6)"/><ellipse cx="25.9" cy="21.4" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(120 25.9 23.6)"/><ellipse cx="25.9" cy="21.4" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(180 25.9 23.6)"/><ellipse cx="25.9" cy="21.4" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(240 25.9 23.6)"/><ellipse cx="25.9" cy="21.4" rx="1.01" ry="2.25" fill="#fbfaf2" transform="rotate(300 25.9 23.6)"/><circle cx="25.9" cy="23.6" r="1.13" fill="#e8b830"/><circle cx="14.3" cy="16.7" r="1.28" fill="#7aa8e0"/><circle cx="13.0" cy="18.0" r="1.28" fill="#7aa8e0"/><circle cx="11.8" cy="16.7" r="1.28" fill="#7aa8e0"/><circle cx="13.0" cy="15.5" r="1.28" fill="#7aa8e0"/><circle cx="13.0" cy="16.7" r="0.66" fill="#fff3b0"/><circle cx="35.7" cy="35.1" r="1.06" fill="#b07cd8"/><circle cx="34.7" cy="36.1" r="1.06" fill="#b07cd8"/><circle cx="33.7" cy="35.1" r="1.06" fill="#b07cd8"/><circle cx="34.7" cy="34.1" r="1.06" fill="#b07cd8"/><circle cx="34.7" cy="35.1" r="0.55" fill="#fff3b0"/><ellipse cx="6.4" cy="12.0" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(0 6.4 13.9)"/><ellipse cx="6.4" cy="12.0" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(60 6.4 13.9)"/><ellipse cx="6.4" cy="12.0" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(120 6.4 13.9)"/><ellipse cx="6.4" cy="12.0" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(180 6.4 13.9)"/><ellipse cx="6.4" cy="12.0" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(240 6.4 13.9)"/><ellipse cx="6.4" cy="12.0" rx="0.87" ry="1.94" fill="#fbfaf2" transform="rotate(300 6.4 13.9)"/><circle cx="6.4" cy="13.9" r="0.97" fill="#e8b830"/><circle cx="16.7" cy="26.9" r="1.17" fill="#7aa8e0"/><circle cx="15.6" cy="28.0" r="1.17" fill="#7aa8e0"/><circle cx="14.4" cy="26.9" r="1.17" fill="#7aa8e0"/><circle cx="15.6" cy="25.7" r="1.17" fill="#7aa8e0"/><circle cx="15.6" cy="26.9" r="0.60" fill="#fff3b0"/><circle cx="6.2" cy="21.3" r="1.10" fill="#7aa8e0"/><circle cx="5.1" cy="22.4" r="1.10" fill="#7aa8e0"/><circle cx="4.0" cy="21.3" r="1.10" fill="#7aa8e0"/><circle cx="5.1" cy="20.3" r="1.10" fill="#7aa8e0"/><circle cx="5.1" cy="21.3" r="0.57" fill="#fff3b0"/><circle cx="34.2" cy="7.1" r="1.15" fill="#f0a0c0"/><circle cx="33.1" cy="8.2" r="1.15" fill="#f0a0c0"/><circle cx="32.0" cy="7.1" r="1.15" fill="#f0a0c0"/><circle cx="33.1" cy="6.0" r="1.15" fill="#f0a0c0"/><circle cx="33.1" cy="7.1" r="0.59" fill="#fff3b0"/><circle cx="16.2" cy="9.9" r="1.02" fill="#b07cd8"/><circle cx="15.3" cy="10.9" r="1.02" fill="#b07cd8"/><circle cx="14.3" cy="9.9" r="1.02" fill="#b07cd8"/><circle cx="15.3" cy="9.0" r="1.02" fill="#b07cd8"/><circle cx="15.3" cy="9.9" r="0.52" fill="#fff3b0"/><circle cx="32.9" cy="27.6" r="1.44" fill="#f0a0c0"/><circle cx="31.5" cy="29.0" r="1.44" fill="#f0a0c0"/><circle cx="30.1" cy="27.6" r="1.44" fill="#f0a0c0"/><circle cx="31.5" cy="26.2" r="1.44" fill="#f0a0c0"/><circle cx="31.5" cy="27.6" r="0.74" fill="#fff3b0"/><circle cx="12.1" cy="24.2" r="1.37" fill="#b07cd8"/><circle cx="10.8" cy="25.5" r="1.37" fill="#b07cd8"/><circle cx="9.5" cy="24.2" r="1.37" fill="#b07cd8"/><circle cx="10.8" cy="22.8" r="1.37" fill="#b07cd8"/><circle cx="10.8" cy="24.2" r="0.71" fill="#fff3b0"/>`)];
 function ashGround(x,y){ // ash-strewn rock in place of grass and flowers
@@ -1235,6 +1324,8 @@ ICON.C='<svg viewBox="0 0 40 40"><path d="M27.500 7.500q5 1 6 6M29.500 12.500q5 
 ICON.P='<svg viewBox="0 0 40 40"><path d="M17 6v9L9.500 29.500A4.500 4.500 0 0013.500 36h13a4.500 4.500 0 004-6.500L23 15V6" stroke="rgba(0,0,0,.3)" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M17 6v9L9.500 29.500A4.500 4.500 0 0013.500 36h13a4.500 4.500 0 004-6.500L23 15V6" stroke="var(--ic)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M15.500 3.300h9v3.400h-9z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M17.500 3.300v3.400M20 3.300v3.400M22.500 3.300v3.400" stroke="var(--tc)" stroke-width=".6" opacity=".5"/><path d="M12.300 26.500h15.400l3 4.600a2.200 2.200 0 01-1.900 3.400H11.200A2.200 2.200 0 019.300 31.100z" fill="var(--ic)"/><path d="M21 26.500h6.700l3 4.600a2.200 2.200 0 01-1.900 3.400H24q3-3.500-3-8z" fill="rgba(0,0,0,.15)"/><circle cx="17.200" cy="30.400" r="1.700" fill="var(--tc)"/><circle cx="23.400" cy="32" r="1.200" fill="var(--tc)"/><circle cx="14" cy="32.600" r=".8" fill="var(--tc)"/><path d="M15.400 18.500l-3.600 7" stroke="var(--ic)" stroke-width="1" opacity=".5" stroke-linecap="round"/><circle cx="25.800" cy="13.500" r="1.300" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><circle cx="28.400" cy="9.400" r=".9" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><circle cx="26.800" cy="6" r=".6" fill="var(--ic)" opacity=".8"/></svg>';
 ICON.T='<svg viewBox="0 0 40 40"><path d="M18.500 11.500q1.500-7.500 9-7.500q4.500.6 5 6q-2.200-2-4.400-1.200q1.400 2 .4 4.200q-2.200-2.200-4.500-1.400z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M21.500 9q2.500-3 6-3M23 11.500q2-1.700 4.500-1.600" stroke="var(--tc)" stroke-width=".8" fill="none" opacity=".55" stroke-linecap="round"/><path d="M10 32V21a10 10 0 0120 0v11z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M20 11a10 10 0 0110 10v11h-6.500V21q0-6.500-3.500-10z" fill="rgba(0,0,0,.17)"/><path d="M10 29.800h20V32H10z" fill="rgba(0,0,0,.17)"/><path d="M12.500 21.200h15v2.800h-15z" fill="var(--tc)"/><path d="M20 25.200l1.500 3 3.300.5-2.400 2.300.6 3.300-3-1.600-3 1.600.6-3.300-2.400-2.300 3.300-.5z" fill="var(--tc)"/><path d="M12.700 19q1.300-5 6-6.400" stroke="#fff" stroke-width="1.100" fill="none" opacity=".45" stroke-linecap="round"/></svg>';
 ICON.Q='<svg viewBox="0 0 40 40"><path d="M24.500 12.500q2-6 8-9.500q3.500-1.500 5.500-.5q-2.500.8-3.800 2.600q2.400-.6 3.800.2q-2.600 1-4 2.800q2 0 3 .8q-3 1.400-5.500 2.400q1.400.6 2.200 1.400q-4.500 1.200-9.200-.2z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M26 12q4-5.500 10.500-8.500M29.500 8.500l3-.6M28 10.500l3.500-.2" stroke="var(--tc)" stroke-width=".8" fill="none" opacity=".55" stroke-linecap="round"/><path d="M13 21.500q.5-11 7-13.500q6.500 2.500 7 13.500z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M20 8q6.500 2.500 7 13.500h-4.500q0-9-2.500-13.500z" fill="rgba(0,0,0,.17)"/><path d="M14.200 20q.6-9 5.800-11" stroke="var(--tc)" stroke-width=".8" fill="none" opacity=".55" stroke-linecap="round"/><path d="M10 28.500q-.5-10 10-10.500q10.500.5 10 10.500z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M20 18q10.500.5 10 10.500h-6q.5-7.500-4-10.500z" fill="rgba(0,0,0,.17)"/><path d="M10.200 25.400h19.600v2.600H10.200z" fill="var(--tc)"/><g fill="var(--ic)" opacity=".85"><circle cx="13.500" cy="26.700" r=".75"/><circle cx="20" cy="26.700" r=".75"/><circle cx="26.500" cy="26.700" r=".75"/></g><path d="M3 22.500q2.500 11 17 11t17-11q-4 6.500-17 6.500t-17-6.500z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M20 33.500q14.500 0 17-11q-4 6.500-17 6.500z" fill="rgba(0,0,0,.17)"/><path d="M5.500 25.500q4 5.500 14.500 5.800" stroke="var(--tc)" stroke-width=".8" fill="none" opacity=".55" stroke-linecap="round"/><path d="M12.400 24q.8-3.800 4.600-4.900" stroke="#fff" stroke-width="1.100" fill="none" opacity=".45" stroke-linecap="round"/></svg>';
+ICON.X='<svg viewBox="0 0 40 40"><path d="M13 37.500h14M16 39h8" stroke="var(--tc)" stroke-width=".8" opacity=".5" stroke-linecap="round"/><path d="M20 14L28.7 19L20 24L11.3 19z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M11.3 19L20 24L20 34L11.3 29z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M20 24L28.7 19L28.7 29L20 34z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M20 24L28.7 19L28.7 29L20 34z" fill="rgba(0,0,0,.17)"/><path d="M20 14L28.7 19L20 24L11.3 19z" fill="#fff" opacity=".18"/><path d="M17.1 22.3v10M11.3 22.3l8.7 5M22.9 22.3v10M20 27.3l8.7 -5M17.1 22.3l8.7 -5M22.9 22.3l-8.7 -5M14.2 20.7v10M11.3 25.7l8.7 5M25.8 20.7v10M20 30.7l8.7 -5M14.2 20.7l8.7 -5M25.8 20.7l-8.7 -5" stroke="var(--tc)" stroke-width=".7" fill="none" opacity=".6"/><path d="M6.5 17.4L9.6 19.2L6.5 21L3.4 19.2z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M3.4 19.2L6.5 21L6.5 24.6L3.4 22.8z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M6.5 21L9.6 19.2L9.6 22.8L6.5 24.6z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M6.5 21L9.6 19.2L9.6 22.8L6.5 24.6z" fill="rgba(0,0,0,.17)"/><path d="M6.5 17.4L9.6 19.2L6.5 21L3.4 19.2z" fill="#fff" opacity=".18"/><path d="M33.5 17.4L36.6 19.2L33.5 21L30.4 19.2z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M30.4 19.2L33.5 21L33.5 24.6L30.4 22.8z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M33.5 21L36.6 19.2L36.6 22.8L33.5 24.6z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M33.5 21L36.6 19.2L36.6 22.8L33.5 24.6z" fill="rgba(0,0,0,.17)"/><path d="M33.5 17.4L36.6 19.2L33.5 21L30.4 19.2z" fill="#fff" opacity=".18"/><path d="M20 3.500l4.500 5.500-4.500 5.500-4.500-5.500z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M20 3.500l4.500 5.500-4.500 5.500z" fill="rgba(0,0,0,.17)"/><path d="M18 8.300h4v1.400h-4z" fill="var(--tc)"/><path d="M17.200 7.200l2-2.400" stroke="#fff" stroke-width="1" opacity=".45" stroke-linecap="round"/><path d="M10.500 21.500l4-1.500M29.500 21.500l-4-1.500" stroke="var(--tc)" stroke-width=".8" stroke-dasharray="1 1.200" opacity=".6"/></svg>';
+ICON.S='<svg viewBox="0 0 40 40"><path d="M20 3l4.80 11.20l11.20 4.80l-11.20 4.80l-4.80 11.20l-4.80 -11.20l-11.20 -4.80l11.20 -4.80z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M20 3l4.800 11.200L36 19l-11.200 4.800L20 35z" fill="rgba(0,0,0,.17)"/><circle cx="16.800" cy="18.400" r="1.700" fill="var(--tc)"/><circle cx="23.200" cy="18.400" r="1.700" fill="var(--tc)"/><path d="M17 22.300q3 2.300 6 0" stroke="var(--tc)" stroke-width="1.100" fill="none" stroke-linecap="round"/><path d="M33 2.6l1.02 2.38l2.38 1.02l-2.38 1.02l-1.02 2.38l-1.02 -2.38l-2.38 -1.02l2.38 -1.02z" fill="var(--ic)" opacity=".85"/><path d="M7 28.4l0.78 1.82l1.82 0.78l-1.82 0.78l-0.78 1.82l-0.78 -1.82l-1.82 -0.78l1.82 -0.78z" fill="var(--ic)" opacity=".7"/><path d="M17.500 8.500l1.500 4" stroke="#fff" stroke-width="1.100" opacity=".45" stroke-linecap="round"/></svg>'; // the Friendly Spark: a little four-pointed star with a face // the Grid Elemental: a gridded cube with a diamond head and floating cube fists
 ICON.N='<svg viewBox="0 0 40 40"><path d="M12 7v28" stroke="rgba(0,0,0,.3)" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12 7v28" stroke="var(--ic)" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="12" cy="5.300" r="2.700" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><circle cx="11.200" cy="4.500" r=".8" fill="#fff" opacity=".5"/><path d="M14 8q9-2 18 0l-4.500 6.500L32 21q-9-2-18 0z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M23 7.300q4.500-.2 9 .7l-4.500 6.500L32 21q-4.500-1-9-.9q2-6-0-12.800z" fill="rgba(0,0,0,.13)"/><path d="M18.200 9.650l.62 1.750 1.850.05-1.470 1.120.53 1.780-1.530-1.050-1.530 1.050.53-1.780-1.470-1.120 1.850-.05z" fill="var(--tc)"/><path d="M23.600 14.650l.62 1.750 1.850.05-1.470 1.120.53 1.780-1.530-1.050-1.530 1.050.53-1.780-1.470-1.120 1.850-.05z" fill="var(--tc)"/></svg>';
 ICON.M='<svg viewBox="0 0 40 40"><path d="M20 17v18" stroke="rgba(0,0,0,.3)" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M20 17v18" stroke="var(--ic)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12 5v7a8 8 0 0016 0V5M20 5v11" stroke="rgba(0,0,0,.3)" stroke-width="4.0" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12 5v7a8 8 0 0016 0V5M20 5v11" stroke="var(--ic)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M17.800 17.400h4.400v2.800h-4.400z" fill="var(--tc)"/><path d="M18 18.800h4" stroke="var(--ic)" stroke-width=".5" opacity=".7"/><path d="M19 23v10" stroke="rgba(0,0,0,.18)" stroke-width="1"/></svg>';
 ICON.E='<svg viewBox="0 0 40 40"><path d="M9 33L22.500 19.500" stroke="rgba(0,0,0,.3)" stroke-width="5.0" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M9 33L22.500 19.500" stroke="var(--ic)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12 28.200l1.800 1.800M14.600 25.600l1.800 1.800" stroke="var(--tc)" stroke-width="1.300"/><circle cx="26" cy="12" r="7" fill="var(--ic)" opacity=".18"/><path d="M26 3.500l2.500 5.900 5.900 2.600-5.900 2.600L26 20.500l-2.500-5.900L17.600 12l5.900-2.600z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M26 3.500l2.500 5.900 5.900 2.600-5.900 2.600L26 20.500z" fill="rgba(0,0,0,.14)"/><circle cx="26" cy="12" r="1.700" fill="var(--tc)"/><path d="M10 11.200l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M32 26.200l.9 2 2 .8-2 .9-.9 2-.8-2-2-.9 2-.8z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><circle cx="22" cy="32" r="1.300" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/></svg>';
@@ -1277,7 +1368,7 @@ function wallArt(v,m){
 const FORT_PAL=[{floor:"#c49a5e",plank:"rgba(90,58,24,.38)",wall:"#e4dccb",dark:"#5a4128",roof:"#9a5034",roofD:"#5e2c18"},{floor:"#a97d4b",plank:"rgba(60,38,14,.4)",wall:"#e4dccb",dark:"#4a3420",roof:"#56677a",roofD:"#323e4c"}];
 const FORT_B=5; // battlement thickness, shared with the gap fill in joins()
 // a fortress tile: a wooden plank floor, low stone battlements on open edges, roofed turrets on outer corners, and a flagged keep on one tile per fortress
-function fortArt(m,v,keep){
+function fortArt(m,v,keep,sim){ // sim: the Warped Sim's stronghold, whose corners fade out into neon grid where the turrets would stand
   const P=FORT_PAL[v]||FORT_PAL[0],n=m&1,e=m&2,s=m&4,w=m&8,B=FORT_B,st=`stroke="${P.dark}" stroke-width="1.1"`;
   let g=`<rect width="40" height="40" fill="${P.floor}"/><path d="M0 6.500H40M0 13.500H40M0 20.500H40M0 27.500H40M0 34.500H40" stroke="${P.plank}" stroke-width="1"/>`
     +`<path d="M12 0V6.500M30 6.500V13.500M6 13.500V20.500M22 20.500V27.500M36 20.500V27.500M14 27.500V34.500M28 34.500V40" stroke="${P.plank}" stroke-width="1"/>`;
@@ -1290,7 +1381,17 @@ function fortArt(m,v,keep){
   const turret=(cx,cy)=>`<circle cx="${cx}" cy="${cy}" r="7.500" fill="${P.roof}" stroke="${P.roofD}" stroke-width="1.300"/>`
     +`<path d="M${cx} ${cy}L${cx-7.500} ${cy}M${cx} ${cy}L${cx+7.500} ${cy}M${cx} ${cy}L${cx} ${cy-7.500}M${cx} ${cy}L${cx} ${cy+7.500}M${cx} ${cy}l-5.300-5.300M${cx} ${cy}l5.300-5.300M${cx} ${cy}l-5.300 5.300M${cx} ${cy}l5.300 5.300" stroke="${P.roofD}" stroke-width=".8" opacity=".7"/>`
     +`<path d="M${cx-5} ${cy-2}a5.500 5.500 0 0 1 4-4" stroke="rgba(255,255,255,.45)" stroke-width="1.300" fill="none"/><circle cx="${cx}" cy="${cy}" r="1.300" fill="${P.roofD}"/>`;
-  if(!n&&!w)g+=turret(7,7);if(!n&&!e)g+=turret(33,7);if(!s&&!w)g+=turret(7,33);if(!s&&!e)g+=turret(33,33);
+  const fade=(cx,cy)=>{ // the corner has faded out: the walls break into blocks that thin toward the corner, under a neon grid that takes their place
+    const X=v=>cx<20?v:40-v,Y=v=>cy<20?v:40-v,Z=15,C=2.500,r=(x,y,w,h)=>`x="${Math.min(X(x),X(x+w)).toFixed(2)}" y="${Math.min(Y(y),Y(y+h)).toFixed(2)}" width="${w}" height="${h}"`,hs=(i,j)=>((i*7+j*13+cx*3+cy)%11)/11;
+    let t=`<rect ${r(0,0,Z,Z)} fill="${P.floor}"/>`;
+    for(let i=0;i<6;i++)for(let j=0;j<6;j++){const d=Math.max(i,j)/6;if(hs(j,i)>d*.9)t+=`<rect ${r(i*C,j*C,C,C)} fill="#24106a" opacity="${(.75-d*.55).toFixed(2)}"/>`} // the dark of the Sim showing through, in blocks
+    for(let i=0;i<6;i++)for(let j=0;j<6;j++){const x=i*C,y=j*C;if(x>=B+.1&&y>=B+.1)continue;const d=Math.max(x,y)/Z;if(hs(i,j)<d*1.15)t+=`<rect ${r(x,y,C,C)} fill="${P.wall}" opacity="${(.3+d*.7).toFixed(2)}"/>`} // the wall walkway, blocks thinning out toward the corner
+    for(let k=0;k<=6;k++){const d=k*C,o=(.9-k*.12).toFixed(2);const L=`M${X(d)} ${Y(0)}V${Y(Z+2-k*1.4)}M${X(0)} ${Y(d)}H${X(Z+2-k*1.4)}`,c=k%2?"#c86aff":"#3ad8ff";t+=`<path d="${L}" stroke="${c}" stroke-width="1.800" opacity="${(o*.35).toFixed(2)}"/><path d="${L}" stroke="${c}" stroke-width=".7" opacity="${o}"/>`}
+    t+=`<path d="M${X(0)} ${Y(B)}H${X(Z)}M${X(B)} ${Y(B)}V${Y(Z)}" stroke="#7ae8ff" stroke-width="1.800" opacity=".3"/><path d="M${X(0)} ${Y(B)}H${X(Z)}M${X(B)} ${Y(B)}V${Y(Z)}" stroke="#bff6ff" stroke-width=".5"/>`
+      +[[16.500,1.200,1.800],[18.800,2.600,1.200],[1.400,16.800,1.600],[2.800,19,1],[8,8,1.100]].map(([x,y,z],i)=>`<rect ${r(x,y,z,z)} fill="${i===4?"#bff6ff":P.wall}" opacity="${i===4?.9:.7}"/>`).join("");
+    return t};
+  const corner=sim?fade:turret;
+  if(!n&&!w)g+=corner(7,7);if(!n&&!e)g+=corner(33,7);if(!s&&!w)g+=corner(7,33);if(!s&&!e)g+=corner(33,33);
   if(keep)g+=`<rect x="11" y="11" width="18" height="18" fill="${P.roof}" stroke="${P.roofD}" stroke-width="1.300"/><path d="M11 11L20 20L29 11M11 29L20 20L29 29" stroke="${P.roofD}" stroke-width="1" fill="none"/>`
     +`<path d="M12.500 12.500L20 20L12.500 27.500z" fill="rgba(255,255,255,.18)"/><path d="M20 20V6.500" stroke="#3a2a1a" stroke-width="1.300"/><path d="M20 6.500l7.500 2.300-7.500 2.300z" fill="#f2c230" stroke="#7a5a10" stroke-width=".8"/>`;
   return svg(g);
@@ -1302,11 +1403,15 @@ function joins(x,y){
     const P=SAKURA[sakuraPal(x,y)],r=CHERRY.has((x+1)+","+y),b=CHERRY.has(x+","+(y+1)),bar=(st,dir)=>`<i class="jb" style="${st};background:linear-gradient(${dir},transparent 30%,${P[0]} 32%,${P[1]} 40%,${P[1]} 60%,${P[0]} 68%,transparent 70%)"></i>`;
     return (r?bar("top:0;right:-2px;width:2px;height:100%","180deg"):"")+(b?bar("left:0;bottom:-2px;height:2px;width:100%","90deg"):"");
   }
+  if(CHASM.has(k)){ // the chasm runs on, unbroken, across the gap into chasm beside it
+    const r=CHASM.has((x+1)+","+y),b=CHASM.has(x+","+(y+1)),c=r&&b&&CHASM.has((x+1)+","+(y+1)),bar=st=>`<i class="jb" style="${st};background:#0c0718"></i>`;
+    return (r?bar(`top:0;right:-2px;width:2px;height:${c?"calc(100% + 2px)":"100%"}`):"")+(b?bar("left:0;bottom:-2px;height:2px;width:100%"):"");
+  }
   if(LAVA.has(k)){ // lava flows on across the gap into lava beside it
     const r=LAVA.has((x+1)+","+y),b=LAVA.has(x+","+(y+1)),c=r&&b&&LAVA.has((x+1)+","+(y+1)),bar=st=>`<i class="jb" style="${st};background:#e2531a"></i>`;
     return (r?bar(`top:0;right:-2px;width:2px;height:${c?"calc(100% + 2px)":"100%"}`):"")+(b?bar("left:0;bottom:-2px;height:2px;width:100%"):"");
   }
-  if(!isW&&!FORT.has(k))return "";
+  if(!isW&&!FORT.has(k)||isW&&SIM)return ""; // the Sim's quartz rocks stand alone
   const m=isW?wallMask(x,y):fortMask(x,y),same=isW?(kk=>WALLS.has(kk)):(kk=>FORT.has(kk)&&FORTV.get(kk)===FORTV.get(k));
   const corner=(m&2)&&(m&4)&&same((x+1)+","+(y+1)),bar=(st,bg)=>`<i class="jb" style="${st};background:${bg}"></i>`;
   let right,below;
@@ -1345,8 +1450,13 @@ const TERRAIN={
  volcano:{name:"Volcano",bg:"",art:()=>VOLC_V,unlock:"volcanic",desc:"Impassable. 1 to 3 per map. At the end of each turn it has a small chance to erupt, dealing 2 damage (ignoring armor) to any unit on 3 random tiles around it."},
  rubble:{name:"Rubble",bg:"background:#8f877a",art:()=>RUBBLE_V,desc:"What's left of a fortress after a Wall-breaker Charge. Entering it costs 1 extra movement, and it gives no armor."},
  wall:{name:"Wall",bg:"background:var(--wall)",art:()=>[0,1,2,3].map(v=>wallArt(v,0)),desc:"Impassable. Units can't enter or cross it, but attacks can pass over it."},
+ glitch:{name:"Glitched Ground",bg:"background:#5a4c8c",art:()=>[0,1,2,3].map(v=>simGround(3,4,v)),unlock:"warpedsim",desc:"Open ground that isn't quite right: purple and blue, with a faint grid showing through. No special effect."},
+ quartz:{name:"Quartz Rocks",bg:"background:#5a4c8c",art:()=>[0,1,2].map(v=>quartzArt(v)),unlock:"warpedsim",desc:"Impassable. Giant quartz crystals, with the odd ordinary rock among them. Units can't enter or cross them, but attacks can pass over."},
+ chasm:{name:"Chasm",bg:"background:#0c0718",art:()=>[chasmArt(0,0),chasmArt(5,1)],unlock:"warpedsim",desc:"Impassable. A gap in the world, dark all the way down. Units can't enter or cross it, but attacks can pass over it. Splits the Fractured Chasm down the middle."},
+ chaos:{name:"Chaos Spring",bg:"background:#5a4c8c",art:()=>[CHAOS_V],unlock:"warpedsim",desc:`One per Fractured Chasm map. At the end of each side's turn, each of that side's units on it or the 8 tiles around it has an even chance to recover ${CHAOS_HP} HP or take ${CHAOS_HP} damage (ignoring armor).`},
+ lbrick:{name:"Light Brick",bg:"background:#5a4c8c",art:()=>[LBRICK_V],unlock:"warpedsim",desc:"Impassable, but attacks can pass over it. Found in Synthwave Space. Its neon glow spills onto the 4 tiles beside it: a unit that moves onto or through a glowing tile is slowed on its next turn."},
  fort:{name:"Fortress",bg:FR,art:()=>[fortArt(0,0,true),fortArt(0,1,true)],desc:"Uncommon. A unit standing on one gets +1 armor."}};
-const terrainKey=k=>RUBBLE.has(k)?"rubble":CAMPS.has(k)?"campsite":GRAVES.has(k)?"grave":VOLC.has(k)?"volcano":WISP.has(k)?"wisp":KOI.has(k)?"koi":FLOWERS.has(k)?"flowers":LAVA.has(k)?"lava":MAGMA.has(k)?"magma":BARRELS.has(k)?(XBAR.has(k)?"xbarrel":"barrels"):WALLS.has(k)?"wall":DEEP.has(k)?"deep":SHALLOW.has(k)?"shallow":SWAMP.has(k)?"swamp":CHERRY.has(k)?"cherry":FOREST.has(k)?(GREENW.has(k)?"greenwood":"forest"):FORT.has(k)?"fort":MEADOW.has(k)?"meadow":"ground";
+const terrainKey=k=>CHASM.has(k)?"chasm":LIGHT.has(k)?"lbrick":CHAOS.has(k)?"chaos":RUBBLE.has(k)?"rubble":CAMPS.has(k)?"campsite":GRAVES.has(k)?"grave":VOLC.has(k)?"volcano":WISP.has(k)?"wisp":KOI.has(k)?"koi":FLOWERS.has(k)?"flowers":LAVA.has(k)?"lava":MAGMA.has(k)?"magma":BARRELS.has(k)?(XBAR.has(k)?"xbarrel":"barrels"):WALLS.has(k)?(SIM?"quartz":"wall"):DEEP.has(k)?"deep":SHALLOW.has(k)?"shallow":SWAMP.has(k)?"swamp":CHERRY.has(k)?"cherry":FOREST.has(k)?(GREENW.has(k)?"greenwood":"forest"):FORT.has(k)?"fort":MEADOW.has(k)?"meadow":SIM?"glitch":"ground";
 function tileArt(x,y){ // the art for one board tile, picking a stable variant per tile
   const k=x+","+y;
   switch(terrainKey(k)){
@@ -1355,7 +1465,8 @@ function tileArt(x,y){ // the art for one board tile, picking a stable variant p
     case "cherry":return cherryArt(tv(x,y,3,43),joinMask(x,y,kk=>CHERRY.has(kk)),x,y);
     case "volcano":return VOLC_V[tv(x,y,2,25)];case "wisp":return WISP_V[tv(x,y,2,47)];case "flowers":return FLOWER_V[tv(x,y,3,53)];case "koi":return KOI_V[tv(x,y,2,59)];case "lava":return LAVA_V[tv(x,y,3,27)];case "magma":return MAGMA_V[tv(x,y,3,29)];
     case "rubble":return RUBBLE_V[tv(x,y,2,61)];
-    case "fort":return fortArt(fortMask(x,y),FORTV.get(k)||0,FORTK.has(k));default:return VOLCANIC?ashGround(x,y):ground(x,y);
+    case "chasm":return chasmArt(chasmMask(x,y),tv(x,y,3,71));case "chaos":return simGround(x,y,4)+CHAOS_V;case "lbrick":return simGround(x,y,4)+LBRICK_V;case "glitch":return simGround(x,y);case "quartz":return quartzArt(tv(x,y,7,73));
+    case "fort":return fortArt(fortMask(x,y),FORTV.get(k)||0,FORTK.has(k),SIMFORT);default:return VOLCANIC?ashGround(x,y):ground(x,y);
   }
 }
 // Rubble: a blasted fortress, broken blocks and grit on scorched ground
@@ -1367,11 +1478,11 @@ const terrainSwatch=(key,art)=>`<div class="tsw" style="${TERRAIN[key].bg}">${ar
 const rangeTxt=T=>(T.mn>1?T.mn+"-":"")+T.rg;
 const pct=v=>Math.round(v*100)+"%";
 const unitStats=t=>{const T=TYPES[t];return `HP ${T.hp}, move ${T.mv}, range ${rangeTxt(T)}, damage ${T.dmg}`+(T.ar?`, armor ${T.ar}`:"")+(T.pi?`, pierce ${T.pi}`:"")+(T.ev?`, evasion ${pct(T.ev)}`:"")};
-const ABILITY={K:"Can push an adjacent unit up to 2 tiles instead of attacking, ally or enemy. Artillery and cavalry are too heavy.",P:`Heals an ally in range for up to ${TYPES.P.heal} HP instead of attacking.`,E:"Its magic ignores armor. Can hex an enemy in range instead of attacking: on its next turn it moves only 1 tile, and the units it attacks get +10% evasion against it.",
+const ABILITY={S:"Keeps beside the unit it appeared next to, acting on its own after your turn. It never attacks, but enemies that move onto any of the 8 tiles around it are slowed on their next turn.",X:"Hit and fade: after each attack it makes, it steps 1 tile straight back from its target, if it can. Found only in the Warped Sim, and only on the enemy side.",K:"Can push an adjacent unit up to 2 tiles instead of attacking, ally or enemy. Artillery and cavalry are too heavy.",P:`Heals an ally in range for up to ${TYPES.P.heal} HP instead of attacking.`,E:"Its magic ignores armor. Can hex an enemy in range instead of attacking: on its next turn it moves only 1 tile, and the units it attacks get +10% evasion against it.",
  T:`Instead of attacking, can muster 1-2 militia onto open tiles beside it. Twice per battle, with at most ${MUSTER_ALIVE} of its militia at a time.`,
  N:`Allies within ${BANNER_RANGE} tiles deal +1 damage.`,Q:"Trailblazer: forests and shallow water cost it no extra movement, and a swamp doesn't end its move.",D:`Heads for the nearest choke point and digs in after ${DIG_TURNS} turns, or as soon as it gets there. Dug in, it never moves or attacks on its own turn, can't be pushed and gets +${DIG_AR} armor, but strikes the first unit to move next to it each turn, before that unit can act. That unit can't retaliate.`,M:"Mustered by a Captain. Weak, but useful for blocking and finishing off foes.",
  G:"Burst out of the Chicken Suit. Fights for you on its own: at the end of each of your turns it charges the nearest enemy. Forests and shallow water don't slow it."};
-const TAG={K:"Pushes",P:"Heals",E:"Hexes; ignores armor",T:"Musters militia",N:"+1 damage aura",Q:"Trailblazer"}; // short ability labels for the setup cards
+const TAG={X:"Steps back",K:"Pushes",P:"Heals",E:"Hexes; ignores armor",T:"Musters militia",N:"+1 damage aura",Q:"Trailblazer"}; // short ability labels for the setup cards
 const listAnd=a=>a.length<2?a.join(""):a.slice(0,-1).join(", ")+" and "+a[a.length-1];
 const fellAt=f=>{const u=[...new Set(f)];if(u.length<3)return listAnd(u);for(let i=u.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[u[i],u[j]]=[u[j],u[i]]}return u[0]+", "+u[1]+", and other fields of glory"}; // two random places, then the rest
 const limitNames=()=>listAnd(poolNow().split("").filter(t=>LIMIT1.includes(t)).map(t=>"the "+cap(NAME[t])));
@@ -1383,7 +1494,7 @@ const d=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 const at=(x,y)=>units.find(u=>u.x===x&&u.y===y);
 const helmed=u=>units.some(b=>b!==u&&b.t==="N"&&b.team===u.team&&rel(b,"helm")&&d(b,u)<=BANNER_RANGE); // within the Inspirational Plumed Helm's reach
 const ESCA_EV=.05,ESCA_ROUGH_EV=.1,PENDANT_EV=.05,RIDER_EV=.05,LIGHT_EV=.05,ELDORADO_GOLD=50,ELDORADO_MAX=2,LUCKYCROSS_GOLD=10,HELM_EV=.05,HEX_EV=.1,HEXBOOK_EV=.05; // HEX_EV: the Enchanter's hex makes its victim's targets harder to hit
-const mvOf=u=>{const m=ST(u).mv+(helmed(u)?1:0)+(u.t==="K"&&rel(u,"lightarmor")?1:0)-(u.t==="C"&&rel(u,"bard")?1:0)+(firstTurn&&rel(u,"drills")?1:0)+(u.haste||0)+(u.rage?1:0);if(u.stepOnly)return 1;return u.slow?Math.min(m,TYPES.E.slow):m};
+const mvOf=u=>{const m=ST(u).mv+(helmed(u)?1:0)+(u.t==="K"&&rel(u,"lightarmor")?1:0)-(u.t==="C"&&rel(u,"bard")?1:0)+(firstTurn&&rel(u,"drills")?1:0)+(u.haste||0)+(u.rage?1:0)+(u.glitch==="clock"?1:0);if(u.stepOnly)return 1;return u.slow?Math.min(m,TYPES.E.slow):m};
 const inspired=(u,at=u)=>units.some(b=>b.t==="N"&&b.team===u.team&&b!==u&&d(b,at)<=BANNER_RANGE); // within a Banner Bearer's aura (at: where u would stand)
 /* ---------- Combat: the one place an attack's damage and hit chance are worked out ----------
    Every modifier is a labelled line in `parts`, so the attack menu, the game and the AI always agree.
@@ -1429,12 +1540,13 @@ function combat(a,b,from=a){
   add("Imposing Banner",units.some(v=>v.t==="N"&&v.team!==a.team&&v.team!=="w"&&rel(v,"imposing")&&d(v,from)<=BANNER_RANGE)?-1:0); // striking in the banner's shadow
   add("Vasco's Falcata",a.conq||0);
   const sc=scouting(a);add("Scouted Ahead",sc?1:0);
-  const armor=[["Armor",B.ar||0],["Shield Wall",walled(b)?1:0],["Forest Tactics",mods[b.team]==="FT"&&A.rg>1&&WOODS(k)?1:0],["Fortress",FORT.has(k)?1:0],["Dug in",b.dug?DIG_AR:0],["Sturdy Shields",b.t==="K"&&rel(b,"shield")?1:0],["Lightened Armor",b.t==="K"&&rel(b,"lightarmor")?-1:0],["Barding",b.t==="C"&&rel(b,"bard")?1:0],["Banner of the Fallen Keep",b.keep?1:0],["Vasco's Morion",b.vang?1:0],["Recovery-Linked Ward",b.ward?1:0],["Stubborn as a Mule",muled(b)?MULE_AR:0],["Improvised Armor",desperate(b,"hide")&&units.some(v=>v.team===b.team&&v.t==="K"&&d(v,b)===1)?1:0]];
+  if(rel(a,"cplate")){const t=parts.reduce((n,p)=>n+p[1],0);if(t<CPLATE_DMG)add("Cyber Breastplate",CPLATE_DMG-t)} // lifts weak hitters to 3 before armor
+  const armor=[["Armor",B.ar||0],["Shield Wall",walled(b)?1:0],["Forest Tactics",mods[b.team]==="FT"&&A.rg>1&&WOODS(k)?1:0],["Fortress",FORT.has(k)?1:0],["Dug in",b.dug?DIG_AR:0],["Sturdy Shields",b.t==="K"&&rel(b,"shield")?1:0],["Lightened Armor",b.t==="K"&&rel(b,"lightarmor")?-1:0],["Barding",b.t==="C"&&rel(b,"bard")?1:0],["Banner of the Fallen Keep",b.keep?1:0],["Vasco's Morion",b.vang?1:0],["Large Glowing Cube",b.cubeAr?1:0],["Recovery-Linked Ward",b.ward?1:0],["Stubborn as a Mule",muled(b)?MULE_AR:0],["Improvised Armor",desperate(b,"hide")&&units.some(v=>v.team===b.team&&v.t==="K"&&d(v,b)===1)?1:0]];
   if(acided(b)&&armor.reduce((t,x)=>t+x[1],0)>0)armor.push(["Acid Flask",-1]); // never below 0 armor
   armor.forEach(([l,v])=>add(l,-v));
-  add("Pierce",Math.min(a.t==="E"?99:a.bruise?1:Math.max(0,(A.pi||0)+(charging(a,from)?2:0)+(rel(a,"bluemagma")?1:0)+(rel(a,"crown")?1:0)+(a.t==="K"&&rel(a,"sallet")?1:0)+(a.t==="R"&&rel(a,"ammo")?1:0)+(a.t==="Q"&&rel(a,"escaupil")&&a.rough?1:0)+(a.rage?1:0)+(a.champ?1:0)+(sc?1:0)+(a.ublade&&b.hp>maxHp(b)/2?1:0)-(b.cshield?1:0)),armor.reduce((t,x)=>t+x[1],0))); // Blue Magma and the Champion's Sword add pierce, the Usurper's Blade against the healthy; the Champion's Shield turns 1 aside
+  add("Pierce",Math.min(a.t==="E"?99:a.bruise?1:Math.max(0,(A.pi||0)+(charging(a,from)?2:0)+(rel(a,"bluemagma")?1:0)+(rel(a,"crown")?1:0)+(a.t==="K"&&rel(a,"sallet")?1:0)+(a.t==="R"&&rel(a,"ammo")?1:0)+(a.t==="Q"&&rel(a,"escaupil")&&a.rough?1:0)+(a.rage?1:0)+(a.champ?1:0)+(sc?1:0)+(a.cret?1:0)+(a.ublade&&b.hp>maxHp(b)/2?1:0)-(b.cshield?1:0)),armor.reduce((t,x)=>t+x[1],0))); // Blue Magma and the Champion's Sword add pierce, the Usurper's Blade against the healthy; the Champion's Shield turns 1 aside
   add("Pavise",b.t==="A"&&A.rg>1&&rel(b,"pavise")?-1:0); // a shield wall, not armor: pierce can't get past it
-  const ev=Math.max(0,-(rel(a,"keen")&&rgOf(a)>1?KEEN_EV:0)-(mods[a.team]==="AIM"?AIM_EV:0)-(b.t==="N"&&rel(b,"helm")?HELM_EV:0)-(b.hex&&b.hexPend?PENDANT_EV:0)-(b.rage?INCENSE_EV:0)+Math.min(EV_CAP,(B.ev||0)+(b.chill?DRYICE_EV:0)+(b.ash?PHOENIX_EV:0)+(rides(b)&&b.moved?RIDER_EV:0)+(b.t==="K"&&rel(b,"lightarmor")?LIGHT_EV:0)+(b.t==="Q"&&rel(b,"escaupil")?(b.rough?ESCA_ROUGH_EV:ESCA_EV):0)+(b.t==="E"&&rel(b,"hexbook")?HEXBOOK_EV:0)+(a.hex?HEX_EV:0)+(rel(b,"luck")?.05:0)+(b.trio?TRIO_EV:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(rel(b,"sakurafan")&&[...blastOf(k),[b.x,b.y]].some(([x,y])=>CHERRY.has(x+","+y))?FAN_EV:0)+(blessed(b)?BLESS_EV:0)+(rested(b)?REST_EV:0)+(rel(b,"pebble")?PEBBLE_EV:0)+bucklerEv(b)+(rallied(b)?RALLY_EV:0)+(b.team==="y"&&SMOKE.has(k)?SMOKE_EV:0)+(WOODS(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0))); // Keen Eye Charm: ranged attacks see through a little of it; Steady Aim, any attack
+  const ev=Math.max(0,-(rel(a,"keen")&&rgOf(a)>1?KEEN_EV:0)-(rel(a,"cshades")?SHADES_EV:0)-(mods[a.team]==="AIM"?AIM_EV:0)-(b.t==="N"&&rel(b,"helm")?HELM_EV:0)-(b.hex&&b.hexPend?PENDANT_EV:0)-(b.rage?INCENSE_EV:0)+Math.min(EV_CAP,(B.ev||0)+(b.chill?DRYICE_EV:0)+(b.ash?PHOENIX_EV:0)+(rides(b)&&b.moved?RIDER_EV:0)+(b.t==="K"&&rel(b,"lightarmor")?LIGHT_EV:0)+(b.t==="Q"&&rel(b,"escaupil")?(b.rough?ESCA_ROUGH_EV:ESCA_EV):0)+(b.t==="E"&&rel(b,"hexbook")?HEXBOOK_EV:0)+(a.hex?HEX_EV:0)+(rel(b,"luck")?.05:0)+(b.trio?TRIO_EV:0)+(b.glitch==="flick"?FLICK_EV:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(rel(b,"sakurafan")&&[...blastOf(k),[b.x,b.y]].some(([x,y])=>CHERRY.has(x+","+y))?FAN_EV:0)+(blessed(b)?BLESS_EV:0)+(rested(b)?REST_EV:0)+(rel(b,"pebble")?PEBBLE_EV:0)+bucklerEv(b)+(rallied(b)?RALLY_EV:0)+(b.team==="y"&&SMOKE.has(k)?SMOKE_EV:0)+(WOODS(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0))); // Keen Eye Charm: ranged attacks see through a little of it; Steady Aim, any attack
   const blk=Math.max(0,-parts.filter(p=>armor.some(x=>x[0]===p[0])).reduce((t,p)=>t+p[1],0)-(parts.find(p=>p[0]==="Pierce")||[0,0])[1]); // damage the armor actually turned aside
   return {dmg:Math.max(1,parts.reduce((t,p)=>t+p[1],0)),hit:sc?1:1-ev,parts,blk}; // every hit deals at least 1; a scouted first strike never misses
 }
@@ -1443,8 +1555,9 @@ function retaliation(att,def,from=att){
   const T=ST(def),dd=d(def,from);
   if(!canRetaliate(def.t)||dd<T.mn||dd>rgOf(def)||rel(def,"warpaint")||charging(att,from))return null; // nobody parries a lance at full gallop // Berserker's Warpaint: no parrying
   if(calm(def)||CHERRY.has(from.x+","+from.y))return null; // Moment of Calm: nobody fights back under the blossoms // e.g. Artillery firing from 4 tiles outranges an Archer
-  const c=combat(def,{...att,x:from.x,y:from.y});
-  return {dmg:Math.max(1,Math.floor(c.dmg*RET_SHARE))+(rel(def,"gauntlets")?1:0),hit:c.hit}; // Spiked Gauntlets: +1 when hitting back
+  if(rel(def,"cgaunt"))def.cret=1; // the Cyber Gauntlets: a counter that punches through
+  const c=combat(def,{...att,x:from.x,y:from.y});delete def.cret;
+  return {dmg:Math.max(rel(def,"cplate")?CPLATE_RET:1,Math.floor(c.dmg*RET_SHARE))+(rel(def,"gauntlets")?1:0)+(rel(def,"cgaunt")?1:0),hit:c.hit}; // Spiked (and Cyber) Gauntlets: +1 when hitting back; the Cyber Breastplate: never less than 2
 }
 const dmgTo=(a,b,from)=>combat(a,b,from).dmg;
 // "4 base +1 Banner −1 Fortress" for the attack menu; empty when nothing modifies the base
@@ -1515,6 +1628,8 @@ function walk(u,x,y){
   if(!u.mvFrom)u.mvFrom=[u.x,u.y]; // where this turn's movement began (Master's Lance measures the run-up from here)
   const r=routes(u).get(x+","+y),rough=k=>FOREST.has(k)||SWAMP.has(k);if(u.t==="Q"&&[u.x+","+u.y,x+","+y,...(r?r.path:[])].some(rough))u.rough=1; // the Quilted Escaupil: it went through the brush this turn
   const hits=r?r.path.filter(k=>CALTROPS.has(k)&&(u.team!=="y"||Math.random()<CALTROP_ALLY)).length:0;
+  if(u.team==="f"&&!u.slowNext&&!calm(u)&&!muled(u)&&[x+","+y,...(r?r.path:[])].some(k=>{const[a,b]=pk(k);return sparkAura(a,b)})){u.slowNext=1;later(()=>{if(units.includes(u))floatText(u.x,u.y,"Sparked","slow")},150)} // the Friendly Spark's field
+  if([x+","+y,...(r?r.path:[])].some(k=>glowOf(k).length)&&!u.slowNext&&!calm(u)&&!muled(u)){u.slowNext=1;later(()=>{if(units.includes(u))floatText(u.x,u.y,"Dazzled","slow")},150)} // a Light Brick's glow: slowed next turn
   u.x=x;u.y=y;if(!hits)return 0;
   sfx("caltrops");
   for(let i=0;i<hits&&units.includes(u);i++)hurt(u,CALTROP_DMG); // ignores armor, like magma
@@ -1552,15 +1667,16 @@ function atkZone(u,spots,set,bar){
 let boardHTML=[],artMemo={sig:""};
 function terrainArt(){
   const tk=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++)tk.push(terrainKey(x+","+y));
-  const sig=[W,H,seed,WALLV,+HAUNTED,+VOLCANIC,+VALE,[...FORTV].join(";"),[...FORTK].join(";"),tk.join("")].join("|");
+  const sig=[W,H,seed,WALLV,+HAUNTED,+VOLCANIC,+VALE,+SIM,+SIMFORT,[...FORTV].join(";"),[...FORTK].join(";"),tk.join("")].join("|");
   if(artMemo.sig===sig)return artMemo;
   const art=[],jn=[],bl=[],wm=[];
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){art.push(tileArt(x,y));jn.push(joins(x,y));bl.push(blush(x,y));const m=wallMask(x,y);wm.push((m&1?" jn":"")+(m&4?" js":""))}
   return artMemo={sig,tk,art,jn,bl,wm};
 }
 function render(){
-  units.forEach(u=>{if(u.slow&&calm(u)){delete u.slow;delete u.hex;delete u.hexPend;floatText(u.x,u.y,"Calm","bless")}});
-  board.classList.toggle("murky",MURKY);board.classList.toggle("haunted",HAUNTED);board.classList.toggle("volcanic",VOLCANIC);
+  units.forEach(u=>{if((u.slow||u.slowNext)&&u.team==="y"&&!u.slowRoll&&rel(u,"lcube")){u.slowRoll=1;if(Math.random()<CUBE_SLOW){delete u.slow;delete u.slowNext;floatText(u.x,u.y,"Shrugged off","bless")}}if(!u.slow&&!u.slowNext)delete u.slowRoll; // the Large Glowing Cube shrugs off a fifth of slows
+    if(u.slowNext&&calm(u))delete u.slowNext;if(u.slow&&calm(u)){delete u.slow;delete u.hex;delete u.hexPend;floatText(u.x,u.y,"Calm","bless")}});
+  board.classList.toggle("murky",MURKY);board.classList.toggle("haunted",HAUNTED);board.classList.toggle("volcanic",VOLCANIC);board.classList.toggle("sim",SIM);
   const mv=new Set(),tg=new Set(),ig=new Set(),ir=new Set(),pr=new Set(),hs=new Set(),bt=new Set(),it=mode==="bombard"&&sel?new Set(bombTargets(sel)):mode&&mode.startsWith("item:")&&sel&&turn==="y"?itemTargets(sel,mode.slice(5)):new Set();
   if(sel&&turn==="y"&&!over){
     if(mode==="ushove"&&shoveT)shoveT.ds.forEach(k=>mv.add(k));
@@ -1593,12 +1709,12 @@ function render(){
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     const k=x+","+y,i=y*W+x,w=WALLS.has(k),dp=DEEP.has(k),sh=SHALLOW.has(k),f=FOREST.has(k),fr=FORT.has(k),bar=BARRELS.has(k),u=ua.get(k);
     let html="";
-    const cls="t"+(bar?" brl":"")+(w?" w"+A.wm[i]:"")+(dp?" dp":"")+(sh?" sh":"")+(SWAMP.has(k)?" sw":"")+(LAVA.has(k)?" lv":"")+(MAGMA.has(k)?" mg":"")+(VOLC.has(k)?" vo":"")+(WISP.has(k)?" wo":"")+(KOI.has(k)?" ko":"")+(f?" fo":"")+(MEADOW.has(k)||GREENW.has(k)?" gr":"")+A.bl[i]+(fr?" fr":"")+(tile&&tile.x===x&&tile.y===y?" ts":"")+(ig.has(k)?" ig":"")+(ir.has(k)?" ir":"")+(pr.has(k)?" pr":"")+(mv.has(k)?" m":"")+((u&&tg.has(u))||bt.has(k)?" a":"")+(u&&tg.has(u)&&sel&&pushable(sel,u)?" pp":"")+(u&&hs.has(u)?" hl":"")+(u&&u===choice?" ch":"")+(pd&&pd.k===k?" pd":"")+(cm&&cm.x===x&&cm.y===y?" mt":"")+(bl.has(k)?" bl":"")+(CAMPS.has(k)?" cmp":"")+(cv.has(k)?" cv":"")+(it.has(k)?" it":"");
+    const cls="t"+(bar?" brl":"")+(w?" w"+A.wm[i]:"")+(dp?" dp":"")+(sh?" sh":"")+(SWAMP.has(k)?" sw":"")+(LAVA.has(k)?" lv":"")+(MAGMA.has(k)?" mg":"")+(VOLC.has(k)?" vo":"")+(WISP.has(k)?" wo":"")+(KOI.has(k)?" ko":"")+(CHASM.has(k)?" chs":"")+(CHAOS.has(k)?" cxs":"")+(LIGHT.has(k)?" lbk":"")+(f?" fo":"")+(MEADOW.has(k)||GREENW.has(k)?" gr":"")+A.bl[i]+(fr?" fr":"")+(tile&&tile.x===x&&tile.y===y?" ts":"")+(ig.has(k)?" ig":"")+(ir.has(k)?" ir":"")+(pr.has(k)?" pr":"")+(mv.has(k)?" m":"")+((u&&tg.has(u))||bt.has(k)?" a":"")+(u&&tg.has(u)&&sel&&pushable(sel,u)?" pp":"")+(u&&hs.has(u)?" hl":"")+(u&&u===choice?" ch":"")+(pd&&pd.k===k?" pd":"")+(cm&&cm.x===x&&cm.y===y?" mt":"")+(bl.has(k)?" bl":"")+(CAMPS.has(k)?" cmp":"")+(cv.has(k)?" cv":"")+(it.has(k)?" it":"");
     const label=u?(u.team==="y"?"Your ":u.team==="w"?"Wild ":"Enemy ")+NAME[u.t]+", "+u.hp+" health"+(u.slow?", slowed":""):(mv.has(k)?"Move here, ":"")+TERRAIN[A.tk[i]].name;
     html+=`<button class="${cls}" data-x="${x}" data-y="${y}"${pd&&pd.k===k?` data-arrow="${pd.a}"`:""} aria-label="${label.replace(/"/g,"&quot;")}">`
-      +'<i class="lt"></i>'+A.art[i]+(fr?'<i class="tint"></i>':"")+(SMOKE.has(k)?'<i class="smoke"></i>':"")+(CALTROPS.has(k)?CALT_ART:"")+A.jn[i]; // fortress art covers its tile, so highlights go on a see-through layer above it
+      +'<i class="lt"></i>'+A.art[i]+(fr?'<i class="tint"></i>':"")+(SMOKE.has(k)?'<i class="smoke"></i>':"")+(CALTROPS.has(k)?CALT_ART:"")+A.jn[i]+glowOf(k).map(([dx,dy])=>`<i class="lglow" style="background:linear-gradient(to ${dx>0?"left":dx<0?"right":dy>0?"top":"bottom"},rgba(255,226,60,.62),rgba(255,226,60,.16) 70%,rgba(255,226,60,.08))"></i>`).join(""); // fortress art covers its tile, so highlights go on a see-through layer above it
     if(u){
-      let uc="u "+u.team+(u.merc?" merc":"")+(u.auto&&u.team==="y"?" free":spent(u)?" done":"")+(u.slow?" slow":"")+(u.stun?" stun":"")+(u.rage||u.oil?" rage":"")+(u.chill?" chill":"")+(u.ash?" ash":"")+(inspired(u)?" insp":"")+(blessed(u)||rested(u)?" blessed":"")+(u.t==="E"&&rel(u,"redtome")?" redglow":"")+(rallied(u)?" rallied":"")+(muled(u)?" mule":"")+(u.dug?" dug":"")+(u.elite?" elite":"")+(u.champ||u.cshield||u.cloak?" champ":"")+(u.ublade||u.ubulwark||u.ushroud?" usurp":"")+(u===sel||u===insp?" sel":""),mvs="";
+      let uc="u "+u.team+(u.merc?" merc":"")+(u.auto&&u.team==="y"?" free":spent(u)?" done":"")+(u.slow||u.slowNext?" slow":"")+(u.stun?" stun":"")+(u.rage||u.oil?" rage":"")+(u.chill?" chill":"")+(u.ash?" ash":"")+(inspired(u)?" insp":"")+(blessed(u)||rested(u)?" blessed":"")+(u.t==="E"&&rel(u,"redtome")?" redglow":"")+(rallied(u)?" rallied":"")+(muled(u)?" mule":"")+(u.dug?" dug":"")+(u.elite?" elite":"")+(u.glitch?" glitch":"")+(u.champ||u.cshield||u.cloak?" champ":"")+(u.ublade||u.ubulwark||u.ushroud?" usurp":"")+(u===sel||u===insp?" sel":""),mvs="";
       if(u.spawn){uc+=" tpin";delete u.spawn}
       const pp=prevPos.get(u);prevPos.set(u,[x,y]);
       if(pp&&(pp[0]!==x||pp[1]!==y)){ // slide in from where it was last drawn (a long jump fades in instead)
@@ -1643,9 +1759,10 @@ function renderTile(){
   if(f&&mods.y==="FT")lines.push(`Forest Tactics: your units here get +1 armor against ranged attacks, and enemies here only get +${pct(FT_FOREST_EV)} evasion against you.`);
   if(f&&mods.f==="FT")lines.push("The enemy has Forest Tactics: its units here get +1 armor against ranged attacks.");
   if(SMOKE.has(k))lines.push("Smoke: your units here get +20% evasion until your next turn.");
+  if(glowOf(k).length)lines.push("Light Brick glow: a unit that moves onto or through this tile is slowed on its next turn.");
   if(CALTROPS.has(k))lines.push("Caltrops: an enemy that crosses this tile takes 1 damage, ignoring armor. Your own units should know better, but 50% of the time they don't.");
   if(u)lines.push("Occupied by "+(u.team==="y"?"your ":u.team==="f"?"an enemy ":"a wild ")+NAME[u.t]+".");
-  el.className="pb"+(MURKY?" murky":"")+(HAUNTED?" haunted":"")+(VOLCANIC?" volcanic":""); // murky water on Murky Swamp maps, ashen ground in graveyards
+  el.className="pb"+(MURKY?" murky":"")+(HAUNTED?" haunted":"")+(VOLCANIC?" volcanic":"")+(SIM?" sim":""); // murky water on Murky Swamp maps, ashen ground in graveyards
   el.innerHTML=`<div class="lbl">Terrain</div><div class="row">${terrainSwatch(key,tileArt(x,y))}<div class="ib"><div class="nm"><strong>${T.name}</strong><span>Tile ${String.fromCharCode(65+x)}${y+1}</span></div>${lines.map(l=>`<small>${l}</small>`).join("")}</div></div>`;
 }
 function renderInfo(){
@@ -1664,6 +1781,7 @@ function renderInfo(){
   if(u.stun)notes.push("Stunned by a Flash Vial: it can't move or attack on its next turn.");
   if(u.rage)notes.push("Enraged: +1 damage, +1 movement and +1 pierce, but 5% less evasion, for the rest of the battle.");
   if(u.chill)notes.push("Chilled by dry ice fog: +3% evasion until your next turn.");
+  if(u.slowNext)notes.push("Dazzled by a Light Brick: it will be slowed on its next turn, moving only 1 tile.");
   if(u.slow)notes.push("Slowed: it can move only 1 tile (always at least 1, even out of a forest or into shallow water) until the end of its next turn.");
   if(blessed(u))notes.push("Blessed: +5% evasion until the end of your next turn.");
   if(rested(u))notes.push("Rested (Warm Mug): +2% evasion until the end of the enemy's next turn.");
@@ -1690,7 +1808,8 @@ function renderInfo(){
   if(u.conq)notes.push(`Vasco's Falcata: +${u.conq} damage this battle.`);
   if(scouting(u))notes.push("Scouted Ahead: its first attack this battle always hits, with +1 damage and +1 pierce.");
   if(u.team==="y"&&u.drum===pturn&&turn==="y")notes.push("War Drum: +1 damage this turn.");
-  if(u.elite)notes.push("Elite: +2 HP and +1 damage.");
+  if(u.pages)notes.push(`Corrupted Pages: ${GLITCH[u.glitch][0]}, ${GLITCH[u.glitch][1]}`);
+  if(u.elite)notes.push(u.glitch?`Corrupted Elite: +1 HP and +1 damage. ${GLITCH[u.glitch][0]}: ${GLITCH[u.glitch][1]}`:"Elite: +2 HP and +1 damage.");
   if(u.champ)notes.push("Champion's Sword: +1 damage and +1 pierce; can step 1 tile after a blow lands.");
   if(u.cshield)notes.push("Champion's Shield: attacks against it have 1 less pierce.");
   if(u.cloak)notes.push(u.cloakUsed?"Champion's Cloak: its teleport is spent.":"Champion's Cloak: can teleport to the far edge once this battle.");
@@ -2228,7 +2347,10 @@ function useItem(a,id,x,y,rub,dir){
     say(`Your ${NAME[a.t]} used the Advanced Med Kit: ${n>1?"2 wounds":"1 wound"} mended${b===a?"":" for "+(camp.names&&b.ci!=null?camp.names[b.ci]:"your "+NAME[b.t])}. Max HP is now ${maxHp(b)}.`);return render();
   }
   if(id==="mule"){a.muleUntil=pturn+1;a.slow=0;sfx("bray");floatText(a.x,a.y,"Stubborn!","slow");info=a;say(`Your ${NAME[a.t]} drank the Mule Hair Potion: +2 armor, and it can't be pushed or slowed until the end of your next turn.`);return render()}
-  if(id==="draught"){const b=at(x,y),n=Math.min(DRAUGHT_HEAL,maxHp(b)-b.hp);b.hp+=n;sfx("heal");floatText(b.x,b.y,"+"+n,"heal");info=b;say(`Your ${NAME[a.t]} used a Healing Draught: +${n} HP${b===a?"":" for your "+NAME[b.t]}.`);return render()}
+  if(id==="draught"){const b=at(x,y),n=Math.min(DRAUGHT_HEAL+(rel(a,"lcube")?1:0),maxHp(b)-b.hp);b.hp+=n;sfx("heal");floatText(b.x,b.y,"+"+n,"heal");info=b;
+    const cube=[];if(rel(a,"scube")){b.cubeMend=1;cube.push("it will mend 1 more at the end of your turn")}if(rel(a,"lcube")){b.cubeAr=1;cube.push("+1 armor until your next turn")} // the Glowing Cubes
+    if(rel(a,"mcube")&&units.includes(a)){a.moved=0;a.stepOnly=1;sel=a;cube.push("and the drinker can step 1 tile")}
+    say(`Your ${NAME[a.t]} used a Healing Draught: +${n} HP${b===a?"":" for your "+NAME[b.t]}${cube.length?"; "+cube.join(", "):""}.`);return render()}
   if(id==="lightning"){
     const b=at(x,y),hit=[b,...units.filter(u=>u!==b&&d(u,b)===1)];sfx("thunder");boltFx(hit);
     const fell=hit.filter(u=>hurt(u,LIGHTNING_DMG));fell.forEach(u=>credit(a,u));
@@ -2331,6 +2453,12 @@ function chickensAct(done){
     const c=cs.shift();if(!c)return done();
     if(!units.includes(c))return next();
     const foes=units.filter(e=>e.team==="f");if(!foes.length)return done();
+    if(c.t==="S"){ // the Spark keeps beside the unit it came to (or, if that one fell, your most wounded), and never attacks
+      const w=units.find(u=>u.team==="y"&&!u.auto&&u.ci!=null&&u.ci===c.anchor)||units.filter(u=>u.team==="y"&&!u.auto).sort((a,b)=>a.hp-b.hp)[0];
+      if(w){const sc=([x,y])=>{const dd=Math.max(Math.abs(x-w.x),Math.abs(y-w.y));return(dd===1?0:dd*2)+Math.abs(x-c.x)*.01+Math.abs(y-c.y)*.01};const best=[[c.x,c.y],...reach(c).map(pk)].reduce((a,b)=>sc(b)<sc(a)?b:a);
+        if(best[0]!==c.x||best[1]!==c.y){walk(c,best[0],best[1]);render()}}
+      return later(next,250);
+    }
     const D=distMap(foes),score=c.merc?([x,y])=>evalTile(c,x,y,D,foes)+(CALTROPS.size&&routes(c).get(x+","+y)?routes(c).get(x+","+y).n*CALTROP_AVOID:0):([x,y])=>{const adj=foes.filter(e=>Math.abs(e.x-x)+Math.abs(e.y-y)===1);return adj.length?-100+Math.min(...adj.map(e=>e.hp)):D[y][x]};
     const best=[[c.x,c.y],...reach(c).map(pk)].reduce((a,b)=>score(b)<score(a)?b:a);
     const mv=best[0]!==c.x||best[1]!==c.y;
@@ -2360,6 +2488,7 @@ function hitFor(a,b,c,back){ // resolve one blow from a to b: dodge roll, damage
   else{say(sent(who(a))+(back?" retaliated against ":" hit ")+who(b)+" for "+c.dmg+" damage.");if(a.ublade&&!back&&!rooted(b))a.ushove=b} // the Usurper's Blade: a shove after a landed blow
   if(a.ublade&&units.includes(a)&&a.hp<maxHp(a)){a.hp+=1;later(()=>{if(units.includes(a))floatText(a.x,a.y,"+1","heal")},300)} // ...and it feeds its bearer
   if(b.ubulwark&&adj&&a.team!==b.team&&units.includes(a)){later(()=>sfx("hit"),150);if(hurt(a,1))credit(b,a)} // the Usurper's Bulwark: thorns
+  if(b.glitch==="code"&&adj&&a.team!==b.team&&units.includes(a)){later(()=>sfx("hit"),150);if(hurt(a,1))credit(b,a)} // a Corrupted Elite's Chaos Code bites back
   return true;
 }
 const splinterTiles=(a,bx,by)=>{const sx=Math.sign(bx-a.x),sy=Math.sign(by-a.y); // the far side of the target, seen from the shooter
@@ -2379,8 +2508,25 @@ function applyAttack(a,b){
     if(rel(a,"redtome")&&a.hp>1){a.hp-=1;later(()=>{if(units.includes(a))floatText(a.x,a.y,"-1")},400)}
   }
 }
+// the Friendly Sentient Spark: as your third turn begins, a Spark appears beside your most wounded unit (one per battle); anchor: that unit's army slot
+function sparkArrives(){
+  if(pturn!==3||!RELIC.has("spark")||units.some(u=>u.t==="S"))return "";
+  const ys=units.filter(u=>u.team==="y"&&!u.auto).sort((a,b)=>a.hp-b.hp);
+  for(const w of ys){const sp=[...DIRS,[1,1],[1,-1],[-1,1],[-1,-1]].map(([dx,dy])=>[w.x+dx,w.y+dy]).filter(([x,y])=>open(x,y)).sort(()=>Math.random()-.5).sort((p,q)=>(Math.abs(p[0]-w.x)+Math.abs(p[1]-w.y))-(Math.abs(q[0]-w.x)+Math.abs(q[1]-w.y)));
+    if(!sp.length)continue;units.push({t:"S",team:"y",auto:1,anchor:w.ci,x:sp[0][0],y:sp[0][1],hp:TYPES.S.hp,moved:0,acted:0,spawn:1});sfx("bless");
+    return `A Friendly Spark flickered into being beside your ${NAME[w.t]}.`}
+  return "";
+}
+const sparkAura=(x,y)=>units.some(s=>s.t==="S"&&units.includes(s)&&Math.abs(s.x-x)<=1&&Math.abs(s.y-y)<=1&&(s.x!==x||s.y!==y)); // the 8 tiles around a Spark
+// the Grid Elemental's hit and fade: once its attack (and any retaliation) is done, it steps 1 tile straight back from where its target stood
+function gridStep(a,bx,by){
+  if(a.t!=="X"||!units.includes(a)||over)return;
+  const dx=a.x-bx,dy=a.y-by,ax=Math.abs(dx),ay=Math.abs(dy),dir=ax>ay||(ax===ay&&Math.random()<.5)?[Math.sign(dx),0]:[0,Math.sign(dy)],x=a.x+dir[0],y=a.y+dir[1];
+  if(x<0||y<0||x>=W||y>=H||solid(x+","+y)||at(x,y)||(!dir[0]&&!dir[1]))return;
+  walk(a,x,y);if(units.includes(a))floatText(a.x,a.y,"Fade","bless");
+}
 function attack(a,b,done){
-  const g=gid,fin=()=>{if(done)done()};
+  const g=gid,bx=b.x,by=b.y,fin=()=>{gridStep(a,bx,by);if(done)done()};
   animAttack(a,b,()=>{
     applyAttack(a,b);
     const r=units.includes(a)&&units.includes(b)?retaliation(a,b):null;
@@ -2395,7 +2541,7 @@ function burst(rb,bw){
   an.onfinish=()=>s.remove();
 }
 // melee units lunge at the target; ranged units fire a projectile
-const ATK_SFX={K:"swing",Q:"swing",T:"swing",M:"swing",N:"swing",P:"swing",C:"charge",A:"bow",R:"siege",E:"zap",W:"growl",B:"growl",D:"growl",H:"screech",G:"bawk"};
+const ATK_SFX={X:"zap",K:"swing",Q:"swing",T:"swing",M:"swing",N:"swing",P:"swing",C:"charge",A:"bow",R:"siege",E:"zap",W:"growl",B:"growl",D:"growl",H:"screech",G:"bawk"};
 function animAttack(a,b,cb){
   let fired=false;const fin=()=>{if(!fired){fired=true;cb()}};sfx(ATK_SFX[a.t]||"swing");
   try{
@@ -2450,6 +2596,9 @@ function hazards(team,done){
   const calmed=KOI.size?units.filter(u=>mine(u)&&u.hp<maxHp(u)&&blastOf(u.x+","+u.y).some(([a,b])=>KOI.has(a+","+b))):[]; // koi ponds: a little rest
   calmed.forEach(u=>{u.hp+=1;floatText(u.x,u.y,"+1","heal")});
   if(calmed.length)msg.push(calmed.length===1?`The koi pond's calm restored ${who(calmed[0])}.`:`The koi ponds' calm restored ${calmed.length} units.`);
+  const chaos=CHAOS.size?units.filter(u=>mine(u)&&[...CHAOS].some(c=>{const[a,b]=pk(c);return Math.abs(a-u.x)<=1&&Math.abs(b-u.y)<=1})):[],mended=[],hit=[]; // the Chaos Spring: a coin toss for each unit by it
+  chaos.forEach(u=>{if(Math.random()<.5){mended.push(u);if(u.hp<maxHp(u)){u.hp=Math.min(maxHp(u),u.hp+CHAOS_HP);floatText(u.x,u.y,"+"+CHAOS_HP,"heal")}else floatText(u.x,u.y,"Full","heal")}else{hit.push(u);hurt(u,CHAOS_HP)}});
+  if(chaos.length)msg.push(chaos.length===1?`The Chaos Spring ${mended.length?"mended":"bit"} ${who(chaos[0])}.`:`The Chaos Spring mended ${mended.length} and bit ${hit.length}.`);
   const burnt=units.filter(u=>mine(u)&&MAGMA.has(u.x+","+u.y));
   burnt.forEach(u=>hurt(u,MAGMA_DMG));
   if(burnt.length)msg.push(burnt.length===1?"Magma burned "+who(burnt[0])+".":`Magma burned ${burnt.length} units.`);
@@ -2469,7 +2618,7 @@ function hazards(team,done){
   if(prey){prey.hp-=1;floatText(prey.x,prey.y,"-1");msg.push(`The Hollow King's Crown fed on ${who(prey)}.`)}
   const bled=units.filter(u=>u.team===team&&u.bleed&&u.hp>1); // the Bleeding Statue (never the last HP)
   bled.forEach(u=>{u.hp-=1;floatText(u.x,u.y,"-1")});if(bled.length)msg.push(`The Bleeding Statue drew blood from ${who(bled[0])}.`);
-  if(!burnt.length&&!blasts.length&&!calmed.length&&!prey&&!bled.length)return done();
+  if(!burnt.length&&!blasts.length&&!calmed.length&&!prey&&!bled.length&&!chaos.length)return done();
   busy=true;say(msg.join(" "));render();blasts.forEach(([x,y])=>eruptFx(x,y));
   if(checkEnd())return;
   later(()=>{if(g===gid&&!over)done()},900);
@@ -2504,7 +2653,8 @@ const ESC=[
  {elite:7,extra:3,relics:3,items:3}, // 9
  {elite:8,extra:4,relics:4,items:3}, // 10
 ];
-const ELITE_HP=2,esc=r=>{const n=ESC.length,e=ESC[Math.min(r,n)-1];return r>n?{...e,relics:e.relics+Math.floor((r-n)/2)}:e},escFrom=k=>ESC.findIndex(e=>e[k]>0)+1;
+const ELITE_HP=2,SIM_ELITE_HP=1,GLITCH={flick:["Flickering","+10% evasion."],clock:["Overclocked","+1 movement."],code:["Chaos Code","a unit that hits it in melee takes 1 damage, ignoring armor."]},FLICK_EV=.1; // the Sim's Corrupted Elites: +1 HP, +1 damage and one glitch
+const esc=r=>{const n=ESC.length,e=ESC[Math.min(r,n)-1];return r>n?{...e,relics:e.relics+Math.floor((r-n)/2)}:e},escFrom=k=>ESC.findIndex(e=>e[k]>0)+1;
 // relics an enemy army can make use of (no player-only actions, once-per-battle tricks or gold), and the unit each needs
 const FOE_OK={ipennant:"N",imposing:"N",helm:"N",ammo:"R",stud:["C","Q"],csword:"",cshield:"",ublade:"",ubulwark:"",ushroud:"",whet:"A",shield:"K",bard:"C",luck:"",buckler:"",long:"A",debris:"R",wolfpack:"",mercy:"",gauntlets:"",pavise:"A",pennant:"",hatchet:"",keep:"",ram:"",blossom:"",crown:"",statue:"",spurs:"C",grog:"",pebble:"",warpaint:""};
 function foeLoadout(r){
@@ -2541,10 +2691,12 @@ function foeUseItems(){
   return msg.join(" ");
 }
 const hpUp=(t,has)=>Object.keys(RELICS).filter(id=>[].concat(RELICS[id].hpUp||[]).includes(t)&&has(id)).length; // relics that raise a unit type's max HP (hpUp: the type, or a list of types)
-const WOUND_MAX=3,CROSS_SPARE=.15,MEDKIT_DOUBLE=.25,maxHp=u=>ST(u).hp-(u.wounds||0)+(u.elite?ELITE_HP:0)+hpUp(u.t,id=>rel(u,id));
+const WOUND_MAX=3,CROSS_SPARE=.15,MEDKIT_DOUBLE=.25,maxHp=u=>ST(u).hp-(u.wounds||0)+(u.elite?(u.glitch?SIM_ELITE_HP:ELITE_HP):0)+hpUp(u.t,id=>rel(u,id));
 const woundsOf=i=>(camp.wounds&&camp.wounds[i])||0,campMax=i=>TYPES[armyTypes()[i]].hp-woundsOf(i)+hpUp(armyTypes()[i],id=>camp.relics.includes(id));
 // taking a relic: one that raises max HP first pins the army's current HP, so gaining it never heals
-function gainRelic(id){if(RELICS[id].hpUp&&!camp.hp)camp.hp=campHps();camp.relics.push(id)}
+function gainRelic(id){if(RELICS[id].hpUp&&!camp.hp)camp.hp=campHps();camp.relics.push(id);
+  if(id==="lcube"&&camp.items.length<itemCap())camp.items.push("draught"); // the Large Glowing Cube comes with a draught
+  if(id==="credits"){camp.gold+=CREDITS_GOLD;sfx("coin");if(typeof renderGold==="function")renderGold()}} // Strange Credits pay out at once
 const HERO_NAMES=["Aldric","Bertram","Cedric","Dunstan","Edmund","Fulk","Godfrey","Hugh","Ivo","Jocelyn","Kenric","Leofric","Maud","Nesta","Osric","Percival","Quentin","Roswitha","Sibyl","Tristan","Ulric","Wymond","Agnes","Beatrix","Ysolde","Gareth","Hawise","Odo","Rowena","Thurstan","Elfric","Mabel","Warin","Isolde","Baldwin","Edith","Ranulf","Alys","Gilbert","Petronella"];
 // honors are earned once each; a soldier goes by the latest one ("Aldric the Bold")
 const HONORS=[
@@ -2596,6 +2748,7 @@ function showEnd(win){
     if(unlocks.cw>=4)unlock("captain");
     if(nm.type==="boss")unlock("banner");
     if(nm.type==="boss"&&camp.region>=2)unlock("volcanic"); // a second land conquered in one campaign
+    if(nm.type==="boss"&&camp.region===5&&[...CORE].every(t=>armyTypes().some((a,i)=>a===t&&(camp.kills[i]||0)>0)))unlock("warpedsim"); // the Warped Sim: the fifth boss falls, and a Knight, an Archer and a Cavalry unit have each downed a foe this campaign
     if(armyTypes().every((t,i)=>units.some(v=>v.team==="y"&&v.ci===i)))unlock("cherry"); // a flawless victory: nobody fell
   }
   $("dtitle").textContent=win?"Victory":"Defeat";
@@ -2661,7 +2814,7 @@ function evalTile(u,x,y,D,foes,xv){
   const gh={...u,x,y},threat=foes.reduce((s,p)=>s+(d(g,p)<=mvOf(p)+rgOf(p)?dmgTo(p,gh):0),0),wt=units.filter(w=>w.team==="w").reduce((n,w)=>n+(d(g,w)<=ST(w).rg?dmgTo(w,gh)*1.5:d(g,w)<=ST(w).rg+ST(w).mv?dmgTo(w,gh)*.5:0),0);
   const care=(.5+(1-u.hp/T.hp)*.9)/(1+(u.idle||0)); // wounded units value safety more; patience (idle turns) wears it down
   let s=(threat+wt)*care+(WOODS(k)?(mods[u.team]==="FT"?-1.5:1.5):0)+(CHERRY.has(k)?.5-(1-u.hp/T.hp):0)+(FORT.has(k)?-2:0)+(SHALLOW.has(k)?1.5:0); // forests slow the next move, but Forest Tactics likes them
-  s+=blastOf(k).filter(([a,b])=>XBAR.has(a+","+b)).length*2; // don't loiter beside exploding barrels
+  s+=blastOf(k).filter(([a,b])=>XBAR.has(a+","+b)).length*2+(glowOf(k).length&&!u.slowNext?1.2:0); // don't loiter beside exploding barrels, or step into a Light Brick's glow
   s+=(MAGMA.has(k)?3:0)+blastOf(k).filter(([a,b])=>VOLC.has(a+","+b)).length*.6+([...blastOf(k),pk(k)].filter(([a,b])=>WISP.has(a+","+b)).length)*.4; // ...and wisps might slow // magma burns at turn end; volcanoes might erupt
   const atk=inR.length?20+Math.max(...inR.map(p=>{const c=combat(u,p,g),kill=c.dmg>=p.hp,r=kill?null:retaliation(u,p,g); // a kill avoids any retaliation
     return c.hit*(10*c.dmg/p.hp+(kill?12:0))+(VAL[p.t]||0)-(r?r.hit*(r.dmg*2.5+(r.dmg>=u.hp?15:0))*care:0)})):0;
@@ -2800,9 +2953,9 @@ function enemyTurn(note=""){
     hazards("f",()=>{
       SMOKE=new Set(); // the smoke drifts away as your turn begins
       const healed=mods.f==="REST"?rest("f"):0;
-      units.forEach(u=>{u.moved=u.acted=0;if(u.team==="y")delete u.ward;delete u.aim;delete u.mvFrom;delete u.amb;delete u.rough;delete u.chill;delete u.ash;if(u.team!=="y"){delete u.stun;delete u.slow;delete u.hex;delete u.hexPend;delete u.weak;if(u.cursed){u.weak=1;delete u.cursed}}});
-      const wisped=wispsAct();
-      vanguard();turn="y";busy=false;say((wisped?wisped+" ":"")+"Your turn. Select one of your units."+(healed?" Resting enemy units recovered HP.":""));render();notify("Enemy turn ended — your move");
+      units.forEach(u=>{u.moved=u.acted=0;delete u.cubeAr;if(u.team==="y")delete u.ward;delete u.aim;delete u.mvFrom;delete u.amb;delete u.rough;delete u.chill;delete u.ash;if(u.team!=="y"){delete u.stun;delete u.slow;delete u.hex;delete u.hexPend;delete u.weak;if(u.cursed){u.weak=1;delete u.cursed}if(u.slowNext){u.slow=1;delete u.slowNext}}});
+      const wisped=wispsAct(),sparked=sparkArrives();
+      vanguard();turn="y";busy=false;say((wisped?wisped+" ":"")+(sparked?sparked+" ":"")+"Your turn. Select one of your units."+(healed?" Resting enemy units recovered HP.":""));render();notify("Enemy turn ended — your move");
     });
   }
   step();
@@ -2811,6 +2964,8 @@ function enemyTurn(note=""){
 /* ---------- World map ---------- */
 let WORLD=[],EDGES=[],DECO={trees:[],rocks:[],river:""};
 const BTEXT={
+ synth:"Synthwave Space. Quartz, chasm pockets and Chaos Springs under neon light. Light Bricks glow on the tiles around them, and dazzle anyone who walks through.",
+ chasm:"The Fractured Chasm. A great gap splits the battlefield down the middle; only the ground behind each army joins the two sides. Arrows and spells still fly across it.",
  swamp:"Murky swamp. Thick mud covers the battlefield and stops units in their tracks, between stagnant ponds and dark woods.",
  wetlands:"Wetlands. Lakes, ponds, rivers and swamps cover the battlefield. Shallow water slows movement, swamps stop it, and deep water blocks it.",
  forest:"Thick woods. Extra forests on the battlefield.",
@@ -2831,6 +2986,10 @@ const NAMES={
  volcanic:["Brimstone Ridge","Scorched Hollow","Emberforge Caldera","Smoldering Gulch","Ashen Fields","Emberlands","The Bleeding Mountains"],
  sakura:["Petalfall Garden","Blossom Terrace","Koi Mirror Pool","Whispering Petals","Stoic Grove","Valley of Spring","Grove of Renewal"],
  heal:["Sunspring Glade","Quiet Hollow","Healer's Rest","Mercy Well","Nomadic Druid's Caravan","Traveling Apothecary","Mossy Monastery"], // healing spots
+ chasm:["The Shattered Divide","Null Rift","The Broken Seam","Fault Line Sigma","The Split","The Long Rift","The Open Code"],
+ synth:["Neon Drift","Afterglow Expanse","Starlit Grid","Chromewave Flats","The Glowing Horizon","Neon Latticework","Gridline Way"],
+ simheal:["Restore Point","Patch Node","Recovery Cache","Stabile Zone","Green Zone","Anti-Corruption Sphere"], // the Warped Sim's healing spots
+ simboss:["The Core Citadel","Fortress of Fading Code","The Final Render","Bit Fortress","Neon Walls","|3.0.$$"], // and its stronghold
  boss:["Blackspire","Ironcrown Citadel","Skullcrag Fortress","Duskhold","Ravenmoor Keep","Ashfall Citadel"]}; // boss locations
 const BOSS_NAMES=["Timwell the Troll","Cass, Obsessive Vicar","Anthony the Gold","Gorman, Dragon's Pet","Linda of Tillingsburg","Ted, the Damp Rag"]; // who holds each boss location (not shown yet)
 // draws from a list without repeating within the campaign; once every entry has been used, starts over (never the one just used)
@@ -2841,6 +3000,7 @@ function fresh(list,used){
 }
 // Builds a new random map: camp at the bottom, three rows of battles, a boss at the top.
 function genWorld(){
+  if(camp.inSim)return genSimWorld();
   const R=n=>Math.floor(Math.random()*n),rr=(a,b)=>a+Math.random()*(b-a),used=new Set();
   const nodes=[{id:0,name:"Camp",x:Math.round(rr(50,350)),y:466,type:"camp",text:"Your starting camp. Nothing to fight here."}];
   const layers=[[0]];let bag=[];
@@ -2912,17 +3072,72 @@ function genWorld(){
   const reeds=[];for(let t=0;t<30&&reeds.length<6;t++){const[x,y]=riv[2+R(37)],o=Math.random()<.5?-12:12;if(x>20&&x<380&&nodes.every(n=>Math.hypot(n.x-x,n.y-y-o)>34))reeds.push([Math.round(x),Math.round(y+o)])}
   DECO={trees:scatter(12).filter(dry).concat(spot(6,12)),rocks:scatter(5).filter(dry),ranges,hills:spot(7,12),grass:spot(14,6),reeds,river:`M-10 ${Y[0]} C 70 ${Y[1]} 120 ${Y[2]} 220 ${Y[3]} S 340 ${Y[4]} 420 ${Y[5]}`};
 }
-const BIOME_NAME={forest:"Forest",plain:"Plains",fort:"Stronghold",wild:"Wilds",wetlands:"Wetlands",swamp:"Murky Swamp",graveyard:"Haunted Graveyard",volcanic:"Molten Wastes",sakura:"Sakura Vale",boss:"Enemy Stronghold"};
+/* ---------- The Warped Sim's world map: short and harsh ----------
+   The Closed Portal at the bottom opens onto every one of 2-3 first locations; then 2-3 more (one a healing spot), all of which lead to the boss.
+   Battles are Fractured Chasm or Synthwave Space. The scenery (DECO.sim) is plain data, drawn by simMapArt. */
+const SIM_HEAL_TEXT="A pocket of the Sim that hasn't glitched yet. Resting here mends one wound per unit and restores some HP.";
+function genSimWorld(){
+  const R=n=>Math.floor(Math.random()*n),rr=(a,b)=>a+Math.random()*(b-a),used=new Set(),pick=l=>{const p=l.filter(n=>!used.has(n)),v=p[R(p.length)];used.add(v);return v};
+  const nodes=[{id:0,name:"Closed Portal",x:Math.round(rr(140,260)),y:462,type:"camp",text:"Sealed behind you... No way back means press forward into this strange place."}],layers=[[0]];
+  [328,196].forEach(y0=>{const c=2+R(2),ids=[];for(let i=0;i<c;i++){const b=Math.random()<.5?"chasm":"synth";ids.push(nodes.length);
+    nodes.push({id:nodes.length,name:pick(NAMES[b]),x:Math.round(50+300*(i+.5)/c+rr(-14,14)),y:Math.round(y0+rr(-8,8)),type:"battle",b,text:BTEXT[b]})}layers.push(ids)});
+  const h=nodes[layers[2][R(layers[2].length)]];Object.assign(h,{name:pick(NAMES.simheal),type:"heal",b:"heal",text:SIM_HEAL_TEXT,herb:!!unlocks.campsite&&Math.random()<HERB_SPOT}); // one healing spot, in the row before the boss (Herbert follows you in, now and then)
+  if(!camp.bossUsed)camp.bossUsed={loc:[],name:[]};
+  nodes.push({id:nodes.length,name:pick(NAMES.simboss),boss:fresh(BOSS_NAMES,camp.bossUsed.name),x:Math.round(rr(150,250)),y:80,type:"boss",b:"boss",text:"The Sim's stronghold. Its master holds the only way out."});
+  layers.push([nodes.length-1]);
+  const half=n=>n.name.length*3.7+6;layers.forEach(ids=>{const row=ids.map(i=>nodes[i]).sort((a,b)=>a.x-b.x); // labels apart and inside the map, as on the normal map
+    for(let pass=0;pass<20;pass++){let moved=false;for(let i=0;i<row.length-1;i++){const a=row[i],b=row[i+1],need=half(a)+half(b)+8,gap=b.x-a.x;if(gap<need){a.x-=(need-gap)/2;b.x+=(need-gap)/2;moved=true}}
+      row.forEach(n=>{const lo=half(n),hi=400-half(n);if(n.x<lo){n.x=lo;moved=true}if(n.x>hi){n.x=hi;moved=true}});if(!moved)break}row.forEach(n=>n.x=Math.round(n.x))});
+  const es=new Set(),link=(a,b)=>es.add(a+"-"+b),A=layers[1],B=layers[2],near=(id,list)=>[...list].sort((p,q)=>Math.abs(nodes[p].x-nodes[id].x)-Math.abs(nodes[q].x-nodes[id].x));
+  A.forEach(a=>link(0,a));B.forEach(b=>link(near(b,A)[0],b));A.forEach(a=>{const o=near(a,B);link(a,o[0]);if(o[1]!==undefined&&Math.random()<.5)link(a,o[1])});B.forEach(b=>link(b,nodes.length-1));
+  const E=[...es].map(e=>e.split("-").map(Number));
+  [[0],A].forEach(L=>{const gap=E.filter(e=>L.includes(e[0])).sort(()=>Math.random()-.5);gap.slice(0,Math.floor(gap.length*ONEWAY_SHARE)).forEach(e=>e[2]=1)}); // two-thirds one-way, never into the boss
+  WORLD=nodes;EDGES=E;
+  if(nodes.some(n=>!reachFrom(n.id).has(nodes.length-1)))E.forEach(e=>e.length=2);
+  // scenery: neon traces on the grid, the void rift between the rows, rock outcrops, cube islands, cube groves and loose cubes, kept clear of locations, labels and paths
+  const segD=(x,y,ax,ay,bx,by)=>{const dx=bx-ax,dy=by-ay,t=Math.max(0,Math.min(1,((x-ax)*dx+(y-ay)*dy)/(dx*dx+dy*dy||1)));return Math.hypot(x-ax-t*dx,y-ay-t*dy)};
+  const clear=(x,y,r)=>nodes.every(n=>Math.hypot(n.x-x,n.y-y)>r+30&&!(Math.abs(n.x-x)<half(n)+r&&y>n.y&&y<n.y+44))&&E.every(([a,b])=>segD(x,y,nodes[a].x,nodes[a].y,nodes[b].x,nodes[b].y)>r+8)&&(y<230||y>300)&&!(y<r+46&&Math.abs(x-200)<130+r);
+  const placed=[],spot=r=>{for(let t=0;t<300;t++){const x=rr(14+r,386-r),y=rr(40,505-r*.4);if(clear(x,y,r)&&placed.every(([p,q,pr])=>Math.hypot(p-x,q-y)>pr+r+8)){placed.push([x,y,r]);return[Math.round(x),Math.round(y)]}}return null};
+  const traces=[];for(let i=0;i<16;i++){let x=R(20)*20,y=R(26)*20;const p=[[x,y]];for(let k=0;k<3+R(3);k++){if(Math.random()<.5)x+=(Math.random()<.5?-1:1)*20*(1+R(3));else y+=(Math.random()<.5?-1:1)*20*(1+R(2));p.push([x,y])}traces.push(p)}
+  let y=262+Math.round(rr(-6,6));const rift=[];for(let x=0;x<=420;x+=20){y=Math.max(244,Math.min(284,y+Math.round(rr(-1.4,1.4))*6));rift.push([x,y,12+((x/20)%3)*2])}
+  const rocks=[];for(let k=0;k<3;k++){const p=spot(36);if(!p)continue;const n=10+R(5),c=[];for(let i=0;i<n;i++){const a=Math.random()*6.283,d=Math.sqrt(Math.random())*20;c.push([Math.round(p[0]+Math.cos(a)*d*1.5),Math.round(p[1]+Math.sin(a)*d*.6),Math.round(8+Math.random()*7),Math.round(12+Math.random()*16),R(10)])}rocks.push({x:p[0],y:p[1],c:c.sort((a,b)=>a[1]-b[1])})}
+  const isles=[];for(let k=0;k<3;k++){const p=spot(22);if(p)isles.push([...p,5+R(3),R(1000)])}
+  const groves=[];for(let k=0;k<4;k++){const p=spot(10);if(p)groves.push([...p,2+R(2),R(1000)])}
+  const strays=[];for(let k=0;k<5;k++){const p=spot(5);if(p)strays.push([...p,R(1000)])}
+  const dots=[];for(let i=0;i<22;i++)dots.push([R(20)*20,R(26)*20]);
+  DECO={sim:{traces,rift,rocks,isles,groves,strays,dots}};
+}
+// the Sim's map art: a dark grid with neon traces, a stepped void rift, geometric rock outcrops, floating cube islands and cube groves
+function simMapArt(){
+  const D=DECO.sim,f=n=>n.toFixed(1),q=(n,k)=>((n*9301+k*49297)%233280)/233280; // fixed scatter from stored seeds, so the picture never shifts
+  const LIL=["#cfc2f4","#8a76cc","#4e3e92"],CYN=["#c8f4f0","#6cc0c8","#2e6a7a"],DK=["#6a5aa8","#40347a","#241c4a"];
+  const cube=(x,y,s,P,a=0,o=1)=>{const[T,L,Rr]=P,h=s*.866,Q=(...p)=>p.map(([u,v])=>f(x+u)+" "+f(y+v)).join("L");return `<g transform="rotate(${f(a)} ${f(x)} ${f(y)})" opacity="${o}"><path d="M${Q([0,-s],[h,-s/2],[0,0],[-h,-s/2])}z" fill="${T}"/><path d="M${Q([-h,-s/2],[0,0],[0,s],[-h,s/2])}z" fill="${L}"/><path d="M${Q([0,0],[h,-s/2],[h,s/2],[0,s])}z" fill="${Rr}"/><path d="M${Q([0,-s],[h,-s/2],[h,s/2],[0,s],[-h,s/2],[-h,-s/2])}zM${Q([-h,-s/2],[0,0],[h,-s/2])}M${f(x)} ${f(y)}v${f(s)}" fill="none" stroke="${P===CYN?"#7ae8ff":"#e8dcff"}" stroke-width=".6" stroke-linejoin="round" opacity=".85"/></g>`};
+  let g=`<defs><linearGradient id="sbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#141030"/><stop offset=".5" stop-color="#1c1640"/><stop offset="1" stop-color="#241a4a"/></linearGradient><radialGradient id="svg2" cx=".5" cy=".5" r=".6"><stop offset=".6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#05030c" stop-opacity=".7"/></radialGradient><filter id="sbl" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.200"/></filter><filter id="wsh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="2" stdDeviation="1.500" flood-color="#000" flood-opacity=".6"/></filter><radialGradient id="wnode" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/></radialGradient></defs><rect width="400" height="520" fill="url(#sbg)"/>`;
+  let gr="";for(let x=0;x<=400;x+=20)gr+=`M${x} 0v520`;for(let y=0;y<=520;y+=20)gr+=`M0 ${y}h400`;g+=`<path d="${gr}" stroke="#8a72e0" stroke-width=".5" opacity=".22"/>`;
+  D.traces.forEach(p=>{const d="M"+p.map(([x,y])=>x+" "+y).join("L"),[ex,ey]=p[p.length-1];g+=`<path d="${d}" stroke="#3ad8ff" stroke-width="3.400" fill="none" opacity=".5" filter="url(#sbl)"/><path d="${d}" stroke="#8aeeff" stroke-width="1.100" fill="none" opacity=".95"/><circle cx="${ex}" cy="${ey}" r="2.400" fill="#d8faff"/>`});
+  D.dots.forEach(([x,y],i)=>g+=`<circle cx="${x}" cy="${y}" r="1.300" fill="#7ae8ff" opacity="${f(.4+q(i,3)*.5)}"/>`);
+  const R=D.rift,top="M-10 "+R[0][1]+R.map(([x,y])=>`H${x}V${y}`).join(""),bot=[...R].reverse().map(([x,y,w])=>`H${x}V${y+w}`).join(""),last=R[R.length-1];
+  g+=`<path d="${top}H420V${last[1]+14}${bot}H-10z" fill="#06040e" stroke="#b48aff" stroke-width="1.400"/><path d="${top}" stroke="#d8b8ff" stroke-width="5" fill="none" opacity=".35" filter="url(#sbl)"/><path d="M420 ${last[1]+14}${bot}" stroke="#3ad8ff" stroke-width="1.200" fill="none" opacity=".9"/><path d="M420 ${last[1]+14}${bot}" stroke="#3ad8ff" stroke-width="4" fill="none" opacity=".3" filter="url(#sbl)"/>`;
+  D.rocks.forEach(({x,y,c})=>{g+=`<ellipse cx="${x}" cy="${y+4}" rx="40" ry="10" fill="#000" opacity=".3" filter="url(#sbl)"/>`;c.forEach(([a,b,w,h,k])=>{const A=[a-w,b],Bp=[a-w*.55,b-h*.8],C=[a+w*.1,b-h],Dp=[a+w*.7,b-h*.55],Ep=[a+w,b],M=[a+w*.05,b-h*.35],P=(...p)=>p.map(([u,v])=>f(u)+" "+f(v)).join("L");
+    g+=`<path d="M${P(A,Bp,M)}z" fill="#5a4c8a"/><path d="M${P(Bp,C,M)}z" fill="#8a7cc0"/><path d="M${P(C,Dp,M)}z" fill="#6e60a6"/><path d="M${P(Dp,Ep,M)}z" fill="#3a2e66"/><path d="M${P(A,M,Ep)}z" fill="#2c2252"/><path d="M${P(A,Bp,C,Dp,Ep)}z" fill="none" stroke="#14102a" stroke-width="1" stroke-linejoin="round"/><path d="M${P(Bp,C,Dp)}M${P(C,M)}" fill="none" stroke="${k<6?"#7ae8ff":"#e0d4ff"}" stroke-width=".8" opacity=".9"/>`})});
+  D.isles.forEach(([x,y,n,sd])=>{g+=`<ellipse cx="${x}" cy="${y+20}" rx="20" ry="4" fill="#000" opacity=".35" filter="url(#sbl)"/>`;[[0,0,9],[-12,4,7],[11,5,7.5],[-4,-10,6],[6,-8,5],[-20,9,4.5],[19,10,4]].slice(0,n).sort((a,b)=>a[1]-b[1]).forEach(([dx,dy,c],i)=>g+=cube(x+dx,y+dy,c,q(sd,i)<.15?CYN:i%2?LIL:DK,(q(sd,i+9)-.5)*12))});
+  D.groves.forEach(([x,y,n,sd])=>[[-7,2],[6,4],[0,-3]].slice(0,n).forEach(([dx,dy],i)=>{const h=2+(q(sd,i)<.5?1:0);g+=`<path d="M${x+dx} ${y+dy+8}v-4" stroke="#40347a" stroke-width="1.600"/>`;for(let j=0;j<h;j++)g+=cube(x+dx,y+dy-j*5.5,3.6-j*.5,j===h-1&&q(sd,i+5)<.4?CYN:LIL)}));
+  D.strays.forEach(([x,y,sd])=>g+=cube(x,y,3+q(sd,1)*2,q(sd,2)<.3?CYN:LIL,(q(sd,3)-.5)*40,.6));
+  g+=`<rect width="400" height="520" fill="url(#svg2)"/>`;
+  const tt=`The Warped Sim \u2013 Region ${camp.region||1}`;
+  return g+`<text x="200" y="40" text-anchor="middle" font-family="'Palatino Linotype','Book Antiqua',Palatino,Georgia,serif" font-style="italic" font-weight="700" font-size="20" fill="#efe6ff" stroke="#120c28" stroke-width="3" paint-order="stroke">${tt}</text><path d="M110 49h180" stroke="#b48aff" stroke-width="1" opacity=".75"/><path d="M110 49h180" stroke="#3ad8ff" stroke-width="3" opacity=".25" filter="url(#sbl)"/>`;
+}
+const BIOME_NAME={chasm:"The Fractured Chasm",synth:"Synthwave Space",forest:"Forest",plain:"Plains",fort:"Stronghold",wild:"Wilds",wetlands:"Wetlands",swamp:"Murky Swamp",graveyard:"Haunted Graveyard",volcanic:"Molten Wastes",sakura:"Sakura Vale",boss:"Enemy Stronghold"};
 // a Quick Battle map has no biome of its own, so name it from what was generated
-const guessBiome=()=>VALE||KOI.size?"sakura":LAVA.size||VOLC.size?"volcanic":GRAVES.size?"graveyard":SWAMP.size>=10?"swamp":DEEP.size+SHALLOW.size>=20?"wetlands":FORT.size?"fort":units.some(u=>u.team==="w")?"wild":FOREST.size>=16?"forest":"plain";
-const BIOME={mixed:{},sakura:{sakura:1,forest:2,flowers:1},forest:{forest:9,flowers:1},plain:{forest:2,flowers:1},fort:{fort:1},wild:{wild:1,flowers:1},boss:{fort:1,boss:1},wetlands:{water:1,forest:3,swamp:1},swamp:{swamp:3,pond:1,forest:6},graveyard:{graves:1,forest:5},volcanic:{lava:1,forest:3}};
+const guessBiome=()=>LIGHT.size?"synth":CHASM.size?"chasm":VALE||KOI.size?"sakura":LAVA.size||VOLC.size?"volcanic":GRAVES.size?"graveyard":SWAMP.size>=10?"swamp":DEEP.size+SHALLOW.size>=20?"wetlands":FORT.size?"fort":units.some(u=>u.team==="w")?"wild":FOREST.size>=16?"forest":"plain";
+const BIOME={mixed:{},chasm:{chasm:1,sim:1},synth:{synth:1,sim:1},sakura:{sakura:1,forest:2,flowers:1},forest:{forest:9,flowers:1},plain:{forest:2,flowers:1},fort:{fort:1},wild:{wild:1,flowers:1},boss:{fort:1,boss:1},wetlands:{water:1,forest:3,swamp:1},swamp:{swamp:3,pond:1,forest:6},graveyard:{graves:1,forest:5},volcanic:{lava:1,forest:3}};
 const ONEWAY_SHARE=2/3,ROAD_EVENT=.25;
 const edgeOf=(a,b)=>EDGES.find(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a)); // e[2]: one-way (only from e[0] up to e[1]); e[3]: its road event has been rolled
 const canGo=(a,b)=>{const e=edgeOf(a,b);return !!e&&(!e[2]||b===e[1])};
 function reachFrom(id){const seen=new Set([id]),q=[id];while(q.length){const a=q.shift();WORLD.forEach(n=>{if(!seen.has(n.id)&&canGo(a,n.id)){seen.add(n.id);q.push(n.id)}})}return seen}
 const SAVE="skirmish-campaign";
-function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,items:camp.items,offer:camp.offer,offerBoss:camp.offerBoss,found:camp.found,kills:camp.kills,names:camp.names,wounds:camp.wounds,honors:camp.honors,falls:camp.falls,news:camp.news,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,merc:camp.merc||null,scout:camp.scout||0,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
-function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],items:d.items||[],offer:d.offer||null,offerBoss:!!d.offerBoss,found:Array.isArray(d.found)?d.found:d.found?[d.found]:[],kills:d.kills||[],names:d.names||null,wounds:d.wounds||[],honors:d.honors||[],falls:d.falls||[],news:d.news||null,region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},merc:d.merc||null,scout:d.scout||0,mercNote:"",lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
+function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,items:camp.items,offer:camp.offer,offerBoss:camp.offerBoss,found:camp.found,kills:camp.kills,names:camp.names,wounds:camp.wounds,honors:camp.honors,falls:camp.falls,news:camp.news,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,merc:camp.merc||null,scout:camp.scout||0,portal:camp.portal||0,portalIn:camp.portalIn||0,inSim:camp.inSim||0,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
+function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],items:d.items||[],offer:d.offer||null,offerBoss:!!d.offerBoss,found:Array.isArray(d.found)?d.found:d.found?[d.found]:[],kills:d.kills||[],names:d.names||null,wounds:d.wounds||[],honors:d.honors||[],falls:d.falls||[],news:d.news||null,region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},merc:d.merc||null,scout:d.scout||0,portal:d.portal||0,portalIn:d.portalIn||0,inSim:d.inSim||0,mercNote:"",lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
 const nest=(str,x,y,w,style="")=>str.replace(/<svg[^>]*>/,`<svg x="${x}" y="${y}" width="${w}" height="${w}" viewBox="0 0 40 40" style="${style}">`);
 function mapArt(){
   let g='<defs><radialGradient id="pg" cx=".5" cy=".4" r=".85"><stop offset="0" stop-color="#eadfb8"/><stop offset="1" stop-color="#cbb78a"/></radialGradient><filter id="wsh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="1.200" dy="2.400" stdDeviation="1.600" flood-color="#3a2810" flood-opacity=".45"/></filter><radialGradient id="wnode" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></radialGradient><filter id="wblur"><feGaussianBlur stdDeviation="6"/></filter><filter id="wblur2" x="-50%" y="-100%" width="200%" height="300%"><feGaussianBlur stdDeviation="2.500"/></filter><linearGradient id="wmt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a7656"/><stop offset=".6" stop-color="#9c8762" stop-opacity=".9"/><stop offset="1" stop-color="#b8a27a" stop-opacity="0"/></linearGradient></defs><rect width="400" height="520" fill="url(#pg)"/>';
@@ -2972,21 +3187,27 @@ function renderWorld(){
   const done=new Set(camp.cleared),cur=WORLD[camp.pos],pc=COLORS[camp.cfg.c];
   if(camp.sel==null)camp.sel=camp.pos;
   const stOf=n=>n.type==="camp"||done.has(n.id)?"cleared":canGo(camp.pos,n.id)?"open":"locked",reach=reachFrom(camp.pos);
-  const label={cleared:"Cleared",open:"Battle ahead",locked:"Out of reach"},lab=n=>stOf(n)==="open"?(n.type==="heal"?"Healing spot":n.type==="shop"?"Merchant":n.b==="wetlands"?"Wetlands battle":n.b==="swamp"?"Swamp battle":n.b==="graveyard"?"Graveyard battle":n.b==="volcanic"?"Volcanic battle":n.b==="sakura"?"Sakura battle":label.open):label[stOf(n)];
-  let s='<svg viewBox="0 0 400 520" role="img" aria-label="World map">'+mapArt();
+  const label={cleared:"Cleared",open:"Battle ahead",locked:"Out of reach"},lab=n=>stOf(n)==="open"?(n.type==="heal"?"Healing spot":n.type==="shop"?"Merchant":n.b==="wetlands"?"Wetlands battle":n.b==="swamp"?"Swamp battle":n.b==="graveyard"?"Graveyard battle":n.b==="volcanic"?"Volcanic battle":n.b==="sakura"?"Sakura battle":n.b==="chasm"?"Fractured Chasm battle":n.b==="synth"?"Synthwave battle":label.open):label[stOf(n)];
+  const SW=!!(camp.inSim&&DECO.sim); // the Warped Sim: neon paths and locations on a dark grid
+  let s='<svg viewBox="0 0 400 520" role="img" aria-label="World map">'+(SW?simMapArt():mapArt());
   EDGES.forEach(([a,b])=>{
     const A=WORLD[a],B=WORLD[b],both=stOf(A)==="cleared"&&stOf(B)==="cleared",hot=a===camp.pos||b===camp.pos;
-    s+=`<line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke="${both?"#4f7d3a":hot?"#3b2a14":"#8b6b3e"}" stroke-width="${hot?5:4}" stroke-linecap="round"${both?"":` stroke-dasharray="${hot?"9 6":"2 8"}"`}/>`;
+    s+=`<line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke="${SW?(both?"#5ae0b0":hot?"#f2eaff":"#b8a2ff"):both?"#4f7d3a":hot?"#3b2a14":"#8b6b3e"}" stroke-width="${hot?5:4}" stroke-linecap="round"${both?"":` stroke-dasharray="${hot?"9 6":"2 8"}"`}/>`;
   });
-  EDGES.forEach(([a,b,one])=>{if(!one)return; // one-way paths: worn, hand-inked chevrons pointing toward the boss
+  EDGES.forEach(([a,b,one])=>{if(!one)return; // one-way paths: worn, hand-inked chevrons pointing toward the boss (neon in the Sim)
     const A=WORLD[a],B=WORLD[b],ang=Math.atan2(B.y-A.y,B.x-A.x)*180/Math.PI,j=i=>((a*37+b*17+i*11)%10)/10;
+    if(SW){s+=`<g transform="translate(${(A.x+B.x)/2} ${(A.y+B.y)/2}) rotate(${ang.toFixed(1)})">`+[-4.500,4.500].map(o=>`<path transform="translate(${o} 0)" d="M-5 -8L3 0L-5 8" fill="none" stroke="#3ad8ff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity=".3"/><path transform="translate(${o} 0)" d="M-5 -8L3 0L-5 8" fill="none" stroke="#9ff0f0" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`).join("")+"</g>";return}
     const mx=(A.x+B.x)/2+(j(1)-.5)*1.6,my=(A.y+B.y)/2+(j(4)-.5)*1.6;
     s+=`<g transform="translate(${mx.toFixed(1)} ${my.toFixed(1)}) rotate(${(ang+(j(6)-.5)*6).toFixed(1)})">`+[-4.500,4.500].map((o,i)=>`<g transform="translate(${o} 0)" opacity="${(.68+j(i+7)*.25).toFixed(2)}"><path d="M-5 -8L3 0L-5 8" fill="none" stroke="#f4ead0" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" opacity=".7"/><path d="M-5 -8L3 0L-5 8" fill="none" stroke="#4a2e14" stroke-width="3.200" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="${i?"6 1.600 9 1.200":"8 1.400 5 1.800 9"}"/><path d="M-3.600 -6.200L1.400 -1" stroke="#f4ead0" stroke-width=".9" opacity=".55"/></g>`).join("")+"</g>";
   });
   WORLD.forEach(n=>{
     const st=stOf(n),cl=st==="cleared"&&n.type!=="camp",r=n.type==="boss"?21:17,S=n.type==="boss"?30:24;
-    const fill=n.type==="camp"?"#8c7752":n.type==="heal"?(st==="locked"?"#a39a88":cl?"#9fc9a8":"#7fd1a0"):n.type==="shop"?(st==="locked"?"#a39a88":cl?"#c8b088":"#e0a84a"):cl?"#6aa55a":st==="open"?(n.type==="boss"?"#c4483a":n.b==="wetlands"?"#5fb3c9":n.b==="swamp"?"#6d7a4f":n.b==="graveyard"?"#7d7590":n.b==="volcanic"?"#b8461f":n.b==="sakura"?"#e48aa8":"#e6b73f"):"#a39a88";
-    const icon=n.type==="shop"?`<path d="M${n.x-4} ${n.y-3}C${n.x-13} ${n.y-1} ${n.x-13} ${n.y+11} ${n.x} ${n.y+11}C${n.x+13} ${n.y+11} ${n.x+13} ${n.y-1} ${n.x+4} ${n.y-3}z" fill="#fff" stroke="#6a4426" stroke-width="1.600" stroke-linejoin="round"/>`
+    const fill=SW?(n.type==="camp"?"#1a0c36":st==="locked"?"#3e3664":cl?"#2f8a6a":n.type==="heal"?"#1c6a80":n.type==="boss"?"#8a2058":n.b==="synth"?"#b08a10":"#4e32a8"):n.type==="camp"?"#8c7752":n.type==="heal"?(st==="locked"?"#a39a88":cl?"#9fc9a8":"#7fd1a0"):n.type==="shop"?(st==="locked"?"#a39a88":cl?"#c8b088":"#e0a84a"):cl?"#6aa55a":st==="open"?(n.type==="boss"?"#c4483a":n.b==="wetlands"?"#5fb3c9":n.b==="swamp"?"#6d7a4f":n.b==="graveyard"?"#7d7590":n.b==="volcanic"?"#b8461f":n.b==="sakura"?"#e48aa8":"#e6b73f"):"#a39a88";
+    const simCube=(x,y,c)=>`<path d="M${x} ${y-2.600}l2.250 1.300v2.600L${x} ${y+2.600}l-2.250-1.300v-2.600z" fill="${c?"#9ff0f0":"#e8dcff"}" stroke="#1c1238" stroke-width=".5"/>`;
+    const icon=SW&&n.type==="camp"?[...Array(10)].map((_,i)=>simCube(n.x+Math.cos(i*.628)*11,n.y+Math.sin(i*.628)*11.5,i===3)).join("")+`<path d="M${n.x-5.500} ${n.y-5.500}l11 11M${n.x+5.500} ${n.y-5.500}l-11 11" stroke="#fff" stroke-width="1.800" stroke-linecap="round" opacity=".85"/>` // the Closed Portal
+      :n.b==="chasm"?`<path d="M${n.x-4} ${n.y-11}h6v4h3v5h-2v5h3v7h-7v-4h-3v-6h2v-5h-2z" fill="#06040e" stroke="#c8a8ff" stroke-width="1.400" stroke-linejoin="miter"/><path d="M${n.x+2} ${n.y-7}h3v5h-2v5h3v7" fill="none" stroke="#7ae8ff" stroke-width="1.200"/>` // a stepped rift
+      :n.b==="synth"?`<rect x="${n.x-9}" y="${n.y-6}" width="18" height="12" rx="1.600" fill="#ffe94a" stroke="#5a4000" stroke-width="1.300"/><path d="M${n.x-9} ${n.y}h18M${n.x-3} ${n.y-6}v6M${n.x+3} ${n.y}v6" stroke="#8a6a00" stroke-width="1"/><path d="M${n.x-8} ${n.y-4.800}h16" stroke="#fffde8" stroke-width=".9"/>` // a Light Brick
+      :n.type==="shop"?`<path d="M${n.x-4} ${n.y-3}C${n.x-13} ${n.y-1} ${n.x-13} ${n.y+11} ${n.x} ${n.y+11}C${n.x+13} ${n.y+11} ${n.x+13} ${n.y-1} ${n.x+4} ${n.y-3}z" fill="#fff" stroke="#6a4426" stroke-width="1.600" stroke-linejoin="round"/>`
       +`<path d="M${n.x-3} ${n.y-1}q-4 4-3.500 9M${n.x+0.500} ${n.y-1}v8M${n.x+3} ${n.y-1}q4 3 3.500 8" stroke="#6a4426" stroke-width=".9" fill="none" stroke-linecap="round" opacity=".55"/>`
       +`<path d="M${n.x-3.500} ${n.y-4}L${n.x-7.500} ${n.y-10}q2-1.500 3.500.500q1.500-2.200 3.500-2q2.200-.200 3.500 2q1.500-2 3.500-.500L${n.x+3.500} ${n.y-4}z" fill="#fff" stroke="#6a4426" stroke-width="1.400" stroke-linejoin="round"/>`
       +`<path d="M${n.x-5} ${n.y-3.500}h10" stroke="#6a4426" stroke-width="2.400" stroke-linecap="round"/>`
@@ -3008,9 +3229,10 @@ function renderWorld(){
       +`<circle cx="${n.x}" cy="${n.y}" r="28" fill="transparent"/>`
       +(camp.sel===n.id?`<circle cx="${n.x}" cy="${n.y}" r="${r+7}" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="5 4"/>`:"")
       +(st==="open"?`<circle class="wp" cx="${n.x}" cy="${n.y}" r="${r+4}" fill="none" stroke="#fff" stroke-width="2"/>`:"")
-      +`<circle cx="${n.x}" cy="${n.y}" r="${r}" fill="${fill}" stroke="#3b2a14" stroke-width="3" filter="url(#wsh)"/><circle cx="${n.x}" cy="${n.y}" r="${r-1.500}" fill="url(#wnode)"/>${icon}`
+      +(SW?`<circle cx="${n.x}" cy="${n.y}" r="${r+5}" fill="${n.type==="boss"?"#ff6aa0":n.type==="heal"?"#3ad8ff":n.b==="synth"?"#ffe24a":"#b48aff"}" opacity="${st==="locked"?.1:.28}" filter="url(#sbl)"/>`:"")
+      +`<circle cx="${n.x}" cy="${n.y}" r="${r}" fill="${fill}" stroke="${SW?"#e8dcff":"#3b2a14"}" stroke-width="${SW?2.600:3}" filter="url(#wsh)"/><circle cx="${n.x}" cy="${n.y}" r="${r-1.500}" fill="url(#wnode)"/>${icon}`
       +(cl?`<circle cx="${n.x+r-3}" cy="${n.y-r+3}" r="7" fill="#2f8f4e" stroke="#fff" stroke-width="2"/><path d="M${n.x+r-7} ${n.y-r+3}l3 3 5-6" stroke="#fff" stroke-width="2" fill="none"/>`:"")
-      +`<text x="${n.x}" y="${n.y+r+15}" text-anchor="middle" font-size="12" font-weight="700" fill="#2b2115" stroke="rgba(255,244,214,.92)" stroke-width="3" paint-order="stroke" style="pointer-events:none">${n.name}</text></g>`;
+      +`<text x="${n.x}" y="${n.y+r+15}" text-anchor="middle" font-size="12" font-weight="700" fill="${SW?"#efe6ff":"#2b2115"}" stroke="${SW?"#120c28":"rgba(255,244,214,.92)"}" stroke-width="3" paint-order="stroke" style="pointer-events:none">${n.name}</text></g>`;
   });
   s+=`<g id="wm" style="transform:translate(${cur.x}px,${cur.y-28}px)"><ellipse cx="0" cy="26" rx="10" ry="3" fill="rgba(0,0,0,.3)"/><circle r="15" fill="${pc[1]}" stroke="#fff" stroke-width="3"/>${nest(ICON.K,-11,-11,22,`--ic:${pc[2]};--tc:${pc[1]}`)}<path d="M-5 14L0 24 5 14z" fill="#fff"/></g></svg>`;
   $("wmap").innerHTML=s;
@@ -3021,7 +3243,7 @@ function renderWorld(){
   $("warmy").innerHTML=armyTypes().map((t,i)=>{const mx=campMax(i),h=Math.min(mx,camp.hp&&camp.hp[i]!=null?camp.hp[i]:mx),w=woundsOf(i);return `<span class="stat" title="${heroName(i)}">${camp.names?camp.names[i]:cap(NAME[t])} <small>${cap(NAME[t])}</small> <b style="color:${h<=mx*.25?"#d64b3a":"inherit"}">${h}/${mx}</b>${w?`<i class="wnd" aria-label="${w} wound${w>1?"s":""}">${"\u2020".repeat(w)}</i>`:""}</span>`}).join("")
     +(camp.merc?`<span class="stat" title="${mercLine(camp.merc)}">${camp.merc.name} <small>Mercenary ${NAME[camp.merc.t]}, ${camp.merc.left} battle${camp.merc.left>1?"s":""} left</small> <b>${camp.merc.hp}/${camp.merc.st.hp}</b></span>`:"");
   const total=WORLD.filter(n=>n.type!=="camp"&&(done.has(n.id)||reach.has(n.id))).length,lost=WORLD.filter(n=>n.type!=="camp"&&!done.has(n.id)&&!reach.has(n.id)).length;
-  $("wtitle").textContent=`World Map \u2013 Region ${camp.region||1}`;
+  $("wtitle").textContent=`${SW?"The Warped Sim":"World Map"} \u2013 Region ${camp.region||1}`;
   $("wprog").textContent=camp.done?"Campaign complete! You defeated the boss.":`Locations cleared: ${camp.cleared.length} of ${total}${lost?` (${lost} cut off)`:""}. Tap a glowing location to travel there.`+(camp.mercNote?" "+camp.mercNote:"");
   const n=WORLD[camp.sel],st=stOf(n),here=n.id===camp.pos,can=!here&&canGo(camp.pos,n.id),e=can&&edgeOf(camp.pos,n.id),cut=!here&&!done.has(n.id)&&!reach.has(n.id);
   const btn=can?(st==="cleared"?"Travel Here":n.type==="heal"?"Rest Here":n.type==="shop"?"Visit the Merchant":"Travel to Battle"):"";
@@ -3037,7 +3259,8 @@ function healFx(n){ // a gentle glow at the healing spot: rings drift outward an
   sv.insertBefore(g,$("wm"));setTimeout(()=>g.remove(),2600);
   $("warmy").querySelectorAll(".stat").forEach(c=>c.classList.add("healed"));
 }
-function openWorld(){camp.battle=null;camp.sel=camp.pos;if(camp.cfg&&!camp.names){rollNames();saveCamp()} // campaigns from before names existed
+function openWorld(){if(camp.portalIn&&$("relinfo").hidden)return enterSim(); // chose to enter the portal, then left before stepping through
+  camp.battle=null;camp.sel=camp.pos;if(camp.cfg&&!camp.names){rollNames();saveCamp()} // campaigns from before names existed
   renderWorld();if(camp.news){$("wprog").textContent=camp.news;camp.news=null;saveCamp()}show("world");renderGold();renderRelics();renderItems();showRelicOffer()}
 // The Beggar: a road-worn skeleton in ruined, oddly ornate armor, a battered kettle helm with a tattered golden plume, holding an old sack open; his seat matches the land ahead
 // who: "vasco" (bare-skulled, once he has given you his helm) or "man" (one of his men, in a plumed morion), both under the expedition's banner
@@ -3161,6 +3384,66 @@ ${seat}${who?banner:""}${cape}${legs}${body}${arms}${pauldron}${sack}${skull}${w
 <rect x="34" y="14" width="252" height="172" fill="url(#bgmoonlt)"/><rect x="34" y="14" width="252" height="172" filter="url(#bggrain)" opacity=".22" style="mix-blend-mode:multiply"/><rect x="34" y="14" width="252" height="172" fill="url(#bgvig)"/></svg>`;
 }
 // things that can happen on a one-way path (rolled once per path)
+/* ---------- The portal to the Warped Sim (unlocked by "warpedsim") ----------
+   After you choose a boss's spoils from regions 5 to 9 (so, on arriving in regions 6 to 10), a portal may open, once per campaign whatever you choose.
+   Entering turns the region you've just reached into the Warped Sim; backing away leaves it as it is. */
+const PORTAL_CHANCE=.12,SIM_BOSS_SAKURA=.75,SIM_ESC=2,SIM_GRID=.5; // SIM_GRID: chance each extra enemy in the Sim is a Grid Elemental (its boss always brings one); // SIM_ESC: the Sim's enemies escalate as if this many regions further on; // SIM_BOSS_SAKURA: how often the Sim's boss fights in a Sakura Vale (else a Sim biome), once Sakura Vale is unlocked
+const portalDue=()=>unlocks.warpedsim&&!camp.portal&&!camp.inSim&&camp.region>=6&&camp.region<=10&&camp.pos===0&&Math.random()<PORTAL_CHANCE;
+// the Rift portal: a ring of crystalline cubes hovering over the field, a violet swirl at its heart
+function portalScene(){
+  const rnd=(i,s)=>{const x=Math.sin(i*127.1+s*311.7)*43758.5453;return x-Math.floor(x)},f=n=>n.toFixed(1),CX=160,CY=96;
+  const PAL=[["#efe8ff","#a896e4","#5c4aa6"],["#e4dcff","#8f7ad6","#4a3a90"],["#d8fbf6","#78cfd6","#2e7486"]]; // lit top, side, shade: lilac, deeper violet, a stray cyan
+  let glow=""; // every cube's edges again, blurred on top: the lines read as lit, geometric seams
+  const cube=(x,y,s,a,p,o=1)=>{const [T,L,R]=PAL[p],h=s*.866,P=(...q)=>q.map(([u,v])=>f(x+u)+" "+f(y+v)).join("L"),rot=`rotate(${f(a)} ${f(x)} ${f(y)})`;
+    const E=`M${P([0,-s],[h,-s/2],[h,s/2],[0,s],[-h,s/2],[-h,-s/2])}zM${P([-h,-s/2],[0,0],[h,-s/2])}M${f(x)} ${f(y)}v${f(s)}`,ec=p===2?"#c8fff8":"#f2e6ff";
+    if(o===1)glow+=`<path transform="${rot}" d="${E}" stroke="${ec}" stroke-width="1.300" fill="none" stroke-linejoin="round"/>`;
+    return `<g transform="${rot}" opacity="${o}"><path d="M${P([0,-s],[h,-s/2],[0,0],[-h,-s/2])}z" fill="${T}"/><path d="M${P([-h,-s/2],[0,0],[0,s],[-h,s/2])}z" fill="${L}"/><path d="M${P([0,0],[h,-s/2],[h,s/2],[0,s])}z" fill="${R}"/><path d="${E}" fill="none" stroke="#1c1238" stroke-width="1.300" stroke-linejoin="round"/><path d="${E}" fill="none" stroke="${ec}" stroke-width=".55" stroke-linejoin="round"/>${[[0,-s],[h,-s/2],[h,s/2],[0,s],[-h,s/2],[-h,-s/2],[0,0]].map(([u,v])=>`<circle cx="${f(x+u)}" cy="${f(y+v)}" r="${f(Math.max(.35,s*.075))}" fill="#fff"/>`).join("")}</g>`};
+  // the ring: lumpy, uneven cubes, an inner course of smaller ones, a few strays drifting loose
+  let ring="",inner="",loose="";const N=30;
+  for(let i=0;i<N;i++){const a=(i+rnd(i,1)*.5)/N*6.283,r=1+(rnd(i,2)-.5)*.08,s=5.200+2.600*Math.abs(Math.sin(i*.9))+rnd(i,3)*1.800;
+    ring+=cube(CX+Math.cos(a)*58*r,CY+Math.sin(a)*64*r,s,(rnd(i,4)-.5)*28,rnd(i,5)<.13?2:rnd(i,6)<.5?1:0)}
+  for(let i=0;i<22;i++){const a=(i+rnd(i,7))/22*6.283;inner+=cube(CX+Math.cos(a)*(49+rnd(i,8)*3),CY+Math.sin(a)*(55+rnd(i,8)*3),2.600+rnd(i,9)*2,(rnd(i,10)-.5)*40,rnd(i,11)<.15?2:1,.9)}
+  [[94,52,3.200,0],[226,70,2.600,2],[222,150,3,1],[100,148,2.200,0],[132,24,2,2],[200,30,2.400,1]].forEach(([x,y,s,p],k)=>loose+=`<g class="pdrift" style="animation-delay:${-k*.8}s">${cube(x,y,s,k*17,p,.85)}</g>`);
+  // the swirl: three spiral arms over a violet well, slowly turning
+  let arms="";for(let k=0;k<3;k++){let d="";for(let t=0;t<=1.001;t+=.04){const a=k*2.094+t*7.5,r=4+t*50;d+=(t?"L":"M")+f(CX+Math.cos(a)*r*.9)+" "+f(CY+Math.sin(a)*r)}arms+=`<path d="${d}" stroke="#e8ccff" stroke-width="5" fill="none" opacity=".35" filter="url(#ptblur)"/><path d="${d}" stroke="#f6eaff" stroke-width=".8" fill="none" opacity=".35"/>`}
+  const scan=[[-30,84,40],[6,104,26],[-12,118,34]].map(([x,y,w])=>`<path d="M${CX+x} ${y}h${w}m4 0h6" stroke="#e8f8ff" stroke-width="1.200" opacity=".22"/>`).join(""); // faint scan lines: the digitized part
+  const spark=(x,y,r,k)=>`<path class="twk" style="animation-delay:${-k*.6}s" d="M${x} ${y-r}l${r*.25} ${r*.75}l${r*.75} ${r*.25}l${-r*.75} ${r*.25}l${-r*.25} ${r*.75}l${-r*.25} ${-r*.75}l${-r*.75} ${-r*.25}l${r*.75} ${-r*.25}z" fill="#fff6ff" opacity=".55"/>`;
+  const sparks=[[146,78,4,0],[178,112,3,1],[166,70,2.500,2],[140,120,3.400,3],[186,86,2.200,4]].map(([x,y,r,k])=>spark(x,y,r,k)).join("")+[[154,104],[172,94],[150,90]].map(([x,y],k)=>`<rect class="twk" style="animation-delay:${-k*1.1}s" x="${x}" y="${y}" width="1.600" height="1.600" fill="#e8f8ff" opacity=".5"/>`).join("");
+  // the ground beneath it goes faintly to squares, as if the field were being drawn anew
+  let pix="";for(let i=0;i<34;i++){const a=rnd(i,20)*6.283,d=Math.sqrt(rnd(i,21)),x=CX+Math.cos(a)*d*62,y=192+Math.sin(a)*d*10;pix+=`<rect x="${f(x)}" y="${f(y)}" width="3" height="2" fill="${rnd(i,22)<.3?"#9ff0f0":"#c8a8ff"}" opacity="${f(.15+(1-d)*.5)}"/>`}
+  // hazy vertical streaks rising from the top of the ring and falling from its base to the ground, fading at their far ends
+  const haze=(up)=>[[-34,.6,5],[-14,1,6.500],[2,.75,4],[18,.9,5.500],[36,.55,4.200]].map(([dx,l,w],k)=>{const x=CX+dx+(up?0:dx*.15),y0=up?CY-62+Math.abs(dx)*.5:CY+60-Math.abs(dx)*.4,len=(up?72:38)*l,y=up?y0-len:y0;
+    return `<rect class="twk" style="animation-delay:${-k*.7-(up?0:.35)}s;animation-duration:${3+k*.4}s" x="${f(x-w/2)}" y="${f(y)}" width="${w}" height="${f(len)}" fill="url(#${up?"pthup":"pthdn"})" filter="url(#ptblur)"/><rect x="${f(x-.4)}" y="${f(y)}" width=".8" height="${f(len)}" fill="url(#${up?"pthup":"pthdn"})"/>`}).join("");
+  // a faint grid spreading out from the streaks: square in the air above, laid flat in perspective on the ground below
+  let gup="";for(let x=CX-96;x<=CX+96;x+=8)gup+=`M${x} 0v66`;for(let y=2;y<=66;y+=8)gup+=`M${CX-96} ${y}h192`;
+  let gdn="";[176,179,183,188,194,201,209,218].forEach(y=>gdn+=`M${CX-130} ${y}h260`);for(let k=-9;k<=9;k++)gdn+=`M${CX+k*7} 160L${CX+k*34} 220`;
+  let grass="";for(let i=0;i<40;i++){const x=6+rnd(i,30)*308,y=166+rnd(i,31)*52;if(Math.abs(x-CX)<70&&y>182&&y<204)continue;grass+=`<path d="M${f(x)} ${f(y)}l-2-6M${f(x)} ${f(y)}l1-7M${f(x)} ${f(y)}l3-5" stroke="${y>190?"#2a361e":"#3a4a2a"}" stroke-width="1.100" stroke-linecap="round"/>`}
+  let stars="";for(let i=0;i<16;i++)stars+=`<circle cx="${f(rnd(i,40)*320)}" cy="${f(rnd(i,41)*70)}" r="${f(.5+rnd(i,42)*.7)}" fill="#f4eeff" opacity="${f(.3+rnd(i,43)*.5)}"/>`;
+  return `<svg viewBox="0 0 320 220" role="img" aria-label="Dusk over an empty field. A ring of pale, crystalline cubes hangs just above the grass, uneven as if it had grown there, with a slow violet swirl at its heart and a few faint sparks drifting inside. The ground beneath it has begun to break into small glowing squares.">
+<defs><linearGradient id="ptsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1c1838"/><stop offset=".55" stop-color="#4a3a6e"/><stop offset=".85" stop-color="#8a6a8a"/><stop offset="1" stop-color="#c8957e"/></linearGradient>
+<linearGradient id="ptgrd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3c4630"/><stop offset="1" stop-color="#1e2618"/></linearGradient>
+<radialGradient id="ptwell" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fbeaff"/><stop offset=".18" stop-color="#d6a8ff"/><stop offset=".5" stop-color="#8a4ad0"/><stop offset=".82" stop-color="#3e1a78"/><stop offset="1" stop-color="#1a0c36"/></radialGradient>
+<radialGradient id="pthalo" cx=".5" cy=".5" r=".5"><stop offset=".55" stop-color="#b48aff" stop-opacity=".5"/><stop offset="1" stop-color="#b48aff" stop-opacity="0"/></radialGradient>
+<filter id="ptblur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.400"/></filter>
+<filter id="ptglow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.300"/></filter><linearGradient id="pthup" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#efe2ff" stop-opacity=".95"/><stop offset="1" stop-color="#c8a8ff" stop-opacity="0"/></linearGradient><linearGradient id="pthdn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#efe2ff" stop-opacity=".9"/><stop offset="1" stop-color="#c8f4ff" stop-opacity=".1"/></linearGradient><radialGradient id="ptfade"><stop offset="0" stop-color="#fff"/><stop offset=".45" stop-color="#fff" stop-opacity=".6"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient><mask id="ptmup"><ellipse cx="${CX}" cy="20" rx="92" ry="52" fill="url(#ptfade)"/></mask><mask id="ptmdn"><ellipse cx="${CX}" cy="190" rx="120" ry="30" fill="url(#ptfade)"/></mask><clipPath id="ptclip"><ellipse cx="${CX}" cy="${CY}" rx="51" ry="57"/></clipPath></defs>
+<rect width="320" height="220" fill="url(#ptsky)"/>${stars}
+<path d="M0 150q40-14 80-6t70-8t90 4t80-10v40H0z" fill="#2e2a46"/><path d="M12 152v-16h3v-3h3v3h3v-3h3v3h4v-14h3v-3h2v3h2v-3h2v3h3v14h4v-3h3v5l2 2v13z" fill="#221e34"/><path d="M33 124h2v4h-2z" fill="#c8957e" opacity=".5"/><path d="M30 120q-5-9 2-16t-1-14" stroke="#6a5e7a" stroke-width="3" fill="none" opacity=".35" stroke-linecap="round" filter="url(#ptblur)"/>
+<path d="M0 162q80-8 160-4t160-2v64H0z" fill="url(#ptgrd)"/>
+<ellipse cx="${CX}" cy="194" rx="70" ry="13" fill="#b48aff" opacity=".22" filter="url(#ptblur)"/>${pix}
+<ellipse class="pshad" cx="${CX}" cy="194" rx="44" ry="6" fill="#0c0a14" opacity=".55" filter="url(#ptblur)"/><path d="${gdn}" stroke="#d6bcff" stroke-width=".5" fill="none" opacity=".45" mask="url(#ptmdn)"/>${grass}${haze(false)}
+<g class="pbob"><ellipse cx="${CX}" cy="${CY}" rx="80" ry="86" fill="url(#pthalo)"/><path d="${gup}" stroke="#e0ccff" stroke-width=".45" fill="none" opacity=".3" mask="url(#ptmup)"/>${haze(true)}
+<ellipse cx="${CX}" cy="${CY}" rx="52" ry="58" fill="url(#ptwell)"/><g clip-path="url(#ptclip)"><g class="pswirl" style="transform-origin:${CX}px ${CY}px">${arms}</g>${scan}</g>${sparks}
+<ellipse cx="${CX}" cy="${CY}" rx="58" ry="64" fill="none" stroke="#c8a8ff" stroke-width="7" opacity=".35" filter="url(#ptblur)"/>${inner}${ring}<g filter="url(#ptglow)" opacity=".7">${glow}</g></g>${loose}
+</svg>`;
+}
+const PORTAL={t:"A Portal Opens",tag:"A rift",rc:"#9a6ad8",go:()=>({art:portalScene(),
+  text:"As your army packs away the boss's hoard, the air ahead begins to hum. Pale cubes drift up out of the grass and lock together into a ring, hanging just above the ground. Inside it, a violet swirl turns slowly, flecked with faint sparks. It doesn't look like it belongs here.",
+  opts:[{label:"Carefully Enter the Portal",go:()=>{camp.portal=1;camp.portalIn=1;saveCamp();return "One careful step at a time, your army files through. The ground underfoot breaks into squares, then into light, and the world you knew folds shut behind you."}},
+    {label:"Quietly Back Away and Go Around",go:()=>{camp.portal=1;saveCamp();return "You give the ring a wide berth and take the long way around. Behind you, the cubes drift apart and the hum fades. Whatever it was, it won't wait for you again."}}]})};
+function enterSim(){ // the region you've just reached becomes the Warped Sim (its own map comes in genWorld)
+  delete camp.portalIn;camp.inSim=1;camp.pos=0;camp.cleared=[];camp.done=false;camp.sel=0;camp.news="You stepped out of the portal into the Warped Sim.";
+  genWorld();saveCamp();openWorld();
+}
 const ROAD_EVENTS=[
  {t:"A Broken-Down Cart",go:()=>{camp.gold+=15;sfx("coin");renderGold();return "Someone left in a hurry. Among the spilled crates, your army finds 15 gold."}},
  {t:"Abandoned Supplies",go:()=>{const k=["draught","smoke","fire","caltrops"][Math.floor(Math.random()*4)];if(camp.items.length<itemCap()){camp.items.push(k);renderItems();return `A soldier's pack lies by the trail. Inside: a ${ITEMS[k].name}.`}camp.gold+=10;sfx("coin");renderGold();return "A soldier's pack lies by the trail. Your own packs are full, so you take the 10 gold inside."}},
@@ -3201,7 +3484,7 @@ const SELLSWORD={t:"A Sellsword",go:()=>{const m=rollMerc();
    {label:`Hire ${m.name} (${m.price} gold)`,cost:m.price,go:()=>{const old=hireMerc(m);return `${m.name} pockets the coin and falls in at the back of your column.`+(old?` ${old.name} shrugs and wanders off.`:"")}},
    {label:"Decline and move on",go:()=>"The sellsword shrugs and goes back to flipping the coin."}]}}};
 function roadEvent(to,done,ev){
-  const L=ROAD_EVENTS.filter(e=>!e.when||e.when()),E=ev||L[Math.floor(Math.random()*L.length)],r=E.go(to),card=t=>(r.art?`<div class="evart">${typeof r.art==="function"?r.art():r.art}</div>`:"")+`<div class="rcard" style="--rc:#a08a64"><span class="rr">On the road</span><small>${t}</small></div>`;saveCamp();
+  const L=ROAD_EVENTS.filter(e=>!e.when||e.when()),E=ev||L[Math.floor(Math.random()*L.length)],r=E.go(to),card=t=>(r.art?`<div class="evart">${typeof r.art==="function"?r.art():r.art}</div>`:"")+`<div class="rcard" style="--rc:${E.rc||"#a08a64"}"><span class="rr">${E.tag||"On the road"}</span><small>${t}</small></div>`;saveCamp();
   $("rititle").textContent=E.t;relinfoFrom=null;riAfter=done;$("relinfo").hidden=false;
   if(typeof r==="string"){$("ribody").innerHTML=card(r);$("riclose").hidden=false;$("riclose").focus();return}
   $("ribody").innerHTML=card(r.text)+`<div class="menubtns">${r.opts.map((o,i)=>`<button class="b" data-i="${i}"${o.cost>camp.gold?" disabled":""}>${o.label}</button>`).join("")}</div>`;$("riclose").hidden=true; // a choice: pick one to carry on
@@ -3211,6 +3494,7 @@ function roadEvent(to,done,ev){
 function travel(id){
   if(worldLock)return;
   const e=edgeOf(camp.pos,id);camp.mercNote="";
+  if(e&&camp.inSim){e[3]=e[4]=1;saveCamp()} // no sellswords, beggars or carts inside the Sim
   if(e&&!e[4]){e[4]=1;saveCamp(); // any path, the first time you take it: sometimes a sellsword (or Vasco's expedition) waits along the way
     const ev=Math.random()<MERC_ROAD?SELLSWORD:unlocks.conquistador&&!camp.scout&&Math.random()<VASCO_ROAD?EXPEDITION:null;
     if(ev){e[3]=1;const A=WORLD[camp.pos],B=WORLD[id];worldLock=true;camp.sel=id;$("wm").style.transform=`translate(${Math.round((A.x+B.x)/2)}px,${Math.round((A.y+B.y)/2)-28}px)`;
@@ -3245,7 +3529,9 @@ function beginBattle(n){
   seeded(n.seed,()=>{
     resetBattle();chal=null;camp.battle={node:n.id,items0:camp.items.slice(),wounds0:(camp.wounds||[]).slice()}; // items0: the pack as the battle began, handed back if a saved battle is abandoned
     pick={x:camp.cfg.x.slice(),m:modOk(camp.cfg.m),c:camp.cfg.c};
-    start(Object.assign({},BIOME[n.b]));
+    const o=Object.assign({},BIOME[n.b]);
+    if(camp.inSim&&n.type==="boss")Object.assign(o,unlocks.sakura&&Math.random()<SIM_BOSS_SAKURA?BIOME.sakura:BIOME[Math.random()<.5?"chasm":"synth"],{fort:1,boss:1,simfort:1}); // the Sim's stronghold: mostly a Sakura Vale, its fortress fading at the corners
+    start(o);
   });
 }
 let rConfirm=0;
@@ -3345,14 +3631,15 @@ function start(o={}){
     const wd=camp.battle?woundsOf(i):0;units.push({t:mine[i],team:"y",ci:i,x,y:H-1,hp:camp.battle?Math.min(campMax(i),camp.hp&&camp.hp[i]>0?camp.hp[i]:campMax(i)):TYPES[mine[i]].hp,moved:0,acted:0,...(wd?{wounds:wd}:{})});
     units.push({t:foe[i],team:"f",x:W-1-x,y:0,hp:TYPES[foe[i]].hp,moved:0,acted:0});
   });
-  if(o.boss){const t=rnd(foe);units.push({t,team:"f",x:5,y:1,hp:TYPES[t].hp,moved:0,acted:0})}
+  if(o.boss){const t=camp.inSim&&o.simfort?"X":rnd(foe);units.push({t,team:"f",x:5,y:1,hp:TYPES[t].hp,moved:0,acted:0})}
   const spot=(rows,xs)=>{for(const y of rows)for(const x of xs)if(!solid(x+","+y)&&!at(x,y))return [x,y];return null};
   if(camp.battle&&!chal&&camp.merc&&camp.merc.hp>0){const m=camp.merc,sp=spot([H-1,H-2],[5,2,7,0,9,4,6,1,3,8]);if(sp)units.push({t:m.t,team:"y",auto:1,merc:1,mname:m.name,st:m.st,x:sp[0],y:sp[1],hp:Math.min(m.hp,m.st.hp),moved:1,acted:1})} // your hired sword
   FOE_RELIC=new Set();FOE_ITEMS=[];
-  if(camp.battle&&!chal){const E=esc(camp.region||1); // escalation (see ESC): extra enemy units, then Elites, then the boss's loadout
-    for(let i=0;i<E.extra;i++){const t=rnd(foe),sp=spot([1,0],[4,5,2,7,0,9,3,6,1,8]);if(sp){foe.push(t);units.push({t,team:"f",x:sp[0],y:sp[1],hp:TYPES[t].hp,moved:0,acted:0})}}
-    units.filter(u=>u.team==="f").sort(()=>Math.random()-.5).slice(0,E.elite).forEach(u=>{u.elite=1;u.hp+=ELITE_HP});
-    if(o.boss)foeLoadout(camp.region||1);
+  if(camp.battle&&!chal){const ER=(camp.region||1)+(camp.inSim?SIM_ESC:0),E=esc(ER); // escalation (see ESC): extra enemy units, then Elites, then the boss's loadout (the Sim fights as if two regions further on)
+    for(let i=0;i<E.extra;i++){const t=camp.inSim&&Math.random()<SIM_GRID?"X":rnd(foe),sp=spot([1,0],[4,5,2,7,0,9,3,6,1,8]);if(sp){foe.push(t);units.push({t,team:"f",x:sp[0],y:sp[1],hp:TYPES[t].hp,moved:0,acted:0})}}
+    units.filter(u=>u.team==="f").sort(()=>Math.random()-.5).slice(0,E.elite).forEach(u=>{u.elite=1;if(camp.inSim){u.glitch=Object.keys(GLITCH)[Math.floor(Math.random()*3)];u.hp+=SIM_ELITE_HP}else u.hp+=ELITE_HP});
+    if(o.boss)foeLoadout(ER);
+    if(RELIC.has("gbook")){const ys=units.filter(u=>u.team==="y"&&!u.auto);if(ys.length){const u=ys[Math.floor(Math.random()*ys.length)];u.glitch=Object.keys(GLITCH)[Math.floor(Math.random()*3)];u.pages=1}} // the Glitchy Book's Corrupted Pages
   }
   vanguard();
   if(FOE_RELIC.has("keep")){const fs=units.filter(u=>u.team==="f");fs[Math.floor(Math.random()*fs.length)].keep=1}
@@ -3849,19 +4136,21 @@ function findRelics(nm){
   });
 }
 /* ---------- Gold and relic rewards ---------- */
-const goldFor=n=>(n.type==="boss"?25+BOSS_GOLD_STEP*((camp.region||1)-1):10)+2*units.filter(u=>u.team==="y"&&u.ci!=null).length+(camp.relics.includes("ledger")?LEDGER_GOLD:0)+(camp.relics.includes("vgloves")?VGLOVES_GOLD:0)+(camp.relics.includes("luckycross")&&relicUsed.qkill?LUCKYCROSS_GOLD:0); // more for bringing your army home
+const goldFor=n=>(n.type==="boss"?25+BOSS_GOLD_STEP*((camp.region||1)-1):10)+2*units.filter(u=>u.team==="y"&&u.ci!=null).length+(camp.relics.includes("ledger")?LEDGER_GOLD:0)+(camp.relics.includes("vgloves")?VGLOVES_GOLD:0)+(n.type==="boss"&&camp.relics.includes("credits")?CREDITS_BOSS:0)+(camp.relics.includes("luckycross")&&relicUsed.qkill?LUCKYCROSS_GOLD:0); // more for bringing your army home
 // 2 or 3 relics the army doesn't have yet, drawn by rarity weight
 const relicCount=id=>camp.relics.filter(r=>r===id).length;
 // relics the shop may stock right now: sold there, unlocked, useful to this army, and not already carried as many times as allowed
 const needOk=(R,army)=>!R.need||[].concat(R.need).some(t=>army.includes(t)); // need: a unit type (or list of types) the army must have
 const shopRelics=()=>{const army=armyTypes();return Object.keys(RELICS).filter(id=>{const R=RELICS[id];return (R.src==="shop"||R.src==="both")&&(!R.lock||unlocks[R.lock])&&needOk(R,army)&&relicCount(id)<(R.max||1)&&!clash(id,camp.relics)})};
 function relicOffer(){
-  const army=armyTypes(),pool=Object.keys(RELICS).filter(id=>!camp.relics.includes(id)&&!RELICS[id].find&&RELICS[id].src!=="shop"&&RELICS[id].src!=="boss"&&(!RELICS[id].lock||unlocks[RELICS[id].lock])&&needOk(RELICS[id],army)&&!clash(id,camp.relics)),out=[];
+  const army=armyTypes(),pool=Object.keys(RELICS).filter(id=>!camp.relics.includes(id)&&!RELICS[id].find&&RELICS[id].src!=="shop"&&RELICS[id].src!=="boss"&&RELICS[id].src!=="sim"&&(!RELICS[id].lock||unlocks[RELICS[id].lock])&&needOk(RELICS[id],army)&&!clash(id,camp.relics)),out=[];
   for(let n=2+(Math.random()<.5?1:0)+relicCount("coin");n>0&&pool.length;n--){ // each Copper Coin of Good Fortune adds a choice
     const tot=pool.reduce((t,id)=>t+RARITY_W[RELICS[id].r],0);let roll=Math.random()*tot,i=0;
     while(roll>=RARITY_W[RELICS[pool[i]].r]){roll-=RARITY_W[RELICS[pool[i]].r];i++}
     out.push(pool.splice(i,1)[0]);
   }
+  if(camp.inSim){const sp=Object.keys(RELICS).filter(id=>RELICS[id].src==="sim"&&RELICS[id].r<2&&!camp.relics.includes(id)&&!out.includes(id)); // the Sim always offers one of its own
+    if(sp.length){const tot=sp.reduce((t,id)=>t+RARITY_W[RELICS[id].r],0);let roll=Math.random()*tot,i=0;while(roll>=RARITY_W[RELICS[sp[i]].r]){roll-=RARITY_W[RELICS[sp[i]].r];i++}out.unshift(sp[i]);if(out.length>3+relicCount("coin"))out.pop()}}
   return out.length?out:null;
 }
 // a boss's spoils: pick 1 of 3. One always comes from the boss list; the other two from relics offered after battles
@@ -3871,8 +4160,9 @@ function bossOffer(){
   const army=armyTypes(),ok=R=>(!R.lock||unlocks[R.lock])&&needOk(R,army);
   const have=id=>relicCount(id)>=(RELICS[id].max||1),rar=e=>e.startsWith("item:")?(ITEMS[e.slice(5)].r||0):RELICS[e].r;
   const pick=list=>{const tot=list.reduce((t,e)=>t+BOSS_W[rar(e)],0);let roll=Math.random()*tot,i=0;while(roll>=BOSS_W[rar(list[i])]){roll-=BOSS_W[rar(list[i])];i++}return list[i]};
-  const bossList=Object.keys(RELICS).filter(id=>RELICS[id].src==="boss"&&ok(RELICS[id])&&!have(id)),out=bossList.length?[pick(bossList)]:[];
-  const pool=[...Object.keys(RELICS).filter(id=>{const R=RELICS[id];return !R.find&&R.src!=="shop"&&R.src!=="boss"&&ok(R)&&!have(id)}),
+  const simList=camp.inSim?Object.keys(RELICS).filter(id=>RELICS[id].src==="sim"&&RELICS[id].r===2&&!have(id)):[]; // the Sim's boss guarantees one of its rares
+  const bossList=simList.length?simList:Object.keys(RELICS).filter(id=>RELICS[id].src==="boss"&&ok(RELICS[id])&&!have(id)),out=bossList.length?[pick(bossList)]:[];
+  const pool=[...Object.keys(RELICS).filter(id=>{const R=RELICS[id];return !R.find&&R.src!=="shop"&&R.src!=="boss"&&R.src!=="sim"&&ok(R)&&!have(id)}),
     ...Object.keys(ITEMS).filter(id=>ok(ITEMS[id])&&!carryMax(id)).map(id=>"item:"+id)];
   while(out.length<3&&pool.length){
     const cand=out.filter(e=>e.startsWith("item:")).length>=2?pool.filter(e=>!e.startsWith("item:")):pool;if(!cand.length)break;
@@ -3965,6 +4255,15 @@ const RICON={ // small 32-unit relic icons
  vgloves:'<ellipse cx="16" cy="29.500" rx="11" ry="1.600" fill="rgba(0,0,0,.2)"/><path d="M17 27l1-8q-1-3 .5-6l1.500-6q1-1.500 2.200-.4l-.6 6l1.200-7q1.200-1.400 2.300-.2l-.5 7.200l1.400-5.800q1.300-1 2.100.3l-1 6.300l1.200-3.600q1.200-.6 1.800.5l-1.200 6q-.8 4-3.400 6.500l-.4 4.200z" fill="#7a4e28" stroke="#2c1a0c" stroke-width="1" stroke-linejoin="round"/><path d="M17.400 23h8.400" stroke="#c8a050" stroke-width="1.300"/><path d="M21 12l-.6 5M24.500 11l-.5 5.500M27.500 12.500l-.8 4.500" stroke="#2c1a0c" stroke-width=".6" opacity=".6"/><path d="M4 25l-1-7q-.5-3 1.500-5.200l2-5.300q1.200-1.300 2.200 0l-1 5.500l2.200-6.400q1.400-1.200 2.300.1l-1.200 6.800l2-5.200q1.400-.8 2.100.5l-1.400 5.800l1.600-3q1.300-.4 1.700.8l-1.700 5.300q-1.300 3.600-4.300 5.600l.2 3.800z" fill="#9a6a38" stroke="#2c1a0c" stroke-width="1" stroke-linejoin="round"/><path d="M3.700 21.300l9-1.200" stroke="#d8b860" stroke-width="1.300"/><path d="M8 11.500q1.500-2 3-2.500M5.500 14q.6-1.800 1.600-2.800" stroke="#e0b884" stroke-width=".9" fill="none" opacity=".75" stroke-linecap="round"/><path d="M6 24q3 1.500 7-.5" stroke="#2c1a0c" stroke-width=".6" stroke-dasharray="1 .8" fill="none"/>',
  vmorion:'<ellipse cx="16" cy="29.500" rx="12" ry="1.600" fill="rgba(0,0,0,.2)"/><path d="M20 9q2-5 7-7.500q2.500-.8 4 0q-2 .6-3 2q2-.2 3 .6q-2 .6-3.300 2q1.600.1 2.300.9q-2.400.9-4.300 1.300q1 .7 1.400 1.200q-3.600.6-6.100-.5z" fill="#b8202a" stroke="#4a0a0e" stroke-width=".8" stroke-linejoin="round"/><path d="M21 9q3-4.500 8.500-7" stroke="#f0b0b0" stroke-width=".7" fill="none"/><path d="M9.500 17q.5-10 6.500-12.500q6 2.500 6.500 12.500z" fill="#c4ccd4" stroke="#2e3440" stroke-width="1.100" stroke-linejoin="round"/><path d="M10.500 15.500q.8-8.500 5.500-10.500q4.700 2 5.500 10.500" stroke="#d9b862" stroke-width="1" fill="none"/><path d="M7.500 23q-.5-8.500 8.500-9q9 .5 8.500 9z" fill="#c4ccd4" stroke="#2e3440" stroke-width="1.100" stroke-linejoin="round"/><path d="M16 14q9 .5 8.500 9h-5q.5-6.500-3.500-9z" fill="rgba(0,0,0,.17)"/><path d="M7.600 20.400h16.800v2.400H7.600z" fill="#d9b862" stroke="#6a4c10" stroke-width=".5"/><circle cx="11" cy="21.600" r=".7" fill="#6a4c10"/><circle cx="16" cy="21.600" r=".7" fill="#6a4c10"/><circle cx="21" cy="21.600" r=".7" fill="#6a4c10"/><path d="M1.500 18q2 10 14.500 10t14.500-10q-3.500 5.800-14.500 5.800t-14.500-5.800z" fill="#aab4be" stroke="#2e3440" stroke-width="1.100" stroke-linejoin="round"/><path d="M2.300 19.500q3 7.700 13.700 7.700t13.700-7.700" stroke="#d9b862" stroke-width="1" fill="none"/><path d="M10.500 17q.5-2.500 3-3.500M11.500 12q.6-4 3-6" stroke="#fff" stroke-width="1.100" fill="none" opacity=".65" stroke-linecap="round"/>',
  vfalcata:'<path d="M6.500 23.500q-1-9 6-15q6-5 14-5.500q-3 3-4.500 7.500q-1.500 5.500-6.500 9.500z" fill="#d6dde4" stroke="#2e3440" stroke-width="1.100" stroke-linejoin="round"/><path d="M9 21q1-8 7.500-12.500q4-2.800 8.500-4" stroke="#8c98a4" stroke-width=".9" fill="none"/><path d="M8.300 18q2-6 7-9.500" stroke="#fff" stroke-width="1" fill="none" opacity=".75" stroke-linecap="round"/><path d="M4 20.500l7.500 5" stroke="#6a4c10" stroke-width="3.400" stroke-linecap="round"/><path d="M4 20.500l7.500 5" stroke="#e0bf62" stroke-width="2" stroke-linecap="round"/><path d="M8 24l-3.500 5" stroke="#3a2412" stroke-width="3.400" stroke-linecap="round"/><path d="M8 24l-3.500 5" stroke="#8a2a20" stroke-width="2" stroke-linecap="round"/><path d="M7 25.300l1 .7M6 26.700l1 .7" stroke="#e0bf62" stroke-width=".7"/><path d="M4.500 29q-2 1.500-1 3.200q2.400 .4 3.600-1.600q2.500-.4 3.200-2.400q-1.200-1.400-3-1.200z" fill="#e0bf62" stroke="#6a4c10" stroke-width=".8" stroke-linejoin="round"/><circle cx="6.300" cy="29.400" r=".7" fill="#8a2a20"/><path d="M10 23q1-1.200 2.600-1" stroke="#e0bf62" stroke-width="1.100" fill="none"/><circle cx="7.700" cy="23.200" r="1" fill="#b8202a" stroke="#6a4c10" stroke-width=".4"/><g fill="#ffe28a"><path d="M27 15l.6 1.500l1.500.6l-1.500.6l-.6 1.500l-.6-1.500l-1.500-.6l1.500-.6z"/></g>',
+ scube:'<circle cx="16" cy="17" r="9" fill="#c8a8ff" opacity=".35"/><ellipse cx="16" cy="28" rx="7" ry="1.6" fill="rgba(0,0,0,.2)"/><path d="M16 9.5L22.5 13.25L16 17L9.5 13.25z" fill="#efe8ff"/><path d="M9.5 13.25L16 17L16 24.5L9.5 20.75z" fill="#a896e4"/><path d="M16 17L22.5 13.25L22.5 20.75L16 24.5z" fill="#5c4aa6"/><path d="M16 9.5L22.5 13.25L22.5 20.75L16 24.5L9.5 20.75L9.5 13.25z" fill="none" stroke="#1c1238" stroke-width=".9" stroke-linejoin="round"/><path d="M9.5 13.25L16 17L22.5 13.25M16 17v7.5" fill="none" stroke="#fbf8ff" stroke-width=".6" opacity=".85"/><path d="M25 5.4l0.73 1.87l1.87 0.73l-1.87 0.73l-0.73 1.87l-0.73 -1.87l-1.87 -0.73l1.87 -0.73z" fill="#fff6ff"/>',
+ mcube:'<circle cx="16" cy="16" r="12" fill="#c8a8ff" opacity=".35"/><ellipse cx="16" cy="29" rx="10" ry="1.8" fill="rgba(0,0,0,.2)"/><path d="M16 7L24.66 12L16 17L7.34 12z" fill="#efe8ff"/><path d="M7.34 12L16 17L16 27L7.34 22z" fill="#a896e4"/><path d="M16 17L24.66 12L24.66 22L16 27z" fill="#5c4aa6"/><path d="M16 7L24.66 12L24.66 22L16 27L7.34 22L7.34 12z" fill="none" stroke="#1c1238" stroke-width=".9" stroke-linejoin="round"/><path d="M7.34 12L16 17L24.66 12M16 17v10" fill="none" stroke="#fbf8ff" stroke-width=".6" opacity=".85"/><path d="M6 6L8.6 7.5L6 9L3.4 7.5z" fill="#d8fbf6"/><path d="M3.4 7.5L6 9L6 12L3.4 10.5z" fill="#78cfd6"/><path d="M6 9L8.6 7.5L8.6 10.5L6 12z" fill="#2e7486"/><path d="M6 6L8.6 7.5L8.6 10.5L6 12L3.4 10.5L3.4 7.5z" fill="none" stroke="#1c1238" stroke-width=".9" stroke-linejoin="round"/><path d="M3.4 7.5L6 9L8.6 7.5M6 9v3" fill="none" stroke="#7ae8ff" stroke-width=".6" opacity=".85"/><path d="M27 4.4l0.73 1.87l1.87 0.73l-1.87 0.73l-0.73 1.87l-0.73 -1.87l-1.87 -0.73l1.87 -0.73z" fill="#fff6ff"/>',
+ lcube:'<g stroke="#ffe8ff" stroke-width="1.100" opacity=".55" stroke-linecap="round"><path d="M16 1.500v3M3 9l2.500 1.500M29 9l-2.500 1.500M4 25l2.500-1.500M28 25l-2.500-1.500"/></g><circle cx="16" cy="16" r="14" fill="#d070ff" opacity=".3"/><path d="M16 3.5L26.82 9.75L16 16L5.18 9.75z" fill="#fbf4ff"/><path d="M5.18 9.75L16 16L16 28.5L5.18 22.25z" fill="#c4a8ff"/><path d="M16 16L26.82 9.75L26.82 22.25L16 28.5z" fill="#7a52d8"/><path d="M16 3.5L26.82 9.75L26.82 22.25L16 28.5L5.18 22.25L5.18 9.75z" fill="none" stroke="#1c1238" stroke-width=".9" stroke-linejoin="round"/><path d="M5.18 9.75L16 16L26.82 9.75M16 16v12.5" fill="none" stroke="#fbf8ff" stroke-width=".6" opacity=".85"/><path d="M16 7.6l0.67 1.73l1.73 0.67l-1.73 0.67l-0.67 1.73l-0.67 -1.73l-1.73 -0.67l1.73 -0.67z" fill="#fff"/><path d="M26 25l0.56 1.44l1.44 0.56l-1.44 0.56l-0.56 1.44l-0.56 -1.44l-1.44 -0.56l1.44 -0.56z" fill="#ffe066"/>',
+ spark:'<circle cx="16" cy="16" r="13" fill="#ffe066" opacity=".25"/><path d="M16 3l3.36 8.64l8.64 3.36l-8.64 3.36l-3.36 8.64l-3.36 -8.64l-8.64 -3.36l8.64 -3.36z" fill="#ffe94a"/><path d="M16 8l1.96 5.04l5.04 1.96l-5.04 1.96l-1.96 5.04l-1.96 -5.04l-5.04 -1.96l5.04 -1.96z" fill="#fffbe0"/><circle cx="13.300" cy="15" r="1.300" fill="#3a2a00"/><circle cx="18.700" cy="15" r="1.300" fill="#3a2a00"/><path d="M13.800 18.300q2.200 1.700 4.400 0" stroke="#3a2a00" stroke-width=".9" fill="none" stroke-linecap="round"/><path d="M27 3.8l0.62 1.58l1.58 0.62l-1.58 0.62l-0.62 1.58l-0.62 -1.58l-1.58 -0.62l1.58 -0.62z" fill="#7ae8ff"/><path d="M5 23.2l0.50 1.30l1.30 0.50l-1.30 0.50l-0.50 1.30l-0.50 -1.30l-1.30 -0.50l1.30 -0.50z" fill="#d070ff"/>',
+ credits:'<ellipse cx="16" cy="28" rx="11" ry="2" fill="rgba(0,0,0,.2)"/><path d="M5 23l3-3.5h6l3 3.5l-3 3.5h-6z" fill="#9a86e0" stroke="#1c1238" stroke-width=".9" stroke-linejoin="round"/><path d="M8.5 23h5M11 21v4" stroke="#1c1238" stroke-width=".8" opacity=".6"/><path d="M15 23l3-3.5h6l3 3.5l-3 3.5h-6z" fill="#7ae8ff" stroke="#1c1238" stroke-width=".9" stroke-linejoin="round"/><path d="M18.5 23h5M21 21v4" stroke="#1c1238" stroke-width=".8" opacity=".6"/><path d="M10 18l3-3.5h6l3 3.5l-3 3.5h-6z" fill="#c8b8ff" stroke="#1c1238" stroke-width=".9" stroke-linejoin="round"/><path d="M13.5 18h5M16 16v4" stroke="#1c1238" stroke-width=".8" opacity=".6"/><path d="M10 12.5l3-3.5h6l3 3.5l-3 3.5h-6z" fill="#a8f0ff" stroke="#1c1238" stroke-width=".9" stroke-linejoin="round"/><path d="M13.5 12.5h5M16 10.5v4" stroke="#1c1238" stroke-width=".8" opacity=".6"/><path d="M26 4.6l0.67 1.73l1.73 0.67l-1.73 0.67l-0.67 1.73l-0.67 -1.73l-1.73 -0.67l1.73 -0.67z" fill="#fff6ff"/>',
+ cshades:'<ellipse cx="16" cy="25" rx="11" ry="1.800" fill="rgba(0,0,0,.18)"/><path d="M2 12h28l-1 2.500h-1.500q-.5 6.500-6.500 6.500q-5 0-5.500-5.500h-1q-.5 5.500-5.500 5.500q-6 0-6.500-6.500H3z" fill="#241a4a" stroke="#0c0820" stroke-width="1" stroke-linejoin="round"/><path d="M6 14.500h7.500q-.5 4.500-4 4.500q-3.500 0-3.500-4.500zM18.500 14.500H26q0 4.500-3.500 4.500q-3.500 0-4-4.500z" fill="#3ad8ff" opacity=".85"/><path d="M6.500 15.500l5 0M19 15.500l5 0" stroke="#d8faff" stroke-width=".8"/><path d="M7 17.500h5M19.500 17.500h5" stroke="#c06aff" stroke-width=".7" opacity=".9"/><path d="M3 12.600h26" stroke="#7ae8ff" stroke-width=".7" opacity=".8"/>',
+ cgaunt:'<path d="M9 28v-9l-2-6q0-3 3-3l1 4V8q0-2 2-2t2 2v5V6q0-2 2-2t2 2v7V7q0-2 2-2t2 2v8l1-3q3 0 2 3l-2 7v6z" fill="#3a3070" stroke="#120c28" stroke-width="1.100" stroke-linejoin="round"/><path d="M13 13v6M17 13v6M21 13v6" stroke="#7ae8ff" stroke-width="1"/><path d="M9 28h14v-4H9z" fill="#241a4a" stroke="#120c28" stroke-width="1"/><path d="M10 26h12" stroke="#c06aff" stroke-width="1.100"/><g fill="#7ae8ff"><rect x="11.400" y="4.600" width="2.200" height="2.200"/><rect x="15.400" y="3" width="2.200" height="2.200"/><rect x="19.400" y="4" width="2.200" height="2.200"/></g>',
+ cplate:'<ellipse cx="16" cy="29" rx="10" ry="1.800" fill="rgba(0,0,0,.2)"/><path d="M6 6l5-2q5 3 10 0l5 2l1 6q-1 2-3 2v10q-4 4-8 4t-8-4V14q-2 0-3-2z" fill="#3a3070" stroke="#120c28" stroke-width="1.200" stroke-linejoin="round"/><path d="M16 7v20" stroke="#120c28" stroke-width="1"/><path d="M11 10q5 3 10 0M10 16h12M10 21h12" stroke="#7ae8ff" stroke-width="1" fill="none"/><path d="M16 12l3 3-3 3-3-3z" fill="#c06aff" stroke="#e8dcff" stroke-width=".7"/><path d="M8 8l2-1" stroke="#d8faff" stroke-width="1" opacity=".7"/>',
+ gbook:'<ellipse cx="16" cy="28.500" rx="11" ry="1.800" fill="rgba(0,0,0,.2)"/><path d="M5 6h10q1 0 1 1v20q-1-1-2-1H5z" fill="#5a3ab0" stroke="#1c1238" stroke-width="1"/><path d="M27 6H17q-1 0-1 1v20q1-1 2-1h9z" fill="#4a2e98" stroke="#1c1238" stroke-width="1"/><path d="M6.500 8h8v16.500h-8zM17.500 8h8v16.500h-8z" fill="#efe8ff"/><rect x="7.5" y="10" width="6" height="1.4" fill="#6a5aa8"/><rect x="7.5" y="13" width="4" height="1.4" fill="#6a5aa8"/><rect x="9" y="16" width="5" height="1.4" fill="#7ae8ff"/><rect x="7.5" y="19" width="6" height="1.4" fill="#6a5aa8"/><rect x="18.5" y="10" width="5" height="1.4" fill="#6a5aa8"/><rect x="20" y="13" width="5" height="1.4" fill="#d070ff"/><rect x="18.5" y="16" width="6" height="1.4" fill="#6a5aa8"/><rect x="18.5" y="19" width="3" height="1.4" fill="#6a5aa8"/><rect x="22.500" y="21" width="2.500" height="2.500" fill="#7ae8ff"/><rect x="11" y="21.500" width="2" height="2" fill="#d070ff"/><path d="M16 6v21" stroke="#1c1238" stroke-width="1.100"/>',
  pavise:'<path d="M24 27l4 3" stroke="#4a3018" stroke-width="2" stroke-linecap="round"/><path d="M8 5q8-2 16 0v18q-8 6-16 6z" fill="#a8743a" stroke="#3a2412" stroke-width="1.200" stroke-linejoin="round"/><path d="M16 4v24" stroke="#6a4420" stroke-width="2"/><path d="M10 7q6-1.500 12 0v15q-6 4.500-12 4.500z" fill="#3a5a8a" opacity=".85"/><path d="M16 8v16M11.500 14h9" stroke="#e8dcc0" stroke-width="2.200"/><path d="M9 6v22" stroke="#d8a868" stroke-width=".9" opacity=".6"/><circle cx="12" cy="10" r=".8" fill="#2a1a0c"/><circle cx="20" cy="10" r=".8" fill="#2a1a0c"/>',
  cap:'<path d="M5 24q1-13 12-15q11-2 11 12l-3 2q-1-8-5-10q-5-1-6 6z" fill="#7a2a24" stroke="#3a1210" stroke-width="1.100"/><path d="M10 14q5 1 7 7M16 10q5 2 6 8" stroke="#c8b08a" stroke-width="1.600" fill="none" opacity=".55"/><path d="M4 23q8-4 16 0l-.5 3.500q-7.500-3.500-15 0z" fill="#b8ac90" stroke="#4a4030" stroke-width="1"/><circle cx="26" cy="24.500" r="3" fill="#e2d6bc" stroke="#6a604c" stroke-width=".9"/>'};
 const relicIcon=(id,sz=32)=>`<svg viewBox="0 0 32 32" width="${sz}" height="${sz}" aria-hidden="true">${RICON[id]}</svg>`;
@@ -3991,7 +4290,7 @@ const ITEMS={ // consumables, used in battle (campaign only); using one takes th
  incense:{name:"Enraging Incense",price:80,r:2,max:1,desc:"You can carry only one. Burn it beside this unit or an adjacent ally: for the rest of the battle it gets +1 damage, +1 movement and +1 pierce, but 5% less evasion. The smoke smells of iron and bad decisions."},
  mule:{name:"Mule Hair Potion",price:40,r:1,lock:"mule",desc:"The drinker turns stubborn as a mule: +2 armor, and it can't be pushed or slowed, until the end of your next turn. Brewed from genuine mule hair. Marcus swears Parsnip had nothing to do with it."}};
 // r: rarity (an uncommon is drawn half as often as a common, a rare a quarter as often); max: how many the pack can hold at once; passive: works from the pack by itself, never used by hand; free: using it costs the unit nothing; lock: the unlock it waits for
-const BOSS_GOLD_STEP=10,ITEM_CAP=3,TONIC_MV=2,LEDGER_GOLD=5,VGLOVES_GOLD=3,TOKEN_OFF=.2,CHEST_OFF=.1,CHEST_GOLD=50,ITEM_STOCK=[1,.5,.25],SHOP_ITEMS=3,MULE_BUYS=5,RELIC_PRICE=[40,70,110],SMOKE_EV=.2,VIPER_DMG=2,PHOENIX_EV=.05,DRYICE_EV=.03,INCENSE_EV=.05,FLASH_DMG=1,DRAUGHT_HEAL=5,FIRE_DMG=3,LIGHTNING_DMG=1,CALTROP_DMG=1,CALTROP_ALLY=.5,CALTROP_AVOID=2.5; // CALTROP_ALLY: the chance your own unit steps on one; CALTROP_AVOID: how much the enemy minds crossing one // RELIC_PRICE by rarity: common, uncommon, rare
+const SHADES_EV=.02,CPLATE_DMG=3,CPLATE_RET=2,CREDITS_GOLD=25,CREDITS_BOSS=10,CREDITS_SELL=25,CUBE_SLOW=.2,BOSS_GOLD_STEP=10,ITEM_CAP=3,TONIC_MV=2,LEDGER_GOLD=5,VGLOVES_GOLD=3,TOKEN_OFF=.2,CHEST_OFF=.1,CHEST_GOLD=50,ITEM_STOCK=[1,.5,.25],SHOP_ITEMS=3,MULE_BUYS=5,RELIC_PRICE=[40,70,110],SMOKE_EV=.2,VIPER_DMG=2,PHOENIX_EV=.05,DRYICE_EV=.03,INCENSE_EV=.05,FLASH_DMG=1,DRAUGHT_HEAL=5,FIRE_DMG=3,LIGHTNING_DMG=1,CALTROP_DMG=1,CALTROP_ALLY=.5,CALTROP_AVOID=2.5; // CALTROP_ALLY: the chance your own unit steps on one; CALTROP_AVOID: how much the enemy minds crossing one // RELIC_PRICE by rarity: common, uncommon, rare
 const itemCap=()=>ITEM_CAP+relicCount("saddle"); // Parsnip's Saddlebags: a slot each
 const carryMax=id=>!!ITEMS[id].max&&camp.items.filter(x=>x===id).length>=ITEMS[id].max; // already carrying as many as it allows
 const priceOf=p=>Math.round(p*(camp.relics.includes("token")?1-TOKEN_OFF:1)*(camp.relics.includes("chest")?1-CHEST_OFF:1)); // Marcus's Loyalty Token, Boss's War Chest
@@ -4015,7 +4314,7 @@ const IICON={
  phoenix:'<circle cx="16" cy="16" r="13" fill="#ff8a2a" opacity=".18"/><path d="M16 4q3 4 1 7q4-2 5-6q4 6 0 11q4 0 6-3q0 8-8 10l-4 4l-4-4q-8-2-8-10q2 3 6 3q-4-5 0-11q1 4 5 6q-2-3 1-7z" fill="#e2531a" stroke="#5a1a08" stroke-width="1" stroke-linejoin="round"/><path d="M16 9q2 3 0 6q3-1 4-3q2 4-1 7q-1 2-3 3q-2-1-3-3q-3-3-1-7q1 2 4 3q-2-3 0-6z" fill="#ffb347"/><path d="M16 15l1.200 2.500l2.500.4l-1.800 1.800l.4 2.500l-2.300-1.200l-2.300 1.200l.4-2.500l-1.800-1.800l2.500-.4z" fill="#fff3b0"/>',
  fire:'<path d="M10 28v-10q0-7 6-9q6 2 6 9v10z" fill="#e2531a" stroke="#2a1410" stroke-width="1.100"/><path d="M13.500 9h5V5h-5z" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><circle cx="16" cy="20" r="7" fill="#ff8a2a" opacity=".28"/><path d="M16 25q-4-4 0-10q4 6 0 10z" fill="#ffd27a"/><path d="M12 16q-1 5 0 9" stroke="#fff" stroke-width="1" opacity=".45" fill="none"/>'};
 const itemIcon=(id,sz=32)=>`<svg viewBox="0 0 32 32" width="${sz}" height="${sz}" aria-hidden="true">${IICON[id]}</svg>`;
-const MARCUS={
+const MARCUS={credits:"Credits, eh? They hum when I count them, and I count them twice. Here's your gold.",
  greet:["Ah, a customer! Mind Parsnip, he bites. Only on Tuesdays.","Wares for the weary! Every one of them one of a kind. Mostly.","Don't mind the bones, friend. Business has been dead lately. Ha!","Back from the fighting, eh? Gold spends the same whether you're alive or not. Trust me.","Herbert sends his regards. He still owes me for that mug."],
  buy:["Pleasure doing business!","Sold! No refunds. No exceptions. No questions.","Parsnip approves. I can tell. He's still asleep.","A fine choice for a fine customer."],
  eldritch:"That one? Found it in a well. The well was empty after. I'd sell it quick, if I were me. Which I am.",
@@ -4067,13 +4366,15 @@ function renderShop(){
   const need=p=>camp.gold<p?`Need ${p-camp.gold} more`:"";
   $("shlist").innerHTML='<div class="shsec">Consumables</div>'+n.stock.items.map(id=>{const I=ITEMS[id],pr=priceOf(I.price);return row("item",id,I.name,pr,(I.r?RARITY[I.r][0]+" consumable":"Consumable")+" \u00b7 one use",I.desc,itemIcon(id,38),(n.stock.itemsSold||[]).includes(id)?"Sold":carryMax(id)?"Carrying one":need(pr),I.r?RARITY[I.r][1]:"#a08a64")}).join("")
     +((n.stock.mercs||[]).length?'<div class="shsec">Mercenary contracts</div>'+n.stock.mercs.map((m,i)=>{const pr=priceOf(m.price);return row("merc",i,m.name,pr,"Contract \u00b7 "+MERC_TERM+" battles",mercDesc(m),`<span class="mdisc">${disc(m.t,COLORS[camp.cfg.c],1,1)}</span>`,m.hired?"Hired":need(pr),"#6a7f8f")}).join(""):"")
+    +(camp.relics.includes("credits")?'<div class="shsec">Marcus is buying</div>'+row("sell","credits",RELICS.credits.name,"+"+CREDITS_SELL,"Sell \u00b7 gone for good","Marcus will take your Strange Credits for "+CREDITS_SELL+" gold. You lose their +"+CREDITS_BOSS+" gold from bosses.",relicIcon("credits",38),"",RARITY[1][1]):"")
     +'<div class="shsec">Relics</div>'+(n.stock.relics.length?n.stock.relics.map(id=>{const R=RELICS[id],[rn,rc]=RARITY[R.r],pr=priceOf(RELIC_PRICE[R.r]);return row("relic",id,R.name,pr,rn+" relic",R.desc,relicIcon(id,38),n.stock.sold.includes(id)?"Sold":relicCount(id)>=(R.max||1)?"Owned":need(pr),rc)}).join(""):'<p class="rsub">Marcus has no relics for you today.</p>');
   $("shlist").querySelectorAll(".shitem").forEach(b=>b.onclick=()=>buy(b.dataset.kind,b.dataset.id));
 }
 const boughtFromMarcus=()=>{unlocks.buys=(unlocks.buys||0)+1;saveU();if(unlocks.buys>=MULE_BUYS)unlock("mule")}; // every purchase counts toward the Mule Hair Potion
 function buy(kind,id){
   const n=shopNode;
-  if(kind==="item"){
+  if(kind==="sell"){if(!camp.relics.includes(id))return;camp.relics.splice(camp.relics.indexOf(id),1);camp.gold+=CREDITS_SELL;marcusSays(MARCUS.credits);renderRelics()} // Strange Credits, sold back
+  else if(kind==="item"){
     const I=ITEMS[id],pr=priceOf(I.price);if((n.stock.itemsSold||[]).includes(id))return;if(carryMax(id))return marcusSays(MARCUS.onlyone);if(camp.gold<pr)return marcusSays(MARCUS.poor);if(camp.items.length>=itemCap()){marcusSays(MARCUS.full);return swapItem(id,null,()=>buy(kind,id))}
     camp.gold-=pr;camp.items.push(id);(n.stock.itemsSold=n.stock.itemsSold||[]).push(id);boughtFromMarcus();marcusSays(typeof MARCUS[id]==="string"?MARCUS[id]:MARCUS.buy[Math.floor(Math.random()*MARCUS.buy.length)]);
   }else if(kind==="merc"){
@@ -4165,7 +4466,8 @@ function showRelicOffer(){
     if(id.startsWith("item:")&&camp.items.length>=itemCap())return swapItem(id.slice(5),b,()=>b.onclick()); // a full pack: discard one first
     if(id.startsWith("item:")){camp.items.push(id.slice(5));renderItems()}else gainRelic(id);
     if(id==="chest"){camp.gold+=CHEST_GOLD;camp.lastGold=CHEST_GOLD;sfx("coin");renderGold()} // the war chest pays out at once
-    camp.offer=null;camp.offerBoss=false;saveCamp();$("relicv").hidden=true;renderRelics();$("wmap").querySelector(".wn")&&renderWorld()});
+    const wasBoss=camp.offerBoss;camp.offer=null;camp.offerBoss=false;saveCamp();$("relicv").hidden=true;renderRelics();$("wmap").querySelector(".wn")&&renderWorld();
+    if(wasBoss&&portalDue())setTimeout(()=>roadEvent(0,()=>{if(camp.portalIn)enterSim()},PORTAL),350)}); // a boss's spoils in hand: sometimes, a portal
   $("relicv").hidden=false;($("rchoices").querySelector('.rcard:not([aria-disabled="true"])')||$("rchoices").querySelector(".rcard")).focus();
 }
 /* ---------- Campaign triumph: after the boss falls ---------- */
@@ -4195,7 +4497,7 @@ $("tnew").onclick=()=>{gid++;$("triumph").hidden=true;camp.battle=null;openCampS
 // keep the army, its health, relics, gold and record, and march on to a freshly rolled map
 $("ttravel").onclick=()=>{
   gid++;$("triumph").hidden=true;camp.battle=null;
-  camp.mapsPrior+=battlesWon();camp.region+=1;camp.pos=0;camp.cleared=[];camp.done=false;camp.sel=0;
+  camp.mapsPrior+=battlesWon();camp.region+=1;camp.pos=0;camp.cleared=[];camp.done=false;camp.sel=0;camp.inSim=0;
   genWorld();saveCamp();openWorld();
 };
 $("tmenu").onclick=()=>{gid++;$("triumph").hidden=true;camp.battle=null;show("menu")};
@@ -4243,7 +4545,7 @@ function applyMap(def){
   const S={ground:new Set(),forest:new Set(),shallow:new Set(),deep:new Set(),swamp:new Set(),wall:new Set(),fort:new Set(),barrels:new Set(),xbarrel:new Set(),grave:new Set(),campsite:new Set(),lava:new Set(),magma:new Set(),volcano:new Set(),cherry:new Set(),wisp:new Set(),flowers:new Set(),koi:new Set(),meadow:new Set(),greenwood:new Set()};
   def.rows.forEach((r,y)=>[...r].forEach((c,x)=>{const k=MAPCH[c]||"ground";S[k].add(x+","+y);if(k==="xbarrel")S.barrels.add(x+","+y)}));
   WALLS=S.wall;FOREST=S.forest;FORT=S.fort;DEEP=S.deep;SHALLOW=S.shallow;SWAMP=S.swamp;GRAVES=S.grave;BARRELS=S.barrels;XBAR=S.xbarrel;CAMPS=S.campsite;LAVA=S.lava;MAGMA=S.magma;VOLC=S.volcano;WISP=S.wisp;FLOWERS=S.flowers;KOI=S.koi;CHERRY=S.cherry;S.cherry.forEach(k=>FOREST.add(k));MEADOW=S.meadow;GREENW=S.greenwood;GREENW.forEach(k=>FOREST.add(k));
-  MURKY=def.biome==="swamp";HAUNTED=def.biome==="graveyard";VOLCANIC=def.biome==="volcanic";VALE=def.biome==="sakura";WALLV=def.wallStyle||0;groupForts(()=>0);
+  MURKY=def.biome==="swamp";HAUNTED=def.biome==="graveyard";VOLCANIC=def.biome==="volcanic";VALE=def.biome==="sakura";WALLV=def.wallStyle||0;CHASM=new Set();CHAOS=new Set();LIGHT=new Set();SIM=false;SIMFORT=false;groupForts(()=>0);
 }
 // what's wrong with a map, if anything (an empty list means it's playable); notes are warnings that don't block play
 function mapProblems(def,notes=[]){
@@ -4374,14 +4676,14 @@ $("edit").onclick=openEditor;
 const DEV=false;
 $("edit").hidden=$("ulist").hidden=!DEV;
 // Unit List (editor build only): every unit type, read live from TYPES, ABILITY and the army rules, so it never falls behind the game
-const UNIT_FROM={M:"Mustered by a Captain",G:"Chicken Suit relic"}; // units that join a battle some other way
+const UNIT_FROM={M:"Mustered by a Captain",G:"Chicken Suit relic",S:"Friendly Sentient Spark relic",X:"Enemy only, in the Warped Sim"}; // units that join a battle some other way
 const unitFrom=t=>UNIT_FROM[t]||(WILD.includes(t)?"Wild animal (neutral)":CORE.includes(t)?"In every army":(UNIT_UNLOCK[t]?`Unlockable extra (${UNIT_UNLOCK[t]} unlock)`:"Extra")+(LIMIT1.includes(t)?", 1 per army":""));
 const unitRank=t=>CORE.includes(t)?0:UNIT_FROM[t]?3:WILD.includes(t)?4:UNIT_UNLOCK[t]?2:1;
 function unitListView(){
-  const r=$("unitview"),ts=Object.keys(TYPES).sort((a,b)=>unitRank(a)-unitRank(b));
+  const r=$("unitview"),ts=Object.keys(TYPES).filter(t=>!"XS".includes(t)||unlocks.warpedsim).sort((a,b)=>unitRank(a)-unitRank(b)); // the Sim's own enemy stays a secret until the Sim is found
   const chips=T=>[["HP",T.hp],["Move",T.mv],["Range",rangeTxt(T)],["Damage",T.dmg],["Armor",T.ar||0],["Pierce",T.pi||0],["Evasion",pct(T.ev||0)]].map(([k,v])=>`<span class="stat${v===0||v==="0%"?" nil":""}">${k} <b>${v}</b></span>`).join("");
   r.innerHTML=`<h2 class="htitle">Unit List</h2><p class="hint" style="text-align:center">${ts.length} unit types, base numbers before relics, modifiers, wounds or Elite bonuses. Built from the game's own tables.</p><div class="ulist">`
-   +ts.map(t=>`<div class="hcard">`+hRow(hIcon(t,WILD.includes(t)?"w":"y"),`<b>${cap(NAME[t])}</b><small>${unitFrom(t)} · ${canRetaliate(t)?"Retaliates":"Never retaliates"}</small><div class="stats">${chips(TYPES[t])}</div>${ABILITY[t]?`<small>${ABILITY[t]}</small>`:""}`)+"</div>").join("")
+   +ts.map(t=>`<div class="hcard">`+hRow(hIcon(t,WILD.includes(t)?"w":t==="X"?"f":"y"),`<b>${cap(NAME[t])}</b><small>${unitFrom(t)} · ${canRetaliate(t)?"Retaliates":"Never retaliates"}</small><div class="stats">${chips(TYPES[t])}</div>${ABILITY[t]?`<small>${ABILITY[t]}</small>`:""}`)+"</div>").join("")
    +`<div class="hcard">${hRow(hIcon(MERC_TYPES[0],"y"),`<b>Mercenaries</b><small>Campaign only: hired from Marcus or a sellsword on the road</small><small>A weaker take on the ${listAnd([...MERC_TYPES].map(t=>cap(NAME[t])))}: 2-3 less HP and 1 less damage, plus one knack (${listAnd(MERC_QUIRKS.map(q=>q[0]+" "+q[2]))}). Fights on its own after your turn, for ${MERC_TERM} battles. ${listAnd([...MERC_TYPES].map(t=>cap(NAME[t])+" "+MERC_PRICE[t]))} gold, plus up to 10.</small>`)}</div></div>`;
   const box=document.createElement("div");box.className="menubtns";
   mk(box,"b big","Back to Main Menu",()=>{r.hidden=true;$("mbtns").hidden=false;$("ulist").focus()});r.append(box);
@@ -4427,19 +4729,21 @@ const UNLOCKS=[
  {id:"vgloves",relic:"vgloves",hint:"A small kindness, remembered."},
  {id:"vmorion",relic:"vmorion",hint:"Some debts are repaid in steel."},
  {id:"vfalcata",relic:"vfalcata",hint:"His men are well funded."},
- {id:"conquistador",unit:"Q",hint:"The expedition begins anew."}
+ {id:"conquistador",unit:"Q",hint:"The expedition begins anew."},
+ {id:"warpedsim",sim:1,secret:1} // secret: not listed (or counted) until it's unlocked
 ];
 // name, art and description for an unlock, read from the terrain table or the unit descriptions
 const unlockInfo=o=>o.chal?(c=>({name:c.name,art:`<div class="tsw" style="${TERRAIN.fort.bg}">${FORT_ICON[0]}</div>`,desc:`${c.desc} A ${DIFF[c.diff||0][0].toLowerCase()} challenge map, played from the Challenges menu.`}))(CHALLENGES.find(c=>c.id===o.chal))
   :o.item?{name:ITEMS[o.item].name,art:itemIcon(o.item,44),desc:ITEMS[o.item].desc+` ${RARITY[ITEMS[o.item].r||0][0]} consumable, sold by Marcus.`}
   :o.relic?{name:unlocks.vmorion?RELICS[o.relic].name:RELICS[o.relic].name.replace(/^Vasco's/,"???'s"),art:relicIcon(o.relic,44),desc:RELICS[o.relic].desc+` ${/^[AEIOU]/.test(RARITY[RELICS[o.relic].r][0])?"An":"A"} ${RARITY[RELICS[o.relic].r][0].toLowerCase()} relic `+(RELICS[o.relic].find?"found only in battle, never offered as a reward.":"that can be offered after campaign victories.")}
+  :o.sim?{name:"The Warped Sim",art:`<div class="tsw" style="background:#2e2752">${SIM_ICON}</div>`,desc:"A rift into a land that isn't quite real. After you defeat a campaign boss in regions 5 to 9, a portal may open: step through for a short, harsh region of glitched terrain, Chaos Springs and Light Bricks, with spoils to match."}
   :o.biome?{name:BIOME_NAME[o.biome],art:terrainSwatch(o.terrain),desc:BTEXT[o.biome]+" Can appear in campaigns and quick battles."}
   :o.terrain?{name:TERRAIN[o.terrain].name,art:terrainSwatch(o.terrain),desc:TERRAIN[o.terrain].desc}
   :{name:cap(NAME[o.unit]),art:hIcon(o.unit,"y"),desc:`${unitStats(o.unit)}. ${ABILITY[o.unit]} Limit one per army.`};
 function unlockView(){
-  const r=$("unlockview"),got=UNLOCKS.filter(o=>unlocks[o.id]).length;
-  r.innerHTML=`<h2 class="htitle">Unlocks</h2><p class="hint" style="text-align:center">${got} of ${UNLOCKS.length} unlocked</p><div class="ulist">`
-   +UNLOCKS.map(o=>{
+  const r=$("unlockview"),UL=UNLOCKS.filter(o=>!o.secret||unlocks[o.id]),got=UL.filter(o=>unlocks[o.id]).length; // secrets stay off the list until found
+  r.innerHTML=`<h2 class="htitle">Unlocks</h2><p class="hint" style="text-align:center">${got} of ${UL.length} unlocked</p><div class="ulist">`
+   +UL.map(o=>{
      const on=!!unlocks[o.id],pr=!on&&o.prog&&o.prog(),hint=typeof o.hint==="function"?o.hint():o.hint,T=unlockInfo(o);
      return `<div class="hcard${on?"":" ulock"}" aria-label="${T.name}, ${on?"unlocked":"locked"}">`+hRow(on?T.art:LOCK_ART,`<b>${T.name}</b><small>${on?"Unlocked":"Locked"}</small>${on?T.desc:"How to unlock: "+hint}${pr?`<div class="uprog"><i style="width:${100*pr[0]/pr[1]}%"></i></div><small>${pr[0]} of ${pr[1]} ${pr[2]}</small>`:""}`)+"</div>";
    }).join("")+"</div>";
@@ -4451,7 +4755,7 @@ $("unl").onclick=()=>{$("mbtns").hidden=true;$("unlockview").hidden=false;unlock
 $("how").onclick=()=>{$("mbtns").hidden=true;$("rulesview").hidden=false;howView(howMain,null)};
 $("back").onclick=()=>show("menu");
 $("go").onclick=()=>{
-  if(campSetup){dropHold("camp");camp.cfg={x:pick.x.slice(),m:pick.m,c:pick.c};camp.pos=0;camp.cleared=[];camp.done=false;camp.hp=null;camp.gold=0;camp.relics=[];camp.items=[];camp.merc=null;camp.scout=0;camp.mercNote="";camp.offer=null;camp.found=[];camp.lastGold=0;camp.kills=[];rollNames();camp.region=1;camp.mapsPrior=0;camp.bossUsed={loc:[],name:[]};camp.sel=0;genWorld();saveCamp();openWorld()}
+  if(campSetup){dropHold("camp");camp.cfg={x:pick.x.slice(),m:pick.m,c:pick.c};camp.pos=0;camp.cleared=[];camp.done=false;camp.hp=null;camp.gold=0;camp.relics=[];camp.items=[];camp.merc=null;camp.scout=0;camp.portal=0;camp.inSim=0;camp.mercNote="";camp.offer=null;camp.found=[];camp.lastGold=0;camp.kills=[];rollNames();camp.region=1;camp.mapsPrior=0;camp.bossUsed={loc:[],name:[]};camp.sel=0;genWorld();saveCamp();openWorld()}
   else start();
 };
 $("end").onclick=()=>{
@@ -4462,7 +4766,8 @@ $("end").onclick=()=>{
   units.forEach(u=>{if(u.team==="y"&&!u.moved&&rel(u,"drum"))u.drum=pturn}); // War Drum: holding the line pays off next turn
   const n=mods.y==="REST"?rest("y"):0;
   units.forEach(u=>{if(u.team==="y"&&u.t==="P"&&rel(u,"robes")&&u.hp<maxHp(u)){u.hp+=1;floatText(u.x,u.y,"+1","heal")}}); // Blessed Robes
-  units.forEach(u=>{if(u.team==="y"){delete u.weak;if(u.cursed){u.weak=1;delete u.cursed}delete u.slow;delete u.hex;delete u.hexPend;delete u.haste;delete u.stepOnly}});
+  units.forEach(u=>{if(u.cubeMend){if(u.hp<maxHp(u)){u.hp+=1;floatText(u.x,u.y,"+1","heal")}delete u.cubeMend}}); // the Small Glowing Cube
+  units.forEach(u=>{if(u.team==="y"){delete u.weak;if(u.cursed){u.weak=1;delete u.cursed}delete u.slow;delete u.hex;delete u.hexPend;delete u.haste;delete u.stepOnly;if(u.slowNext){u.slow=1;delete u.slowNext}}});
   lastMove=null;notify("You ended your turn");
   const go=()=>hazards("y",()=>enemyTurn(n?"Your resting units recovered HP. ":""));
   if(units.some(u=>u.auto&&u.team==="y")){busy=true;render();chickensAct(()=>{if(!over)go()})}else go();
@@ -4536,8 +4841,8 @@ const getHold=m=>{try{return JSON.parse(localStorage.getItem(HOLD(m))||"null")}c
 $("phold").onclick=()=>{
   if(turn!=="y"||busy||over)return;
   const A=x=>[...x],m=chal?"chal":camp.battle?"camp":"quick";
-  const h={t:[WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS,WISP,FLOWERS,KOI,CALTROPS,MEADOW,GREENW,RUBBLE].map(A),
-    f:{MURKY,HAUNTED,VOLCANIC,VALE,WALLV,seed,BIOME_KEY,herbertMet,firstTurn,pturn},fv:A(FORTV),fk:A(FORTK),
+  const h={t:[WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS,WISP,FLOWERS,KOI,CALTROPS,MEADOW,GREENW,RUBBLE,CHASM,CHAOS,LIGHT].map(A),
+    f:{MURKY,HAUNTED,VOLCANIC,VALE,SIM,SIMFORT,WALLV,seed,BIOME_KEY,herbertMet,firstTurn,pturn},fv:A(FORTV),fk:A(FORTK),
     units,mods,col,tpUsed,relic:A(RELIC),foeRelic:A(FOE_RELIC),foeItems:FOE_ITEMS.slice(),relicUsed,pick,def:chal&&chal.def,node:camp.battle?camp.battle.node:null,items0:camp.battle&&camp.battle.items0,wounds0:camp.battle&&camp.battle.wounds0,biome:$("biome").innerHTML};
   try{localStorage.setItem(HOLD(m),JSON.stringify(h))}catch(e){return}
   if(m==="camp")saveCamp();
@@ -4546,8 +4851,8 @@ $("phold").onclick=()=>{
 };
 function resumeHold(h){
   resetBattle();
-  [WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS,WISP=new Set(),FLOWERS=new Set(),KOI=new Set(),CALTROPS=new Set(),MEADOW=new Set(),GREENW=new Set(),RUBBLE=new Set()]=h.t.map(a=>new Set(a));
-  ({MURKY,HAUNTED,VOLCANIC,VALE=false,WALLV,seed,BIOME_KEY,herbertMet,firstTurn,pturn}=h.f);
+  [WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS,WISP=new Set(),FLOWERS=new Set(),KOI=new Set(),CALTROPS=new Set(),MEADOW=new Set(),GREENW=new Set(),RUBBLE=new Set(),CHASM=new Set(),CHAOS=new Set(),LIGHT=new Set()]=h.t.map(a=>new Set(a));
+  ({MURKY,HAUNTED,VOLCANIC,VALE=false,SIM=false,SIMFORT=false,WALLV,seed,BIOME_KEY,herbertMet,firstTurn,pturn}=h.f);
   FORTV=new Map(h.fv);FORTK=new Set(h.fk);units=h.units;mods={y:modOk(h.mods.y),f:modOk(h.mods.f)};col=h.col;tpUsed=h.tpUsed;RELIC=new Set(h.relic);FOE_RELIC=new Set(h.foeRelic||[]);FOE_ITEMS=(h.foeItems||[]).slice();relicUsed=h.relicUsed;pick=h.pick;
   chal=h.def?{def:h.def,test:false}:null;camp.battle=h.node!=null?{node:h.node,items0:h.items0,wounds0:h.wounds0}:null;
   $("biome").innerHTML=h.biome;show("game");say("Battle resumed. Your turn. Select one of your units.");render();
