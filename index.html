@@ -395,6 +395,7 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .u.elite.glitch{box-shadow:0 0 0 2.500px #c06aff,0 0 0 4px #3ad8ff,0 0 10px 3px rgba(122,232,255,.55),var(--bev)} /* the Sim's Corrupted Elites */
 .evart svg{display:block;width:100%;height:auto;border-radius:8px;border:2px solid #1a0f07;box-shadow:0 2px 0 #1a0f07;margin-bottom:10px}
 .u.redglow svg{filter:drop-shadow(0 0 3px rgba(225,40,40,.85))}
+.u.spot{outline:2px dotted rgba(250,248,235,.95);outline-offset:-5px} /* Spotter's Mark: a scrawled ring inside the piece (wild units wear theirs outside) */
 .u.stun::after{content:"\2737";position:absolute;top:-5px;left:-5px;width:17px;height:17px;border-radius:50%;background:#f4e27a;color:#5a4a00;font-size:.75rem;font-weight:800;line-height:17px;text-align:center;box-shadow:0 0 0 1.5px #fff,0 0 8px 2px rgba(255,250,200,.9)}
 .u.rage:not(.redglow) svg{filter:drop-shadow(0 0 3px rgba(240,110,30,.9))}
 .u.chill:not(.blessed):not(.rallied):not(.mule):not(.elite){box-shadow:0 0 0 2px rgba(225,245,255,.9),0 0 9px 3px rgba(170,215,240,.7),var(--bev)}
@@ -699,6 +700,8 @@ const RELICS={
  coin:{name:"Copper Coin of Good Fortune",r:2,src:"shop",max:2,desc:"Shows one extra relic to choose from after each battle. Carry up to two; each adds a choice."},
  saddle:{name:"Parsnip's Saddlebags",r:1,src:"shop",max:2,desc:"Your pack holds one more item. Carry up to two; each adds a slot."},
  ledger:{name:"Tax Collector's Ledger",r:1,src:"shop",desc:"Each battle you win pays 5 extra gold."},
+ coffer:{name:"Hoarder's Coffer",r:1,src:"shop",desc:"Each battle you win pays 5 extra gold for every 2 consumables left in your pack (passive ones don't count). Why spend it when you can count it?"},
+ bottle:{name:"Bottle Deposit",r:0,src:"shop",desc:"Each consumable you use in a battle you win pays 3 gold back afterward. Marcus takes his empties back."},
  horseshoe:{name:"Parsnip's Lucky Horseshoe",r:2,src:"shop",desc:"Once per battle, rub the horseshoe as you use an item, and the unit keeps its action."},
  cross:{name:"Sacred Cross of the Wise Ones",r:2,src:"shop",desc:"Each of your units that falls in a battle you win has a 15% chance to be spared its wound."},
  keep:{name:"Banner of the Fallen Keep",r:2,src:"boss",desc:"At the start of each battle, one of your units, chosen at random, gets +1 armor for the whole battle."},
@@ -726,6 +729,7 @@ const RELICS={
  grog:{name:"Flask of Liquid Courage",r:1,src:"both",desc:"Cursed. All your units deal +1 damage, and take +1 damage. Courage cuts both ways."},
  pebble:{name:"Lucky Pebble",r:0,desc:"All your units get +1% evasion. Found in a boot. Probably lucky."},
  warpaint:{name:"Berserker's Warpaint",r:1,src:"both",desc:"Cursed. All your units deal +1 damage, but they never retaliate. No time to parry when you're busy screaming."},
+ spotmark:{name:"Spotter's Mark",r:0,need:["A","R","E"],desc:"The first time one of your units hits an enemy from 2 or more tiles away, that enemy is marked until the end of your next turn: the next blow one of your units lands on it from an adjacent tile deals +1 damage and wipes the mark. Each enemy can be marked once per battle. The archers find them; the swords finish them."},
  keen:{name:"Keen Eye Charm",r:0,desc:"Your ranged attacks (range 2 or more) ignore 3% of the target's evasion."},
  pendant:{name:"Glowing Pendant",r:0,src:"both",need:"E",desc:"Enemies your Enchanters hex also get 5% less evasion while the hex lasts. It glows brighter the closer it gets to a curse."},
  hexbook:{name:"Book of Combat Hexes",r:2,src:"both",need:"E",hpUp:"E",desc:"Enchanters get +1 max HP and +5% evasion. An adjacent enemy that attacks an Enchanter takes 1 damage, ignoring armor, whether or not it hits, and deals 1 less damage on its next turn. Gaining it doesn't heal them."},
@@ -803,6 +807,7 @@ const canBless=(a,b)=>rel(a,"font")&&!a.blessUsed&&!a.acted&&b!==a&&b.team==="y"
 const BUCKLER_STEP=.02,BUCKLER_MAX=.06,BUCKLER_UNLOCK=40; // Charmed Buckler: +2% evasion per 2 armor across the army; unlocked by 40 damage turned aside by your armor
 const ownArmor=u=>Math.max(0,(ST(u).ar||0)+(u.t==="K"&&rel(u,"shield")?1:0)-(u.t==="K"&&rel(u,"lightarmor")?1:0)+(u.t==="C"&&rel(u,"bard")?1:0)+(u.keep?1:0)+(u.vang?1:0)+(muled(u)?MULE_AR:0)-(acided(u)?1:0)); // a unit's own armor, without terrain or formations
 const bucklerEv=u=>rel(u,"buckler")?Math.min(BUCKLER_MAX,BUCKLER_STEP*Math.floor(units.filter(v=>v.team===u.team).reduce((t,v)=>t+ownArmor(v),0)/2)):0;
+const spotted=(u,team)=>u.spot>=pturn&&u.spotBy===team; // Spotter's Mark: marked by a ranged blow from that side, through the end of its next turn
 const PEBBLE_EV=.01,KEEN_EV=.03,NONCOMBAT=["P","E","N"],LOW_HP=1/3,REST_EV=.02,low=u=>u.hp<=maxHp(u)*LOW_HP,desperate=(u,id)=>rel(u,id)&&NONCOMBAT.includes(u.t)&&low(u); // the Improvised relics: non-combat units at or below a third of their health
 const rested=u=>u.team==="y"&&RELIC.has("warm")&&(relicUsed.warm===pturn||relicUsed.warm===pturn-1&&turn==="f"); // Warm Mug: through the enemy turn after you leave Herbert's camp (pturn ticks when you end your turn)
 const RALLY_EV=.05,RALLY_RANGE=2,FAN_EV=.1,TRIO_EV=.05,SAKURA_WINS=5;
@@ -1536,6 +1541,7 @@ function combat(a,b,from=a){
   add("Musket misfire",a.t==="Q"&&rel(a,"musket")&&d(from,b)>1?-1:0); // the musket's long shots go wide
   add("Espada de El Dorado",a.t==="Q"&&a.team==="y"&&camp.battle&&rel(a,"eldorado")&&d(from,b)<=1?Math.min(ELDORADO_MAX,Math.floor((camp.gold||0)/ELDORADO_GOLD)):0); // greed, at arm's length
   add("Combat Hex",a.weak?-1:0); // cursed for striking an Enchanter
+  add("Spotter's Mark",turn===a.team&&rel(a,"spotmark")&&spotted(b,a.team)&&d(from,b)===1?1:0); // a mark left by a ranged blow, cashed in up close
   add("Goading Bugle",a.goaded===pturn&&turn===a.team?1:0);
   add("Imposing Banner",units.some(v=>v.t==="N"&&v.team!==a.team&&v.team!=="w"&&rel(v,"imposing")&&d(v,from)<=BANNER_RANGE)?-1:0); // striking in the banner's shadow
   add("Vasco's Falcata",a.conq||0);
@@ -1714,7 +1720,7 @@ function render(){
     html+=`<button class="${cls}" data-x="${x}" data-y="${y}"${pd&&pd.k===k?` data-arrow="${pd.a}"`:""} aria-label="${label.replace(/"/g,"&quot;")}">`
       +'<i class="lt"></i>'+A.art[i]+(fr?'<i class="tint"></i>':"")+(SMOKE.has(k)?'<i class="smoke"></i>':"")+(CALTROPS.has(k)?CALT_ART:"")+A.jn[i]+glowOf(k).map(([dx,dy])=>`<i class="lglow" style="background:linear-gradient(to ${dx>0?"left":dx<0?"right":dy>0?"top":"bottom"},rgba(255,226,60,.62),rgba(255,226,60,.16) 70%,rgba(255,226,60,.08))"></i>`).join(""); // fortress art covers its tile, so highlights go on a see-through layer above it
     if(u){
-      let uc="u "+u.team+(u.merc?" merc":"")+(u.auto&&u.team==="y"?" free":spent(u)?" done":"")+(u.slow||u.slowNext?" slow":"")+(u.stun?" stun":"")+(u.rage||u.oil?" rage":"")+(u.chill?" chill":"")+(u.ash?" ash":"")+(inspired(u)?" insp":"")+(blessed(u)||rested(u)?" blessed":"")+(u.t==="E"&&rel(u,"redtome")?" redglow":"")+(rallied(u)?" rallied":"")+(muled(u)?" mule":"")+(u.dug?" dug":"")+(u.elite?" elite":"")+(u.glitch?" glitch":"")+(u.champ||u.cshield||u.cloak?" champ":"")+(u.ublade||u.ubulwark||u.ushroud?" usurp":"")+(u===sel||u===insp?" sel":""),mvs="";
+      let uc="u "+u.team+(u.merc?" merc":"")+(u.auto&&u.team==="y"?" free":spent(u)?" done":"")+(u.slow||u.slowNext?" slow":"")+(u.stun?" stun":"")+(u.rage||u.oil?" rage":"")+(u.chill?" chill":"")+(u.spot>=pturn&&u.spotBy!==u.team?" spot":"")+(u.ash?" ash":"")+(inspired(u)?" insp":"")+(blessed(u)||rested(u)?" blessed":"")+(u.t==="E"&&rel(u,"redtome")?" redglow":"")+(rallied(u)?" rallied":"")+(muled(u)?" mule":"")+(u.dug?" dug":"")+(u.elite?" elite":"")+(u.glitch?" glitch":"")+(u.champ||u.cshield||u.cloak?" champ":"")+(u.ublade||u.ubulwark||u.ushroud?" usurp":"")+(u===sel||u===insp?" sel":""),mvs="";
       if(u.spawn){uc+=" tpin";delete u.spawn}
       const pp=prevPos.get(u);prevPos.set(u,[x,y]);
       if(pp&&(pp[0]!==x||pp[1]!==y)){ // slide in from where it was last drawn (a long jump fades in instead)
@@ -1780,6 +1786,7 @@ function renderInfo(){
   if(u.ash)notes.push("Risen from a Phoenix's Flames: +5% evasion until the end of this turn.");
   if(u.stun)notes.push("Stunned by a Flash Vial: it can't move or attack on its next turn.");
   if(u.rage)notes.push("Enraged: +1 damage, +1 movement and +1 pierce, but 5% less evasion, for the rest of the battle.");
+  if(u.spot>=pturn&&u.spotBy!==u.team)notes.push(`Marked (Spotter's Mark): the next adjacent blow ${u.spotBy==="y"?"your units land":"the enemy lands"} on it deals +1 damage.`);
   if(u.chill)notes.push("Chilled by dry ice fog: +3% evasion until your next turn.");
   if(u.slowNext)notes.push("Dazzled by a Light Brick: it will be slowed on its next turn, moving only 1 tile.");
   if(u.slow)notes.push("Slowed: it can move only 1 tile (always at least 1, even out of a forest or into shallow water) until the end of its next turn.");
@@ -2357,7 +2364,7 @@ function askRub(then){
 }
 function useItem(a,id,x,y,rub,dir){
   if(rub===undefined&&rel(a,"horseshoe")&&!relicUsed.horseshoe&&!ITEMS[id].free&&!a.acted)return askRub(ok=>useItem(a,id,x,y,ok,dir));
-  const i=camp.items.indexOf(id);if(i<0)return;camp.items.splice(i,1);saveCamp();
+  const i=camp.items.indexOf(id);if(i<0)return;camp.items.splice(i,1);saveCamp();relicUsed.used=(relicUsed.used||0)+1; // Bottle Deposit counts the empties
   if(rub){relicUsed.horseshoe=1;sfx("coin");later(()=>{if(units.includes(a))floatText(a.x,a.y,"Lucky!","thanks")},450)} // the unit keeps its move and action
   if(id==="tonic"){ // a burst of speed this turn; the unit keeps its action
     a.haste=TONIC_MV;sel=a;mode=null;choice=null;lastMove=null;insp=null;info=a;sfx("whisk");floatText(a.x,a.y,"+"+TONIC_MV+" move","bless");
@@ -2519,6 +2526,8 @@ function hitFor(a,b,c,back){ // resolve one blow from a to b: dodge roll, damage
   if(Math.random()<1-c.hit){floatText(b.x,b.y,"Evade",true);sfx("evade");say(sent(who(b))+" evaded "+(back?"the retaliation.":"the attack."));return false}
   if(b.team==="y"&&b.t==="A"&&a.team!=="y"&&ST(a).rg>1){unlocks.ah=(unlocks.ah||0)+1;saveU();if(unlocks.ah>=10)unlock("pavise")} // archers under arrow fire learn to raise a wall
   if(b.team==="y"&&c.blk){unlocks.ab=(unlocks.ab||0)+c.blk;saveU();if(unlocks.ab>=BUCKLER_UNLOCK)unlock("buckler")} // blows turned aside by your armor
+  if(!back&&c.parts.some(p=>p[0]==="Spotter's Mark"))delete b.spot; // the mark is wiped off by the blow that used it
+  else if(!back&&rel(a,"spotmark")&&d(a,b)>1&&!b.spotOnce){b.spot=pturn+1;b.spotBy=a.team;b.spotOnce=1} // the first ranged blow on it marks its target, once per battle
   if(a.champ&&!back)a.champStep=1; // the Champion's Sword: a step after a landed blow
   const adj=d(a,b)===1;
   if(hurt(b,c.dmg)){credit(a,b);if(rel(a,"vfalcata")&&(a.conq||0)<2)a.conq=(a.conq||0)+1; // Vasco's Falcata: each conquest sharpens it
@@ -2696,7 +2705,7 @@ const ESC=[
 const ELITE_HP=2,SIM_ELITE_HP=1,GLITCH={flick:["Flickering","+10% evasion."],clock:["Overclocked","+1 movement."],code:["Chaos Code","a unit that hits it in melee takes 1 damage, ignoring armor."]},FLICK_EV=.1; // the Sim's Corrupted Elites: +1 HP, +1 damage and one glitch
 const esc=r=>{const n=ESC.length,e=ESC[Math.min(r,n)-1];return r>n?{...e,relics:e.relics+Math.floor((r-n)/2)}:e},escFrom=k=>ESC.findIndex(e=>e[k]>0)+1;
 // relics an enemy army can make use of (no player-only actions, once-per-battle tricks or gold), and the unit each needs
-const FOE_OK={ipennant:"N",imposing:"N",helm:"N",ammo:"R",stud:["C","Q"],csword:"",cshield:"",ublade:"",ubulwark:"",ushroud:"",whet:"A",shield:"K",bard:"C",luck:"",buckler:"",long:"A",debris:"R",wolfpack:"",mercy:"",gauntlets:"",pavise:"A",pennant:"",hatchet:"",keep:"",ram:"",blossom:"",crown:"",statue:"",spurs:"C",grog:"",pebble:"",warpaint:""};
+const FOE_OK={ipennant:"N",imposing:"N",helm:"N",ammo:"R",stud:["C","Q"],csword:"",cshield:"",ublade:"",ubulwark:"",ushroud:"",whet:"A",shield:"K",bard:"C",luck:"",buckler:"",long:"A",debris:"R",wolfpack:"",mercy:"",gauntlets:"",pavise:"A",pennant:"",hatchet:"",keep:"",ram:"",blossom:"",crown:"",statue:"",spurs:"C",grog:"",pebble:"",warpaint:"",spotmark:["A","R","E"]};
 function foeLoadout(r){
   const army=units.filter(u=>u.team==="f").map(u=>u.t),ok=id=>id in FOE_OK&&(!FOE_OK[id]||[].concat(FOE_OK[id]).some(t=>army.includes(t)))&&!FOE_RELIC.has(id)&&(!RELICS[id].lock||unlocks[RELICS[id].lock])&&!clash(id,[...FOE_RELIC]);
   const boss=Object.keys(RELICS).filter(id=>RELICS[id].src==="boss"&&ok(id)),other=Object.keys(RELICS).filter(id=>RELICS[id].src!=="boss"&&ok(id));
@@ -4176,7 +4185,8 @@ function findRelics(nm){
   });
 }
 /* ---------- Gold and relic rewards ---------- */
-const goldFor=n=>(n.type==="boss"?25+BOSS_GOLD_STEP*((camp.region||1)-1):10)+2*units.filter(u=>u.team==="y"&&u.ci!=null).length+(camp.relics.includes("ledger")?LEDGER_GOLD:0)+(camp.relics.includes("vgloves")?VGLOVES_GOLD:0)+(n.type==="boss"&&camp.relics.includes("credits")?CREDITS_BOSS:0)+(camp.relics.includes("luckycross")&&relicUsed.qkill?LUCKYCROSS_GOLD:0); // more for bringing your army home
+const COFFER_GOLD=5,BOTTLE_GOLD=3; // Hoarder's Coffer: per 2 consumables still in the pack; Bottle Deposit: per consumable used in the battle
+const goldFor=n=>(n.type==="boss"?25+BOSS_GOLD_STEP*((camp.region||1)-1):10)+2*units.filter(u=>u.team==="y"&&u.ci!=null).length+(camp.relics.includes("ledger")?LEDGER_GOLD:0)+(camp.relics.includes("vgloves")?VGLOVES_GOLD:0)+(n.type==="boss"&&camp.relics.includes("credits")?CREDITS_BOSS:0)+(camp.relics.includes("luckycross")&&relicUsed.qkill?LUCKYCROSS_GOLD:0)+(camp.relics.includes("coffer")?COFFER_GOLD*Math.floor(camp.items.filter(id=>!ITEMS[id].passive).length/2):0)+(camp.relics.includes("bottle")?BOTTLE_GOLD*(relicUsed.used||0):0); // more for bringing your army home
 // 2 or 3 relics the army doesn't have yet, drawn by rarity weight
 const relicCount=id=>camp.relics.filter(r=>r===id).length;
 // relics the shop may stock right now: sold there, unlocked, useful to this army, and not already carried as many times as allowed
@@ -4214,6 +4224,8 @@ const PURSE='<svg viewBox="0 0 32 32" aria-hidden="true"><ellipse cx="16" cy="28
 const RICON={ // small 32-unit relic icons
  gauntlets:'<path d="M9 28v-9l-2-6q0-3 3-3l1 4V8q0-2 2-2t2 2v5V6q0-2 2-2t2 2v7V7q0-2 2-2t2 2v8l1-3q3 0 2 3l-2 7v6z" fill="#8a949e" stroke="#2e3338" stroke-width="1.100" stroke-linejoin="round"/><path d="M9 28h14v-4H9z" fill="#5a3a1c" stroke="#2a1a0c" stroke-width="1"/><path d="M13 13v6M17 13v6M21 13v6" stroke="#5c646b" stroke-width=".9"/><g fill="#d8dde2" stroke="#2e3338" stroke-width=".7"><path d="M12 6l1-3l1 3z"/><path d="M16 4l1-3l1 3z"/><path d="M20 5l1-3l1 3z"/><path d="M7 15l-3-1l3-1z"/></g>',
  saddle:'<path d="M5 10q11-6 22 0" stroke="#5a3a1c" stroke-width="2" fill="none"/><path d="M3 11h10v12q0 4-5 4t-5-4z" fill="#9a6a3a" stroke="#3a2412" stroke-width="1.100"/><path d="M19 11h10v12q0 4-5 4t-5-4z" fill="#8a5a2e" stroke="#3a2412" stroke-width="1.100"/><path d="M3 11h10l-1 6q-4 2-8 0zM19 11h10l-1 6q-4 2-8 0z" fill="#6a4420" stroke="#3a2412" stroke-width=".9"/><circle cx="8" cy="16.500" r="1.100" fill="#c9962a"/><circle cx="24" cy="16.500" r="1.100" fill="#c9962a"/><path d="M6 21h4M22 21h4" stroke="#c08a50" stroke-width=".8"/>',
+ coffer:'<path d="M5 13h22v14H5z" fill="#7a4a22" stroke="#2e1a0c" stroke-width="1.200" stroke-linejoin="round"/><path d="M5 13q0-7 11-7t11 7z" fill="#8a5a2a" stroke="#2e1a0c" stroke-width="1.200" stroke-linejoin="round"/><path d="M5 13h22M9 8v19M23 8v19" stroke="#c9a24a" stroke-width="1.600"/><rect x="14" y="14" width="4" height="5" rx="1" fill="#e8c860" stroke="#6a4c10" stroke-width=".8"/><circle cx="16" cy="16.300" r=".8" fill="#2e1a0c"/><g fill="#f2d27a" stroke="#8a6418" stroke-width=".6"><ellipse cx="25" cy="27" rx="3" ry="1.300"/><ellipse cx="25" cy="25.600" rx="3" ry="1.300"/></g>',
+ bottle:'<path d="M9 5h5v5q4 3 4 8v9q0 2-2 2H7q-2 0-2-2v-9q0-5 4-8z" fill="rgba(170,215,200,.55)" stroke="#2a4a44" stroke-width="1.100" stroke-linejoin="round"/><rect x="8.500" y="3" width="6" height="3" rx="1" fill="#8a5a2a" stroke="#3a2412" stroke-width=".8"/><path d="M8 13q-1 4 0 10" stroke="#fff" stroke-width="1" opacity=".6" fill="none"/><circle cx="23" cy="20" r="6" fill="#f2c94c" stroke="#8a6418" stroke-width="1.100"/><circle cx="23" cy="20" r="4.200" fill="none" stroke="#c9962a" stroke-width=".8"/><path d="M23 17.500v5M21.500 19h3" stroke="#8a6418" stroke-width="1.100" stroke-linecap="round"/>',
  ledger:'<path d="M7 4h17q2 0 2 2v21q0 2-2 2H7z" fill="#4a2a3a" stroke="#1e1018" stroke-width="1.100"/><path d="M9 5h14v22H9z" fill="#efe6d2" stroke="#6a5a44" stroke-width=".7"/><path d="M11 9h10M11 12h8M11 15h10M11 18h7M11 21h9" stroke="#7a6a54" stroke-width=".8"/><path d="M18 9v14" stroke="#b8372d" stroke-width=".6" opacity=".7"/><path d="M5 4v25" stroke="#2a1420" stroke-width="2.400"/><circle cx="23" cy="25" r="4" fill="#c9962a" stroke="#6a4c10" stroke-width="1"/><path d="M22 25h2" stroke="#6a4c10" stroke-width="1.100"/>',
  horseshoe:'<path d="M9 26L7 15q-1-10 9-10t9 10l-2 11h-4l2-11q0-5-5-5t-5 5l2 11z" fill="#8f979e" stroke="#2e3338" stroke-width="1.200" stroke-linejoin="round"/><path d="M9 15q0-8 7-8" stroke="#d8dee4" stroke-width="1" fill="none" opacity=".8"/><g fill="#2e3338"><circle cx="9" cy="21" r=".9"/><circle cx="8.500" cy="14" r=".9"/><circle cx="23" cy="21" r=".9"/><circle cx="23.500" cy="14" r=".9"/></g><g fill="#ffd84a"><path d="M27 4l.8 2l2 .8l-2 .8l-.8 2l-.8-2l-2-.8l2-.8z"/><path d="M4 6l.6 1.400l1.400.6l-1.400.6l-.6 1.400l-.6-1.400l-1.400-.6l1.400-.6z"/></g>',
  cross:'<circle cx="16" cy="14" r="12" fill="#ffe7a0" opacity=".22"/><path d="M13 3h6v7h7v6h-7v13h-6V16H6v-6h7z" fill="#d8b24a" stroke="#6a4c10" stroke-width="1.200" stroke-linejoin="round"/><path d="M14.500 4.500v7h-7M14.500 16v11.500" stroke="#f6e2a0" stroke-width="1" fill="none" opacity=".8"/><circle cx="16" cy="13" r="2.600" fill="#5ac8f0" stroke="#1e4a6a" stroke-width=".9"/><circle cx="15.300" cy="12.300" r=".8" fill="#e8faff"/>',
@@ -4256,6 +4268,7 @@ const RICON={ // small 32-unit relic icons
  grog:'<ellipse cx="16" cy="28" rx="9" ry="1.800" fill="rgba(0,0,0,.2)"/><rect x="13" y="3" width="6" height="4" rx="1" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M13.500 7h5v3q7 2 7 9v5q0 4-4 4H10.500q-4 0-4-4v-5q0-7 7-9z" fill="#7a6a4a" stroke="#2a1e12" stroke-width="1.200" stroke-linejoin="round"/><path d="M7 17h18v6H7z" fill="#a8402a" opacity=".85"/><path d="M7 17h18M7 23h18" stroke="#2a1e12" stroke-width=".9"/><path d="M12 20h8" stroke="#f0d8a0" stroke-width="1.300" stroke-linecap="round"/><path d="M10 12q1-2 3-2" stroke="#c8b890" stroke-width="1" fill="none" stroke-linecap="round" opacity=".7"/>',
  pebble:'<ellipse cx="16" cy="25" rx="9" ry="1.800" fill="rgba(0,0,0,.18)"/><ellipse cx="16" cy="19" rx="9" ry="6.500" fill="#9aa0a6" stroke="#3a3e44" stroke-width="1.200"/><path d="M10 17q4-3 10-2" stroke="#d8dce0" stroke-width="1.300" fill="none" stroke-linecap="round"/><path d="M14.200 20.800l1.200-1.600l1.600 1.200l-.6 1.800z" fill="#5a8a5a" opacity=".85"/>',
  warpaint:'<path d="M9 5h14q3 0 3 4v8q0 9-10 12Q6 26 6 17V9q0-4 3-4z" fill="#e8d4b8" stroke="#3a2412" stroke-width="1.200" stroke-linejoin="round"/><path d="M8 12l6 2M24 12l-6 2" stroke="#2a1a10" stroke-width="1.800" stroke-linecap="round"/><path d="M8 16l5 6M24 16l-5 6M16 6v8" stroke="#b0182a" stroke-width="2.200" stroke-linecap="round"/><path d="M12 24q4 2 8 0" stroke="#3a2412" stroke-width="1.200" fill="none" stroke-linecap="round"/>',
+ spotmark:'<path d="M7 24l14-14l4 4l-14 14z" fill="#f4f1ea" stroke="#5a5650" stroke-width="1.100" stroke-linejoin="round"/><path d="M21 10l4 4l2-2l-4-4z" fill="#d8d2c4" stroke="#5a5650" stroke-width="1"/><path d="M5 27l2-3l4 4l-3 2z" fill="#fff" stroke="#5a5650" stroke-width=".8"/><path d="M3 9q4-5 9-3M5 13q3-2 6-1" stroke="#e8e4da" stroke-width="1.600" stroke-dasharray="2 1.500" fill="none" stroke-linecap="round"/><circle cx="25" cy="25" r="3.500" fill="none" stroke="#c84a3a" stroke-width="1.300" stroke-dasharray="2 1.300"/>',
  keen:'<path d="M3 16q13-12 26 0q-13 12-26 0z" fill="#f4efe2" stroke="#2a2a30" stroke-width="1.200"/><circle cx="16" cy="16" r="5.200" fill="#3a7a9a" stroke="#1a2a3a" stroke-width="1"/><circle cx="16" cy="16" r="2.200" fill="#0e1418"/><circle cx="14.300" cy="14.300" r="1.100" fill="#fff"/><path d="M16 2v4M16 26v4" stroke="#c9962a" stroke-width="1.600" stroke-linecap="round"/>',
  redtome:'<path d="M6 5h17q3 0 3 3v19H9q-3 0-3-3z" fill="#8a1a22" stroke="#2a0a0c" stroke-width="1.200" stroke-linejoin="round"/><path d="M6 24q0-3 3-3h17" stroke="#e8d8c0" stroke-width="1.600" fill="none"/><path d="M10 5v16" stroke="#5a0c12" stroke-width="1"/><path d="M17 9l2.500 4.500l-2.500 4.500l-2.500-4.500z" fill="#ffb0a0" stroke="#d8b24a" stroke-width=".8"/><circle cx="17" cy="13.500" r="6" fill="#ff4030" opacity=".18"/>',
  blacktome:'<path d="M6 5h17q3 0 3 3v19H9q-3 0-3-3z" fill="#24202a" stroke="#0a080c" stroke-width="1.200" stroke-linejoin="round"/><path d="M6 24q0-3 3-3h17" stroke="#c8c0d0" stroke-width="1.600" fill="none"/><path d="M10 5v16" stroke="#0e0c12" stroke-width="1"/><path d="M14 10q3-3 6 0q-1 2-3 2q2 0 3 3q-3 3-6 0q1-2 3-2q-2 0-3-3z" fill="#8a6ab0" stroke="#d8d0e8" stroke-width=".7"/><path d="M17 15v3" stroke="#b0182a" stroke-width="1.300" stroke-linecap="round"/><circle cx="17" cy="19" r=".9" fill="#b0182a"/>',
@@ -4371,6 +4384,8 @@ const MARCUS={credits:"Credits, eh? They hum when I count them, and I count them
  warm:"Herbert left this here. It's still warm. It's always still warm. I've stopped asking.",
  statue:"Don't mind the eyes. It does that. I keep a rag on it, but the rag... well. Just don't leave it facing the wagon.",
  ledger:"A tax collector's ledger. He won't be needing it. Long story. Don't ask.",
+ coffer:"A coffer for the careful customer. Fill it up, never open it, feel rich. Very popular with dragons.",
+ bottle:"Bring back the empties and I'll pay you for the glass. Rinsed, please. Mostly rinsed.",
  mule:"Genuine mule hair. Sourced from a very distant mule. Not Parsnip. Don't look at Parsnip.",
  fire:"Fire Flask? Excellent choice. Point it away from the wagon, please.",
  caltrops:"Caltrops! Scatter them, then remember where you scattered them. Parsnip didn't.",
