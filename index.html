@@ -2945,6 +2945,7 @@ function distMap(srcs){
   }
   return D;
 }
+const PATIENCE_TRADE=3; // turns near your units without attacking before an enemy will take a hit back that kills it
 const VAL={P:4,E:3,R:3,A:2,N:4,T:3}; // targets worth focusing first: healers, enchanters and artillery
 // exploding barrels the AI would like to set off, with how much each is worth to it
 const blastPlan=()=>[...XBAR].map(k=>[k,blastValue(k)]).filter(e=>e[1]>=4);
@@ -3021,7 +3022,8 @@ function enemyTurn(note=""){
     if(g!==gid)return;
     const fin=()=>{u.acted=1;if(!checkEnd())render();later(step,500)};
     const pri=p=>{const c=combat(u,p),kill=c.dmg>=p.hp,r=kill?null:retaliation(u,p);return (kill?100*c.hit:0)+(VAL[p.t]||0)-p.hp*.5-(r?r.hit*r.dmg*2:0)}; // likely kills first, then soft, valuable targets that won't hit back hard
-    const ts=targets(u).filter(p=>{const r=dmgTo(u,p)<p.hp&&retaliation(u,p);return !(r&&r.dmg>=u.hp&&r.hit>.5)}).sort((a,b)=>pri(b)-pri(a)); // never trade itself for nothing
+    const waited=u.idle||0;u.idle=0; // patience: kept only if the unit ends its turn without attacking (below)
+    const ts=targets(u).filter(p=>{const r=dmgTo(u,p)<p.hp&&retaliation(u,p);return waited>=PATIENCE_TRADE||!(r&&r.dmg>=u.hp&&r.hit>.5)}).sort((a,b)=>pri(b)-pri(a)); // never trade itself for nothing, until it has waited long enough
     const hs=healTargets(u).sort((a,b)=>a.hp/maxHp(a)-b.hp/maxHp(b));
     if(hs.length&&(hs[0].hp<=ST(hs[0]).hp-2||!ts.length)){u.acted=1;applyHeal(u,hs[0]);say("Enemy "+NAME[u.t]+" healed an ally.");render();return later(step,600)}
     if(canMuster(u)&&!ts.some(p=>dmgTo(u,p)>=p.hp)){const n=muster(u);say(`Enemy captain mustered ${n} militia.`);render();return later(step,600)} // muster unless a kill is on offer
@@ -3050,7 +3052,7 @@ function enemyTurn(note=""){
       }
       if(!pushed){attack(u,ts[0],()=>{champRetreat(u);usurpShove(u);fin()});return}
     }
-    if(!u.moved)u.idle=(u.idle||0)+1; // patience: a turn spent neither moving nor acting
+    u.idle=waited+(units.some(p=>p.team==="y"&&d(u,p)<=mvOf(p)+rgOf(p)+2)?1:0); // patience: a turn near your units without attacking, moved or not (so stepping back and forth can't reset it)
     fin();
   }
   function step(){
@@ -3067,7 +3069,7 @@ function enemyTurn(note=""){
       }
       const u=p.u;done.add(u);
       if(tp){tpUsed.f=1;sfx("warp");say("Enemy teleported a "+NAME[u.t]+"!")}
-      if(dest[0]!==u.x||dest[1]!==u.y){u.moved=1;movedAny=true;u.idle=0}
+      if(dest[0]!==u.x||dest[1]!==u.y){u.moved=1;movedAny=true}
       if(tp)[u.x,u.y]=dest;else if(walk(u,dest[0],dest[1])&&!units.includes(u)){say(`The enemy ${NAME[u.t]} fell on the caltrops.`);if(checkEnd())return;render();return later(step,500)}
       render();
       const goOn=()=>units.includes(u)?sentinel(u,()=>act(u)):checkEnd()||later(step,500);
