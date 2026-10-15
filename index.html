@@ -470,6 +470,7 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 @keyframes rdy{50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--you) 40%,transparent)}}
 .ulist{display:grid;gap:10px}
+.rcard.qsel{outline:3px solid var(--rc);outline-offset:2px;box-shadow:0 0 0 6px color-mix(in srgb,var(--rc) 30%,transparent)}.qrtog{width:100%;text-align:left}
 .hallsum{margin-bottom:10px}.hstat{grid-template-columns:auto 1fr}.hstat b{text-align:right}.hstat small{opacity:.75}.hch{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:4px}.hch small,.hloss small{opacity:.7}
 .hconq{border-left:4px solid #d8a82a}.hloss{display:flex;justify-content:space-between;gap:8px;align-items:baseline;opacity:.85}.hrel{display:flex;flex-wrap:wrap;gap:3px;margin:6px 0 2px}.hrel svg{width:22px;height:22px;display:block}
 #triumph.conq #ttitle{color:#e8b530;text-shadow:0 0 12px rgba(224,50,30,.55)}#triumph.conq .tpan{box-shadow:0 0 0 3px #c9962a,0 0 26px rgba(214,40,30,.45)}
@@ -525,13 +526,6 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 <div class="wmap" id="wmap"></div>
 <div id="winfo"></div>
 <div class="foot wfoot"><button class="b" id="wback">Menu</button><button class="b" id="wrestart">Restart Campaign</button></div>
-<div class="ov" id="relicv" hidden>
-<div class="panel cpan rpan" role="dialog" aria-labelledby="rtitle">
-<h2 id="rtitle">Choose a Relic</h2>
-<p class="rsub">Spoils of victory. It lasts for the rest of this campaign.</p>
-<div id="rchoices"></div>
-</div>
-</div>
 </section>
 <section id="pick" hidden>
 <div class="hd"><button class="b" id="back">Back</button><h2 id="stitle">Set Up Battle</h2></div>
@@ -552,6 +546,10 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 <h3><span class="sn">3</span>Your Color</h3>
 <div class="sw" id="pc"></div>
 <div id="yb"></div>
+</div>
+<div class="grp" id="qrgrp" hidden>
+<h3><span class="sn">4</span>Relics?</h3>
+<button class="b qrtog" id="qrtog" aria-pressed="false"><strong>Relics?</strong><small>Choose 3 of 6 relics before the battle. The enemy carries 3 of its own.</small></button>
 </div>
 <p class="hint" id="need" aria-live="polite"></p>
 <button class="b go" id="go" disabled aria-describedby="need">Start Battle</button>
@@ -610,6 +608,13 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 </div>
 </section>
 </main>
+<div class="ov" id="relicv" hidden>
+<div class="panel cpan rpan" role="dialog" aria-labelledby="rtitle">
+<h2 id="rtitle">Choose a Relic</h2>
+<p class="rsub">Spoils of victory. It lasts for the rest of this campaign.</p>
+<div id="rchoices"></div>
+</div>
+</div>
 <div class="ov" id="triumph" hidden>
 <div class="panel cpan tpan" role="dialog" aria-labelledby="ttitle">
 <h2 id="ttitle">Congratulations!</h2>
@@ -1771,9 +1776,9 @@ function render(){
   const chip=(who,k,c)=>`<div class="chip mchip" style="background:${COLORS[c][1]};color:${COLORS[c][2]}" title="${MODS[k].desc}"><small>${who}</small>${MODS[k].name}</div>`;
   const carry=[...FOE_RELIC].map(id=>RELICS[id]).concat(FOE_ITEMS.map(id=>ITEMS[id]));
   $("mods").innerHTML=units.length?(mods.y?chip("Your Modifier",mods.y,col.y):"")+(mods.f?chip("Enemy Modifier",mods.f,col.f):"")
-    +(carry.length?`<div class="chip gchip" style="background:${COLORS[col.f][1]};color:${COLORS[col.f][2]}"><small>Garrison Carries</small><span>${[...FOE_RELIC].map(id=>`<button class="gci" data-k="r" data-id="${id}" title="${RELICS[id].name}" aria-label="${RELICS[id].name}">${relicIcon(id,22)}</button>`).join("")+FOE_ITEMS.map(id=>`<button class="gci" data-k="i" data-id="${id}" title="${ITEMS[id].name}" aria-label="${ITEMS[id].name}">${itemIcon(id,22)}</button>`).join("")}</span></div>`:"")
-    +(camp.battle&&!chal?packChip():""):"";
-  $("mods").querySelectorAll(".gci").forEach(b=>b.onclick=()=>showGarrisonItem(b.dataset.k,b.dataset.id));
+    +(carry.length?`<div class="chip gchip" style="background:${COLORS[col.f][1]};color:${COLORS[col.f][2]}"><small>${camp.battle?"Garrison Carries":"Enemy Relics"}</small><span>${[...FOE_RELIC].map(id=>`<button class="gci" data-k="r" data-id="${id}" title="${RELICS[id].name}" aria-label="${RELICS[id].name}">${relicIcon(id,22)}</button>`).join("")+FOE_ITEMS.map(id=>`<button class="gci" data-k="i" data-id="${id}" title="${ITEMS[id].name}" aria-label="${ITEMS[id].name}">${itemIcon(id,22)}</button>`).join("")}</span></div>`:"")
+    +(camp.battle&&!chal?packChip():!chal&&RELIC.size?`<div class="chip gchip" style="background:${COLORS[col.y][1]};color:${COLORS[col.y][2]}"><small>Your Relics</small><span>${[...RELIC].map(id=>`<button class="gci" data-k="y" data-id="${id}" title="${RELICS[id].name}" aria-label="${RELICS[id].name}">${relicIcon(id,22)}</button>`).join("")}</span></div>`:""):"";
+  $("mods").querySelectorAll(".gci").forEach(b=>b.onclick=()=>b.dataset.k==="y"?showRelicInfo(b.dataset.id,b):showGarrisonItem(b.dataset.k,b.dataset.id));
   fitPack($("mods"));
   renderTile();
   renderInfo();
@@ -2877,7 +2882,7 @@ function showEnd(win){
     if(nm.type==="boss"&&camp.region>=2)unlock("volcanic"); // a second land conquered in one campaign
     if(nm.type==="boss"&&camp.region===5&&[...CORE].every(t=>armyTypes().some((a,i)=>a===t&&(camp.kills[i]||0)>0)))unlock("warpedsim"); // the Warped Sim: the fifth boss falls, and a Knight, an Archer and a Cavalry unit have each downed a foe this campaign
     if(armyTypes().every((t,i)=>units.some(v=>v.team==="y"&&v.ci===i)))unlock("cherry"); // a flawless victory: nobody fell
-    if(fin){unlock("spoils");logCampaign(nm,"won");dropHold("camp");try{localStorage.removeItem(SAVE)}catch(e){}} // the land is conquered: the campaign is over, its record kept in the Hall
+    if(fin){unlock("spoils");unlock("qrelics");logCampaign(nm,"won");dropHold("camp");try{localStorage.removeItem(SAVE)}catch(e){}} // the land is conquered: the campaign is over, its record kept in the Hall
   }
   $("dtitle").textContent=win?"Victory":"Defeat";
   $("dtitle").style.color=win?"#2f8f4e":"var(--foe)";
@@ -3751,13 +3756,46 @@ function renderSetup(){
   if(!pick.m)need.push("a modifier");
   $("need").textContent=need.length?`Still needed: ${need.join(" and ")}.`:`Ready to go: you play ${mc[0]} with ${MODS[pick.m].name}.`;
   $("go").disabled=need.length>0;
+  $("qrgrp").hidden=campSetup||!unlocks.qrelics;$("qrtog").setAttribute("aria-pressed",qrOn());
 }
+$("qrtog").onclick=()=>{try{localStorage.setItem(QR_KEY,qrOn()?"0":"1")}catch(e){}renderSetup()};
 $("rand").onclick=()=>{pick.x=[];const P=poolNow();for(let i=0;i<EXTRAS;i++){let t;do t=P[Math.floor(Math.random()*P.length)];while(LIMIT1.includes(t)&&pick.x.includes(t));pick.x.push(t)}renderSetup()};
 $("clr").onclick=()=>{pick.x=[];renderSetup()};
 $("randm").onclick=()=>{const k=Object.keys(MODS);pick.m=k[Math.floor(Math.random()*k.length)];renderSetup()};
 function resetBattle(){
   RUBBLE=new Set();SMOKE=new Set();CALTROPS=new Set();FOE_RELIC=new Set();FOE_ITEMS=[];shoveT=null;gid++;$("defeat").hidden=true;tile=null;units=[];sel=null;mode=null;choice=null;choiceMv=null;bchoice=null;lastMove=null;insp=null;info=null;turn="y";over=false;busy=false;locked=false;tpUsed={y:0,f:0};
   const keys=Object.keys(MODS);mods={y:null,f:keys[Math.floor(Math.random()*keys.length)]};
+}
+/* ---------- Relics? (a hidden reward for the first conquest): quick battles where both sides carry relics ----------
+   You pick 3 of 6 (3 Common, 2-3 Uncommon, 0-1 Rare); the enemy gets one of each rarity. Relics that only pay off between campaign battles are left out. */
+const QR_KEY="skirmish_qrel",qrOn=()=>{if(!unlocks.qrelics)return false;try{return localStorage.getItem(QR_KEY)==="1"}catch(e){return false}};
+const QR_RARE=.5,QR_NO=["coin","saddle","ledger","coffer","bottle","cross","chest","token","rations","bandages","luckycross","eldorado","vgloves","credits","warm","horseshoe","scube","mcube","lcube"];
+let QREL=null; // {y: your chosen relics} for the quick battle about to start (the enemy's are rolled in start)
+const QREL_ART='<svg viewBox="0 0 48 48" role="img" aria-hidden="true"><rect width="48" height="48" rx="8" fill="#3a2c1a"/><path d="M10 20h28v18H10z" fill="#9a6a34" stroke="#2a1a0a" stroke-width="1.400"/><path d="M8 14h32v7H8z" fill="#b8844a" stroke="#2a1a0a" stroke-width="1.400"/><path d="M22 14h4v24h-4z" fill="#e8b530"/><text x="24" y="33" text-anchor="middle" font-size="13" font-weight="800" fill="#fff6d8" stroke="#2a1a0a" stroke-width=".8" paint-order="stroke">?</text></svg>';
+function quickRelicChoices(){
+  const army=[...CORE,...pick.x],ok=id=>{const R=RELICS[id];return !QR_NO.includes(id)&&(!R.lock||unlocks[R.lock])&&needOk(R,army)};
+  const of=r=>Object.keys(RELICS).filter(id=>RELICS[id].r===r&&ok(id)).sort(()=>Math.random()-.5),rare=Math.random()<QR_RARE?1:0;
+  return [...of(0).slice(0,3),...of(1).slice(0,3-rare),...of(2).slice(0,rare)];
+}
+function quickFoeRelics(){ // one of each rarity, from the relics an enemy army knows how to use
+  const army=units.filter(u=>u.team==="f").map(u=>u.t),ok=id=>id in FOE_OK&&(!FOE_OK[id]||[].concat(FOE_OK[id]).some(t=>army.includes(t)))&&(!RELICS[id].lock||unlocks[RELICS[id].lock]);
+  FOE_RELIC=new Set();
+  [0,1,2].forEach(r=>{const c=Object.keys(RELICS).filter(id=>RELICS[id].r===r&&ok(id)&&!clash(id,[...FOE_RELIC]));if(c.length)FOE_RELIC.add(c[Math.floor(Math.random()*c.length)])});
+}
+function openQuickRelics(){
+  const offer=quickRelicChoices(),got=[];
+  $("rtitle").textContent="Relics?";$("relicv").querySelector(".rsub").textContent="Choose three relics for this battle. The enemy carries three of its own.";
+  const draw=()=>{
+    $("rchoices").innerHTML=offer.map(id=>{const R=RELICS[id],[rn,rc]=RARITY[R.r],on=got.includes(id),no=!on&&(got.length>=3||clash(id,got));
+      return `<button class="rcard${on?" qsel":""}${no?" clash":""}" data-id="${id}" style="--rc:${rc}" aria-pressed="${on}"><span class="ri">${relicIcon(id,38)}</span><span class="rr">${rn}${on?" \u00b7 Chosen":""}</span><b>${R.name}</b><small>${R.desc}</small></button>`}).join("")
+      +`<div class="menubtns"><button class="b big pri" id="qrgo"${got.length<3?" disabled":""}>Start Battle (${got.length}/3)</button><button class="b big" id="qrback">Back to Setup</button></div>`;
+    $("rchoices").querySelectorAll(".rcard").forEach(b=>b.onclick=()=>{const id=b.dataset.id,i=got.indexOf(id);
+      if(i>=0)got.splice(i,1);else if(got.length<3&&!clash(id,got))got.push(id);else return;
+      draw();const nb=$("rchoices").querySelector(`[data-id="${id}"]`);if(nb)nb.focus()});
+    $("qrgo").onclick=()=>{$("relicv").hidden=true;QREL={y:got.slice()};start()};
+    $("qrback").onclick=()=>{$("relicv").hidden=true;$("go").focus()};
+  };
+  draw();$("relicv").hidden=false;$("rchoices").querySelector(".rcard").focus();
 }
 function init(){
   camp.battle=null;campSetup=false;chal=null;resetBattle();
@@ -3776,7 +3814,7 @@ function start(o={}){
   genMap(o);col={y:pick.c,f:foeColor(),w:"wild"};
   const extra=pick.x.slice();
   const P=poolNow(),rnd=(have=[])=>{let t;do t=P[Math.floor(Math.random()*P.length)];while(LIMIT1.includes(t)&&have.includes(t));return t},mine=[...CORE,...extra],foe=[...CORE];foe.push(rnd(foe));foe.push(rnd(foe));
-  mods.y=pick.m;units=[];herbertMet=false;firstTurn=true;pturn=1;RELIC=new Set(camp.battle?camp.relics:[]);relicUsed={};
+  mods.y=pick.m;units=[];herbertMet=false;firstTurn=true;pturn=1;RELIC=new Set(camp.battle?camp.relics:!chal&&QREL?QREL.y:[]);relicUsed={};
   if(!camp.battle&&mine.filter(t=>t==="K").length===3)unlock("campsite"); // three knights in a quick battle
   [1,3,4,6,8].forEach((x,i)=>{
     const wd=camp.battle?woundsOf(i):0;units.push({t:mine[i],team:"y",ci:i,x,y:H-1,hp:camp.battle?Math.min(campMax(i),camp.hp&&camp.hp[i]>0?camp.hp[i]:campMax(i)):TYPES[mine[i]].hp,moved:0,acted:0,...(wd?{wounds:wd}:{})});
@@ -3794,6 +3832,7 @@ function start(o={}){
     if(o.boss)foeLoadout(ER);
     if(RELIC.has("gbook")){const ys=units.filter(u=>u.team==="y"&&!u.auto);if(ys.length){const u=ys[Math.floor(Math.random()*ys.length)];u.glitch=Object.keys(GLITCH)[Math.floor(Math.random()*3)];u.pages=1}} // the Glitchy Book's Corrupted Pages
   }
+  if(!camp.battle&&!chal&&QREL){quickFoeRelics();if(RELIC.has("gbook")){const ys=units.filter(u=>u.team==="y");const u=ys[Math.floor(Math.random()*ys.length)];u.glitch=Object.keys(GLITCH)[Math.floor(Math.random()*3)];u.pages=1}} // Relics? quick battles: the enemy's three, and the Glitchy Book works here too
   vanguard();
   if(FOE_RELIC.has("keep")){const fs=units.filter(u=>u.team==="f");fs[Math.floor(Math.random()*fs.length)].keep=1}
   ["y","f"].forEach(team=>{ // the Shimmering Champion pieces: one random unit (above half health when it can) takes every piece its side carries
@@ -4340,8 +4379,10 @@ function relicOffer(nm){
 }
 // Conqueror's Spoils: a new campaign opens with a choice of 3 Common relics (any a fresh army can use)
 function startOffer(){
-  const army=armyTypes(),pool=Object.keys(RELICS).filter(id=>RELICS[id].r===0&&!RELICS[id].find&&RELICS[id].src!=="shop"&&RELICS[id].src!=="boss"&&RELICS[id].src!=="sim"&&(!RELICS[id].lock||unlocks[RELICS[id].lock])&&needOk(RELICS[id],army)).sort(()=>Math.random()-.5);
-  return pool.length?pool.slice(0,3):null;
+  const army=armyTypes(),base=Object.keys(RELICS).filter(id=>RELICS[id].r===0&&!RELICS[id].find&&RELICS[id].src!=="boss"&&RELICS[id].src!=="sim"&&(!RELICS[id].lock||unlocks[RELICS[id].lock])).sort(()=>Math.random()-.5);
+  const fit=base.filter(id=>RELICS[id].src!=="shop"&&needOk(RELICS[id],army)),out=fit.slice(0,3);
+  base.forEach(id=>{if(out.length<3&&!out.includes(id))out.push(id)}); // always three: if too few suit the army, fill from the other commons
+  return out.length?out:null;
 }
 // a boss's spoils: pick 1 of 3. One always comes from the boss list; the other two from relics offered after battles
 // (including the shop-and-battle list) and from consumables, weighted toward rarer finds, at most 2 of them consumables
@@ -4945,13 +4986,15 @@ const UNLOCKS=[
  {id:"vfalcata",relic:"vfalcata",hint:"His men are well funded."},
  {id:"conquistador",unit:"Q",hint:"The expedition begins anew."},
  {id:"spoils",spoils:1,hint:"Claim the last stronghold, and its spoils follow you home."},
- {id:"warpedsim",sim:1,secret:1} // secret: not listed (or counted) until it's unlocked
+ {id:"warpedsim",sim:1,secret:1},
+ {id:"qrelics",qrel:1,secret:1} // secret: not listed (or counted) until it's unlocked
 ];
 // name, art and description for an unlock, read from the terrain table or the unit descriptions
 const unlockInfo=o=>o.chal?(c=>({name:c.name,art:`<div class="tsw" style="${TERRAIN.fort.bg}">${FORT_ICON[0]}</div>`,desc:`${c.desc} A ${DIFF[c.diff||0][0].toLowerCase()} challenge map, played from the Challenges menu.`}))(CHALLENGES.find(c=>c.id===o.chal))
   :o.item?{name:ITEMS[o.item].name,art:itemIcon(o.item,44),desc:ITEMS[o.item].desc+` ${RARITY[ITEMS[o.item].r||0][0]} consumable, sold by Marcus.`}
   :o.relic?{name:unlocks.vmorion?RELICS[o.relic].name:RELICS[o.relic].name.replace(/^Vasco's/,"???'s"),art:relicIcon(o.relic,44),desc:RELICS[o.relic].desc+` ${/^[AEIOU]/.test(RARITY[RELICS[o.relic].r][0])?"An":"A"} ${RARITY[RELICS[o.relic].r][0].toLowerCase()} relic `+(RELICS[o.relic].find?"found only in battle, never offered as a reward.":"that can be offered after campaign victories.")}
   :o.spoils?{name:"Conqueror's Spoils",art:LAUREL,desc:"Begin every campaign by choosing one of three Common relics."}
+  :o.qrel?{name:"Relics?",art:QREL_ART,desc:"A new box when setting up a Quick Battle. Tick it, and before the fight you choose 3 of 6 relics, while the enemy carries 3 of its own."}
   :o.sim?{name:"The Warped Sim",art:`<div class="tsw" style="background:#2e2752">${SIM_ICON}</div>`,desc:"A rift into a land that isn't quite real. After you defeat a campaign boss in regions 5 to 8, a portal may open: step through for a short, harsh region of glitched terrain, Chaos Springs and Light Bricks, with spoils to match."}
   :o.biome?{name:BIOME_NAME[o.biome],art:terrainSwatch(o.terrain),desc:BTEXT[o.biome]+" Can appear in campaigns and quick battles."}
   :o.terrain?{name:TERRAIN[o.terrain].name,art:terrainSwatch(o.terrain),desc:TERRAIN[o.terrain].desc}
@@ -4995,7 +5038,8 @@ $("how").onclick=()=>{$("mbtns").hidden=true;$("rulesview").hidden=false;howView
 $("back").onclick=()=>show("menu");
 $("go").onclick=()=>{
   if(campSetup){dropHold("camp");camp.cfg={x:pick.x.slice(),m:pick.m,c:pick.c};camp.pos=0;camp.cleared=[];camp.done=false;camp.hp=null;camp.gold=0;camp.relics=[];camp.items=[];camp.merc=null;camp.scout=0;camp.portal=0;camp.inSim=0;camp.escaped=0;camp.mercNote="";camp.offer=null;camp.found=[];camp.lastGold=0;camp.kills=[];rollNames();camp.region=1;camp.mapsPrior=0;camp.bossUsed={loc:[],name:[]};camp.sel=0;camp.offerBoss=false;camp.offerStart=0;camp.news=null;if(unlocks.spoils){camp.offer=startOffer();camp.offerStart=camp.offer?1:0}genWorld();saveCamp();openWorld()}
-  else start();
+  else if(qrOn())openQuickRelics();
+  else{QREL=null;start()}
 };
 $("end").onclick=()=>{
   if(over||busy||locked||!units.length||turn!=="y")return;
