@@ -398,6 +398,8 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .u.spot{outline:2px dotted rgba(250,248,235,.95);outline-offset:-5px} /* Spotter's Mark: a scrawled ring inside the piece (wild units wear theirs outside) */
 .u.stun::after{content:"\2737";position:absolute;top:-5px;left:-5px;width:17px;height:17px;border-radius:50%;background:#f4e27a;color:#5a4a00;font-size:.75rem;font-weight:800;line-height:17px;text-align:center;box-shadow:0 0 0 1.5px #fff,0 0 8px 2px rgba(255,250,200,.9)}
 .u.rage:not(.redglow) svg{filter:drop-shadow(0 0 3px rgba(240,110,30,.9))}
+.u.scram:not(.elite){box-shadow:0 0 0 2px rgba(255,79,216,.95),0 0 9px 3px rgba(255,79,216,.6),var(--bev)} /* Scramble Protocol */
+.u.link:not(.blessed):not(.rallied):not(.mule):not(.elite){box-shadow:0 0 0 2px rgba(58,224,255,.95),0 0 9px 3px rgba(58,224,255,.6),var(--bev)} /* Data Transfer Line */
 .u.chill:not(.blessed):not(.rallied):not(.mule):not(.elite){box-shadow:0 0 0 2px rgba(225,245,255,.9),0 0 9px 3px rgba(170,215,240,.7),var(--bev)}
 .u.ash:not(.blessed):not(.rallied):not(.elite){box-shadow:0 0 0 2px rgba(255,220,150,.95),0 0 12px 4px rgba(255,120,30,.75),var(--bev)}
 .u.blessed{box-shadow:0 0 0 2px rgba(255,255,255,.9),0 0 10px 3px rgba(120,210,255,.75),var(--bev)}
@@ -656,7 +658,11 @@ const DIRS=[[1,0],[-1,0],[0,1],[0,-1]],pk=k=>k.split(",").map(Number); // the fo
 const W=10,H=12,
 // hp, mv move, rg/mn range, dmg damage; ar armor, pi pierce, ev evasion (dodge chance); who retaliates: CAN_RETALIATE / CANT_RETALIATE below
 TYPES={K:{hp:12,mv:3,rg:1,mn:1,dmg:5,ar:2},A:{hp:8,mv:3,rg:3,mn:1,dmg:4,pi:1,ev:.1},R:{hp:10,mv:2,rg:4,mn:2,dmg:4,pi:2},W:{hp:8,mv:2,rg:1,mn:1,dmg:4,ev:.15},B:{hp:16,mv:1,rg:1,mn:1,dmg:6,ar:1},H:{hp:5,mv:3,rg:2,mn:1,dmg:3,ev:.25},C:{hp:9,mv:5,rg:1,mn:1,dmg:4,ar:1,ev:.1},P:{hp:7,mv:3,rg:2,mn:1,dmg:1,heal:3,ev:.1},E:{hp:6,mv:3,rg:3,mn:1,dmg:2,slow:1,ev:.15},T:{hp:9,mv:3,rg:1,mn:1,dmg:3,ar:1},N:{hp:8,mv:3,rg:1,mn:1,dmg:2,ev:.05},Q:{hp:10,mv:4,rg:1,mn:1,dmg:4,ar:1,ev:.05},D:{hp:10,mv:2,rg:1,mn:1,dmg:4,ar:1},M:{hp:4,mv:2,rg:1,mn:1,dmg:2},G:{hp:3,mv:4,rg:1,mn:1,dmg:2,ev:.15},X:{hp:9,mv:4,rg:1,mn:1,dmg:4,ar:1,pi:1,ev:.1},S:{hp:6,mv:5,rg:1,mn:1,dmg:0,ev:.25}}; // G: the Angry Chicken (Chicken Suit relic)
-const ST=u=>u.st?{...TYPES[u.t],...u.st}:TYPES[u.t]; // a unit's stats: its type's, unless it carries its own (mercenaries)
+const ST0=u=>u.st?{...TYPES[u.t],...u.st}:TYPES[u.t]; // a unit's stats: its type's, unless it carries its own (mercenaries)
+const ST=u=>{const s=ST0(u);if(!u.scram&&!u.link)return s;const o={...s}; // the Sim's consumables bend base stats until the start of your next turn
+  if(u.scram){o.dmg=s.ar||0;o.ar=s.dmg} // Scramble Protocol: damage and armor trade places
+  if(u.link){o.ar=Math.max(o.ar||0,u.link.ar);o.ev=Math.max(o.ev||0,u.link.ev)} // Data Transfer Line: the better armor and evasion of the pair
+  return o};
 // Mercenaries: a weaker, slightly randomized take on a unit type that fights on its own. One at a time, for MERC_TERM campaign battles.
 const MERC_TYPES="KARC",MERC_PRICE={K:70,A:65,R:70,C:75},MERC_TERM=4,MERC_SHOP=1/3,MERC_ROAD=.1;
 const MERC_QUIRKS=[["Swift",{mv:1},"+1 move"],["Stout",{ar:1},"+1 armor"],["Nimble",{ev:.05},"+5% evasion"],["Hardy",{hp:2},"+2 HP"],["Keen",{pi:1},"+1 pierce"]];
@@ -1720,7 +1726,7 @@ function render(){
     html+=`<button class="${cls}" data-x="${x}" data-y="${y}"${pd&&pd.k===k?` data-arrow="${pd.a}"`:""} aria-label="${label.replace(/"/g,"&quot;")}">`
       +'<i class="lt"></i>'+A.art[i]+(fr?'<i class="tint"></i>':"")+(SMOKE.has(k)?'<i class="smoke"></i>':"")+(CALTROPS.has(k)?CALT_ART:"")+A.jn[i]+glowOf(k).map(([dx,dy])=>`<i class="lglow" style="background:linear-gradient(to ${dx>0?"left":dx<0?"right":dy>0?"top":"bottom"},rgba(255,226,60,.62),rgba(255,226,60,.16) 70%,rgba(255,226,60,.08))"></i>`).join(""); // fortress art covers its tile, so highlights go on a see-through layer above it
     if(u){
-      let uc="u "+u.team+(u.merc?" merc":"")+(u.auto&&u.team==="y"?" free":spent(u)?" done":"")+(u.slow||u.slowNext?" slow":"")+(u.stun?" stun":"")+(u.rage||u.oil?" rage":"")+(u.chill?" chill":"")+(u.spot>=pturn&&u.spotBy!==u.team?" spot":"")+(u.ash?" ash":"")+(inspired(u)?" insp":"")+(blessed(u)||rested(u)?" blessed":"")+(u.t==="E"&&rel(u,"redtome")?" redglow":"")+(rallied(u)?" rallied":"")+(muled(u)?" mule":"")+(u.dug?" dug":"")+(u.elite?" elite":"")+(u.glitch?" glitch":"")+(u.champ||u.cshield||u.cloak?" champ":"")+(u.ublade||u.ubulwark||u.ushroud?" usurp":"")+(u===sel||u===insp?" sel":""),mvs="";
+      let uc="u "+u.team+(u.merc?" merc":"")+(u.auto&&u.team==="y"?" free":spent(u)?" done":"")+(u.slow||u.slowNext?" slow":"")+(u.stun?" stun":"")+(u.rage||u.oil?" rage":"")+(u.chill?" chill":"")+(u.scram?" scram":"")+(u.link?" link":"")+(u.spot>=pturn&&u.spotBy!==u.team?" spot":"")+(u.ash?" ash":"")+(inspired(u)?" insp":"")+(blessed(u)||rested(u)?" blessed":"")+(u.t==="E"&&rel(u,"redtome")?" redglow":"")+(rallied(u)?" rallied":"")+(muled(u)?" mule":"")+(u.dug?" dug":"")+(u.elite?" elite":"")+(u.glitch?" glitch":"")+(u.champ||u.cshield||u.cloak?" champ":"")+(u.ublade||u.ubulwark||u.ushroud?" usurp":"")+(u===sel||u===insp?" sel":""),mvs="";
       if(u.spawn){uc+=" tpin";delete u.spawn}
       const pp=prevPos.get(u);prevPos.set(u,[x,y]);
       if(pp&&(pp[0]!==x||pp[1]!==y)){ // slide in from where it was last drawn (a long jump fades in instead)
@@ -1787,6 +1793,8 @@ function renderInfo(){
   if(u.stun)notes.push("Stunned by a Flash Vial: it can't move or attack on its next turn.");
   if(u.rage)notes.push("Enraged: +1 damage, +1 movement and +1 pierce, but 5% less evasion, for the rest of the battle.");
   if(u.spot>=pturn&&u.spotBy!==u.team)notes.push(`Marked (Spotter's Mark): the next adjacent blow ${u.spotBy==="y"?"your units land":"the enemy lands"} on it deals +1 damage.`);
+  if(u.scram)notes.push("Scrambled (Scramble Protocol): its base damage and armor are swapped until the start of your next turn.");
+  if(u.link)notes.push(`Linked (Data Transfer Line): ${u.link.ar} base armor and ${pct(u.link.ev)} base evasion until the start of your next turn.`);
   if(u.chill)notes.push("Chilled by dry ice fog: +3% evasion until your next turn.");
   if(u.slowNext)notes.push("Dazzled by a Light Brick: it will be slowed on its next turn, moving only 1 tile.");
   if(u.slow)notes.push("Slowed: it can move only 1 tile (always at least 1, even out of a forest or into shallow water) until the end of its next turn.");
@@ -2322,7 +2330,7 @@ if(document.addEventListener){
   document.addEventListener("visibilitychange",()=>document.hidden?stopMusic():startMusic());
 }
 // Items from Marcus's wagon: using one takes the unit's action
-const itemPrompt=id=>id==="pixel"?"Choose an enemy within 3 to throw the Pixel Bomb at.":id==="flash"?"Choose an enemy within 2 to throw the vial at.":id==="incense"?"Choose this unit or an ally beside it to burn the incense by.":id==="dryice"?"Choose a unit within 3 to tip the dry ice by.":id==="wake"?"Choose this unit or an ally beside it to wake up.":id==="acid"?"Choose an enemy within 3 to throw the acid flask at.":id==="viper"?"Tap this unit to coat its weapon.":id==="lightning"?"Choose an enemy within 3 to throw the jar at. The lightning leaps to every unit beside it, yours too.":id==="tangle"?"Choose an enemy within 3 to throw the tanglefoot bag at.":id==="caltrops"?"Choose a tile within 2 to throw the caltrops at.":id==="tonic"?"Tap this unit to drink the tonic.":id==="koijar"?"Choose an empty tile next to this unit for the koi pond.":id==="medkit"?"Choose this unit or a wounded ally beside it to mend.":id==="mule"?"Tap this unit to drink the potion.":id==="feather"?"Choose an ally within 2 tiles to swap places with.":id==="draught"?"Choose this unit or a wounded ally beside it.":id==="smoke"?"Choose a tile within 3 to throw the smoke bomb at.":"Choose an enemy within 3 to throw the fire flask at.";
+const itemPrompt=id=>id==="warp"?"Choose an ally on one of the 8 tiles around this unit to swap with.":id==="vrations"?"Choose this unit or an ally beside it to eat the rations.":id==="scramble"?"Choose an enemy on one of the 8 tiles around this unit.":id==="dtl"?"Choose an ally on one of the 8 tiles around this unit to link with.":id==="motherboard"?"Tap this unit to smash the motherboard. Every unit on the field glitches and takes 2 damage, yours too.":id==="pixel"?"Choose an enemy within 3 to throw the Pixel Bomb at.":id==="flash"?"Choose an enemy within 2 to throw the vial at.":id==="incense"?"Choose this unit or an ally beside it to burn the incense by.":id==="dryice"?"Choose a unit within 3 to tip the dry ice by.":id==="wake"?"Choose this unit or an ally beside it to wake up.":id==="acid"?"Choose an enemy within 3 to throw the acid flask at.":id==="viper"?"Tap this unit to coat its weapon.":id==="lightning"?"Choose an enemy within 3 to throw the jar at. The lightning leaps to every unit beside it, yours too.":id==="tangle"?"Choose an enemy within 3 to throw the tanglefoot bag at.":id==="caltrops"?"Choose a tile within 2 to throw the caltrops at.":id==="tonic"?"Tap this unit to drink the tonic.":id==="koijar"?"Choose an empty tile next to this unit for the koi pond.":id==="medkit"?"Choose this unit or a wounded ally beside it to mend.":id==="mule"?"Tap this unit to drink the potion.":id==="feather"?"Choose an ally within 2 tiles to swap places with.":id==="draught"?"Choose this unit or a wounded ally beside it.":id==="smoke"?"Choose a tile within 3 to throw the smoke bomb at.":"Choose an enemy within 3 to throw the fire flask at.";
 // would blocking tile k cut a stretch of open ground off from the rest? (fields that are already split stay allowed)
 function areas(skip){
   const seen=new Set();let n=0;
@@ -2336,6 +2344,7 @@ const splits=k=>areas(k)>areas(null);
 const calLine=(x,y,dir)=>[-1,0,1].map(i=>dir==="v"?[x,y+i]:[x+i,y]).filter(([a,b])=>a>=0&&b>=0&&a<W&&b<H&&!solid(a+","+b)).map(([a,b])=>a+","+b); // Bag of Caltrops: 3 tiles, across (h) or down (v)
 const acided=u=>u.acidUntil>=pturn; // an Acid Flask: until the end of your next turn
 const dazed=u=>!!(u.slow||u.hex||u.weak||u.cursed||u.stun); // what Waking Herbs clear
+const ring=(a,b)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y))===1; // one of the 8 tiles around
 function itemTargets(u,id){
   const out=new Set();
   if(id==="draught")units.forEach(b=>{if(b.team==="y"&&d(u,b)<=1&&b.hp<maxHp(b))out.add(b.x+","+b.y)});
@@ -2348,6 +2357,11 @@ function itemTargets(u,id){
   else if(id==="acid")units.forEach(b=>{if(b.team!=="y"&&d(u,b)<=3)out.add(b.x+","+b.y)});
   else if(id==="viper"){if(!u.acted&&!u.oil)out.add(u.x+","+u.y)}
   else if(id==="wake")units.forEach(b=>{if(b.team==="y"&&!b.auto&&d(u,b)<=1&&dazed(b))out.add(b.x+","+b.y)});
+  else if(id==="warp")units.forEach(b=>{if(b.team==="y"&&b!==u&&ring(u,b))out.add(b.x+","+b.y)});
+  else if(id==="vrations")units.forEach(b=>{if(b.team==="y"&&!b.auto&&d(u,b)<=1&&(b.hp<maxHp(b)||b.slow||b.slowNext))out.add(b.x+","+b.y)});
+  else if(id==="scramble")units.forEach(b=>{if(b.team!=="y"&&ring(u,b)&&!b.scram)out.add(b.x+","+b.y)});
+  else if(id==="dtl")units.forEach(b=>{if(b.team==="y"&&b!==u&&!b.auto&&ring(u,b))out.add(b.x+","+b.y)});
+  else if(id==="motherboard")out.add(u.x+","+u.y);
   else if(id==="pixel")units.forEach(b=>{if(b.team!=="y"&&d(u,b)<=3)out.add(b.x+","+b.y)});
   else if(id==="flash")units.forEach(b=>{if(b.team!=="y"&&d(u,b)<=2)out.add(b.x+","+b.y)});
   else if(id==="incense")units.forEach(b=>{if(b.team==="y"&&!b.auto&&d(u,b)<=1&&!b.rage)out.add(b.x+","+b.y)});
@@ -2379,6 +2393,14 @@ function useItem(a,id,x,y,rub,dir){
     const b=at(x,y);["slow","hex","hexPend","weak","cursed","stun"].forEach(k=>delete b[k]);sel=a;mode=null;choice=null;lastMove=null;insp=null;info=b;sfx("bless");floatText(b.x,b.y,"Wide awake!","bless");
     say(`Your ${NAME[a.t]} used the Waking Herbs${b===a?"":" on your "+NAME[b.t]}: no longer slowed, hexed or cursed.`);return render();
   }
+  if(id==="warp"){ // a free warp: neither unit spends its move or action
+    const b=at(x,y);[a.x,a.y,b.x,b.y]=[b.x,b.y,a.x,a.y];sel=a;mode=null;choice=null;lastMove=null;insp=null;info=a;sfx("whisk");floatText(a.x,a.y,"Warp!","bless");
+    say(`The Warp Cube flickered: your ${NAME[a.t]} and ${NAME[b.t]} swapped places.`);return render();
+  }
+  if(id==="vrations"){ // a free snack: the unit and its target keep their move and action
+    const b=at(x,y),n=Math.min(VRATION_HEAL,maxHp(b)-b.hp);b.hp+=n;delete b.slow;delete b.slowNext;sel=a;mode=null;choice=null;lastMove=null;insp=null;info=b;sfx("heal");floatText(b.x,b.y,n?"+"+n:"Unslowed","heal");
+    say(`Your ${NAME[a.t]} shared the Virtual Rations${b===a?"":" with your "+NAME[b.t]}: +${n} HP, and no longer slowed.`);return render();
+  }
   if(id==="feather"){ // a gust swaps the two; neither spends its move or action
     const b=at(x,y);[a.x,a.y,b.x,b.y]=[b.x,b.y,a.x,a.y];sel=a;mode=null;choice=null;lastMove=null;insp=null;info=a;sfx("whisk");
     say(`A gust of wind! Your ${NAME[a.t]} and ${NAME[b.t]} swapped places.`);return render();
@@ -2408,6 +2430,17 @@ function useItem(a,id,x,y,rub,dir){
   if(id==="acid"){
     const b=at(x,y);b.acidUntil=pturn+1;sfx("slow");floatText(b.x,b.y,"\u22121 armor","slow");info=b;
     say(`Your ${NAME[a.t]}'s Acid Flask ate into ${who(b)}'s armor: 1 less armor until the end of your next turn.`);return afterAction();
+  }
+  if(id==="scramble"){const b=at(x,y);b.scram=1;sfx("thunder");floatText(b.x,b.y,"Scrambled","slow");info=b;
+    say(`Your ${NAME[a.t]} ran the Scramble Protocol on ${who(b)}: its damage and armor are swapped until your next turn.`);return afterAction()}
+  if(id==="dtl"){const b=at(x,y),A=ST0(a),B=ST0(b),L={ar:Math.max(A.ar||0,B.ar||0),ev:Math.max(A.ev||0,B.ev||0)};a.link=L;b.link=L;sfx("bless");floatText(a.x,a.y,"Linked","bless");floatText(b.x,b.y,"Linked","bless");info=b;
+    say(`Your ${NAME[a.t]} and ${NAME[b.t]} are linked by a Data Transfer Line: both have ${L.ar} armor and ${pct(L.ev)} evasion until your next turn.`);return afterAction()}
+  if(id==="motherboard"){ // everyone glitches one tile, then everyone takes 2
+    sfx("thunder");const all=units.slice().sort(()=>Math.random()-.5);
+    all.forEach(u=>{const c=DIRS.map(([dx,dy])=>[u.x+dx,u.y+dy]).filter(([nx,ny])=>open(nx,ny));if(c.length)[u.x,u.y]=c[Math.floor(Math.random()*c.length)]});
+    let fy=0,ff=0;all.forEach(u=>{if(!units.includes(u))return;floatText(u.x,u.y,"\u2212"+BOARD_DMG,"slow");if(hurt(u,BOARD_DMG)){if(u.team==="y")fy++;else{ff++;credit(a,u)}}});
+    info=null;say(`The Broken Motherboard shorted out: every unit glitched and took ${BOARD_DMG} damage.`+(ff?` ${ff} ${ff===1?"enemy":"enemies"} fell.`:"")+(fy?` You lost ${fy} ${fy===1?"unit":"units"}.`:""));
+    return afterAction();
   }
   if(id==="pixel"){ // 3 damage, then the target and its neighbours glitch to random open tiles within 2
     const b=at(x,y),grp=[b,...units.filter(u=>u!==b&&u.team===b.team&&d(u,b)===1)];sfx("thunder");
@@ -3012,7 +3045,7 @@ function enemyTurn(note=""){
     hazards("f",()=>{
       SMOKE=new Set(); // the smoke drifts away as your turn begins
       const healed=mods.f==="REST"?rest("f"):0;
-      units.forEach(u=>{u.moved=u.acted=0;delete u.cubeAr;if(u.team==="y")delete u.ward;delete u.aim;delete u.mvFrom;delete u.amb;delete u.rough;delete u.chill;delete u.ash;if(u.team!=="y"){delete u.stun;delete u.slow;delete u.hex;delete u.hexPend;delete u.weak;if(u.cursed){u.weak=1;delete u.cursed}if(u.slowNext){u.slow=1;delete u.slowNext}}});
+      units.forEach(u=>{u.moved=u.acted=0;delete u.cubeAr;if(u.team==="y")delete u.ward;delete u.aim;delete u.mvFrom;delete u.amb;delete u.rough;delete u.chill;delete u.ash;delete u.scram;delete u.link;if(u.team!=="y"){delete u.stun;delete u.slow;delete u.hex;delete u.hexPend;delete u.weak;if(u.cursed){u.weak=1;delete u.cursed}if(u.slowNext){u.slow=1;delete u.slowNext}}});
       const wisped=wispsAct(),sparked=sparkArrives();
       vanguard();turn="y";busy=false;say((wisped?wisped+" ":"")+(sparked?sparked+" ":"")+"Your turn. Select one of your units."+(healed?" Resting enemy units recovered HP.":""));render();notify("Enemy turn ended — your move");
     });
@@ -4202,11 +4235,11 @@ const relicCount=id=>camp.relics.filter(r=>r===id).length;
 // relics the shop may stock right now: sold there, unlocked, useful to this army, and not already carried as many times as allowed
 const needOk=(R,army)=>!R.need||[].concat(R.need).some(t=>army.includes(t)); // need: a unit type (or list of types) the army must have
 const shopRelics=()=>{const army=armyTypes();return Object.keys(RELICS).filter(id=>{const R=RELICS[id];return (R.src==="shop"||R.src==="both")&&(!R.lock||unlocks[R.lock])&&needOk(R,army)&&relicCount(id)<(R.max||1)&&!clash(id,camp.relics)})};
-// the Sim's consumable reward: a Pixel Bomb half the time, else any consumable, rarer ones less often
-const SIM_PIXEL=.5;
+// the Sim's consumable reward: one of its own most of the time, else anything from Marcus's stock; rarer ones less often either way
+const SIM_OWN=.6;
 function simItem(){
-  if(!carryMax("pixel")&&Math.random()<SIM_PIXEL)return "pixel";
-  const pool=Object.keys(ITEMS).filter(id=>!ITEMS[id].sim&&(!ITEMS[id].lock||unlocks[ITEMS[id].lock])&&!carryMax(id)),w=id=>ITEM_STOCK[ITEMS[id].r||0];
+  const own=Math.random()<SIM_OWN,w=id=>ITEM_STOCK[ITEMS[id].r||0];
+  const pool=Object.keys(ITEMS).filter(id=>!!ITEMS[id].sim===own&&(!ITEMS[id].lock||unlocks[ITEMS[id].lock])&&!carryMax(id));
   if(!pool.length)return null;let r=Math.random()*pool.reduce((t,id)=>t+w(id),0),i=0;while(r>=w(pool[i])){r-=w(pool[i]);i++}return pool[i];
 }
 function relicOffer(){
@@ -4360,10 +4393,15 @@ const ITEMS={ // consumables, used in battle (campaign only); using one takes th
  flash:{name:"Flash Vial",price:70,r:2,desc:"Throw at an enemy within 2: a blinding burst deals 1 damage, ignoring armor, and the target can't move or attack on its next turn."},
  incense:{name:"Enraging Incense",price:80,r:2,max:1,desc:"You can carry only one. Burn it beside this unit or an adjacent ally: for the rest of the battle it gets +1 damage, +1 movement and +1 pierce, but 5% less evasion. The smoke smells of iron and bad decisions."},
  pixel:{name:"Pixel Bomb",r:2,sim:1,desc:"Found only in the Warped Sim. Throw at an enemy within 3: it takes 3 damage, ignoring armor, then it and every enemy beside it glitch to random empty tiles within 2. Fortresses and forests won't save them."},
+ warp:{name:"Warp Cube",r:0,sim:1,free:1,desc:"Found only in the Warped Sim. This unit swaps places with an ally on one of the 8 tiles around it. Neither unit uses its move or action."},
+ vrations:{name:"Virtual Rations",r:0,sim:1,free:1,desc:"Found only in the Warped Sim. This unit or an adjacent ally recovers 2 HP and shakes off being slowed. Using them doesn't use either unit's move or action. Tastes exactly like bread. Suspiciously exactly."},
+ scramble:{name:"Scramble Protocol",r:1,sim:1,desc:"Found only in the Warped Sim. Run it on an enemy on one of the 8 tiles around this unit: its base damage and armor swap until the start of your next turn. Bonuses still add on top."},
+ dtl:{name:"Data Transfer Line",r:1,sim:1,desc:"Found only in the Warped Sim. Plug this unit into an ally on one of the 8 tiles around it: until the start of your next turn, both have the higher base armor and the higher base evasion of the two."},
+ motherboard:{name:"Broken Motherboard",r:2,sim:1,max:1,desc:"Found only in the Warped Sim. You can carry only one. Smash it: every unit on the field, friend or foe, glitches to an open tile beside it, then every unit takes 2 damage, ignoring armor."},
  mule:{name:"Mule Hair Potion",price:40,r:1,lock:"mule",desc:"The drinker turns stubborn as a mule: +2 armor, and it can't be pushed or slowed, until the end of your next turn. Brewed from genuine mule hair. Marcus swears Parsnip had nothing to do with it."}};
 // sim: never sold; only turns up in the Warped Sim's rewards
 // r: rarity (an uncommon is drawn half as often as a common, a rare a quarter as often); max: how many the pack can hold at once; passive: works from the pack by itself, never used by hand; free: using it costs the unit nothing; lock: the unlock it waits for
-const PIXEL_DMG=3,PIXEL_JUMP=2,SHADES_EV=.02,CPLATE_DMG=3,CPLATE_RET=2,CREDITS_GOLD=25,CREDITS_BOSS=10,CREDITS_SELL=25,CUBE_SLOW=.2,BOSS_GOLD_STEP=10,ITEM_CAP=3,TONIC_MV=2,LEDGER_GOLD=5,VGLOVES_GOLD=3,TOKEN_OFF=.2,CHEST_OFF=.1,CHEST_GOLD=50,ITEM_STOCK=[1,.5,.25],SHOP_ITEMS=3,MULE_BUYS=5,RELIC_PRICE=[40,70,110],SMOKE_EV=.2,VIPER_DMG=2,PHOENIX_EV=.05,DRYICE_EV=.03,INCENSE_EV=.05,FLASH_DMG=1,DRAUGHT_HEAL=5,FIRE_DMG=3,LIGHTNING_DMG=1,CALTROP_DMG=1,CALTROP_ALLY=.5,CALTROP_AVOID=2.5; // CALTROP_ALLY: the chance your own unit steps on one; CALTROP_AVOID: how much the enemy minds crossing one // RELIC_PRICE by rarity: common, uncommon, rare
+const PIXEL_DMG=3,PIXEL_JUMP=2,VRATION_HEAL=2,BOARD_DMG=2,SHADES_EV=.02,CPLATE_DMG=3,CPLATE_RET=2,CREDITS_GOLD=25,CREDITS_BOSS=10,CREDITS_SELL=25,CUBE_SLOW=.2,BOSS_GOLD_STEP=10,ITEM_CAP=3,TONIC_MV=2,LEDGER_GOLD=5,VGLOVES_GOLD=3,TOKEN_OFF=.2,CHEST_OFF=.1,CHEST_GOLD=50,ITEM_STOCK=[1,.5,.25],SHOP_ITEMS=3,MULE_BUYS=5,RELIC_PRICE=[40,70,110],SMOKE_EV=.2,VIPER_DMG=2,PHOENIX_EV=.05,DRYICE_EV=.03,INCENSE_EV=.05,FLASH_DMG=1,DRAUGHT_HEAL=5,FIRE_DMG=3,LIGHTNING_DMG=1,CALTROP_DMG=1,CALTROP_ALLY=.5,CALTROP_AVOID=2.5; // CALTROP_ALLY: the chance your own unit steps on one; CALTROP_AVOID: how much the enemy minds crossing one // RELIC_PRICE by rarity: common, uncommon, rare
 const itemCap=()=>ITEM_CAP+relicCount("saddle"); // Parsnip's Saddlebags: a slot each
 const carryMax=id=>!!ITEMS[id].max&&camp.items.filter(x=>x===id).length>=ITEMS[id].max; // already carrying as many as it allows
 const priceOf=p=>Math.round(p*(camp.relics.includes("token")?1-TOKEN_OFF:1)*(camp.relics.includes("chest")?1-CHEST_OFF:1)); // Marcus's Loyalty Token, Boss's War Chest
@@ -4385,6 +4423,11 @@ const IICON={
  acid:'<path d="M13.500 3h5v4h-5z" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M13 7h6v4l6 13q1 4-3 4H10q-4 0-3-4l6-13z" fill="rgba(170,230,120,.4)" stroke="#1e3a10" stroke-width="1.100" stroke-linejoin="round"/><path d="M9 19h14l2 5q1 3-2 3H9q-3 0-2-3z" fill="#8ad83a"/><circle cx="13" cy="22" r="1.300" fill="#d8ff9a"/><circle cx="18" cy="24" r="1" fill="#d8ff9a"/><circle cx="16" cy="20.500" r=".8" fill="#d8ff9a"/><path d="M24 9q2-2 1-4M27 12q2-1 2-3" stroke="#8ad83a" stroke-width="1.200" fill="none" stroke-linecap="round" opacity=".8"/><path d="M5 27q1 3 3 1" stroke="#8ad83a" stroke-width="1.300" fill="none"/>',
  viper:'<path d="M12 5h8v3h-8z" fill="#5a3a1a" stroke="#1a0e06" stroke-width=".8"/><path d="M11 8h10v3q5 3 5 9q0 8-10 8T6 20q0-6 5-9z" fill="rgba(110,40,60,.45)" stroke="#1a0e06" stroke-width="1.100"/><path d="M6.600 19q0 8 9.400 8.500q9.400-.5 9.400-8.500z" fill="#6a1a2a"/><path d="M10 17q2-3 5-1t5 1q2 0 3-2" stroke="#4a9a3a" stroke-width="2.200" fill="none" stroke-linecap="round"/><circle cx="22.500" cy="14.600" r="1.300" fill="#4a9a3a"/><path d="M23.500 14l1.500-1M23.600 15.200l1.600.4" stroke="#c8372d" stroke-width=".6"/><path d="M10 14q-1 4 0 8" stroke="#fff" stroke-width="1" fill="none" opacity=".4"/><path d="M16 28q0 3 1 3q1 0 1-3" fill="#6a1a2a"/>',
  phoenix:'<circle cx="16" cy="16" r="13" fill="#ff8a2a" opacity=".18"/><path d="M16 4q3 4 1 7q4-2 5-6q4 6 0 11q4 0 6-3q0 8-8 10l-4 4l-4-4q-8-2-8-10q2 3 6 3q-4-5 0-11q1 4 5 6q-2-3 1-7z" fill="#e2531a" stroke="#5a1a08" stroke-width="1" stroke-linejoin="round"/><path d="M16 9q2 3 0 6q3-1 4-3q2 4-1 7q-1 2-3 3q-2-1-3-3q-3-3-1-7q1 2 4 3q-2-3 0-6z" fill="#ffb347"/><path d="M16 15l1.200 2.500l2.500.4l-1.800 1.800l.4 2.500l-2.300-1.200l-2.300 1.200l.4-2.500l-1.800-1.800l2.500-.4z" fill="#fff3b0"/>',
+ warp:'<path d="M16 3l11 6v14l-11 6l-11-6V9z" fill="#2a1a4a" stroke="#3ae0ff" stroke-width="1.200" stroke-linejoin="round"/><path d="M5 9l11 6l11-6M16 15v14" stroke="#3ae0ff" stroke-width=".9" fill="none" opacity=".8"/><path d="M9 20q3-4 6-1M23 13q-3 4-6 1" stroke="#ff4fd8" stroke-width="1.400" fill="none" stroke-linecap="round"/><path d="M15 19l1 1.500l-2 .5zM17 14l-1-1.500l2-.5z" fill="#ff4fd8"/>',
+ vrations:'<rect x="5" y="9" width="22" height="16" rx="2" fill="#1a2a3a" stroke="#3ae0ff" stroke-width="1.200"/><path d="M8 14h6v6H8zM14 14h4v3h-4zM18 17h6v3h-6z" fill="#e8b860" stroke="#8a5a1a" stroke-width=".6"/><path d="M8 12h16" stroke="#3ae0ff" stroke-width=".8" stroke-dasharray="1.500 1"/><path d="M20 4l2 3h-4zM24 5l1.500 2.500h-3z" fill="#5ae08a"/><rect x="11" y="26" width="10" height="2" fill="#3ae0ff" opacity=".6"/>',
+ scramble:'<rect x="4" y="5" width="24" height="22" rx="2" fill="#140c24" stroke="#ff4fd8" stroke-width="1.200"/><path d="M8 11h7M8 15h4M8 19h6M18 11h6M17 15h7M19 19h5" stroke="#3ae0ff" stroke-width="1.400" stroke-linecap="round"/><path d="M12 23l4-3l4 3" stroke="#ff4fd8" stroke-width="1.300" fill="none"/><path d="M20 8l-8 0M12 8l2-1.500M12 8l2 1.500" stroke="#ffe14a" stroke-width="1" fill="none"/>',
+ dtl:'<rect x="3" y="11" width="8" height="10" rx="1.500" fill="#2a1a4a" stroke="#3ae0ff" stroke-width="1.100"/><rect x="21" y="11" width="8" height="10" rx="1.500" fill="#2a1a4a" stroke="#3ae0ff" stroke-width="1.100"/><path d="M11 16q5-7 10 0" stroke="#ff4fd8" stroke-width="1.800" fill="none"/><path d="M11 16q5 7 10 0" stroke="#3ae0ff" stroke-width="1.200" fill="none" stroke-dasharray="2 1.200"/><circle cx="7" cy="16" r="1.400" fill="#ffe14a"/><circle cx="25" cy="16" r="1.400" fill="#ffe14a"/>',
+ motherboard:'<rect x="4" y="6" width="24" height="20" rx="1.500" fill="#1e5a3a" stroke="#0e2a1a" stroke-width="1.200"/><path d="M4 6l9 9l-3 4l6 7" stroke="#0e2a1a" stroke-width="1.600" fill="none"/><path d="M8 10h5v4M20 9v5h5M18 21h6M7 22h3" stroke="#e8c860" stroke-width="1" fill="none"/><rect x="15" y="12" width="6" height="6" fill="#2a2a30" stroke="#8a8a90" stroke-width=".7"/><path d="M22 3l-2 4l3 0l-2 4" stroke="#ffe14a" stroke-width="1.300" fill="none" stroke-linejoin="round"/><path d="M27 18l3 1M27 22l3-1" stroke="#ff4fd8" stroke-width="1.200"/>',
  pixel:'<rect x="6" y="9" width="20" height="20" fill="#1a1030" stroke="#ff4fd8" stroke-width="1.200"/><g fill="#3ae0ff"><rect x="9" y="12" width="4" height="4"/><rect x="17" y="16" width="4" height="4"/><rect x="13" y="20" width="4" height="4"/></g><g fill="#ff4fd8"><rect x="17" y="12" width="4" height="4"/><rect x="9" y="20" width="4" height="4"/></g><rect x="13" y="4" width="6" height="5" fill="#ffe14a" stroke="#8a6a10" stroke-width=".8"/><path d="M19 4q3-3 6-1" stroke="#ff9a3a" stroke-width="1.400" fill="none"/><rect x="26" y="2" width="2" height="2" fill="#ffe14a"/><rect x="2" y="14" width="2" height="2" fill="#3ae0ff"/><rect x="27" y="24" width="2" height="2" fill="#ff4fd8"/>',
  fire:'<path d="M10 28v-10q0-7 6-9q6 2 6 9v10z" fill="#e2531a" stroke="#2a1410" stroke-width="1.100"/><path d="M13.500 9h5V5h-5z" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><circle cx="16" cy="20" r="7" fill="#ff8a2a" opacity=".28"/><path d="M16 25q-4-4 0-10q4 6 0 10z" fill="#ffd27a"/><path d="M12 16q-1 5 0 9" stroke="#fff" stroke-width="1" opacity=".45" fill="none"/>'};
 const itemIcon=(id,sz=32)=>`<svg viewBox="0 0 32 32" width="${sz}" height="${sz}" aria-hidden="true">${IICON[id]}</svg>`;
