@@ -1523,7 +1523,9 @@ const listAnd=a=>a.length<2?a.join(""):a.slice(0,-1).join(", ")+" and "+a[a.leng
 const fellAt=f=>{const u=[...new Set(f)];if(u.length<3)return listAnd(u);for(let i=u.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[u[i],u[j]]=[u[j],u[i]]}return u[0]+", "+u[1]+", and other fields of glory"}; // two random places, then the rest
 const limitNames=()=>listAnd(poolNow().split("").filter(t=>LIMIT1.includes(t)).map(t=>"the "+cap(NAME[t])));
 
-let camp={cfg:null,pos:0,cleared:[],done:false,battle:null,sel:null,hp:null,gold:0,relics:[],items:[],offer:null,found:[],lastGold:0,kills:[],region:1,mapsPrior:0,bossUsed:{loc:[],name:[]}},campSetup=false,endMode="quick",worldLock=false,choice=null,locked=false,tile=null,info=null,paused=false,gid=0,seed=0,col={y:"blue",f:"red"},insp=null,units=[],sel=null,turn="y",over=false,busy=false,mode=null,mods={y:null,f:null},tpUsed={y:0,f:0},pick={t:null,m:null};
+// a campaign with nothing in it yet: the one list of what a new campaign starts from
+const freshCamp=()=>({cfg:null,pos:0,cleared:[],done:false,battle:null,sel:null,hp:null,gold:0,relics:[],items:[],offer:null,offerBoss:false,offerStart:0,found:[],lastGold:0,kills:[],region:1,mapsPrior:0,bossUsed:{loc:[],name:[]},merc:null,scout:0,portal:0,portalIn:0,inSim:0,escaped:0,mercNote:"",news:null});
+let camp=freshCamp(),campSetup=false,endMode="quick",worldLock=false,choice=null,locked=false,tile=null,info=null,paused=false,gid=0,seed=0,col={y:"blue",f:"red"},insp=null,units=[],sel=null,turn="y",over=false,busy=false,mode=null,mods={y:null,f:null},tpUsed={y:0,f:0},pick={t:null,m:null};
 const prevPos=new WeakMap();
 const $=id=>document.getElementById(id),board=$("board");
 const d=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
@@ -3340,13 +3342,15 @@ function finalGlow(n,r){
     +`<circle class="fglow" cx="${n.x}" cy="${n.y}" r="${r+26}" fill="url(#fglowg)"/><g class="frays" style="transform-origin:${n.x}px ${n.y}px">${rays}</g>`
     +`<circle cx="${n.x}" cy="${n.y}" r="${r+9}" fill="none" stroke="#b81818" stroke-width="1.400" stroke-dasharray="3 3" opacity=".7"/></g>`;
 }
+// open battle locations on the world map, by biome: [label, colour]
+const NODE_B={wetlands:["Wetlands","#5fb3c9"],swamp:["Swamp","#6d7a4f"],graveyard:["Graveyard","#7d7590"],volcanic:["Volcanic","#b8461f"],sakura:["Sakura","#e48aa8"],chasm:["Fractured Chasm","#6a4ac8"],synth:["Synthwave","#c8409a"]};
 function renderWorld(){
   const done=new Set(camp.cleared),cur=WORLD[camp.pos],pc=COLORS[camp.cfg.c];
   if(camp.sel==null)camp.sel=camp.pos;
   const stOf=n=>n.type==="camp"||done.has(n.id)?"cleared":canGo(camp.pos,n.id)?"open":"locked",reach=reachFrom(camp.pos);
-  const label={cleared:"Cleared",open:"Battle ahead",locked:"Out of reach"},lab=n=>n.type==="boss"&&!SW&&isFinal()&&stOf(n)!=="cleared"?"Final battle":stOf(n)==="open"?(n.type==="heal"?"Healing spot":n.type==="shop"?"Merchant":n.b==="wetlands"?"Wetlands battle":n.b==="swamp"?"Swamp battle":n.b==="graveyard"?"Graveyard battle":n.b==="volcanic"?"Volcanic battle":n.b==="sakura"?"Sakura battle":n.b==="chasm"?"Fractured Chasm battle":n.b==="synth"?"Synthwave battle":label.open):label[stOf(n)];
+  const label={cleared:"Cleared",open:"Battle ahead",locked:"Out of reach"},lab=n=>n.type==="boss"&&!SW&&isFinal()&&stOf(n)!=="cleared"?"Final battle":stOf(n)==="open"?(n.type==="heal"?"Healing spot":n.type==="shop"?"Merchant":NODE_B[n.b]?NODE_B[n.b][0]+" battle":label.open):label[stOf(n)];
   const SW=!!(camp.inSim&&DECO.sim); // the Warped Sim: neon paths and locations on a dark grid
-  let s='<svg viewBox="0 0 400 520" role="img" aria-label="World map">'+(SW?simMapArt():mapArt());
+  const art=SW?simMapArt():mapArt();let s="";
   EDGES.forEach(([a,b])=>{
     const A=WORLD[a],B=WORLD[b],both=stOf(A)==="cleared"&&stOf(B)==="cleared",hot=a===camp.pos||b===camp.pos;
     s+=`<line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke="${SW?(both?"#5ae0b0":hot?"#f2eaff":"#b8a2ff"):both?"#4f7d3a":hot?"#3b2a14":"#8b6b3e"}" stroke-width="${hot?5:4}" stroke-linecap="round"${both?"":` stroke-dasharray="${hot?"9 6":"2 8"}"`}/>`;
@@ -3359,7 +3363,7 @@ function renderWorld(){
   });
   WORLD.forEach(n=>{
     const st=stOf(n),cl=st==="cleared"&&n.type!=="camp",fin=n.type==="boss"&&!SW&&isFinal(),r=fin?27:n.type==="boss"?21:17,S=fin?40:n.type==="boss"?30:24; // fin: the final stronghold, bigger and gilded
-    const fill=SW?(n.type==="camp"?"#1a0c36":st==="locked"?"#3e3664":cl?"#2f8a6a":n.type==="heal"?"#1c6a80":n.type==="boss"?"#8a2058":n.b==="synth"?"#b08a10":"#4e32a8"):fin?(cl?"#6aa55a":"#b01a20"):n.type==="camp"?"#8c7752":n.type==="heal"?(st==="locked"?"#a39a88":cl?"#9fc9a8":"#7fd1a0"):n.type==="shop"?(st==="locked"?"#a39a88":cl?"#c8b088":"#e0a84a"):cl?"#6aa55a":st==="open"?(n.type==="boss"?"#c4483a":n.b==="wetlands"?"#5fb3c9":n.b==="swamp"?"#6d7a4f":n.b==="graveyard"?"#7d7590":n.b==="volcanic"?"#b8461f":n.b==="sakura"?"#e48aa8":n.b==="chasm"?"#6a4ac8":n.b==="synth"?"#c8409a":"#e6b73f"):"#a39a88";
+    const fill=SW?(n.type==="camp"?"#1a0c36":st==="locked"?"#3e3664":cl?"#2f8a6a":n.type==="heal"?"#1c6a80":n.type==="boss"?"#8a2058":n.b==="synth"?"#b08a10":"#4e32a8"):fin?(cl?"#6aa55a":"#b01a20"):n.type==="camp"?"#8c7752":n.type==="heal"?(st==="locked"?"#a39a88":cl?"#9fc9a8":"#7fd1a0"):n.type==="shop"?(st==="locked"?"#a39a88":cl?"#c8b088":"#e0a84a"):cl?"#6aa55a":st==="open"?(n.type==="boss"?"#c4483a":NODE_B[n.b]?NODE_B[n.b][1]:"#e6b73f"):"#a39a88";
     const simCube=(x,y,c)=>`<path d="M${x} ${y-2.600}l2.250 1.300v2.600L${x} ${y+2.600}l-2.250-1.300v-2.600z" fill="${c?"#9ff0f0":"#e8dcff"}" stroke="#1c1238" stroke-width=".5"/>`;
     const icon=SW&&n.type==="camp"?[...Array(10)].map((_,i)=>simCube(n.x+Math.cos(i*.628)*11,n.y+Math.sin(i*.628)*11.5,i===3)).join("")+`<path d="M${n.x-5.500} ${n.y-5.500}l11 11M${n.x+5.500} ${n.y-5.500}l-11 11" stroke="#fff" stroke-width="1.800" stroke-linecap="round" opacity=".85"/>` // the Closed Portal
       :n.b==="chasm"?`<path d="M${n.x-4} ${n.y-11}h6v4h3v5h-2v5h3v7h-7v-4h-3v-6h2v-5h-2z" fill="#06040e" stroke="#c8a8ff" stroke-width="1.400" stroke-linejoin="miter"/><path d="M${n.x+2} ${n.y-7}h3v5h-2v5h3v7" fill="none" stroke="#7ae8ff" stroke-width="1.200"/>` // a stepped rift
@@ -3393,8 +3397,10 @@ function renderWorld(){
       +(cl?`<circle cx="${n.x+r-3}" cy="${n.y-r+3}" r="7" fill="#2f8f4e" stroke="#fff" stroke-width="2"/><path d="M${n.x+r-7} ${n.y-r+3}l3 3 5-6" stroke="#fff" stroke-width="2" fill="none"/>`:"")
       +`<text x="${n.x}" y="${n.y+r+15}" text-anchor="middle" font-size="${fin?13.500:12}" font-weight="700" fill="${SW?"#efe6ff":"#2b2115"}" stroke="${SW?"#120c28":"rgba(255,244,214,.92)"}" stroke-width="3" paint-order="stroke" style="pointer-events:none">${n.name}</text></g>`;
   });
-  s+=`<g id="wm" style="transform:translate(${cur.x}px,${cur.y-28}px)"><ellipse cx="0" cy="26" rx="10" ry="3" fill="rgba(0,0,0,.3)"/><circle r="15" fill="${pc[1]}" stroke="#fff" stroke-width="3"/>${nest(ICON.K,-11,-11,22,`--ic:${pc[2]};--tc:${pc[1]}`)}<path d="M-5 14L0 24 5 14z" fill="#fff"/></g></svg>`;
-  $("wmap").innerHTML=s;
+  s+=`<g id="wm" style="transform:translate(${cur.x}px,${cur.y-28}px)"><ellipse cx="0" cy="26" rx="10" ry="3" fill="rgba(0,0,0,.3)"/><circle r="15" fill="${pc[1]}" stroke="#fff" stroke-width="3"/>${nest(ICON.K,-11,-11,22,`--ic:${pc[2]};--tc:${pc[1]}`)}<path d="M-5 14L0 24 5 14z" fill="#fff"/></g>`;
+  // the land itself (about 100KB of ink) is only redrawn when it changes; picking a location redraws just the paths and markers
+  const bg=$("wbg");if(bg&&bg.__art===art)$("wfg").innerHTML=s;
+  else{$("wmap").innerHTML=`<svg viewBox="0 0 400 520" role="img" aria-label="World map"><g id="wbg">${art}</g><g id="wfg">${s}</g></svg>`;$("wbg").__art=art}
   document.querySelectorAll(".wn").forEach(g=>{
     g.onclick=()=>{if(!worldLock){camp.sel=+g.dataset.id;renderWorld()}};
     g.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();g.onclick()}};
@@ -3415,7 +3421,7 @@ function healFx(n){ // a gentle glow at the healing spot: rings drift outward an
   const cross=(x,y,d)=>`<path class="hplus" d="M${x-2} ${y-6}h4v4h4v4h-4v4h-4v-4h-4v-4h4z" fill="#8dffb0" stroke="#2f8f4e" stroke-width="1" style="animation-delay:${d}s"/>`;
   g.innerHTML=[0,.45,.9].map(dl=>`<circle class="hring" cx="${n.x}" cy="${n.y}" r="18" fill="none" stroke="#7fe0a0" stroke-width="3" style="animation-delay:${dl}s"/>`).join("")
     +[[-16,4,.1],[14,0,.4],[-4,-8,.7],[8,10,1],[-12,-4,1.25]].map(([dx,dy,dl])=>cross(n.x+dx,n.y+dy,dl)).join("");
-  sv.insertBefore(g,$("wm"));setTimeout(()=>g.remove(),2600);
+  $("wm").before(g);setTimeout(()=>g.remove(),2600);
   $("warmy").querySelectorAll(".stat").forEach(c=>c.classList.add("healed"));
 }
 function openWorld(){if(camp.portalIn&&$("relinfo").hidden)return enterSim(); // chose to enter the portal, then left before stepping through
@@ -5054,7 +5060,7 @@ $("unl").onclick=()=>{$("mbtns").hidden=true;$("unlockview").hidden=false;unlock
 $("how").onclick=()=>{$("mbtns").hidden=true;$("rulesview").hidden=false;howView(howMain,null)};
 $("back").onclick=()=>show("menu");
 $("go").onclick=()=>{
-  if(campSetup){dropHold("camp");camp.cfg={x:pick.x.slice(),m:pick.m,c:pick.c};camp.pos=0;camp.cleared=[];camp.done=false;camp.hp=null;camp.gold=0;camp.relics=[];camp.items=[];camp.merc=null;camp.scout=0;camp.portal=0;camp.inSim=0;camp.escaped=0;camp.mercNote="";camp.offer=null;camp.found=[];camp.lastGold=0;camp.kills=[];rollNames();camp.region=1;camp.mapsPrior=0;camp.bossUsed={loc:[],name:[]};camp.sel=0;camp.offerBoss=false;camp.offerStart=0;camp.news=null;if(unlocks.spoils){camp.offer=startOffer();camp.offerStart=camp.offer?1:0}genWorld();saveCamp();openWorld()}
+  if(campSetup){dropHold("camp");camp=Object.assign(freshCamp(),{cfg:{x:pick.x.slice(),m:pick.m,c:pick.c},sel:0});rollNames();if(unlocks.spoils){camp.offer=startOffer();camp.offerStart=camp.offer?1:0}genWorld();saveCamp();openWorld()}
   else if(qrOn())openQuickRelics();
   else{QREL=null;start()}
 };
