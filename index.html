@@ -869,11 +869,11 @@ function doHalo(a){
 const canBugle=u=>u.t==="T"&&u.team==="y"&&rel(u,"bugle")&&!u.acted&&!u.auto&&units.some(m=>m.cap===u); // Goading Bugle: needs militia to goad
 // the Frowning Skull: once per battle, any of your units sets it on an open tile beside it (free); relicUsed.skull holds where it lies
 const SKULL_DMG=1,SKULL_AVOID=2.5;
-const skullZone=k=>{const s=relicUsed.skull;if(!s||k===s)return false;const[a,b]=pk(s),[x,y]=pk(k);return Math.abs(a-x)<=1&&Math.abs(b-y)<=1};
+const skullZone=k=>{if(!SKULLS.size||SKULLS.has(k))return false;const[x,y]=pk(k);for(const s of SKULLS){const[a,b]=pk(s);if(Math.abs(a-x)<=1&&Math.abs(b-y)<=1)return true}return false}; // the 8 tiles around any Unsettling Ground
 const skullTargets=u=>DIRS.map(([dx,dy])=>[u.x+dx,u.y+dy]).filter(([x,y])=>open(x,y)&&!FORT.has(x+","+y)&&!splits(x+","+y)).map(([x,y])=>x+","+y);
 const canSkull=u=>u.team==="y"&&!u.auto&&RELIC.has("fskull")&&!relicUsed.skull&&turn==="y"&&skullTargets(u).length>0;
 function placeSkull(u,x,y){
-  const k=x+","+y;[FOREST,CHERRY,SWAMP,SHALLOW,MAGMA,FLOWERS,WISP,SMOKE,CALTROPS,MEADOW].forEach(st=>st.delete(k));relicUsed.skull=k;
+  const k=x+","+y;[FOREST,CHERRY,SWAMP,SHALLOW,MAGMA,FLOWERS,WISP,SMOKE,CALTROPS,MEADOW].forEach(st=>st.delete(k));SKULLS.add(k);relicUsed.skull=k;
   mode=null;sel=u;info=null;sfx("wisp");floatText(x,y,"Unsettled","slow");say(`Your ${NAME[u.t]} set down the Frowning Skull. The ground around it turns unsettling.`);render();
 }
 const canTrumpet=u=>rel(u,"trumpet")&&!relicUsed.trumpet&&!u.acted&&!u.auto&&units.some(b=>b!==u&&b.team==="y"&&d(u,b)<=RALLY_RANGE);
@@ -892,7 +892,7 @@ const MODS={
  SW:{name:"Shield Wall Formations",desc:"Your units get +1 armor while next to an ally."},
  AIM:{name:"Steady Aim",desc:`Enemies get ${AIM_EV*100}% less evasion against your attacks.`},
  REST:{name:"Field Rest",desc:"At the end of your turn, each of your units that neither moved nor attacked that turn recovers 2 HP."}};
-let RUBBLE=new Set(),MURKY=false,HAUNTED=false,VOLCANIC=false,CHERRY=new Set(),SMOKE=new Set(),CALTROPS=new Set(),LAVA=new Set(),MAGMA=new Set(),VOLC=new Set(),WISP=new Set(),FLOWERS=new Set(),MEADOW=new Set(),GREENW=new Set(),KOI=new Set(),VALE=false,CHASM=new Set(),CHAOS=new Set(),LIGHT=new Set(),VOID=new Set(),SIM=false,SIMFORT=false,GRAVES=new Set(),WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set(),SWAMP=new Set();
+let SKULLS=new Set(),RUBBLE=new Set(),MURKY=false,HAUNTED=false,VOLCANIC=false,CHERRY=new Set(),SMOKE=new Set(),CALTROPS=new Set(),LAVA=new Set(),MAGMA=new Set(),VOLC=new Set(),WISP=new Set(),FLOWERS=new Set(),MEADOW=new Set(),GREENW=new Set(),KOI=new Set(),VALE=false,CHASM=new Set(),CHAOS=new Set(),LIGHT=new Set(),VOID=new Set(),SIM=false,SIMFORT=false,GRAVES=new Set(),WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set(),SWAMP=new Set();
 // Bump PROGRESS_EPOCH to wipe unlocks and the campaign save once on next load (editor drafts and sound settings stay).
 const PROGRESS_EPOCH=2;try{if(+localStorage.getItem("skirmish_epoch")!==PROGRESS_EPOCH){localStorage.removeItem("skirmish_unlocks_v1");localStorage.removeItem("skirmish-campaign");localStorage.removeItem("skirmish_records_v1");["quick","camp","chal"].forEach(m=>localStorage.removeItem("skirmish_hold_"+m));localStorage.setItem("skirmish_epoch",PROGRESS_EPOCH)}}catch(e){}
 const UKEY="skirmish_unlocks_v1",unlocks=(()=>{try{return JSON.parse(localStorage.getItem(UKEY)||"{}")||{}}catch(e){return{}}})();
@@ -908,7 +908,7 @@ function discover(){ // a short "New Discovery!" banner that fades away on whate
 const XB_DMG=4; // exploding barrel damage
 let HI={hard:new Set(),soft:new Set()},umHide=null,BARRELS=new Set(),XBAR=new Set(),CAMPS=new Set(),bchoice=null,choiceMv=null,lastMove=null; // XBAR: the barrels that explode
 let WALLV=0,FORTV=new Map(),FORTK=new Set(); // one wall style per map; each connected fortress group shares one style; FORTK: the tile holding each fortress's keep
-const solid=k=>k===relicUsed.skull||CHASM.has(k)||LIGHT.has(k)||WALLS.has(k)||DEEP.has(k)||BARRELS.has(k)||CAMPS.has(k)||GRAVES.has(k)||LAVA.has(k)||VOLC.has(k)||KOI.has(k);
+const solid=k=>SKULLS.has(k)||CHASM.has(k)||LIGHT.has(k)||WALLS.has(k)||DEEP.has(k)||BARRELS.has(k)||CAMPS.has(k)||GRAVES.has(k)||LAVA.has(k)||VOLC.has(k)||KOI.has(k);
 // each connected fortress group shares one style; its first tile holds the keep
 function groupForts(style){
   FORTV=new Map();FORTK=new Set();
@@ -1533,7 +1533,7 @@ const TERRAIN={
  void:{name:"Empty Space",bg:"background:#08060f",art:()=>[0,1,2,3].map(v=>voidArt(3,4,v)),unlock:"warpedsim",desc:"Open ground with nothing under it: black, with faint swirls and the odd spark. A unit that starts its turn on Empty Space gets +1 movement for that turn. Covers most of the Grid."},
  lbrick:{name:"Light Brick",bg:"background:#5a4c8c",art:()=>[LBRICK_V],unlock:"warpedsim",desc:"Impassable, but attacks can pass over it. Found in Synthwave Space and the Grid. Its neon glow spills onto the 4 tiles beside it: a unit that moves onto or through a glowing tile is slowed on its next turn."},
  fort:{name:"Fortress",bg:FR,art:()=>[fortArt(0,0,true),fortArt(0,1,true)],desc:"Uncommon. A unit standing on one gets +1 armor."}};
-const terrainKey=k=>k===relicUsed.skull?"unsettled":CHASM.has(k)?"chasm":LIGHT.has(k)?"lbrick":CHAOS.has(k)?"chaos":RUBBLE.has(k)?"rubble":CAMPS.has(k)?"campsite":GRAVES.has(k)?"grave":VOLC.has(k)?"volcano":WISP.has(k)?"wisp":KOI.has(k)?"koi":FLOWERS.has(k)?"flowers":LAVA.has(k)?"lava":MAGMA.has(k)?"magma":BARRELS.has(k)?(XBAR.has(k)?"xbarrel":"barrels"):WALLS.has(k)?(SIM?"quartz":"wall"):DEEP.has(k)?"deep":SHALLOW.has(k)?"shallow":SWAMP.has(k)?"swamp":CHERRY.has(k)?"cherry":FOREST.has(k)?(GREENW.has(k)?"greenwood":"forest"):FORT.has(k)?"fort":MEADOW.has(k)?"meadow":VOID.has(k)?"void":SIM?"glitch":"ground";
+const terrainKey=k=>SKULLS.has(k)?"unsettled":CHASM.has(k)?"chasm":LIGHT.has(k)?"lbrick":CHAOS.has(k)?"chaos":RUBBLE.has(k)?"rubble":CAMPS.has(k)?"campsite":GRAVES.has(k)?"grave":VOLC.has(k)?"volcano":WISP.has(k)?"wisp":KOI.has(k)?"koi":FLOWERS.has(k)?"flowers":LAVA.has(k)?"lava":MAGMA.has(k)?"magma":BARRELS.has(k)?(XBAR.has(k)?"xbarrel":"barrels"):WALLS.has(k)?(SIM?"quartz":"wall"):DEEP.has(k)?"deep":SHALLOW.has(k)?"shallow":SWAMP.has(k)?"swamp":CHERRY.has(k)?"cherry":FOREST.has(k)?(GREENW.has(k)?"greenwood":"forest"):FORT.has(k)?"fort":MEADOW.has(k)?"meadow":VOID.has(k)?"void":SIM?"glitch":"ground";
 function tileArt(x,y){ // the art for one board tile, picking a stable variant per tile
   const k=x+","+y;
   switch(terrainKey(k)){
@@ -2799,7 +2799,7 @@ function hazards(team,done){
     blasts.forEach(([x,y])=>{const u=at(x,y);if(u){hurt(u,ERUPT_DMG);hit++}});
     msg.push("A volcano erupted!"+(hit?` ${hit} unit${hit>1?"s were":" was"} caught in the blast.`:""));
   }
-  const haunted=team!=="y"&&relicUsed.skull?units.filter(u=>mine(u)&&skullZone(u.x+","+u.y)):[]; // the Frowning Skull's zone
+  const haunted=team!=="y"&&SKULLS.size?units.filter(u=>mine(u)&&skullZone(u.x+","+u.y)):[]; // the Frowning Skull's zone
   units.forEach(u=>{if(mine(u)&&!haunted.includes(u))delete u.skullRest});
   haunted.forEach(u=>{if(u.skullRest)delete u.skullRest;else if(!calm(u)){u.slowNext=1;u.skullRest=1}hurt(u,SKULL_DMG);floatText(u.x,u.y,"-"+SKULL_DMG,"slow")});
   if(haunted.length)msg.push(haunted.length===1?`The Unsettling Ground gnawed at ${who(haunted[0])}.`:`The Unsettling Ground gnawed at ${haunted.length} units.`);
@@ -3846,7 +3846,7 @@ $("rand").onclick=()=>{pick.x=[];const P=poolNow();for(let i=0;i<EXTRAS;i++){let
 $("clr").onclick=()=>{pick.x=[];renderSetup()};
 $("randm").onclick=()=>{const k=Object.keys(MODS);pick.m=k[Math.floor(Math.random()*k.length)];renderSetup()};
 function resetBattle(){
-  RUBBLE=new Set();SMOKE=new Set();CALTROPS=new Set();FOE_RELIC=new Set();FOE_ITEMS=[];shoveT=null;gid++;$("defeat").hidden=true;tile=null;units=[];sel=null;mode=null;choice=null;choiceMv=null;bchoice=null;lastMove=null;insp=null;info=null;turn="y";over=false;busy=false;locked=false;tpUsed={y:0,f:0};
+  SKULLS=new Set();RUBBLE=new Set();SMOKE=new Set();CALTROPS=new Set();FOE_RELIC=new Set();FOE_ITEMS=[];shoveT=null;gid++;$("defeat").hidden=true;tile=null;units=[];sel=null;mode=null;choice=null;choiceMv=null;bchoice=null;lastMove=null;insp=null;info=null;turn="y";over=false;busy=false;locked=false;tpUsed={y:0,f:0};
   const keys=Object.keys(MODS);mods={y:null,f:keys[Math.floor(Math.random()*keys.length)]};
 }
 /* ---------- Relics? (a hidden reward for the first conquest): quick battles where both sides carry relics ----------
@@ -4863,7 +4863,7 @@ $("tmenu").onclick=()=>{gid++;$("triumph").hidden=true;camp.battle=null;show("me
    A map is plain data, so the editor, its map codes and the Challenges menu all share one format:
    {name, desc, diff, biome, mods:{y,f}, rows: 12 strings of 10 terrain letters, units: [[type, team, x, y], ...], reward?, hint?}
    Terrain letters (one source, read by the loader, the editor palette and the map codes): */
-const MAPCH={".":"ground",f:"forest",s:"shallow",d:"deep",m:"swamp",w:"wall",F:"fort",b:"barrels",x:"xbarrel",g:"grave",c:"campsite",l:"lava",h:"magma",v:"volcano",k:"cherry",o:"wisp",p:"flowers",q:"koi",n:"meadow",t:"greenwood"};
+const MAPCH={".":"ground",f:"forest",s:"shallow",d:"deep",m:"swamp",w:"wall",F:"fort",b:"barrels",x:"xbarrel",g:"grave",c:"campsite",l:"lava",h:"magma",v:"volcano",k:"cherry",o:"wisp",p:"flowers",q:"koi",n:"meadow",t:"greenwood",u:"unsettled"};
 const MAPKEY=Object.fromEntries(Object.entries(MAPCH).map(([c,k])=>[k,c]));
 // Challenge maps. diff: 0 easy, 1 moderate, 2 hard (the menu lists them easiest first). reward: an unlock id granted on the first win (add it to UNLOCKS with its hint); hint: how the menu describes that reward; lock: an unlock id the map needs before it shows (add it to UNLOCKS with chal: the map id); after: the map whose first win grants that lock
 const CHALLENGES=[
@@ -4900,14 +4900,14 @@ let chal=null; // the fixed map being played: {def, test}
 const DIFF=[["Easy","#3f9a5a"],["Moderate","#c9962a"],["Hard","#c8372d"]];
 // lays a fixed map's terrain into the board state
 function applyMap(def){
-  const S={ground:new Set(),forest:new Set(),shallow:new Set(),deep:new Set(),swamp:new Set(),wall:new Set(),fort:new Set(),barrels:new Set(),xbarrel:new Set(),grave:new Set(),campsite:new Set(),lava:new Set(),magma:new Set(),volcano:new Set(),cherry:new Set(),wisp:new Set(),flowers:new Set(),koi:new Set(),meadow:new Set(),greenwood:new Set()};
+  const S={ground:new Set(),forest:new Set(),shallow:new Set(),deep:new Set(),swamp:new Set(),wall:new Set(),fort:new Set(),barrels:new Set(),xbarrel:new Set(),grave:new Set(),campsite:new Set(),lava:new Set(),magma:new Set(),volcano:new Set(),cherry:new Set(),wisp:new Set(),flowers:new Set(),koi:new Set(),meadow:new Set(),greenwood:new Set(),unsettled:new Set()};
   def.rows.forEach((r,y)=>[...r].forEach((c,x)=>{const k=MAPCH[c]||"ground";S[k].add(x+","+y);if(k==="xbarrel")S.barrels.add(x+","+y)}));
-  WALLS=S.wall;FOREST=S.forest;FORT=S.fort;DEEP=S.deep;SHALLOW=S.shallow;SWAMP=S.swamp;GRAVES=S.grave;BARRELS=S.barrels;XBAR=S.xbarrel;CAMPS=S.campsite;LAVA=S.lava;MAGMA=S.magma;VOLC=S.volcano;WISP=S.wisp;FLOWERS=S.flowers;KOI=S.koi;CHERRY=S.cherry;S.cherry.forEach(k=>FOREST.add(k));MEADOW=S.meadow;GREENW=S.greenwood;GREENW.forEach(k=>FOREST.add(k));
+  WALLS=S.wall;FOREST=S.forest;FORT=S.fort;DEEP=S.deep;SHALLOW=S.shallow;SWAMP=S.swamp;GRAVES=S.grave;BARRELS=S.barrels;XBAR=S.xbarrel;CAMPS=S.campsite;LAVA=S.lava;MAGMA=S.magma;VOLC=S.volcano;WISP=S.wisp;FLOWERS=S.flowers;KOI=S.koi;CHERRY=S.cherry;S.cherry.forEach(k=>FOREST.add(k));MEADOW=S.meadow;GREENW=S.greenwood;GREENW.forEach(k=>FOREST.add(k));SKULLS=S.unsettled;
   MURKY=def.biome==="swamp";HAUNTED=def.biome==="graveyard";VOLCANIC=def.biome==="volcanic";VALE=def.biome==="sakura";WALLV=def.wallStyle||0;CHASM=new Set();CHAOS=new Set();LIGHT=new Set();VOID=new Set();SIM=false;SIMFORT=false;groupForts(()=>0);
 }
 // what's wrong with a map, if anything (an empty list means it's playable); notes are warnings that don't block play
 function mapProblems(def,notes=[]){
-  const out=[],y=def.units.filter(u=>u[1]==="y").length,f=def.units.filter(u=>u[1]==="f").length;
+  const out=[],y=def.units.filter(u=>u[1]==="y"&&u[0]!=="L").length,f=def.units.filter(u=>u[1]==="f").length; // a Loyal Squirrel alone can't hold the field
   if(!y)out.push("Place at least one of your units.");
   if(!f)out.push("Place at least one enemy unit.");
   applyMap(def);
@@ -4925,7 +4925,7 @@ function startChallenge(def,test){
   applyMap(def);col={y:pick.c||"blue",f:pick.c==="red"?"black":"red",w:"wild"};
   mods={y:modOk(def.mods&&def.mods.y),f:modOk(def.mods&&def.mods.f)};
   units=[];herbertMet=false;firstTurn=true;pturn=1;RELIC=new Set();relicUsed={};
-  let ci=0;def.units.forEach(([t,team,x,y])=>units.push({t,team,x,y,hp:TYPES[t].hp,moved:0,acted:0,...(team==="y"?{ci:ci++}:{})}));
+  let ci=0;def.units.forEach(([t,team,x,y])=>units.push({t,team,x,y,hp:TYPES[t].hp,moved:0,acted:0,...(t==="L"?{auto:1}:team==="y"?{ci:ci++}:{})})); // a Loyal Squirrel fights on its own
   BIOME_KEY=def.biome||guessBiome();$("biome").textContent=def.name||BIOME_NAME[BIOME_KEY];
   show("game");say((def.desc?def.desc+" ":"")+"Your turn. Select one of your units.");render();
 }
@@ -4973,7 +4973,7 @@ function edPalette(){
   const pb=(kind,v,inner,label)=>`<button class="epb${kind==="e"?" erase":""}" data-k="${kind}" data-v="${v}" aria-label="${label}" aria-pressed="${edTool.kind===kind&&edTool.v===v}">${inner}</button>`;
   const team=`<div class="eteam"><button class="b" data-team="y" aria-pressed="${edTeam==="y"}">Your units</button><button class="b" data-team="f" aria-pressed="${edTeam==="f"}">Enemy units</button></div>`;
   $("epal").innerHTML=`<div class="eg"><small>Terrain</small>${Object.keys(MAPKEY).map(k=>pb("t",k,terrainSwatch(k),TERRAIN[k].name)).join("")}</div>`
-   +`<div class="eg"><small>Units</small>${team}</div><div class="eg">${"KACRPETNM".split("").map(t=>pb("u",t,disc(t,COLORS[col[edTeam]]||COLORS[edTeam==="y"?"blue":"red"]),cap(NAME[t]))).join("")}${[...WILD].map(t=>pb("u",t,disc(t,["","#7a5a36","#fff"]),"Wild "+NAME[t])).join("")}${pb("e","x","✕","Remove unit")}</div>`;
+   +`<div class="eg"><small>Units</small>${team}</div><div class="eg">${(edTeam==="y"?"KACRPETNML":"KACRPETNM").split("").map(t=>pb("u",t,disc(t,COLORS[col[edTeam]]||COLORS[edTeam==="y"?"blue":"red"]),cap(NAME[t]))).join("")}${[...WILD].map(t=>pb("u",t,disc(t,["","#7a5a36","#fff"]),"Wild "+NAME[t])).join("")}${pb("e","x","✕","Remove unit")}</div>`;
   $("epal").querySelectorAll(".epb").forEach(b=>b.onclick=()=>{edTool={kind:b.dataset.k,v:b.dataset.v};edPalette();$("ehint").textContent=b.dataset.k==="t"?`Painting ${TERRAIN[b.dataset.v].name}: tap or drag across the board.`:b.dataset.k==="e"?"Tap a unit to remove it.":`Placing ${"WBH".includes(b.dataset.v)?"wild ":edTeam==="y"?"your ":"enemy "}${NAME[b.dataset.v]}: tap a tile.`});
   $("epal").querySelectorAll("[data-team]").forEach(b=>b.onclick=()=>{edTeam=b.dataset.team;edPalette()});
 }
@@ -5230,7 +5230,7 @@ const getHold=m=>{try{return JSON.parse(localStorage.getItem(HOLD(m))||"null")}c
 $("phold").onclick=()=>{
   if(turn!=="y"||busy||over)return;
   const A=x=>[...x],m=chal?"chal":camp.battle?"camp":"quick";
-  const h={t:[WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS,WISP,FLOWERS,KOI,CALTROPS,MEADOW,GREENW,RUBBLE,CHASM,CHAOS,LIGHT,VOID].map(A),
+  const h={t:[WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS,WISP,FLOWERS,KOI,CALTROPS,MEADOW,GREENW,RUBBLE,CHASM,CHAOS,LIGHT,VOID,SKULLS].map(A),
     f:{MURKY,HAUNTED,VOLCANIC,VALE,SIM,SIMFORT,WALLV,seed,BIOME_KEY,herbertMet,firstTurn,pturn},fv:A(FORTV),fk:A(FORTK),
     units,mods,col,tpUsed,relic:A(RELIC),foeRelic:A(FOE_RELIC),foeItems:FOE_ITEMS.slice(),relicUsed,pick,def:chal&&chal.def,node:camp.battle?camp.battle.node:null,items0:camp.battle&&camp.battle.items0,wounds0:camp.battle&&camp.battle.wounds0,biome:$("biome").innerHTML};
   try{localStorage.setItem(HOLD(m),JSON.stringify(h))}catch(e){return}
@@ -5240,7 +5240,7 @@ $("phold").onclick=()=>{
 };
 function resumeHold(h){
   resetBattle();
-  [WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS,WISP=new Set(),FLOWERS=new Set(),KOI=new Set(),CALTROPS=new Set(),MEADOW=new Set(),GREENW=new Set(),RUBBLE=new Set(),CHASM=new Set(),CHAOS=new Set(),LIGHT=new Set(),VOID=new Set()]=h.t.map(a=>new Set(a));
+  [WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS,WISP=new Set(),FLOWERS=new Set(),KOI=new Set(),CALTROPS=new Set(),MEADOW=new Set(),GREENW=new Set(),RUBBLE=new Set(),CHASM=new Set(),CHAOS=new Set(),LIGHT=new Set(),VOID=new Set(),SKULLS=new Set()]=h.t.map(a=>new Set(a));
   ({MURKY,HAUNTED,VOLCANIC,VALE=false,SIM=false,SIMFORT=false,WALLV,seed,BIOME_KEY,herbertMet,firstTurn,pturn}=h.f);
   FORTV=new Map(h.fv);FORTK=new Set(h.fk);units=h.units;mods={y:modOk(h.mods.y),f:modOk(h.mods.f)};col=h.col;tpUsed=h.tpUsed;RELIC=new Set(h.relic);FOE_RELIC=new Set(h.foeRelic||[]);FOE_ITEMS=(h.foeItems||[]).slice();relicUsed=h.relicUsed;pick=h.pick;
   chal=h.def?{def:h.def,test:false}:null;camp.battle=h.node!=null?{node:h.node,items0:h.items0,wounds0:h.wounds0}:null;
