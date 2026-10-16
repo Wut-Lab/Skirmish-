@@ -254,6 +254,8 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 @keyframes pin{from{transform:translateY(-3px) scale(.2);opacity:0}to{transform:translateY(-3px) scale(1);opacity:1}}
 .proj{position:absolute;width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 0 8px 3px rgba(255,220,120,.9),0 0 0 2px rgba(0,0,0,.4);z-index:4;pointer-events:none}
 .proj.big{width:18px;height:18px;background:#3a3a3a;box-shadow:0 0 8px 3px rgba(255,150,60,.9),0 0 0 2px #fff}
+.strike{position:absolute;z-index:7;pointer-events:none;overflow:hidden;background:rgba(255,255,255,.5)} /* a landed blow: the target blanches... */
+.strike i{position:absolute;left:-30%;top:44%;width:160%;height:12%;min-height:3px;transform:rotate(-38deg);opacity:0;background:linear-gradient(90deg,rgba(255,255,255,0),#fff 25%,#fff 75%,rgba(255,255,255,0));box-shadow:0 0 3px 1px rgba(120,170,255,.95),0 0 9px 2px rgba(255,255,255,.9);border-radius:50%} /* ...and a sword streak cuts across it */
 .burst{position:absolute;width:46px;height:46px;border-radius:50%;border:4px solid #fff;box-shadow:0 0 12px rgba(255,120,80,.9);z-index:4;pointer-events:none}
 @media (prefers-reduced-motion:reduce){.u.mv,.u.sel.mv,.u.tpin{animation:none}}
 #pbtns,#paud{display:grid;gap:10px}
@@ -2665,7 +2667,7 @@ function hitFor(a,b,c,back){ // resolve one blow from a to b: dodge roll, damage
   if(!back&&c.parts.some(p=>p[0]==="Spotter's Mark"))delete b.spot; // the mark is wiped off by the blow that used it
   else if(!back&&rel(a,"spotmark")&&d(a,b)>1&&!b.spotOnce){b.spot=pturn+1;b.spotBy=a.team;b.spotOnce=1} // the first ranged blow on it marks its target, once per battle
   if(a.champ&&!back)a.champStep=1; // the Champion's Sword: a step after a landed blow
-  const adj=d(a,b)===1;
+  const adj=d(a,b)===1;if(c.dmg>0)strikeFx(b);
   if(hurt(b,c.dmg)){credit(a,b);if(rel(a,"vfalcata")&&(a.conq||0)<2)a.conq=(a.conq||0)+1; // Vasco's Falcata: each conquest sharpens it
     if(a.bleed&&rel(a,"statue")){delete a.bleed;later(()=>{if(units.includes(a))floatText(a.x,a.y,"Staunched","heal")},300)} // Bleeding Statue: a kill stops your own bleeding
     if(a.team==="y"&&units.some(v=>v!==a&&v.team==="y"&&d(v,b)===1)){unlocks.wp=(unlocks.wp||0)+1;saveU();if(unlocks.wp>=20)unlock("wolfpack")} // kills on a surrounded enemy teach the pack
@@ -2727,6 +2729,17 @@ function burst(rb,bw){
 }
 // melee units lunge at the target; ranged units fire a projectile
 const ATK_SFX={L:"growl",X:"zap",K:"swing",Q:"swing",T:"swing",M:"swing",N:"swing",P:"swing",C:"charge",A:"bow",R:"siege",E:"zap",W:"growl",B:"growl",D:"growl",H:"screech",G:"bawk"};
+// a blow that drew blood: the target goes pale as a white streak slashes across it (misses and 0-damage blows show nothing)
+function strikeFx(b){
+  try{
+    const t=board.children[b.y*W+b.x],eu=t&&t.querySelector(".u");if(!eu||!eu.animate)return;
+    const r=eu.getBoundingClientRect(),bw=$("bw").getBoundingClientRect(),e=document.createElement("div"),i=document.createElement("i");e.className="strike";e.append(i);
+    Object.assign(e.style,{left:(r.left-bw.left)+"px",top:(r.top-bw.top)+"px",width:r.width+"px",height:r.height+"px",borderRadius:getComputedStyle(eu).borderRadius});$("fx").append(e); // the unit's own shape
+    e.animate([{opacity:0},{opacity:1,offset:.12},{opacity:1,offset:.45},{opacity:0}],{duration:380,easing:"ease-out"}).onfinish=()=>e.remove();
+    if(!window.matchMedia("(prefers-reduced-motion: reduce)").matches)i.animate([{transform:"rotate(-38deg) translateX(-55%) scaleX(.2)",opacity:1},{transform:"rotate(-38deg) scaleX(1)",opacity:1,offset:.45},{transform:"rotate(-38deg) translateX(20%) scaleX(.8)",opacity:0}],{duration:300,easing:"ease-out",fill:"forwards"});
+    else i.remove();
+  }catch(err){}
+}
 function animAttack(a,b,cb){
   let fired=false;const fin=()=>{if(!fired){fired=true;cb()}};sfx(ATK_SFX[a.t]||"swing");
   try{
@@ -2735,6 +2748,7 @@ function animAttack(a,b,cb){
     const ea=ta.querySelector(".u"),ra=ta.getBoundingClientRect(),rb=tb.getBoundingClientRect(),bw=$("bw").getBoundingClientRect();
     const dx=rb.left-ra.left,dy=rb.top-ra.top;
     if(ST(a).rg>1){
+      ea.animate([{transform:"translateY(-3px)"},{transform:`translate(${dx*.12}px,${dy*.12-3}px)`,offset:.4},{transform:"translateY(-3px)"}],{duration:220,easing:"ease-out"}); // a short lunge as it looses the shot
       const p=document.createElement("div");p.className="proj"+(a.t==="R"?" big":"");
       p.style.left=(ra.left-bw.left+ra.width/2)+"px";p.style.top=(ra.top-bw.top+ra.height/2)+"px";$("fx").append(p);
       const an=p.animate([{transform:"translate(-50%,-50%)"},{transform:`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`}],{duration:Math.min(140+Math.hypot(dx,dy)*.8,420),easing:"ease-in"});
