@@ -350,6 +350,7 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .shitem[aria-disabled="true"]{opacity:.72;cursor:default}.shitem[aria-disabled="true"]:hover{transform:none}
 #shleave{justify-self:center;background:linear-gradient(#a8733a,#7a4c22);color:#fff3da;border-color:#1a0f07;box-shadow:0 3px 0 #1a0f07,inset 0 1px 0 rgba(255,255,255,.25)}
 .t.it{box-shadow:inset 0 0 0 3px #e0b21c,inset 0 0 14px rgba(224,178,28,.5)}
+.uzone{position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 50%,rgba(120,60,150,.08),rgba(90,40,120,.34));box-shadow:inset 0 0 0 1px rgba(150,90,180,.45)} /* the Frowning Skull's reach */
 .smoke{position:absolute;inset:-6%;pointer-events:none;border-radius:40%;background:radial-gradient(circle at 35% 40%,rgba(225,225,230,.55),rgba(200,200,210,0) 55%),radial-gradient(circle at 68% 62%,rgba(210,210,220,.5),rgba(200,200,210,0) 52%),radial-gradient(circle at 50% 50%,rgba(190,190,200,.35),rgba(190,190,200,0) 70%);animation:smokedrift 4s ease-in-out infinite}
 .calt{position:absolute;inset:0;pointer-events:none}.calt svg{width:100%;height:100%;display:block} /* Bag of Caltrops: iron spikes on the tile */
 @keyframes smokedrift{50%{transform:translate(2%,-3%) scale(1.04)}}@media (prefers-reduced-motion:reduce){.smoke{animation:none}}
@@ -682,7 +683,7 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 const DIRS=[[1,0],[-1,0],[0,1],[0,-1]],pk=k=>k.split(",").map(Number); // the four neighbour steps; "x,y" tile key -> [x,y]
 const W=10,H=12,
 // hp, mv move, rg/mn range, dmg damage; ar armor, pi pierce, ev evasion (dodge chance); who retaliates: CAN_RETALIATE / CANT_RETALIATE below
-TYPES={K:{hp:12,mv:3,rg:1,mn:1,dmg:5,ar:2},A:{hp:8,mv:3,rg:3,mn:1,dmg:4,pi:1,ev:.1},R:{hp:10,mv:2,rg:4,mn:2,dmg:4,pi:2},W:{hp:8,mv:2,rg:1,mn:1,dmg:4,ev:.15},B:{hp:16,mv:1,rg:1,mn:1,dmg:6,ar:1},H:{hp:5,mv:3,rg:2,mn:1,dmg:3,ev:.25},C:{hp:9,mv:5,rg:1,mn:1,dmg:4,ar:1,ev:.1},P:{hp:7,mv:3,rg:2,mn:1,dmg:1,heal:3,ev:.1},E:{hp:6,mv:3,rg:3,mn:1,dmg:2,slow:1,ev:.15},T:{hp:9,mv:3,rg:1,mn:1,dmg:3,ar:1},N:{hp:8,mv:3,rg:1,mn:1,dmg:2,ev:.05},Q:{hp:10,mv:4,rg:1,mn:1,dmg:4,ar:1,ev:.05},D:{hp:10,mv:2,rg:1,mn:1,dmg:4,ar:1},M:{hp:4,mv:2,rg:1,mn:1,dmg:2},G:{hp:3,mv:4,rg:1,mn:1,dmg:2,ev:.15},X:{hp:9,mv:4,rg:1,mn:1,dmg:4,ar:1,pi:1,ev:.1},S:{hp:6,mv:5,rg:1,mn:1,dmg:0,ev:.25}}; // G: the Angry Chicken (Chicken Suit relic)
+TYPES={K:{hp:12,mv:3,rg:1,mn:1,dmg:5,ar:2},A:{hp:8,mv:3,rg:3,mn:1,dmg:4,pi:1,ev:.1},R:{hp:10,mv:2,rg:4,mn:2,dmg:4,pi:2},W:{hp:8,mv:2,rg:1,mn:1,dmg:4,ev:.15},B:{hp:16,mv:1,rg:1,mn:1,dmg:6,ar:1},H:{hp:5,mv:3,rg:2,mn:1,dmg:3,ev:.25},C:{hp:9,mv:5,rg:1,mn:1,dmg:4,ar:1,ev:.1},P:{hp:7,mv:3,rg:2,mn:1,dmg:1,heal:3,ev:.1},E:{hp:6,mv:3,rg:3,mn:1,dmg:2,slow:1,ev:.15},T:{hp:9,mv:3,rg:1,mn:1,dmg:3,ar:1},N:{hp:8,mv:3,rg:1,mn:1,dmg:2,ev:.05},Q:{hp:10,mv:4,rg:1,mn:1,dmg:4,ar:1,ev:.05},D:{hp:10,mv:2,rg:1,mn:1,dmg:4,ar:1},M:{hp:4,mv:2,rg:1,mn:1,dmg:2},G:{hp:3,mv:4,rg:1,mn:1,dmg:2,ev:.15},X:{hp:9,mv:4,rg:1,mn:1,dmg:4,ar:1,pi:1,ev:.1},S:{hp:6,mv:5,rg:1,mn:1,dmg:0,ev:.25},L:{hp:5,mv:4,rg:1,mn:1,dmg:3,pi:1,ev:.2}}; // G: the Angry Chicken (Chicken Suit relic)
 const ST0=u=>u.st?{...TYPES[u.t],...u.st}:TYPES[u.t]; // a unit's stats: its type's, unless it carries its own (mercenaries)
 const ST=u=>{const s=ST0(u);if(!u.scram&&!u.link)return s;const o={...s}; // the Sim's consumables bend base stats until the start of your next turn
   if(u.scram){o.dmg=s.ar||0;o.ar=s.dmg} // Scramble Protocol: damage and armor trade places
@@ -706,7 +707,7 @@ const DIG_TURNS=2,DIG_AR=1; // Badger: digs in after moving on this many turns, 
 const UNIT_UNLOCK={T:"captain",N:"banner",Q:"conquistador"}; // unlockable units and the unlock each needs
 const poolNow=()=>CORE+"RPE"+Object.keys(UNIT_UNLOCK).filter(t=>unlocks[UNIT_UNLOCK[t]]).join(""); // units an army may pick right now
 // Can Retaliate / Can't Retaliate: a unit retaliates when it is in the first list and not in the second (the second wins)
-const CAN_RETALIATE="KARCPETNMWBHDGQX",CANT_RETALIATE="R";
+const CAN_RETALIATE="KARCPETNMWBHDGQXL",CANT_RETALIATE="R";
 const canRetaliate=t=>CAN_RETALIATE.includes(t)&&!CANT_RETALIATE.includes(t);
 const FOREST_EV=.1,FT_FOREST_EV=.05,EV_CAP=.5,RET_SHARE=.5; // forest dodge bonus (less against Forest Tactics), dodge cap, share of damage dealt when retaliating (always at least 1)
 const MUSTER_USES=2,MUSTER_ALIVE=2,BATON_HP=2,BANNER_RANGE=2; // Captain: musters per battle, militia alive at once; Banner Bearer: aura reach
@@ -815,6 +816,8 @@ const RELICS={
  dandelion:{name:"Immortal Dandelion",r:2,lock:"dandelion",find:1,desc:"Your units with 2 or more HP that are within 2 tiles of an ally Apothecary or Enchanter have a 20% chance to survive a lethal blow with 1 HP."},
  sakurafan:{name:"Fan of Falling Petals",r:2,lock:"sakurafan",find:1,desc:"Your units standing in or beside a Cherry Grove get +10% evasion. Painted with a single bough in bloom; when it opens, a few petals always seem to fall."},
  bluemagma:{name:"Blue Magma",r:2,lock:"bluemagma",find:1,desc:"Your units' attacks get +1 pierce. When used to fire a smith's furnace, the steel comes out with a faint blue glow."},
+ druid:{name:"Druid's Bone Charm",r:2,lock:"druid",find:1,desc:"Wild animals would rather leave your units be: one that can reach an enemy goes for the enemy, and one that can only reach your units holds off half the time. Each battle also starts with a Loyal Squirrel beside one of your units (5 HP, 3 damage, 1 pierce, 20% evasion). It fights on its own, like the Angry Chicken, and scampers off at the end of your 4th turn."},
+ fskull:{name:"Frowning Skull",r:2,lock:"fskull",find:1,desc:"Once per battle, one of your units can set the skull down on an open tile beside it, without using its move or action. The tile becomes Unsettling Ground, which blocks movement. An enemy that ends its turn on one of the 8 tiles around it takes 1 damage, ignoring armor, and is slowed on its next turn, though never two turns running, so it can crawl out."},
  voidshard:{name:"Shard of Empty Space",r:2,lock:"voidshard",find:1,desc:"Your units that start your turn with no other unit directly beside them (up, down, left or right; diagonals don't count) get +1 movement that turn. And while no unit stands directly beside them, they get +3% evasion. It weighs nothing, and holds even less."},
  mug:{name:"Herbert's Mug",r:2,desc:"Once per battle, the first of your units to fall survives with 1 HP instead."},
  cap:{name:"Herbert's Nightcap",r:2,desc:"Once per battle, the first of your units to drop to half HP or less (without falling) heals 2 HP."}};
@@ -864,6 +867,15 @@ function doHalo(a){
   say(`The Invigorating Halo shines: ${ts.length} all${ts.length>1?"ies":"y"} beside your Apothecary recover${ts.length>1?"":"s"} up to ${HALO_HEAL} HP.`);render();
 }
 const canBugle=u=>u.t==="T"&&u.team==="y"&&rel(u,"bugle")&&!u.acted&&!u.auto&&units.some(m=>m.cap===u); // Goading Bugle: needs militia to goad
+// the Frowning Skull: once per battle, any of your units sets it on an open tile beside it (free); relicUsed.skull holds where it lies
+const SKULL_DMG=1,SKULL_AVOID=2.5;
+const skullZone=k=>{const s=relicUsed.skull;if(!s||k===s)return false;const[a,b]=pk(s),[x,y]=pk(k);return Math.abs(a-x)<=1&&Math.abs(b-y)<=1};
+const skullTargets=u=>DIRS.map(([dx,dy])=>[u.x+dx,u.y+dy]).filter(([x,y])=>open(x,y)&&!FORT.has(x+","+y)&&!splits(x+","+y)).map(([x,y])=>x+","+y);
+const canSkull=u=>u.team==="y"&&!u.auto&&RELIC.has("fskull")&&!relicUsed.skull&&turn==="y"&&skullTargets(u).length>0;
+function placeSkull(u,x,y){
+  const k=x+","+y;[FOREST,CHERRY,SWAMP,SHALLOW,MAGMA,FLOWERS,WISP,SMOKE,CALTROPS,MEADOW].forEach(st=>st.delete(k));relicUsed.skull=k;
+  mode=null;sel=u;info=null;sfx("wisp");floatText(x,y,"Unsettled","slow");say(`Your ${NAME[u.t]} set down the Frowning Skull. The ground around it turns unsettling.`);render();
+}
 const canTrumpet=u=>rel(u,"trumpet")&&!relicUsed.trumpet&&!u.acted&&!u.auto&&units.some(b=>b!==u&&b.team==="y"&&d(u,b)<=RALLY_RANGE);
 // Cherry Grove, Moment of Calm: counts as forest only for movement; no forest combat bonuses, no slowing, no retaliation in or out
 const WOODS=k=>FOREST.has(k)&&!CHERRY.has(k),calm=u=>CHERRY.has(u.x+","+u.y);
@@ -871,7 +883,7 @@ const BLUSH_R=2,blush=(x,y)=>{if(!VALE||!/^(ground|forest|cherry|flowers|koi|mea
 const healOf=u=>ST(u).heal+(rel(u,"salts")?1:0); // how much a healer restores, with relics
 const rgOf=u=>ST(u).rg+(u.t==="A"&&rel(u,"long")?1:0)+(u.t==="Q"&&rel(u,"musket")?1:0); // a unit's attack range, with relics
 const DEBRIS_DMG=1,SPLINTER_DMG=1; // Debris Shot splash: small, so it softens clusters without replacing a second attack
-const NAME={G:"angry chicken",K:"knight",A:"archer",R:"artillery",W:"wolf",B:"bear",H:"hawk",D:"badger",C:"cavalry",P:"apothecary",E:"enchanter",T:"captain",N:"banner bearer",Q:"conquistador",M:"militia",X:"grid elemental",S:"friendly spark"};
+const NAME={G:"angry chicken",L:"loyal squirrel",K:"knight",A:"archer",R:"artillery",W:"wolf",B:"bear",H:"hawk",D:"badger",C:"cavalry",P:"apothecary",E:"enchanter",T:"captain",N:"banner bearer",Q:"conquistador",M:"militia",X:"grid elemental",S:"friendly spark"};
 const AIM_EV=.05,MOD_OLD={PUSH:"SW",PAD:"AIM"},modOk=k=>MODS[k]?k:MOD_OLD[k]||null; // retired modifiers in old saves and map codes become their replacements
 const walled=u=>mods[u.team]==="SW"&&units.some(v=>v.team===u.team&&(v.x!==u.x||v.y!==u.y)&&d(v,u)===1); // Shield Wall Formations: next to an ally
 const MODS={
@@ -896,7 +908,7 @@ function discover(){ // a short "New Discovery!" banner that fades away on whate
 const XB_DMG=4; // exploding barrel damage
 let HI={hard:new Set(),soft:new Set()},umHide=null,BARRELS=new Set(),XBAR=new Set(),CAMPS=new Set(),bchoice=null,choiceMv=null,lastMove=null; // XBAR: the barrels that explode
 let WALLV=0,FORTV=new Map(),FORTK=new Set(); // one wall style per map; each connected fortress group shares one style; FORTK: the tile holding each fortress's keep
-const solid=k=>CHASM.has(k)||LIGHT.has(k)||WALLS.has(k)||DEEP.has(k)||BARRELS.has(k)||CAMPS.has(k)||GRAVES.has(k)||LAVA.has(k)||VOLC.has(k)||KOI.has(k);
+const solid=k=>k===relicUsed.skull||CHASM.has(k)||LIGHT.has(k)||WALLS.has(k)||DEEP.has(k)||BARRELS.has(k)||CAMPS.has(k)||GRAVES.has(k)||LAVA.has(k)||VOLC.has(k)||KOI.has(k);
 // each connected fortress group shares one style; its first tile holds the keep
 function groupForts(style){
   FORTV=new Map();FORTK=new Set();
@@ -1227,6 +1239,13 @@ const wispArt=(ox,oy,flip)=>svg(`<ellipse cx="20" cy="31" rx="15" ry="5" fill="#
   +`<g fill="#dcfff4"><circle cx="${11+ox}" cy="${9+oy}" r=".9" opacity=".8"/><circle cx="${29+ox}" cy="${11+oy}" r=".7" opacity=".7"/><circle cx="${27+ox}" cy="${24+oy}" r=".8" opacity=".6"/></g>`);
 const WISP_V=[wispArt(-2,0,false),wispArt(3,1,true)];
 // koi pond: a mossy stone rim around clear green water, two koi circling a lily pad
+// the Frowning Skull's Unsettling Ground: cracked, sunken earth with the skull glowering from the middle
+const UNSET_V=svg(`<rect width="40" height="40" fill="#6a5a48"/><ellipse cx="20" cy="22" rx="17" ry="14" fill="#4e4236"/><ellipse cx="20" cy="23" rx="13" ry="10" fill="#3a3028"/>`
+  +`<path d="M3 9l7 6l-2 6l6 3M37 7l-8 8l3 5l-6 4M6 35l8-6l4 2M35 34l-7-5l-3 3M20 3v6l-3 4" stroke="#2a221c" stroke-width="1.300" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`
+  +`<path d="M12 21q0-9 8-9t8 9q0 3-2 5v3h-12v-3q-2-2-2-5z" fill="#d8d0bc" stroke="#3a3028" stroke-width="1"/>`
+  +`<path d="M14.500 18.500l4 1.500M25.500 18.500l-4 1.500" stroke="#2a221c" stroke-width="1.400" stroke-linecap="round"/><ellipse cx="16.800" cy="21.500" rx="2" ry="1.800" fill="#1e1814"/><ellipse cx="23.200" cy="21.500" rx="2" ry="1.800" fill="#1e1814"/>`
+  +`<path d="M20 23.500l-1 2h2z" fill="#2a221c"/><path d="M16 29q4-2.500 8 0" stroke="#2a221c" stroke-width="1" fill="none"/><path d="M17 26v3M19.500 26v3M22 26v3" stroke="#8a8270" stroke-width=".7"/>`
+  +`<circle cx="16.800" cy="21.500" r=".6" fill="#b06ad0"/><circle cx="23.200" cy="21.500" r=".6" fill="#b06ad0"/>`);
 const koiArt=(f)=>svg(`<ellipse cx="20" cy="21" rx="17" ry="15" fill="#8a8a7e" stroke="#4a4a42" stroke-width="1.200"/>`+[[5,16],[9,8],[18,5],[28,7],[35,14],[36,24],[31,32],[21,36],[10,33],[4,25]].map(([x,y],i)=>`<ellipse cx="${x}" cy="${y}" rx="${3+i%2}" ry="2.600" fill="${i%3?"#9a9a8c":"#7e7e72"}" stroke="#4a4a42" stroke-width=".7"/>`).join("")
   +`<ellipse cx="20" cy="21" rx="13" ry="11" fill="#3f7f78"/><ellipse cx="18" cy="18" rx="9" ry="6" fill="#5a9a90" opacity=".45"/>`
   +`<g transform="rotate(${f?200:20} 20 21)"><path d="M12 19q4-3 8 0q-4 3-8 0z" fill="#f08a30"/><path d="M12 19l-3-2v4z" fill="#f08a30"/><circle cx="17" cy="18.400" r=".9" fill="#fff"/></g>`
@@ -1376,6 +1395,7 @@ ICON.P='<svg viewBox="0 0 40 40"><path d="M17 6v9L9.500 29.500A4.500 4.500 0 001
 ICON.T='<svg viewBox="0 0 40 40"><path d="M18.500 11.500q1.500-7.500 9-7.500q4.500.6 5 6q-2.200-2-4.400-1.200q1.400 2 .4 4.200q-2.200-2.200-4.500-1.400z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M21.500 9q2.500-3 6-3M23 11.500q2-1.700 4.500-1.600" stroke="var(--tc)" stroke-width=".8" fill="none" opacity=".55" stroke-linecap="round"/><path d="M10 32V21a10 10 0 0120 0v11z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M20 11a10 10 0 0110 10v11h-6.500V21q0-6.500-3.500-10z" fill="rgba(0,0,0,.17)"/><path d="M10 29.800h20V32H10z" fill="rgba(0,0,0,.17)"/><path d="M12.500 21.200h15v2.800h-15z" fill="var(--tc)"/><path d="M20 25.200l1.500 3 3.300.5-2.400 2.300.6 3.300-3-1.600-3 1.600.6-3.300-2.400-2.300 3.300-.5z" fill="var(--tc)"/><path d="M12.700 19q1.300-5 6-6.400" stroke="#fff" stroke-width="1.100" fill="none" opacity=".45" stroke-linecap="round"/></svg>';
 ICON.Q='<svg viewBox="0 0 40 40"><path d="M24.500 12.500q2-6 8-9.500q3.500-1.500 5.500-.5q-2.500.8-3.800 2.600q2.400-.6 3.800.2q-2.600 1-4 2.800q2 0 3 .8q-3 1.400-5.500 2.400q1.400.6 2.200 1.400q-4.500 1.200-9.200-.2z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M26 12q4-5.500 10.500-8.500M29.500 8.500l3-.6M28 10.500l3.500-.2" stroke="var(--tc)" stroke-width=".8" fill="none" opacity=".55" stroke-linecap="round"/><path d="M13 21.500q.5-11 7-13.500q6.500 2.500 7 13.500z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M20 8q6.500 2.500 7 13.500h-4.500q0-9-2.500-13.500z" fill="rgba(0,0,0,.17)"/><path d="M14.200 20q.6-9 5.800-11" stroke="var(--tc)" stroke-width=".8" fill="none" opacity=".55" stroke-linecap="round"/><path d="M10 28.500q-.5-10 10-10.500q10.500.5 10 10.500z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M20 18q10.500.5 10 10.500h-6q.5-7.500-4-10.500z" fill="rgba(0,0,0,.17)"/><path d="M10.200 25.400h19.600v2.600H10.200z" fill="var(--tc)"/><g fill="var(--ic)" opacity=".85"><circle cx="13.500" cy="26.700" r=".75"/><circle cx="20" cy="26.700" r=".75"/><circle cx="26.500" cy="26.700" r=".75"/></g><path d="M3 22.500q2.500 11 17 11t17-11q-4 6.500-17 6.500t-17-6.500z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M20 33.500q14.500 0 17-11q-4 6.500-17 6.500z" fill="rgba(0,0,0,.17)"/><path d="M5.500 25.500q4 5.500 14.500 5.800" stroke="var(--tc)" stroke-width=".8" fill="none" opacity=".55" stroke-linecap="round"/><path d="M12.400 24q.8-3.800 4.600-4.900" stroke="#fff" stroke-width="1.100" fill="none" opacity=".45" stroke-linecap="round"/></svg>';
 ICON.X='<svg viewBox="0 0 40 40"><path d="M13 37.500h14M16 39h8" stroke="var(--tc)" stroke-width=".8" opacity=".5" stroke-linecap="round"/><path d="M20 14L28.7 19L20 24L11.3 19z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M11.3 19L20 24L20 34L11.3 29z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M20 24L28.7 19L28.7 29L20 34z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M20 24L28.7 19L28.7 29L20 34z" fill="rgba(0,0,0,.17)"/><path d="M20 14L28.7 19L20 24L11.3 19z" fill="#fff" opacity=".18"/><path d="M17.1 22.3v10M11.3 22.3l8.7 5M22.9 22.3v10M20 27.3l8.7 -5M17.1 22.3l8.7 -5M22.9 22.3l-8.7 -5M14.2 20.7v10M11.3 25.7l8.7 5M25.8 20.7v10M20 30.7l8.7 -5M14.2 20.7l8.7 -5M25.8 20.7l-8.7 -5" stroke="var(--tc)" stroke-width=".7" fill="none" opacity=".6"/><path d="M6.5 17.4L9.6 19.2L6.5 21L3.4 19.2z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M3.4 19.2L6.5 21L6.5 24.6L3.4 22.8z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M6.5 21L9.6 19.2L9.6 22.8L6.5 24.6z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M6.5 21L9.6 19.2L9.6 22.8L6.5 24.6z" fill="rgba(0,0,0,.17)"/><path d="M6.5 17.4L9.6 19.2L6.5 21L3.4 19.2z" fill="#fff" opacity=".18"/><path d="M33.5 17.4L36.6 19.2L33.5 21L30.4 19.2z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M30.4 19.2L33.5 21L33.5 24.6L30.4 22.8z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M33.5 21L36.6 19.2L36.6 22.8L33.5 24.6z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M33.5 21L36.6 19.2L36.6 22.8L33.5 24.6z" fill="rgba(0,0,0,.17)"/><path d="M33.5 17.4L36.6 19.2L33.5 21L30.4 19.2z" fill="#fff" opacity=".18"/><path d="M20 3.500l4.500 5.500-4.500 5.500-4.500-5.500z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M20 3.500l4.500 5.500-4.500 5.500z" fill="rgba(0,0,0,.17)"/><path d="M18 8.300h4v1.400h-4z" fill="var(--tc)"/><path d="M17.200 7.200l2-2.400" stroke="#fff" stroke-width="1" opacity=".45" stroke-linecap="round"/><path d="M10.500 21.500l4-1.500M29.500 21.500l-4-1.500" stroke="var(--tc)" stroke-width=".8" stroke-dasharray="1 1.200" opacity=".6"/></svg>';
+ICON.L='<svg viewBox="0 0 40 40"><path d="M22 31q11 1 13-9q2-10-4-16q-5-4-9 0q4 1 5 6q2 7-3 12" fill="var(--ic)" stroke="rgba(0,0,0,.28)" stroke-width=".8" stroke-linejoin="round"/><path d="M25 8q4 1 6 6q1.500 5-1 10M28 12q2 4 0 9" stroke="var(--tc)" stroke-width=".9" fill="none" opacity=".45" stroke-linecap="round"/><path d="M8 33q-1-8 4-13q-3-4-1-8q2-4 6-3l2-4q1.500 1 1 4q3 2 3 6q0 3-2 5q4 4 3 10q-1 4-6 4h-6q-4 0-4-1z" fill="var(--ic)" stroke="rgba(0,0,0,.28)" stroke-width=".8" stroke-linejoin="round"/><path d="M12 25q3 3 7 2" stroke="var(--tc)" stroke-width=".9" fill="none" opacity=".5" stroke-linecap="round"/><path d="M13.500 9l-1.500-4q2.500 0 3 3z" fill="var(--ic)" stroke="rgba(0,0,0,.28)" stroke-width=".7" stroke-linejoin="round"/><circle cx="14.500" cy="13" r="1.400" fill="var(--tc)"/><circle cx="14.900" cy="12.600" r=".45" fill="#fff"/><path d="M10.200 15.600q.8.6 1.800.2" stroke="var(--tc)" stroke-width=".8" fill="none" stroke-linecap="round"/><circle cx="10.300" cy="15" r=".8" fill="var(--tc)"/><path d="M15 22q-2 2-1 4M18 21l2 3" stroke="var(--tc)" stroke-width="1.100" fill="none" stroke-linecap="round" opacity=".6"/><ellipse cx="17.500" cy="24" rx="2.200" ry="1.800" fill="#a8743a" stroke="#4a2e10" stroke-width=".7"/><path d="M15.500 23q2-2 4 0" stroke="#5a3a1c" stroke-width="1.100" fill="none"/><path d="M17.500 21.600v-1.200" stroke="#5a3a1c" stroke-width=".8"/></svg>';
 ICON.S='<svg viewBox="0 0 40 40"><path d="M20 3l4.80 11.20l11.20 4.80l-11.20 4.80l-4.80 11.20l-4.80 -11.20l-11.20 -4.80l11.20 -4.80z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M20 3l4.800 11.200L36 19l-11.200 4.800L20 35z" fill="rgba(0,0,0,.17)"/><circle cx="16.800" cy="18.400" r="1.700" fill="var(--tc)"/><circle cx="23.200" cy="18.400" r="1.700" fill="var(--tc)"/><path d="M17 22.300q3 2.300 6 0" stroke="var(--tc)" stroke-width="1.100" fill="none" stroke-linecap="round"/><path d="M33 2.6l1.02 2.38l2.38 1.02l-2.38 1.02l-1.02 2.38l-1.02 -2.38l-2.38 -1.02l2.38 -1.02z" fill="var(--ic)" opacity=".85"/><path d="M7 28.4l0.78 1.82l1.82 0.78l-1.82 0.78l-0.78 1.82l-0.78 -1.82l-1.82 -0.78l1.82 -0.78z" fill="var(--ic)" opacity=".7"/><path d="M17.500 8.500l1.500 4" stroke="#fff" stroke-width="1.100" opacity=".45" stroke-linecap="round"/></svg>'; // the Friendly Spark: a little four-pointed star with a face // the Grid Elemental: a gridded cube with a diamond head and floating cube fists
 ICON.N='<svg viewBox="0 0 40 40"><path d="M12 7v28" stroke="rgba(0,0,0,.3)" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12 7v28" stroke="var(--ic)" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="12" cy="5.300" r="2.700" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><circle cx="11.200" cy="4.500" r=".8" fill="#fff" opacity=".5"/><path d="M14 8q9-2 18 0l-4.500 6.500L32 21q-9-2-18 0z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M23 7.300q4.500-.2 9 .7l-4.500 6.500L32 21q-4.500-1-9-.9q2-6-0-12.800z" fill="rgba(0,0,0,.13)"/><path d="M18.200 9.650l.62 1.750 1.850.05-1.470 1.120.53 1.780-1.530-1.050-1.530 1.050.53-1.780-1.470-1.120 1.850-.05z" fill="var(--tc)"/><path d="M23.600 14.650l.62 1.750 1.850.05-1.470 1.120.53 1.780-1.530-1.050-1.530 1.050.53-1.780-1.470-1.120 1.850-.05z" fill="var(--tc)"/></svg>';
 ICON.M='<svg viewBox="0 0 40 40"><path d="M20 17v18" stroke="rgba(0,0,0,.3)" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M20 17v18" stroke="var(--ic)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12 5v7a8 8 0 0016 0V5M20 5v11" stroke="rgba(0,0,0,.3)" stroke-width="4.0" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12 5v7a8 8 0 0016 0V5M20 5v11" stroke="var(--ic)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M17.800 17.400h4.400v2.800h-4.400z" fill="var(--tc)"/><path d="M18 18.800h4" stroke="var(--ic)" stroke-width=".5" opacity=".7"/><path d="M19 23v10" stroke="rgba(0,0,0,.18)" stroke-width="1"/></svg>';
@@ -1494,6 +1514,7 @@ const TERRAIN={
  shallow:{name:"Shallow Water",bg:"background:var(--sh,#86c4dc)",art:()=>SH_V,desc:"Entering it costs 1 extra movement. Often found around deep water, and sometimes as a ford across a river."},
  deep:{name:"Deep Water",bg:"background:var(--dp,#2f6f9c)",art:()=>DP_V,desc:"Impassable. Units can't enter or cross it, but attacks can pass over it. Forms lakes, ponds and rivers."},
  barrels:{name:"Barrels",bg:"",art:()=>BAR_V,unlock:"barrels",desc:"Impassable. A unit in range can spend its action to break them. Found next to fortresses."},
+ unsettled:{name:"Unsettling Ground",bg:"background:#6a5a48",art:()=>[UNSET_V],unlock:"fskull",desc:"Where the Frowning Skull was set down. Impassable, but attacks can pass over it. An enemy that ends its turn on one of the 8 tiles around it takes 1 damage, ignoring armor, and is slowed on its next turn (never two turns running)."},
  grave:{name:"Gravestone",bg:"",art:()=>GRAVE_V,unlock:"graveyard",desc:"Impassable. Units can't enter or cross it, but attacks can pass over it. Found in Haunted Graveyards."},
  campsite:{name:"Mysterious Camp Site",bg:"",art:()=>[CAMP_V],unlock:"campsite",desc:"Impassable. A unit standing next to it can visit the camp. Enemy units may break it."},
  xbarrel:{name:"Exploding Barrel",bg:"",art:()=>[XBAR_V],unlock:"xbarrels",desc:`Impassable. Breaking it deals ${XB_DMG} damage to every unit on the 8 tiles around it and sets off barrels in the blast. Each barrel has a 25% chance to be one.`},
@@ -1512,7 +1533,7 @@ const TERRAIN={
  void:{name:"Empty Space",bg:"background:#08060f",art:()=>[0,1,2,3].map(v=>voidArt(3,4,v)),unlock:"warpedsim",desc:"Open ground with nothing under it: black, with faint swirls and the odd spark. A unit that starts its turn on Empty Space gets +1 movement for that turn. Covers most of the Grid."},
  lbrick:{name:"Light Brick",bg:"background:#5a4c8c",art:()=>[LBRICK_V],unlock:"warpedsim",desc:"Impassable, but attacks can pass over it. Found in Synthwave Space and the Grid. Its neon glow spills onto the 4 tiles beside it: a unit that moves onto or through a glowing tile is slowed on its next turn."},
  fort:{name:"Fortress",bg:FR,art:()=>[fortArt(0,0,true),fortArt(0,1,true)],desc:"Uncommon. A unit standing on one gets +1 armor."}};
-const terrainKey=k=>CHASM.has(k)?"chasm":LIGHT.has(k)?"lbrick":CHAOS.has(k)?"chaos":RUBBLE.has(k)?"rubble":CAMPS.has(k)?"campsite":GRAVES.has(k)?"grave":VOLC.has(k)?"volcano":WISP.has(k)?"wisp":KOI.has(k)?"koi":FLOWERS.has(k)?"flowers":LAVA.has(k)?"lava":MAGMA.has(k)?"magma":BARRELS.has(k)?(XBAR.has(k)?"xbarrel":"barrels"):WALLS.has(k)?(SIM?"quartz":"wall"):DEEP.has(k)?"deep":SHALLOW.has(k)?"shallow":SWAMP.has(k)?"swamp":CHERRY.has(k)?"cherry":FOREST.has(k)?(GREENW.has(k)?"greenwood":"forest"):FORT.has(k)?"fort":MEADOW.has(k)?"meadow":VOID.has(k)?"void":SIM?"glitch":"ground";
+const terrainKey=k=>k===relicUsed.skull?"unsettled":CHASM.has(k)?"chasm":LIGHT.has(k)?"lbrick":CHAOS.has(k)?"chaos":RUBBLE.has(k)?"rubble":CAMPS.has(k)?"campsite":GRAVES.has(k)?"grave":VOLC.has(k)?"volcano":WISP.has(k)?"wisp":KOI.has(k)?"koi":FLOWERS.has(k)?"flowers":LAVA.has(k)?"lava":MAGMA.has(k)?"magma":BARRELS.has(k)?(XBAR.has(k)?"xbarrel":"barrels"):WALLS.has(k)?(SIM?"quartz":"wall"):DEEP.has(k)?"deep":SHALLOW.has(k)?"shallow":SWAMP.has(k)?"swamp":CHERRY.has(k)?"cherry":FOREST.has(k)?(GREENW.has(k)?"greenwood":"forest"):FORT.has(k)?"fort":MEADOW.has(k)?"meadow":VOID.has(k)?"void":SIM?"glitch":"ground";
 function tileArt(x,y){ // the art for one board tile, picking a stable variant per tile
   const k=x+","+y;
   switch(terrainKey(k)){
@@ -1520,7 +1541,7 @@ function tileArt(x,y){ // the art for one board tile, picking a stable variant p
     case "deep":return DP_V[tv(x,y,3,13)];case "shallow":return SH_V[tv(x,y,3,15)];case "swamp":return SW_V[tv(x,y,4,21)];case "forest":return HAUNTED||VOLCANIC?DEAD_V[tv(x,y,3,9)]:FOREST_V[tv(x,y,4,9)];case "greenwood":return GREENW_V[tv(x,y,3,67)];case "meadow":return meadow(x,y);
     case "cherry":return cherryArt(tv(x,y,3,43),joinMask(x,y,kk=>CHERRY.has(kk)),x,y);
     case "volcano":return VOLC_V[tv(x,y,2,25)];case "wisp":return WISP_V[tv(x,y,2,47)];case "flowers":return FLOWER_V[tv(x,y,3,53)];case "koi":return KOI_V[tv(x,y,2,59)];case "lava":return LAVA_V[tv(x,y,3,27)];case "magma":return MAGMA_V[tv(x,y,3,29)];
-    case "rubble":return RUBBLE_V[tv(x,y,2,61)];
+    case "rubble":return RUBBLE_V[tv(x,y,2,61)];case "unsettled":return UNSET_V;
     case "chasm":return chasmArt(chasmMask(x,y),tv(x,y,3,71));case "chaos":return simGround(x,y,4)+CHAOS_V;case "lbrick":return simGround(x,y,4)+LBRICK_V;case "glitch":return simGround(x,y);case "void":return voidArt(x,y);case "quartz":return quartzArt(tv(x,y,7,73));
     case "fort":return fortArt(fortMask(x,y),FORTV.get(k)||0,FORTK.has(k),SIMFORT);default:return VOLCANIC?ashGround(x,y):ground(x,y);
   }
@@ -1537,6 +1558,7 @@ const unitStats=t=>{const T=TYPES[t];return `HP ${T.hp}, move ${T.mv}, range ${r
 const ABILITY={S:"Keeps beside the unit it appeared next to, acting on its own after your turn. It never attacks, but enemies that move onto any of the 8 tiles around it are slowed on their next turn.",X:"Hit and fade: after each attack it makes, it steps 1 tile straight back from its target, if it can. Found only in the Warped Sim, and only on the enemy side.",K:"Can push an adjacent unit up to 2 tiles instead of attacking, ally or enemy. Artillery and cavalry are too heavy.",P:`Heals an ally in range for up to ${TYPES.P.heal} HP instead of attacking.`,E:"Its magic ignores armor. Can hex an enemy in range instead of attacking: on its next turn it moves only 1 tile, and the units it attacks get +10% evasion against it.",
  T:`Instead of attacking, can muster 1-2 militia onto open tiles beside it. Twice per battle, with at most ${MUSTER_ALIVE} of its militia at a time.`,
  N:`Allies within ${BANNER_RANGE} tiles deal +1 damage.`,Q:"Trailblazer: forests and shallow water cost it no extra movement, and a swamp doesn't end its move.",D:`Heads for the nearest choke point and digs in after ${DIG_TURNS} turns, or as soon as it gets there. Dug in, it never moves or attacks on its own turn, can't be pushed and gets +${DIG_AR} armor, but strikes the first unit to move next to it each turn, before that unit can act. That unit can't retaliate.`,M:"Mustered by a Captain. Weak, but useful for blocking and finishing off foes.",
+ L:"Came along with the Druid's Bone Charm. Fights for you on its own: at the end of each of your turns it charges the nearest enemy. Wild animals leave it be. It scampers off at the end of your 4th turn.",
  G:"Burst out of the Chicken Suit. Fights for you on its own: at the end of each of your turns it charges the nearest enemy. Forests and shallow water don't slow it."};
 const TAG={X:"Steps back",K:"Pushes",P:"Heals",E:"Hexes; ignores armor",T:"Musters militia",N:"+1 damage aura",Q:"Trailblazer"}; // short ability labels for the setup cards
 const listAnd=a=>a.length<2?a.join(""):a.slice(0,-1).join(", ")+" and "+a[a.length-1];
@@ -1649,7 +1671,7 @@ const CHARGE_RUN=3,charging=(a,from=a)=>{const s=a.mvFrom||[a.x,a.y];return a.t=
 const rides=u=>u.t==="C"&&rel(u,"rsaddle"); // Swift Rider's Saddle: Cavalry ride through enemy lines
 function reach(u){ // entering shallow water costs 2; leaving a forest costs 1 extra; entering a swamp ends the move
   if((u.slow&&!muled(u))||u.stepOnly)return DIRS.map(([dx,dy])=>[u.x+dx,u.y+dy]).filter(([x,y])=>x>=0&&y>=0&&x<W&&y<H&&!solid(x+","+y)&&!at(x,y)).map(([x,y])=>x+","+y); // a slow (or the champion's step) always allows 1 tile, whatever the terrain costs
-  const nimble=u.t==="G"||u.t==="Q",bud=mvOf(u)-(!nimble&&!rel(u,"hatchet")&&FOREST.has(u.x+","+u.y)?1:0),k0=u.x+","+u.y; // leaving a forest costs 1 extra (the Angry Chicken and the Conquistador skip both of these costs)
+  const nimble=u.t==="G"||u.t==="L"||u.t==="Q",bud=mvOf(u)-(!nimble&&!rel(u,"hatchet")&&FOREST.has(u.x+","+u.y)?1:0),k0=u.x+","+u.y; // leaving a forest costs 1 extra (the Angry Chicken and the Conquistador skip both of these costs)
   const cost=new Map([[k0,0]]),q=[[u.x,u.y]];
   while(q.length){
     q.sort((a,b)=>cost.get(a+"")-cost.get(b+""));
@@ -1670,7 +1692,7 @@ function reach(u){ // entering shallow water costs 2; leaving a forest costs 1 e
 function routes(u){
   const k0=u.x+","+u.y,out=new Map();
   if((u.slow&&!muled(u))||u.stepOnly){reach(u).forEach(k=>out.set(k,{n:CALTROPS.has(k)?1:0,path:[k]}));return out}
-  const nimble=u.t==="G"||u.t==="Q",bud=mvOf(u)-(!nimble&&!rel(u,"hatchet")&&FOREST.has(k0)?1:0),best=new Map([[k0+"|0",{n:0,prev:null,k:k0}]]); // states: tile and movement spent
+  const nimble=u.t==="G"||u.t==="L"||u.t==="Q",bud=mvOf(u)-(!nimble&&!rel(u,"hatchet")&&FOREST.has(k0)?1:0),best=new Map([[k0+"|0",{n:0,prev:null,k:k0}]]); // states: tile and movement spent
   for(let c=0;c<=bud;c++)for(const[sk,st] of [...best])if(+sk.split("|")[1]===c){
     if(SWAMP.has(st.k)&&st.k!==k0&&u.t!=="Q")continue; // entering a swamp ends the move
     const[x,y]=pk(st.k);
@@ -1738,7 +1760,7 @@ function render(){
   units.forEach(u=>{if((u.slow||u.slowNext)&&u.team==="y"&&!u.slowRoll&&rel(u,"lcube")){u.slowRoll=1;if(Math.random()<CUBE_SLOW){delete u.slow;delete u.slowNext;floatText(u.x,u.y,"Shrugged off","bless")}}if(!u.slow&&!u.slowNext)delete u.slowRoll; // the Large Glowing Cube shrugs off a fifth of slows
     if(u.slowNext&&calm(u))delete u.slowNext;if(u.slow&&calm(u)){delete u.slow;delete u.hex;delete u.hexPend;floatText(u.x,u.y,"Calm","bless")}});
   board.classList.toggle("murky",MURKY);board.classList.toggle("haunted",HAUNTED);board.classList.toggle("volcanic",VOLCANIC);board.classList.toggle("sim",SIM);
-  const mv=new Set(),tg=new Set(),ig=new Set(),ir=new Set(),pr=new Set(),hs=new Set(),bt=new Set(),it=mode==="bombard"&&sel?new Set(bombTargets(sel)):mode&&mode.startsWith("item:")&&sel&&turn==="y"?itemTargets(sel,mode.slice(5)):new Set();
+  const mv=new Set(),tg=new Set(),ig=new Set(),ir=new Set(),pr=new Set(),hs=new Set(),bt=new Set(),it=mode==="bombard"&&sel?new Set(bombTargets(sel)):mode==="skull"&&sel?new Set(skullTargets(sel)):mode&&mode.startsWith("item:")&&sel&&turn==="y"?itemTargets(sel,mode.slice(5)):new Set();
   if(sel&&turn==="y"&&!over){
     if(mode==="ushove"&&shoveT)shoveT.ds.forEach(k=>mv.add(k));
     else if(mode==="tp"||mode==="ctp")farRow("y").forEach(p=>mv.add(p+""));
@@ -1773,7 +1795,7 @@ function render(){
     const cls="t"+(bar?" brl":"")+(w?" w"+A.wm[i]:"")+(dp?" dp":"")+(sh?" sh":"")+(SWAMP.has(k)?" sw":"")+(LAVA.has(k)?" lv":"")+(MAGMA.has(k)?" mg":"")+(VOLC.has(k)?" vo":"")+(WISP.has(k)?" wo":"")+(KOI.has(k)?" ko":"")+(CHASM.has(k)?" chs":"")+(CHAOS.has(k)?" cxs":"")+(LIGHT.has(k)?" lbk":"")+(VOID.has(k)?" vd":"")+(f?" fo":"")+(MEADOW.has(k)||GREENW.has(k)?" gr":"")+A.bl[i]+(fr?" fr":"")+(tile&&tile.x===x&&tile.y===y?" ts":"")+(ig.has(k)?" ig":"")+(ir.has(k)?" ir":"")+(pr.has(k)?" pr":"")+(mv.has(k)?" m":"")+((u&&tg.has(u))||bt.has(k)?" a":"")+(u&&tg.has(u)&&sel&&pushable(sel,u)?" pp":"")+(u&&hs.has(u)?" hl":"")+(u&&u===choice?" ch":"")+(pd&&pd.k===k?" pd":"")+(cm&&cm.x===x&&cm.y===y?" mt":"")+(bl.has(k)?" bl":"")+(CAMPS.has(k)?" cmp":"")+(cv.has(k)?" cv":"")+(it.has(k)?" it":"");
     const label=u?(u.team==="y"?"Your ":u.team==="w"?"Wild ":"Enemy ")+NAME[u.t]+", "+u.hp+" health"+(u.slow?", slowed":""):(mv.has(k)?"Move here, ":"")+TERRAIN[A.tk[i]].name;
     html+=`<button class="${cls}" data-x="${x}" data-y="${y}"${pd&&pd.k===k?` data-arrow="${pd.a}"`:""} aria-label="${label.replace(/"/g,"&quot;")}">`
-      +'<i class="lt"></i>'+A.art[i]+(fr?'<i class="tint"></i>':"")+(SMOKE.has(k)?'<i class="smoke"></i>':"")+(CALTROPS.has(k)?CALT_ART:"")+A.jn[i]+glowOf(k).map(([dx,dy])=>`<i class="lglow" style="background:linear-gradient(to ${dx>0?"left":dx<0?"right":dy>0?"top":"bottom"},rgba(255,226,60,.62),rgba(255,226,60,.16) 70%,rgba(255,226,60,.08))"></i>`).join(""); // fortress art covers its tile, so highlights go on a see-through layer above it
+      +'<i class="lt"></i>'+A.art[i]+(fr?'<i class="tint"></i>':"")+(SMOKE.has(k)?'<i class="smoke"></i>':"")+(skullZone(k)?'<i class="uzone"></i>':"")+(CALTROPS.has(k)?CALT_ART:"")+A.jn[i]+glowOf(k).map(([dx,dy])=>`<i class="lglow" style="background:linear-gradient(to ${dx>0?"left":dx<0?"right":dy>0?"top":"bottom"},rgba(255,226,60,.62),rgba(255,226,60,.16) 70%,rgba(255,226,60,.08))"></i>`).join(""); // fortress art covers its tile, so highlights go on a see-through layer above it
     if(u){
       let uc="u "+u.team+(u.merc?" merc":"")+(u.auto&&u.team==="y"?" free":spent(u)?" done":"")+(u.slow||u.slowNext?" slow":"")+(u.stun?" stun":"")+(u.rage||u.oil?" rage":"")+(u.chill?" chill":"")+(u.scram?" scram":"")+(u.link?" link":"")+(u.spot>=pturn&&u.spotBy!==u.team?" spot":"")+(u.ash?" ash":"")+(inspired(u)?" insp":"")+(blessed(u)||rested(u)?" blessed":"")+(u.t==="E"&&rel(u,"redtome")?" redglow":"")+(rallied(u)?" rallied":"")+(muled(u)?" mule":"")+(u.dug?" dug":"")+(u.elite?" elite":"")+(u.glitch?" glitch":"")+(u.champ||u.cshield||u.cloak?" champ":"")+(u.ublade||u.ubulwark||u.ushroud?" usurp":"")+(u===sel||u===insp?" sel":""),mvs="";
       if(u.spawn){uc+=" tpin";delete u.spawn}
@@ -1821,6 +1843,7 @@ function renderTile(){
   if(f&&mods.f==="FT")lines.push("The enemy has Forest Tactics: its units here get +1 armor against ranged attacks.");
   if(SMOKE.has(k))lines.push("Smoke: your units here get +20% evasion until your next turn.");
   if(glowOf(k).length)lines.push("Light Brick glow: a unit that moves onto or through this tile is slowed on its next turn.");
+  if(skullZone(k))lines.push("Beside Unsettling Ground: an enemy that ends its turn here takes 1 damage, ignoring armor, and is slowed on its next turn (never two turns running).");
   if(CALTROPS.has(k))lines.push("Caltrops: an enemy that crosses this tile takes 1 damage, ignoring armor. Your own units should know better, but 50% of the time they don't.");
   if(u)lines.push("Occupied by "+(u.team==="y"?"your ":u.team==="f"?"an enemy ":"a wild ")+NAME[u.t]+".");
   el.className="pb"+(MURKY?" murky":"")+(HAUNTED?" haunted":"")+(VOLCANIC?" volcanic":"")+(SIM?" sim":""); // murky water on Murky Swamp maps, ashen ground in graveyards
@@ -1844,6 +1867,7 @@ function renderInfo(){
   if(u.spot>=pturn&&u.spotBy!==u.team)notes.push(`Marked (Spotter's Mark): the next adjacent blow ${u.spotBy==="y"?"your units land":"the enemy lands"} on it deals +1 damage.`);
   if(u.scram)notes.push("Scrambled (Scramble Protocol): its base damage and armor are swapped until the start of your next turn.");
   if(u.link)notes.push(`Linked (Data Transfer Line): ${u.link.ar} base armor and ${pct(u.link.ev)} base evasion until the start of your next turn.`);
+  if(u.t==="L")notes.push(pturn<SQUIRREL_TURNS?`Scampers off at the end of your 4th turn (${SQUIRREL_TURNS-pturn+1} turns from now, counting this one).`:"Scampers off at the end of this turn.");
   if(u.chill)notes.push("Chilled by dry ice fog: +3% evasion until your next turn.");
   if(u.slowNext)notes.push("Dazzled by a Light Brick: it will be slowed on its next turn, moving only 1 tile.");
   if(u.slow)notes.push("Slowed: it can move only 1 tile (always at least 1, even out of a forest or into shallow water) until the end of its next turn.");
@@ -1988,6 +2012,7 @@ function unitActs(u){
   if(canBugle(u))add("Sound the Bugle","",()=>doBugle(u));
   if(canHalo(u))add("Invigorating Halo","",()=>doHalo(u));
   if(canBombard(u))add("Wall-breaker Charge","",()=>{mode="bombard";say("Choose a fortress tile in range to blast into rubble.");render()});
+  if(canSkull(u))add("Place Skull","Once per battle, free",()=>{mode="skull";say("Choose an open tile beside this unit for the Frowning Skull.");render()});
   if(itemsFor(u).length)add("Use Item","",()=>{mode="items";say("Choose an item to use.");render()});
   if(canMuster(u))add("Muster Militia","",()=>{const n=muster(u);unlock("seaside");sel=null;insp=null;lastMove=null;say(`Mustered ${n} militia. They can act next turn.`);render()});
   return L;
@@ -2052,6 +2077,7 @@ function click(x,y){
   tile={x,y};
   if(over||busy||turn!=="y"||!units.length)return render();
   if(mode==="ushove"&&shoveT)return endShove(x,y);
+  if(mode==="skull"&&sel){if(skullTargets(sel).includes(x+","+y))return placeSkull(sel,x,y);mode=null;say("Kept the skull. Move, attack, or pick another unit.");return render()}
   if(mode==="bombard"&&sel){if(bombTargets(sel).includes(x+","+y))return doBombard(sel,x,y);mode=null;say("Put the charge away. Move, attack, or pick another unit.");return render()}
   if(mode&&mode.startsWith("item:")&&sel){const id=mode.slice(5);if(itemTargets(sel,id).has(x+","+y)){if(id!=="caltrops")return useItem(sel,id,x,y);bchoice={x,y,calt:1,dir:"h"};say("Throw the caltrops across or down?");return render()}mode=null;say("Put the item away. Move, attack, or pick another unit.");return render()}
   if(CAMPS.has(x+","+y)&&sel&&!mode&&d(sel,{x,y})===1){bchoice={x,y,camp:1};say("Choose an action next to the camp site.");return render()}
@@ -2562,7 +2588,7 @@ function hurt(u,n){
     if(xs.length){u.x=xs[Math.floor(Math.random()*xs.length)];u.y=row}
     later(()=>{if(units.includes(u)){floatText(u.x,u.y,"Into Shadow","slow");sfx("warp")}},250);
   }
-  if(rel(u,"chicken")&&!relicUsed.chicken&&u.t!=="G")spawnChicken(u);
+  if(rel(u,"chicken")&&!relicUsed.chicken&&!u.auto)spawnChicken(u);
   else if(u.hp<=0&&rel(u,"mug")&&!relicUsed.mug){relicUsed.mug=1;u.hp=1;thanks(u)}
   else if(u.hp>0&&u.hp<=maxHp(u)/2&&rel(u,"cap")&&!relicUsed.cap){relicUsed.cap=1;const h=Math.min(2,maxHp(u)-u.hp);u.hp+=h;later(()=>floatText(u.x,u.y,"+"+h,"heal"),250);thanks(u)}
   if(u.hp<=0&&u.team==="y"&&(!u.auto||u.merc)&&camp.battle&&!chal&&camp.items.includes("phoenix")){ // Ward of a Phoenix's Flames: the first fall is undone, and the ward burns away
@@ -2591,6 +2617,16 @@ function spawnChicken(u){
   relicUsed.chicken=1;
   const c={t:"G",team:"y",auto:1,x:spot[0],y:spot[1],hp:TYPES.G.hp,moved:1,acted:1,spawn:1};units.push(c);
   later(()=>{if(units.includes(c)){floatText(c.x,c.y,"BAWK!","thanks");sfx("bawk")}},300);
+}
+// Druid's Bone Charm: a Loyal Squirrel starts the battle beside one of your units, nearest the enemy; it leaves as your 4th turn ends
+const SQUIRREL_TURNS=4,DRUID_PASS=.5;
+function spawnSquirrel(){
+  const ys=units.filter(u=>u.team==="y"&&!u.auto).sort((a,b)=>a.y-b.y);
+  for(const w of ys){const sp=DIRS.map(([dx,dy])=>[w.x+dx,w.y+dy]).find(([x,y])=>open(x,y));if(sp){units.push({t:"L",team:"y",auto:1,x:sp[0],y:sp[1],hp:TYPES.L.hp,moved:0,acted:0,spawn:1});return}}
+}
+function squirrelLeaves(){
+  const sq=units.filter(u=>u.t==="L");if(pturn<=SQUIRREL_TURNS||!sq.length)return "";
+  sq.forEach(u=>{floatText(u.x,u.y,"Scampers off","thanks");units.splice(units.indexOf(u),1)});return "The Loyal Squirrel scampered back into the trees. ";
 }
 // at the end of your turn, each Angry Chicken charges: it heads for the nearest enemy and pecks the weakest one it can reach
 function chickensAct(done){
@@ -2690,7 +2726,7 @@ function burst(rb,bw){
   an.onfinish=()=>s.remove();
 }
 // melee units lunge at the target; ranged units fire a projectile
-const ATK_SFX={X:"zap",K:"swing",Q:"swing",T:"swing",M:"swing",N:"swing",P:"swing",C:"charge",A:"bow",R:"siege",E:"zap",W:"growl",B:"growl",D:"growl",H:"screech",G:"bawk"};
+const ATK_SFX={L:"growl",X:"zap",K:"swing",Q:"swing",T:"swing",M:"swing",N:"swing",P:"swing",C:"charge",A:"bow",R:"siege",E:"zap",W:"growl",B:"growl",D:"growl",H:"screech",G:"bawk"};
 function animAttack(a,b,cb){
   let fired=false;const fin=()=>{if(!fired){fired=true;cb()}};sfx(ATK_SFX[a.t]||"swing");
   try{
@@ -2763,11 +2799,15 @@ function hazards(team,done){
     blasts.forEach(([x,y])=>{const u=at(x,y);if(u){hurt(u,ERUPT_DMG);hit++}});
     msg.push("A volcano erupted!"+(hit?` ${hit} unit${hit>1?"s were":" was"} caught in the blast.`:""));
   }
+  const haunted=team!=="y"&&relicUsed.skull?units.filter(u=>mine(u)&&skullZone(u.x+","+u.y)):[]; // the Frowning Skull's zone
+  units.forEach(u=>{if(mine(u)&&!haunted.includes(u))delete u.skullRest});
+  haunted.forEach(u=>{if(u.skullRest)delete u.skullRest;else if(!calm(u)){u.slowNext=1;u.skullRest=1}hurt(u,SKULL_DMG);floatText(u.x,u.y,"-"+SKULL_DMG,"slow")});
+  if(haunted.length)msg.push(haunted.length===1?`The Unsettling Ground gnawed at ${who(haunted[0])}.`:`The Unsettling Ground gnawed at ${haunted.length} units.`);
   const fed=units.filter(u=>u.team===team&&!u.auto&&u.hp>1&&rel(u,"crown")),prey=fed[Math.floor(Math.random()*fed.length)]; // the Hollow King's Crown feeds (never the last HP)
   if(prey){prey.hp-=1;floatText(prey.x,prey.y,"-1");msg.push(`The Hollow King's Crown fed on ${who(prey)}.`)}
   const bled=units.filter(u=>u.team===team&&u.bleed&&u.hp>1); // the Bleeding Statue (never the last HP)
   bled.forEach(u=>{u.hp-=1;floatText(u.x,u.y,"-1")});if(bled.length)msg.push(`The Bleeding Statue drew blood from ${who(bled[0])}.`);
-  if(!burnt.length&&!blasts.length&&!calmed.length&&!prey&&!bled.length&&!chaos.length)return done();
+  if(!burnt.length&&!blasts.length&&!calmed.length&&!prey&&!bled.length&&!chaos.length&&!haunted.length)return done();
   busy=true;say(msg.join(" "));render();blasts.forEach(([x,y])=>eruptFx(x,y));
   if(checkEnd())return;
   later(()=>{if(g===gid&&!over)done()},900);
@@ -2981,7 +3021,7 @@ function evalTile(u,x,y,D,foes,xv){
   const care=(.5+(1-u.hp/T.hp)*.9)/(1+(u.idle||0)); // wounded units value safety more; patience (idle turns) wears it down
   let s=(threat+wt)*care+(WOODS(k)?(mods[u.team]==="FT"?-1.5:1.5):0)+(CHERRY.has(k)?.5-(1-u.hp/T.hp):0)+(FORT.has(k)?-2:0)+(SHALLOW.has(k)?1.5:0); // forests slow the next move, but Forest Tactics likes them
   s+=blastOf(k).filter(([a,b])=>XBAR.has(a+","+b)).length*2+(glowOf(k).length&&!u.slowNext?1.2:0); // don't loiter beside exploding barrels, or step into a Light Brick's glow
-  s+=(MAGMA.has(k)?3:0)+blastOf(k).filter(([a,b])=>VOLC.has(a+","+b)).length*.6+([...blastOf(k),pk(k)].filter(([a,b])=>WISP.has(a+","+b)).length)*.4; // ...and wisps might slow // magma burns at turn end; volcanoes might erupt
+  s+=(u.team!=="y"&&skullZone(k)?SKULL_AVOID:0)+(MAGMA.has(k)?3:0)+blastOf(k).filter(([a,b])=>VOLC.has(a+","+b)).length*.6+([...blastOf(k),pk(k)].filter(([a,b])=>WISP.has(a+","+b)).length)*.4; // ...and wisps might slow // magma burns at turn end; volcanoes might erupt
   const atk=inR.length?20+Math.max(...inR.map(p=>{const c=combat(u,p,g),kill=c.dmg>=p.hp,r=kill?null:retaliation(u,p,g); // a kill avoids any retaliation
     return c.hit*(10*c.dmg/p.hp+(kill?12:0))+(VAL[p.t]||0)-(r?r.hit*(r.dmg*2.5+(r.dmg>=u.hp?15:0))*care:0)})):0;
   const bv=(xv||[]).reduce((m,[bk,v])=>{const[a,b]=pk(bk),dd=Math.abs(a-x)+Math.abs(b-y);return dd>=T.mn&&dd<=rg&&!(Math.abs(a-x)<=1&&Math.abs(b-y)<=1)?Math.max(m,14+v):m},0);
@@ -3111,7 +3151,8 @@ function enemyTurn(note=""){
       }
       later(()=>{
         if(g!==gid)return;
-        const ts=targets(u).sort((a,b)=>a.hp-b.hp);
+        let ts=targets(u).sort((a,b)=>a.hp-b.hp);
+        if(RELIC.has("druid")){ts=ts.filter(t=>t.t!=="L");const nf=ts.filter(t=>t.team!=="y");if(nf.length)ts=nf;else if(Math.random()<DRUID_PASS)ts=[]} // Druid's Bone Charm: the wild would rather go for the enemy
         if(!ts.length)return step();
         attack(u,ts[0],()=>{if(!checkEnd())render();later(step,500)});
       },350);
@@ -3896,6 +3937,7 @@ function start(o={}){
     if(u.ublade&&u.ubulwark&&u.ushroud)u.utrio=1; // all three: The Usurper
   });
   if(RELIC.has("statue")||FOE_RELIC.has("statue"))["y","f"].forEach(team=>{const l=units.filter(u=>u.team===team&&!u.auto);if(l.length)l[Math.floor(Math.random()*l.length)].bleed=1}); // the Bleeding Statue picks one unit per side
+  if(RELIC.has("druid"))spawnSquirrel();
   if(camp.battle&&RELIC.has("keep")){const ys=units.filter(u=>u.team==="y"&&u.ci!=null);ys[Math.floor(Math.random()*ys.length)].keep=1} // Banner of the Fallen Keep
   let wild=null;
   if(o.wild||Math.random()<.1){ // neutral animal in the middle of the map
@@ -4377,6 +4419,8 @@ const FINDS=[
  {relic:"bluemagma",when:n=>n.b==="volcanic",story:who=>`At the edge of a cooling lava flow, your ${who} spotted a stone glowing a strange, cold blue.`},
  {relic:"dandelion",when:n=>n.b==="plain",story:who=>`In a wind-swept meadow, your ${who} found a dandelion clock that would not lose a single seed, however hard the wind blew.`},
  {relic:"sakurafan",when:n=>n.b==="sakura",story:who=>`Beneath the oldest cherry tree in the vale, your ${who} found a painted fan resting on a bed of petals.`},
+ {relic:"druid",when:n=>n.b==="wild",story:who=>`Where the wild things had trampled a clearing, your ${who} found a charm of bone and twine hung from a branch. Something small watched from the leaves.`},
+ {relic:"fskull",when:n=>n.b==="graveyard",story:who=>`Among the crooked headstones, your ${who} found a skull that seemed to frown back. The ground around it felt wrong.`},
  {relic:"voidshard",when:n=>n.b==="grid",story:who=>`Out in the Grid, where there was nothing at all, your ${who} closed a hand around a piece of it.`},
  {relic:"horn",when:n=>n.b==="forest",story:who=>`Beneath the roots of an ancient oak, your ${who} found a hunting horn, still warm as if just blown.`}
 ];
@@ -4520,6 +4564,8 @@ const RICON={ // small 32-unit relic icons
  splinter:'<path d="M3 26L14 15" stroke="#8a6a40" stroke-width="1.200" stroke-dasharray="2 2" opacity=".7"/><circle cx="16" cy="13" r="5" fill="#4a4540" stroke="#1e1a16" stroke-width="1.200"/><path d="M13.500 11q1-1.500 2.500-1.500" stroke="#fff" stroke-width="1" fill="none" opacity=".5"/><path d="M19.500 9.500l5-4.500l-1.500 4zM21 13.500l7-.5l-6 2.500zM19.500 17l5 4.500l-6-2.500z" fill="#c8a060" stroke="#5a3a1c" stroke-width=".8" stroke-linejoin="round"/><path d="M23 4l1-2M28.500 12l2.500-.5M25 22.500l1.500 2" stroke="#e8a030" stroke-width="1.100" stroke-linecap="round"/><path d="M16 18.500v2M11 14.500h-1.500" stroke="#c8a060" stroke-width=".9" stroke-linecap="round" opacity=".8"/>',
  debris:'<circle cx="16" cy="16" r="4.500" fill="#5c5650" stroke="#24201c" stroke-width="1.100"/><path d="M16 16" /><g fill="#8a8178" stroke="#24201c" stroke-width=".9"><path d="M5 7l4 1l-1 3l-3-1z"/><path d="M25 5l3 3l-3 2l-2-2z"/><path d="M27 22l2 3l-4 1l-1-2z"/><path d="M6 24l3-1l1 3l-3 1z"/></g><path d="M11 11l-3-3M21 11l3-3M21 21l3 3M11 21l-3 3" stroke="#e8641e" stroke-width="1.400" stroke-linecap="round"/>',
  mercy:'<path d="M17 3l3 3l-9 15l-3-1z" fill="#c8ccd2" stroke="#2e3338" stroke-width="1.100" stroke-linejoin="round"/><path d="M18.500 4.500l-8.500 15" stroke="#f4f6f8" stroke-width=".9" opacity=".8"/><path d="M5 18l9 5" stroke="#5a3a1c" stroke-width="2.600" stroke-linecap="round"/><path d="M9 21l-3 6" stroke="#3a2412" stroke-width="2.600" stroke-linecap="round"/><path d="M7.500 24l2 1" stroke="#c9962a" stroke-width="1.200"/><circle cx="5.500" cy="28" r="1.700" fill="#c9962a" stroke="#3a2412" stroke-width=".8"/><path d="M14 13q2 1 1 3" stroke="#8a1a14" stroke-width="1.300" fill="none" stroke-linecap="round"/>',
+ druid:'<path d="M16 2v6" stroke="#6a4a2a" stroke-width="1.100"/><path d="M9 3q7 5 14 0" stroke="#7a5a32" stroke-width="1" fill="none"/><g transform="rotate(-20 16 17)"><path d="M10 13q-3-1-3 2t3 2l12 0q3 1 3-2t-3-2q-1-3-4-1h-4q-3-2-4 1z" fill="#ece4cc" stroke="#5a4a32" stroke-width="1" stroke-linejoin="round"/><path d="M11 15h10" stroke="#c8bc9c" stroke-width=".8"/></g><circle cx="16" cy="8.500" r="1.800" fill="#5a8a3a" stroke="#2a4a1a" stroke-width=".7"/><path d="M8 20q-3 4-2 9q3-3 4-6z" fill="#4a7a3a" stroke="#1e3a14" stroke-width=".8" stroke-linejoin="round"/><path d="M24 20q4 3 4 8q-3-2-5-5z" fill="#7a9a3a" stroke="#2a3a14" stroke-width=".8" stroke-linejoin="round"/><path d="M13 22l-1 6M19 22l1 7M16 23v7" stroke="#6a4a2a" stroke-width=".9"/><circle cx="12" cy="28.500" r="1.300" fill="#c84a2a" stroke="#5a1a0a" stroke-width=".5"/><circle cx="20" cy="29.500" r="1.300" fill="#d8b24a" stroke="#6a4c10" stroke-width=".5"/><path d="M16 30l-1.200 2h2.400z" fill="#e8e0c8" stroke="#5a4a32" stroke-width=".5"/>',
+ fskull:'<circle cx="16" cy="16" r="14" fill="#7a3a9a" opacity=".14"/><path d="M6 15q0-11 10-11t10 11q0 4-2.500 6.500v4h-15v-4q-2.500-2.500-2.500-6.500z" fill="#e2dac4" stroke="#3a3028" stroke-width="1.200" stroke-linejoin="round"/><path d="M9 11.500l5 2M23 11.500l-5 2" stroke="#2a221c" stroke-width="1.700" stroke-linecap="round"/><ellipse cx="11.800" cy="15.800" rx="2.600" ry="2.300" fill="#1e1814"/><ellipse cx="20.200" cy="15.800" rx="2.600" ry="2.300" fill="#1e1814"/><circle cx="11.800" cy="15.800" r=".8" fill="#b06ad0"/><circle cx="20.200" cy="15.800" r=".8" fill="#b06ad0"/><path d="M16 18.500l-1.300 2.600h2.600z" fill="#2a221c"/><path d="M11 26q5-3.500 10 0" stroke="#2a221c" stroke-width="1.200" fill="none" stroke-linecap="round"/><path d="M12.500 22.500v3M16 22.500v3.300M19.500 22.500v3" stroke="#9a9280" stroke-width=".8"/><path d="M21 6q2 2 1 4" stroke="#b8b09a" stroke-width=".9" fill="none"/><path d="M4 30l5-3l3 2l4-2l4 2l3-2l5 3" stroke="#4a3e30" stroke-width="1.100" fill="none" stroke-linejoin="round"/>',
  voidshard:'<circle cx="16" cy="15" r="13" fill="#a24aff" opacity=".16"/><path d="M10 6H22L28 12L16 28L4 12z" fill="#08060f" stroke="#c86aff" stroke-width="1.400" stroke-linejoin="round"/><path d="M4 12H28M10 6L13 12L16 6L19 12L22 6M13 12L16 28L19 12" fill="none" stroke="#c86aff" stroke-width=".7" opacity=".6"/><path d="M11 17q3-3 6-1t-1 4" stroke="#3a1a66" stroke-width="1.300" fill="none"/><path d="M11 7.500L9 11" stroke="#f0d0ff" stroke-width=".9" stroke-linecap="round" opacity=".8"/><circle cx="21" cy="9" r="1.100" fill="#3ad8ff"/><circle cx="12" cy="19" r=".9" fill="#ffe94a"/><circle cx="20" cy="16" r=".8" fill="#e7a6ff"/>',
  horn:'<path d="M6 8q2-5 10-4q8 1 10 9" fill="none" stroke="#5a3a1c" stroke-width="1.300"/><path d="M4 9Q6 26 25 25L25 13Q11 18 7 8z" fill="#e8dcbc" stroke="#3a2412" stroke-width="1.200" stroke-linejoin="round"/><path d="M8 11q2 8 12 9" fill="none" stroke="#fff8e6" stroke-width="1" opacity=".8"/><ellipse cx="25.500" cy="19" rx="3" ry="6.500" fill="#3a2a1a" stroke="#c9962a" stroke-width="1.600"/><path d="M19 16.500l.5 8M14 15l-.5 8" stroke="#c9962a" stroke-width="1.800"/><path d="M3 8.500l3-2l2 3l-3 1.500z" fill="#c9962a" stroke="#3a2412" stroke-width=".9"/><path d="M10 28q3-4 8-3q-3 3-8 3zM2 18q1-4 4-3q0 3-4 3z" fill="#3f7a3a" stroke="#1e4a1c" stroke-width=".9"/>',
  dandelion:'<path d="M16 29q-1-8 0-15" stroke="#4a8a3a" stroke-width="1.600" fill="none" stroke-linecap="round"/><path d="M16 25q-5-1-7-5q4 0 7 3M16 23q4-2 6-6q-4 1-6 4" fill="#5a9a48" stroke="#2e5a24" stroke-width=".8"/><circle cx="16" cy="10" r="8" fill="#fff" opacity=".35"/><g stroke="#bab6aa" stroke-width=".7"><path d="M16 10l7.00 0.00"/><path d="M16 10l6.06 3.50"/><path d="M16 10l3.50 6.06"/><path d="M16 10l0.00 7.00"/><path d="M16 10l-3.50 6.06"/><path d="M16 10l-6.06 3.50"/><path d="M16 10l-7.00 0.00"/><path d="M16 10l-6.06 -3.50"/><path d="M16 10l-3.50 -6.06"/><path d="M16 10l-0.00 -7.00"/><path d="M16 10l3.50 -6.06"/><path d="M16 10l6.06 -3.50"/></g><g fill="#fff" stroke="#a8a498" stroke-width=".4"><circle cx="23.00" cy="10.00" r="1.300"/><circle cx="22.06" cy="13.50" r="1.300"/><circle cx="19.50" cy="16.06" r="1.300"/><circle cx="16.00" cy="17.00" r="1.300"/><circle cx="12.50" cy="16.06" r="1.300"/><circle cx="9.94" cy="13.50" r="1.300"/><circle cx="9.00" cy="10.00" r="1.300"/><circle cx="9.94" cy="6.50" r="1.300"/><circle cx="12.50" cy="3.94" r="1.300"/><circle cx="16.00" cy="3.00" r="1.300"/><circle cx="19.50" cy="3.94" r="1.300"/><circle cx="22.06" cy="6.50" r="1.300"/></g><circle cx="16" cy="10" r="1.800" fill="#c9a83a" stroke="#6a5a1a" stroke-width=".6"/><path d="M26 5l3-2M27 9l3-.5" stroke="#bab6aa" stroke-width=".6"/><circle cx="29.300" cy="2.800" r="1" fill="#fff" stroke="#a8a498" stroke-width=".4"/><circle cx="30.300" cy="8.500" r="1" fill="#fff" stroke="#a8a498" stroke-width=".4"/>',
@@ -4988,11 +5034,11 @@ $("edit").onclick=openEditor;
 const DEV=false;
 $("edit").hidden=$("ulist").hidden=!DEV;
 // Unit List (editor build only): every unit type, read live from TYPES, ABILITY and the army rules, so it never falls behind the game
-const UNIT_FROM={M:"Mustered by a Captain",G:"Chicken Suit relic",S:"Friendly Sentient Spark relic",X:"Enemy only, in the Warped Sim"}; // units that join a battle some other way
+const UNIT_FROM={M:"Mustered by a Captain",G:"Chicken Suit relic",L:"Druid's Bone Charm relic",S:"Friendly Sentient Spark relic",X:"Enemy only, in the Warped Sim"}; // units that join a battle some other way
 const unitFrom=t=>UNIT_FROM[t]||(WILD.includes(t)?"Wild animal (neutral)":CORE.includes(t)?"In every army":(UNIT_UNLOCK[t]?`Unlockable extra (${UNIT_UNLOCK[t]} unlock)`:"Extra")+(LIMIT1.includes(t)?", 1 per army":""));
 const unitRank=t=>CORE.includes(t)?0:UNIT_FROM[t]?3:WILD.includes(t)?4:UNIT_UNLOCK[t]?2:1;
 function unitListView(){
-  const r=$("unitview"),ts=Object.keys(TYPES).filter(t=>!"XS".includes(t)||unlocks.warpedsim).sort((a,b)=>unitRank(a)-unitRank(b)); // the Sim's own enemy stays a secret until the Sim is found
+  const r=$("unitview"),ts=Object.keys(TYPES).filter(t=>(!"XS".includes(t)||unlocks.warpedsim)&&(t!=="L"||unlocks.druid)).sort((a,b)=>unitRank(a)-unitRank(b)); // the Sim's own enemy stays a secret until the Sim is found
   const chips=T=>[["HP",T.hp],["Move",T.mv],["Range",rangeTxt(T)],["Damage",T.dmg],["Armor",T.ar||0],["Pierce",T.pi||0],["Evasion",pct(T.ev||0)]].map(([k,v])=>`<span class="stat${v===0||v==="0%"?" nil":""}">${k} <b>${v}</b></span>`).join("");
   r.innerHTML=`<h2 class="htitle">Unit List</h2><p class="hint" style="text-align:center">${ts.length} unit types, base numbers before relics, modifiers, wounds or Elite bonuses. Built from the game's own tables.</p><div class="ulist">`
    +ts.map(t=>`<div class="hcard">`+hRow(hIcon(t,WILD.includes(t)?"w":t==="X"?"f":"y"),`<b>${cap(NAME[t])}</b><small>${unitFrom(t)} · ${canRetaliate(t)?"Retaliates":"Never retaliates"}</small><div class="stats">${chips(TYPES[t])}</div>${ABILITY[t]?`<small>${ABILITY[t]}</small>`:""}`)+"</div>").join("")
@@ -5044,6 +5090,8 @@ const UNLOCKS=[
  {id:"conquistador",unit:"Q",hint:"The expedition begins anew."},
  {id:"spoils",spoils:1,hint:"Claim the last stronghold, and its spoils follow you home."},
  {id:"warpedsim",sim:1,secret:1},
+ {id:"druid",relic:"druid",hint:"The wild things know who walks their land."},
+ {id:"fskull",relic:"fskull",hint:"Not every grave sleeps soundly."},
  {id:"voidshard",relic:"voidshard",secret:1,hint:"Even nothing can be something, if you know where to look."},
  {id:"qrelics",qrel:1,secret:1} // secret: not listed (or counted) until it's unlocked
 ];
@@ -5110,7 +5158,7 @@ $("end").onclick=()=>{
   units.forEach(u=>{if(u.cubeMend){if(u.hp<maxHp(u)){u.hp+=1;floatText(u.x,u.y,"+1","heal")}delete u.cubeMend}}); // the Small Glowing Cube
   units.forEach(u=>{if(u.team==="y"){delete u.weak;if(u.cursed){u.weak=1;delete u.cursed}delete u.slow;delete u.hex;delete u.hexPend;delete u.haste;delete u.stepOnly;if(u.slowNext){u.slow=1;delete u.slowNext}}});
   lastMove=null;notify("You ended your turn");
-  const go=()=>hazards("y",()=>enemyTurn(n?"Your resting units recovered HP. ":""));
+  const go=()=>{const gone=squirrelLeaves();if(gone)render();hazards("y",()=>enemyTurn(gone+(n?"Your resting units recovered HP. ":"")))};
   if(units.some(u=>u.auto&&u.team==="y")){busy=true;render();chickensAct(()=>{if(!over)go()})}else go();
 };
 // The terrain list shared by the in-game Terrain Guide and How to Play. Locked terrain only appears in the Unlocks menu.
