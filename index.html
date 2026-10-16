@@ -250,13 +250,19 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .u.mv{animation:slide var(--dur,.3s) ease-out;z-index:6}
 .u.sel.mv{animation:slide var(--dur,.3s) ease-out,selp 1.4s ease-in-out infinite}
 @keyframes slide{from{transform:translate(var(--dx),calc(var(--dy) - 3px))}to{transform:translate(0,-3px)}}
-.u.tpin{animation:pin .35s ease-out;z-index:6}
+.u.tpin{animation:pin .35s ease-out backwards;z-index:6}
 @keyframes pin{from{transform:translateY(-3px) scale(.2);opacity:0}to{transform:translateY(-3px) scale(1);opacity:1}}
 .proj{position:absolute;width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 0 8px 3px rgba(255,220,120,.9),0 0 0 2px rgba(0,0,0,.4);z-index:4;pointer-events:none}
 .proj.big{width:18px;height:18px;background:#3a3a3a;box-shadow:0 0 8px 3px rgba(255,150,60,.9),0 0 0 2px #fff}
 .strike{position:absolute;z-index:7;pointer-events:none;overflow:hidden;background:rgba(255,255,255,.5)} /* a landed blow: the target blanches... */
 .strike i{position:absolute;left:-30%;top:44%;width:160%;height:12%;min-height:3px;transform:rotate(-38deg);opacity:0;background:linear-gradient(90deg,rgba(255,255,255,0),#fff 25%,#fff 75%,rgba(255,255,255,0));box-shadow:0 0 3px 1px rgba(120,170,255,.95),0 0 9px 2px rgba(255,255,255,.9);border-radius:50%} /* ...and a sword streak cuts across it */
-.burst{position:absolute;width:46px;height:46px;border-radius:50%;border:4px solid #fff;box-shadow:0 0 12px rgba(255,120,80,.9);z-index:4;pointer-events:none}
+.mend{position:absolute;z-index:7;pointer-events:none}
+.mend b{position:absolute;inset:6%;border-radius:50%;background:conic-gradient(rgba(140,240,170,.75),rgba(90,210,130,.15),rgba(170,255,195,.7),rgba(90,210,130,.15),rgba(140,240,170,.75));-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));filter:drop-shadow(0 0 3px rgba(120,230,150,.7))} /* a healing ring: a soft green that flows round as it spreads */
+.mend i{position:absolute;width:24%;height:24%;background:linear-gradient(rgba(170,255,195,.85),rgba(170,255,195,.85)) center/100% 30% no-repeat,linear-gradient(rgba(170,255,195,.85),rgba(170,255,195,.85)) center/30% 100% no-repeat;filter:drop-shadow(0 0 2px rgba(60,170,90,.9))} /* two little plus signs, on a diagonal */
+.mend i:first-of-type{right:3%;top:6%}.mend i:last-of-type{left:4%;bottom:8%}
+.pflash{position:absolute;inset:0;border-radius:inherit;pointer-events:none} /* a pushed unit: a flash from the side it was shoved */
+.horn{position:absolute;z-index:7;pointer-events:none;width:30px;height:30px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))} /* the muster call over a captain */
+border-radius:50%;border:4px solid #fff;box-shadow:0 0 12px rgba(255,120,80,.9);z-index:4;pointer-events:none}
 @media (prefers-reduced-motion:reduce){.u.mv,.u.sel.mv,.u.tpin{animation:none}}
 #pbtns,#paud{display:grid;gap:10px}
 #defeat{z-index:14}
@@ -1728,11 +1734,13 @@ const healTargets=u=>units.filter(b=>healable(u,b));
 const musterSpots=u=>DIRS.map(([dx,dy])=>[u.x+dx,u.y+dy]).filter(([x,y])=>open(x,y));
 const musterUses=u=>MUSTER_USES+(rel(u,"muster")?1:0); // Muster Roll: one more
 const canMuster=u=>u.t==="T"&&!u.acted&&(u.musters||0)<musterUses(u)&&units.filter(m=>m.cap===u).length<MUSTER_ALIVE&&musterSpots(u).length>0;
+const MUSTER_BEAT=300; // ms between the bugle call and each militia stepping in
 function muster(u){ // 1-2 militia appear beside the captain, nearest the enemy first; they can act from next turn
   const foes=units.filter(e=>e.team!==u.team&&e.team!=="w"),near=([x,y])=>foes.length?Math.min(...foes.map(e=>Math.abs(e.x-x)+Math.abs(e.y-y))):0;
   const spots=musterSpots(u).sort((a,b)=>near(a)-near(b)),n=Math.min(MUSTER_ALIVE-units.filter(m=>m.cap===u).length,1+(Math.random()<.5?1:0),spots.length);
-  for(let i=0;i<n;i++){const[x,y]=spots[i];const hp=TYPES.M.hp+(rel(u,"baton")?BATON_HP:0);units.push({t:"M",team:u.team,x,y,hp,...(hp>TYPES.M.hp?{st:{hp}}:{}),moved:1,acted:1,cap:u,spawn:1})} // Drill Sergeant's Baton: tougher militia
-  u.musters=(u.musters||0)+1;u.acted=u.moved=1;if(n)sfx("drum");
+  for(let i=0;i<n;i++){const[x,y]=spots[i];const hp=TYPES.M.hp+(rel(u,"baton")?BATON_HP:0);units.push({t:"M",team:u.team,x,y,hp,...(hp>TYPES.M.hp?{st:{hp}}:{}),moved:1,acted:1,cap:u,spawn:1,spawnIn:MUSTER_BEAT*(i+1)})} // Drill Sergeant's Baton: tougher militia
+  u.musters=(u.musters||0)+1;u.acted=u.moved=1;
+  if(n){hornFx(u);sfx("bugle");for(let i=0;i<n;i++)later(()=>sfx("pat"),MUSTER_BEAT*(i+1)+60)} // the call, then a footfall as each one steps in
   return n;
 }
 const spent=u=>(!!u.acted&&!!u.moved)||!!u.auto||(u.team!=="w"&&!!u.moved&&!canMuster(u)&&!canTrumpet(u)&&!canBugle(u)&&!canHalo(u)&&!canBombard(u)&&!(u.team==="y"&&!u.acted&&camp.battle&&!chal&&camp.items&&camp.items.some(id=>!ITEMS[id].passive))&&!targets(u).length&&!healTargets(u).length&&!(rel(u,"font")&&units.some(b=>canBless(u,b)))&&(u.team!=="y"||!breakables(u).length)&&!(u.t==="K"&&units.some(b=>b.team==="y"&&pushable(u,b))));
@@ -1800,7 +1808,7 @@ function render(){
       +'<i class="lt"></i>'+A.art[i]+(fr?'<i class="tint"></i>':"")+(SMOKE.has(k)?'<i class="smoke"></i>':"")+(skullZone(k)?'<i class="uzone"></i>':"")+(CALTROPS.has(k)?CALT_ART:"")+A.jn[i]+glowOf(k).map(([dx,dy])=>`<i class="lglow" style="background:linear-gradient(to ${dx>0?"left":dx<0?"right":dy>0?"top":"bottom"},rgba(255,226,60,.62),rgba(255,226,60,.16) 70%,rgba(255,226,60,.08))"></i>`).join(""); // fortress art covers its tile, so highlights go on a see-through layer above it
     if(u){
       let uc="u "+u.team+(u.merc?" merc":"")+(u.auto&&u.team==="y"?" free":spent(u)?" done":"")+(u.slow||u.slowNext?" slow":"")+(u.stun?" stun":"")+(u.rage||u.oil?" rage":"")+(u.chill?" chill":"")+(u.scram?" scram":"")+(u.link?" link":"")+(u.spot>=pturn&&u.spotBy!==u.team?" spot":"")+(u.ash?" ash":"")+(inspired(u)?" insp":"")+(blessed(u)||rested(u)?" blessed":"")+(u.t==="E"&&rel(u,"redtome")?" redglow":"")+(rallied(u)?" rallied":"")+(muled(u)?" mule":"")+(u.dug?" dug":"")+(u.elite?" elite":"")+(u.glitch?" glitch":"")+(u.champ||u.cshield||u.cloak?" champ":"")+(u.ublade||u.ubulwark||u.ushroud?" usurp":"")+(u===sel||u===insp?" sel":""),mvs="";
-      if(u.spawn){uc+=" tpin";delete u.spawn}
+      if(u.spawn){uc+=" tpin";if(u.spawnIn)mvs=`;animation-delay:${u.spawnIn}ms`;delete u.spawn;delete u.spawnIn} // spawnIn: a beat before it appears (militia answering the call)
       const pp=prevPos.get(u);prevPos.set(u,[x,y]);
       if(pp&&(pp[0]!==x||pp[1]!==y)){ // slide in from where it was last drawn (a long jump fades in instead)
         const ddx=pp[0]-x,ddy=pp[1]-y,dist=Math.abs(ddx)+Math.abs(ddy);
@@ -2200,7 +2208,7 @@ function doBreak(a,t){
   }
   say(msg);if(!checkEnd())render();
 }
-function applyHeal(a,b){const n=Math.min(healOf(a),maxHp(b)-b.hp);b.hp+=n;sfx("heal");floatText(b.x,b.y,"+"+n,"heal");return n}
+function applyHeal(a,b){const n=Math.min(healOf(a),maxHp(b)-b.hp);b.hp+=n;sfx("heal");floatText(b.x,b.y,"+"+n,"heal");mendFrom(a,b);return n}
 function doSlow(a,u){
   if(calm(u))return; // Moment of Calm
   a.acted=1;a.moved=1;sel=null;insp=null;locked=true;lastMove=null;
@@ -2208,7 +2216,7 @@ function doSlow(a,u){
 }
 function doBless(a,b){
   a.blessUsed=1;a.acted=a.moved=1;b.blessUntil=pturn+1;sel=null;mode=null;choice=null;info=b;lastMove=null;
-  floatText(b.x,b.y,"Blessed","bless");sfx("bless");say("Blessed your "+NAME[b.t]+": +5% evasion until the end of your next turn.");render();
+  floatText(b.x,b.y,"Blessed","bless");sfx("bless");mendFrom(a,b);say("Blessed your "+NAME[b.t]+": +5% evasion until the end of your next turn.");render();
 }
 function doBugle(a){ // Goading Bugle: the militia hit harder and step after acting; the Captain steps now
   const ms=units.filter(m=>m.cap===a);a.acted=1;a.moved=0;a.stepOnly=1;mode=null;choice=null;insp=null;lastMove=null;sel=a;info=a;
@@ -2226,7 +2234,7 @@ function doTrumpet(a){ // Trumpet of Encouragement: nearby allies that have move
 // every effect and the music are synthesized on the fly and kept quiet; Sound and Music switch off separately (remembered per browser)
 const SKEY="skirmish_sound",MKEY="skirmish_music",pref=(k)=>{try{return localStorage.getItem(k)!=="off"}catch(e){return true}};
 let actx=null,sfxOn=pref(SKEY),musicOn=pref(MKEY),mus=null;const sfxLast={};
-const SFX_VOL=.07,MUSIC_VOL=.08,SFX_GAIN={whisk:2.5,step:3,swing:3,charge:3.5,bawk:2,shove:2.5,warp:1.5,boom:.75,portal:.8,simin:.8}; // SFX_GAIN: per-effect boost over SFX_VOL
+const SFX_VOL=.07,MUSIC_VOL=.08,SFX_GAIN={whisk:2.5,step:3,pat:1.2,swing:3,charge:3.5,bawk:2,shove:2.5,warp:1.5,boom:.75,portal:.8,simin:.8}; // SFX_GAIN: per-effect boost over SFX_VOL
 const NOISE=new Map(),noiseBuf=n=>{let b=NOISE.get(n);if(!b){b=actx.createBuffer(1,n,actx.sampleRate);const d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;NOISE.set(n,b)}return b}; // white noise, made once per length
 function audio(){actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume();return actx}
 function sfx(name){
@@ -2241,7 +2249,7 @@ function sfx(name){
       const fl=actx.createBiquadFilter(),g=env(s,.004,0,len,peak);fl.type=ftype;fl.frequency.setValueAtTime(f,s);if(f2)fl.frequency.exponentialRampToValueAtTime(f2,s+len);fl.Q.value=q;n.buffer=b;n.connect(fl);fl.connect(g);g.connect(out);n.start(s);n.stop(s+len+.05)};
     const bell=(f,s,len,peak)=>{tone("sine",f,s,len,peak);tone("sine",f*2.76,s,len*.35,peak*.18);tone("sine",f*5.4,s,len*.15,peak*.06)}; // a struck bell: fundamental plus quick inharmonic partials
     switch(name){
-      case "step":noise(t0,.05,"lowpass",700*vr,.8,.55,260);noise(t0+.045,.04,"lowpass",500*vr,.8,.3,200);break; // two soft crunches of a footfall
+      case "step":case "pat":noise(t0,.05,"lowpass",700*vr,.8,.55,260);noise(t0+.045,.04,"lowpass",500*vr,.8,.3,200);break; // two soft crunches of a footfall
       case "hit":tone("sine",160*vr,t0,.16,1.5,55);noise(t0,.05,"lowpass",1200,.7,.55);tone("triangle",410*vr,t0,.11,.22,330);noise(t0,.04,"bandpass",2600*vr,3,.18);break; // a thud with a little steel ring
       case "kill":tone("sine",130*vr,t0,.36,1.7,38);noise(t0,.2,"lowpass",700,.7,.7,180);tone("triangle",260,t0+.06,.3,.28,120);tone("triangle",380*vr,t0,.14,.18,300);break; // a heavier blow and a falling tone
       case "evade":noise(t0,.2,"bandpass",420,1.6,.85,2800);noise(t0+.03,.14,"highpass",3000,.7,.12);break; // a quick whoosh past the target
@@ -2280,9 +2288,9 @@ function sfx(name){
       case "smoke":noise(t0,.7,"highpass",1800,.6,.45,5200);noise(t0+.05,.6,"bandpass",600,.8,.3,300);break; // a hissing cloud
       case "thunder":noise(t0,.07,"highpass",2800,1,.9);noise(t0+.04,.8,"lowpass",700,1,.7,90);tone("sawtooth",110*vr,t0,.35,.12,45);break; // a crack and a rumble
       case "flame":noise(t0,.45,"bandpass",350,1,.9,1400);[.08,.17,.29].forEach(st=>noise(t0+st,.02,"highpass",3500,1,.3));break; // a whoomp of fire and a crackle
-      case "trumpet":{ // a short brass call: two detuned sawtooth voices through a soft low-pass
+      case "trumpet":case "bugle":{ // a short brass call: two detuned sawtooth voices through a soft low-pass (the bugle: two quick notes)
         const lp=actx.createBiquadFilter();lp.type="lowpass";lp.frequency.value=1500;lp.Q.value=.7;lp.connect(out);
-        [[392,0,.14],[523.25,.16,.14],[659.25,.32,.38]].forEach(([f,st,len])=>{
+        (name==="bugle"?[[523.25,0,.1],[783.99,.12,.24]]:[[392,0,.14],[523.25,.16,.14],[659.25,.32,.38]]).forEach(([f,st,len])=>{
           const g=actx.createGain(),s=t0+st;g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(1,s+.03);g.gain.setValueAtTime(1,s+len-.06);g.gain.linearRampToValueAtTime(0,s+len);g.connect(lp);
           for(const det of[-6,6]){const o=actx.createOscillator();o.type="sawtooth";o.frequency.value=f;o.detune.value=det;o.connect(g);o.start(s);o.stop(s+len+.02)}
         });break}
@@ -2483,7 +2491,7 @@ function useItem(a,id,x,y,rub,dir){
     say(`The Warp Cube flickered: your ${NAME[a.t]} and ${NAME[b.t]} swapped places.`);return render();
   }
   if(id==="vrations"){ // a free snack: the unit and its target keep their move and action
-    const b=at(x,y),n=Math.min(VRATION_HEAL,maxHp(b)-b.hp);b.hp+=n;delete b.slow;delete b.slowNext;sel=a;mode=null;choice=null;lastMove=null;insp=null;info=b;sfx("heal");floatText(b.x,b.y,n?"+"+n:"Unslowed","heal");
+    const b=at(x,y),n=Math.min(VRATION_HEAL,maxHp(b)-b.hp);b.hp+=n;delete b.slow;delete b.slowNext;sel=a;mode=null;choice=null;lastMove=null;insp=null;info=b;sfx("heal");floatText(b.x,b.y,n?"+"+n:"Unslowed","heal");mendFx(b);
     say(`Your ${NAME[a.t]} shared the Virtual Rations${b===a?"":" with your "+NAME[b.t]}: +${n} HP, and no longer slowed.`);return render();
   }
   if(id==="feather"){ // a gust swaps the two; neither spends its move or action
@@ -2498,11 +2506,11 @@ function useItem(a,id,x,y,rub,dir){
   if(id==="medkit"){ // mends campaign wounds: max HP comes back now and stays back
     const b=at(x,y),n=Math.min(b.wounds,a.t==="P"&&Math.random()<MEDKIT_DOUBLE?2:1);b.wounds-=n;if(!b.wounds)delete b.wounds;
     if(b.ci!=null&&camp.wounds)camp.wounds[b.ci]=Math.max(0,woundsOf(b.ci)-n);saveCamp();
-    sfx("heal");floatText(b.x,b.y,n>1?"2 wounds mended":"Mended","heal");info=b;
+    sfx("heal");floatText(b.x,b.y,n>1?"2 wounds mended":"Mended","heal");mendFx(b);info=b;
     say(`Your ${NAME[a.t]} used the Advanced Med Kit: ${n>1?"2 wounds":"1 wound"} mended${b===a?"":" for "+(camp.names&&b.ci!=null?camp.names[b.ci]:"your "+NAME[b.t])}. Max HP is now ${maxHp(b)}.`);return render();
   }
   if(id==="mule"){a.muleUntil=pturn+1;a.slow=0;sfx("bray");floatText(a.x,a.y,"Stubborn!","slow");info=a;say(`Your ${NAME[a.t]} drank the Mule Hair Potion: +2 armor, and it can't be pushed or slowed until the end of your next turn.`);return render()}
-  if(id==="draught"){const b=at(x,y),n=Math.min(DRAUGHT_HEAL+(rel(a,"lcube")?1:0),maxHp(b)-b.hp);b.hp+=n;sfx("heal");floatText(b.x,b.y,"+"+n,"heal");info=b;
+  if(id==="draught"){const b=at(x,y),n=Math.min(DRAUGHT_HEAL+(rel(a,"lcube")?1:0),maxHp(b)-b.hp);b.hp+=n;sfx("heal");floatText(b.x,b.y,"+"+n,"heal");mendFx(b);info=b;
     const cube=[];if(rel(a,"scube")){b.cubeMend=1;cube.push("it will mend 1 more at the end of your turn")}if(rel(a,"lcube")){b.cubeAr=1;cube.push("+1 armor until your next turn")} // the Glowing Cubes
     if(rel(a,"mcube")&&units.includes(a)){a.moved=0;a.stepOnly=1;sel=a;cube.push("and the drinker can step 1 tile")}
     say(`Your ${NAME[a.t]} used a Healing Draught: +${n} HP${b===a?"":" for your "+NAME[b.t]}${cube.length?"; "+cube.join(", "):""}.`);return render()}
@@ -2570,12 +2578,15 @@ function doHeal(a,b){
   const n=applyHeal(a,b);a.acted=a.moved=1;sel=null;mode=null;choice=null;info=b;lastMove=null;
   say("Healed your "+NAME[b.t]+" for "+n+" HP.");render();
 }
-function doPush(a,u){
-  const[nx,ny]=pushDest(a,u),n=Math.abs(nx-u.x)+Math.abs(ny-u.y),dmg=bruises(a,u)?combat({...a,bruise:1},u).dmg:0;
-  u.x=nx;u.y=ny;a.acted=a.moved=1;sel=null;mode=null;choice=null;lastMove=null;sfx("shove");
-  say((n?"Pushed the "+NAME[u.t]+" "+n+" tile"+(n>1?"s":""):"Blocked. The unit didn't move")+(dmg?` and struck it for ${dmg}.`:"."));
-  if(dmg&&hurt(u,dmg)){credit(a,u);return afterAction()}
-  render();
+function doPush(a,u){ // the knight slides into it; the shove lands at the far point of the lunge
+  const[nx,ny]=pushDest(a,u),n=Math.abs(nx-u.x)+Math.abs(ny-u.y),dmg=bruises(a,u)?combat({...a,bruise:1},u).dmg:0,sx=Math.sign(u.x-a.x),sy=Math.sign(u.y-a.y),g=gid;
+  a.acted=a.moved=1;sel=null;mode=null;choice=null;lastMove=null;locked=true;render(); // menus close before it moves
+  lunge(a,u,.55,300,()=>{
+    if(g!==gid)return;locked=false;u.x=nx;u.y=ny;sfx("shove");
+    say((n?"Pushed the "+NAME[u.t]+" "+n+" tile"+(n>1?"s":""):"Blocked. The unit didn't move")+(dmg?` and struck it for ${dmg}.`:"."));
+    if(dmg&&hurt(u,dmg)){credit(a,u);return afterAction()}
+    render();pushFx(u,sx,sy);
+  });
 }
 const sent=w=>w[0].toUpperCase()+w.slice(1); // sentence case for status lines
 const who=u=>(u.team==="y"?"your ":u.team==="f"?"the enemy ":"the wild ")+NAME[u.t];
@@ -2727,6 +2738,57 @@ function burst(rb,bw){
   const an=s.animate([{transform:"translate(-50%,-50%) scale(.3)",opacity:1},{transform:"translate(-50%,-50%) scale(1.5)",opacity:0}],{duration:320,easing:"ease-out"});
   an.onfinish=()=>s.remove();
 }
+const still=()=>window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+// a leans part of the way (f) toward b and back; hit() runs at the far point (at once when nothing can animate)
+function lunge(a,b,f,dur,hit){
+  try{
+    const ta=board.children[a.y*W+a.x],tb=board.children[b.y*W+b.x],ea=ta&&ta.querySelector(".u");
+    if(!ea||!tb||!ea.animate||still())return hit&&hit();
+    const ra=ta.getBoundingClientRect(),rb=tb.getBoundingClientRect(),far=`translate(${(rb.left-ra.left)*f}px,${(rb.top-ra.top)*f-3}px)`;
+    ea.animate([{transform:"translateY(-3px)"},{transform:far,offset:.45},{transform:"translateY(-3px)"}],{duration:dur,easing:"ease-in-out"});
+    setTimeout(()=>{
+      if(hit)hit();
+      if(!ta.isConnected){ // the board was redrawn mid-lunge: let the new piece finish the return instead of snapping back
+        const nt=board.children[a.y*W+a.x],ne=nt&&nt.querySelector(".u");
+        if(ne&&ne.animate)ne.animate([{transform:far},{transform:"translateY(-3px)"}],{duration:dur*.55,easing:"ease-in-out"});
+      }
+    },dur*.45);
+  }catch(e){if(hit)hit()}
+}
+// an overlay the size of the tile at (x,y) on the fx layer, or null
+function tileFx(x,y,cls){
+  const t=board.children[y*W+x];if(!t||!t.animate)return null;
+  const r=t.getBoundingClientRect(),bw=$("bw").getBoundingClientRect(),e=document.createElement("div");e.className=cls;
+  Object.assign(e.style,{left:(r.left-bw.left)+"px",top:(r.top-bw.top)+"px",width:r.width+"px",height:r.height+"px"});$("fx").append(e);return e;
+}
+// a heal or a blessing: a faint green ring flows outward, and two plus signs fade with it
+function mendFx(b){
+  try{
+    const e=tileFx(b.x,b.y,"mend");if(!e)return;e.innerHTML="<i></i><b></b><i></i>";const[p1,ring,p2]=e.children,dur=950,sm=still();
+    ring.animate(sm?[{opacity:0},{opacity:1,offset:.25},{opacity:0}]:[{transform:"scale(.55) rotate(0)",opacity:0},{transform:"scale(.8) rotate(70deg)",opacity:1,offset:.25},{transform:"scale(1.3) rotate(220deg)",opacity:0}],{duration:dur,easing:"ease-out",fill:"forwards"}).onfinish=()=>e.remove();
+    [p1,p2].forEach((p,i)=>p.animate(sm?[{opacity:0},{opacity:1,offset:.25},{opacity:0}]:[{transform:"translateY(3px) scale(.6)",opacity:0},{transform:"translateY(0) scale(1)",opacity:1,offset:.25},{transform:"translateY(-6px) scale(1)",opacity:0}],{duration:dur,delay:i*60,easing:"ease-out",fill:"both"}));
+  }catch(err){}
+}
+// the healer (or blesser) leans toward its ally after the board is redrawn, and the ring blooms as it reaches
+const mendFrom=(a,b)=>a===b?mendFx(b):setTimeout(()=>lunge(a,b,.25,320,()=>mendFx(b)),0);
+// a pushed unit: a flash that starts on the side it was shoved from and fades across it
+function pushFx(u,sx,sy){
+  try{
+    const t=board.children[u.y*W+u.x],e=t&&t.querySelector(".u");if(!e||!e.animate)return;
+    const to=sx>0?"right":sx<0?"left":sy>0?"bottom":"top",cl=sx>0?"0 100% 0 0":sx<0?"0 0 0 100%":sy>0?"0 0 100% 0":"100% 0 0 0",f=document.createElement("i");
+    f.className="pflash";f.style.background=`linear-gradient(to ${to},rgba(255,255,255,.85),rgba(255,255,255,.4) 55%,rgba(255,255,255,0))`;e.append(f);
+    f.animate([{clipPath:`inset(${cl})`,opacity:1},{clipPath:"inset(0 0 0 0)",opacity:.9,offset:.4},{clipPath:"inset(0 0 0 0)",opacity:0}],{duration:420,easing:"ease-out",fill:"forwards"}).onfinish=()=>f.remove();
+  }catch(err){}
+}
+// the muster call: a trumpet rises over the captain and fades
+function hornFx(u){
+  try{
+    const e=tileFx(u.x,u.y,"horn");if(!e)return;const w=parseFloat(e.style.width);
+    Object.assign(e.style,{left:parseFloat(e.style.left)+w*.12+"px",top:parseFloat(e.style.top)-w*.55+"px",width:w*.76+"px",height:w*.76+"px"});
+    e.innerHTML=`<svg viewBox="0 0 32 32" width="100%" height="100%">${RICON.trumpet}</svg>`;
+    e.animate([{transform:"translateY(6px) scale(.7)",opacity:0},{transform:"translateY(0) scale(1.05)",opacity:1,offset:.2},{transform:"translateY(-2px) rotate(-8deg)",opacity:1,offset:.6},{transform:"translateY(-6px)",opacity:0}],{duration:still()?500:900,easing:"ease-out",fill:"forwards"}).onfinish=()=>e.remove();
+  }catch(err){}
+}
 // melee units lunge at the target; ranged units fire a projectile
 const ATK_SFX={L:"growl",X:"zap",K:"swing",Q:"swing",T:"swing",M:"swing",N:"swing",P:"swing",C:"charge",A:"bow",R:"siege",E:"zap",W:"growl",B:"growl",D:"growl",H:"screech",G:"bawk"};
 // a blow that drew blood: the target goes pale as a white streak slashes across it (misses and 0-damage blows show nothing)
@@ -2736,7 +2798,7 @@ function strikeFx(b){
     const r=eu.getBoundingClientRect(),bw=$("bw").getBoundingClientRect(),e=document.createElement("div"),i=document.createElement("i");e.className="strike";e.append(i);
     Object.assign(e.style,{left:(r.left-bw.left)+"px",top:(r.top-bw.top)+"px",width:r.width+"px",height:r.height+"px",borderRadius:getComputedStyle(eu).borderRadius});$("fx").append(e); // the unit's own shape
     e.animate([{opacity:0},{opacity:1,offset:.12},{opacity:1,offset:.45},{opacity:0}],{duration:380,easing:"ease-out"}).onfinish=()=>e.remove();
-    if(!window.matchMedia("(prefers-reduced-motion: reduce)").matches)i.animate([{transform:"rotate(-38deg) translateX(-55%) scaleX(.2)",opacity:1},{transform:"rotate(-38deg) scaleX(1)",opacity:1,offset:.45},{transform:"rotate(-38deg) translateX(20%) scaleX(.8)",opacity:0}],{duration:300,easing:"ease-out",fill:"forwards"});
+    if(!still())i.animate([{transform:"rotate(-38deg) translateX(-55%) scaleX(.2)",opacity:1},{transform:"rotate(-38deg) scaleX(1)",opacity:1,offset:.45},{transform:"rotate(-38deg) translateX(20%) scaleX(.8)",opacity:0}],{duration:300,easing:"ease-out",fill:"forwards"});
     else i.remove();
   }catch(err){}
 }
@@ -2744,25 +2806,18 @@ function animAttack(a,b,cb){
   let fired=false;const fin=()=>{if(!fired){fired=true;cb()}};sfx(ATK_SFX[a.t]||"swing");
   try{
     const ta=board.children[a.y*W+a.x],tb=board.children[b.y*W+b.x];
-    if(!ta||!tb||!ta.animate||window.matchMedia("(prefers-reduced-motion: reduce)").matches)return fin();
-    const ea=ta.querySelector(".u"),ra=ta.getBoundingClientRect(),rb=tb.getBoundingClientRect(),bw=$("bw").getBoundingClientRect();
+    if(!ta||!tb||!ta.animate||still())return fin();
+    const ra=ta.getBoundingClientRect(),rb=tb.getBoundingClientRect(),bw=$("bw").getBoundingClientRect();
     const dx=rb.left-ra.left,dy=rb.top-ra.top;
     if(ST(a).rg>1){
-      ea.animate([{transform:"translateY(-3px)"},{transform:`translate(${dx*.12}px,${dy*.12-3}px)`,offset:.4},{transform:"translateY(-3px)"}],{duration:220,easing:"ease-out"}); // a short lunge as it looses the shot
+      lunge(a,b,.12,220); // a short lunge as it looses the shot
       const p=document.createElement("div");p.className="proj"+(a.t==="R"?" big":"");
       p.style.left=(ra.left-bw.left+ra.width/2)+"px";p.style.top=(ra.top-bw.top+ra.height/2)+"px";$("fx").append(p);
       const an=p.animate([{transform:"translate(-50%,-50%)"},{transform:`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`}],{duration:Math.min(140+Math.hypot(dx,dy)*.8,420),easing:"ease-in"});
       an.onfinish=()=>{p.remove();burst(rb,bw);fin()};
       setTimeout(fin,800);
     }else{
-      ea.animate([{transform:"translateY(-3px)"},{transform:`translate(${dx*.55}px,${dy*.55-3}px)`,offset:.45},{transform:"translateY(-3px)"}],{duration:300,easing:"ease-in-out"});
-      setTimeout(()=>{ // impact: the blow lands now, not after the lunge returns
-        burst(rb,bw);fin();
-        if(!ta.isConnected){ // the board was redrawn mid-lunge: let the new piece finish the return instead of snapping back
-          const nt=board.children[a.y*W+a.x],ne=nt&&nt.querySelector(".u");
-          if(ne)ne.animate([{transform:`translate(${dx*.55}px,${dy*.55-3}px)`},{transform:"translateY(-3px)"}],{duration:165,easing:"ease-in-out"});
-        }
-      },135);
+      lunge(a,b,.55,300,()=>{burst(rb,bw);fin()}); // the blow lands at the far point, not after the lunge returns
     }
   }catch(e){fin()}
 }
@@ -2889,7 +2944,7 @@ function foeUseItems(){
   for(let i=0;i<FOE_ITEMS.length;i++){
     const id=FOE_ITEMS[i];
     if(id==="draught"){const hurt=units.filter(u=>u.team==="f"&&u.hp<=maxHp(u)/2).sort((a,b)=>a.hp/maxHp(a)-b.hp/maxHp(b))[0];if(!hurt)continue;
-      const n=Math.min(DRAUGHT_HEAL,maxHp(hurt)-hurt.hp);hurt.hp+=n;floatText(hurt.x,hurt.y,"+"+n,"heal");sfx("heal");msg.push(`The enemy ${NAME[hurt.t]} drank a Healing Draught.`)}
+      const n=Math.min(DRAUGHT_HEAL,maxHp(hurt)-hurt.hp);hurt.hp+=n;floatText(hurt.x,hurt.y,"+"+n,"heal");sfx("heal");mendFx(hurt);msg.push(`The enemy ${NAME[hurt.t]} drank a Healing Draught.`)}
     else if(id==="lightning"){ // the throw that hurts your side most and its own least
       let best=null,bs=0;
       units.filter(u=>u.team==="y"&&!u.auto&&units.some(e=>e.team==="f"&&d(e,u)<=3)).forEach(t=>{
@@ -3105,7 +3160,7 @@ function enemyTurn(note=""){
     const ts=targets(u).filter(p=>{const r=dmgTo(u,p)<p.hp&&retaliation(u,p);return waited>=PATIENCE_TRADE||!(r&&r.dmg>=u.hp&&r.hit>.5)}).sort((a,b)=>pri(b)-pri(a)); // never trade itself for nothing, until it has waited long enough
     const hs=healTargets(u).sort((a,b)=>a.hp/maxHp(a)-b.hp/maxHp(b));
     if(hs.length&&(hs[0].hp<=ST(hs[0]).hp-2||!ts.length)){u.acted=1;applyHeal(u,hs[0]);say("Enemy "+NAME[u.t]+" healed an ally.");render();return later(step,600)}
-    if(canMuster(u)&&!ts.some(p=>dmgTo(u,p)>=p.hp)){const n=muster(u);say(`Enemy captain mustered ${n} militia.`);render();return later(step,600)} // muster unless a kill is on offer
+    if(canMuster(u)&&!ts.some(p=>dmgTo(u,p)>=p.hp)){const n=muster(u);say(`Enemy captain mustered ${n} militia.`);render();return later(step,600+MUSTER_BEAT*n)} // muster unless a kill is on offer
     // set off an exploding barrel when it beats the best plain attack
     const atkV=ts.length?Math.min(dmgTo(u,ts[0]),ts[0].hp)+(dmgTo(u,ts[0])>=ts[0].hp?8:0)+(VAL[ts[0].t]||0)*.5:0;
     const xb=breakables(u).filter(k=>XBAR.has(k)).map(k=>[k,blastValue(k)]).sort((a,b)=>b[1]-a[1])[0];
