@@ -3280,6 +3280,7 @@ function showEnd(win){
     if(unlocks.cw>=4)unlock("captain");
     if(nm.type==="boss")unlock("banner");
     if(nm.type==="boss"&&camp.region>=2)unlock("volcanic"); // a second land conquered in one campaign
+    if(nm.type==="boss"&&camp.region===2&&!camp.inSim&&relicUsed.under)unlock("wildwilds"); // the Warped Wilds: the second boss falls to an army it outnumbered
     if(nm.type==="boss"&&camp.region===5&&[...CORE].every(t=>armyTypes().some((a,i)=>a===t&&(camp.kills[i]||0)>0)))unlock("warpedsim"); // the Warped Sim: the fifth boss falls, and a Knight, an Archer and a Cavalry unit have each downed a foe this campaign
     if(armyTypes().every((t,i)=>units.some(v=>v.team==="y"&&v.ci===i)))unlock("cherry"); // a flawless victory: nobody fell
     if(fin){conqNew=unlock("spoils")|unlock("qrelics");logCampaign(nm,"won");dropHold("camp");try{localStorage.removeItem(SAVE)}catch(e){}} // the land is conquered: the campaign is over, its record kept in the Hall
@@ -4251,6 +4252,7 @@ function start(o={}){
   }
   if(!camp.battle&&!chal&&QREL){quickFoeRelics();if(RELIC.has("gbook")){const ys=units.filter(u=>u.team==="y");const u=ys[Math.floor(Math.random()*ys.length)];u.glitch=Object.keys(GLITCH)[Math.floor(Math.random()*3)];u.pages=1}} // Relics? quick battles: the enemy's three, and the Glitchy Book works here too
   vanguard();markStart(u=>u.team==="y");
+  if(camp.battle&&!chal)relicUsed.under=units.filter(u=>u.team==="f").length>units.filter(u=>u.team==="y"&&!friendly(u)).length; // Underdog: the enemy fields more units than you (your mercenary counts; your critters don't)
   if(FOE_RELIC.has("keep")){const fs=units.filter(u=>u.team==="f");fs[Math.floor(Math.random()*fs.length)].keep=1}
   ["y","f"].forEach(team=>{ // the Shimmering Champion pieces: one random unit (above half health when it can) takes every piece its side carries
     const has=id=>team==="y"?RELIC.has(id):FOE_RELIC.has(id);if(!has("csword")&&!has("cshield")&&!has("ccloak"))return;
