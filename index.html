@@ -5081,7 +5081,7 @@ function simItem(){
 const simRelic=(skip=[])=>{const sp=Object.keys(RELICS).filter(id=>RELICS[id].src==="sim"&&RELICS[id].r<2&&!camp.relics.includes(id)&&!skip.includes(id));if(!sp.length)return null; // a common or uncommon Sim relic, by rarity weight
   const tot=sp.reduce((t,id)=>t+RARITY_W[RELICS[id].r],0);let roll=Math.random()*tot,i=0;while(roll>=RARITY_W[RELICS[sp[i]].r]){roll-=RARITY_W[RELICS[sp[i]].r];i++}return sp[i]};
 function relicOffer(nm){
-  const army=armyTypes(),pool=Object.keys(RELICS).filter(id=>relicCount(id)<(RELICS[id].max||1)&&!RELICS[id].find&&RELICS[id].src!=="shop"&&RELICS[id].src!=="boss"&&RELICS[id].src!=="sim"&&(!RELICS[id].lock||unlocks[RELICS[id].lock])&&needOk(RELICS[id],army)&&!clash(id,camp.relics)),out=[];
+  const army=armyTypes(),pool=Object.keys(RELICS).filter(id=>relicCount(id)<(RELICS[id].max||1)&&!RELICS[id].find&&RELICS[id].src!=="shop"&&RELICS[id].src!=="boss"&&RELICS[id].src!=="sim"&&RELICS[id].src!=="wilds"&&(!RELICS[id].lock||unlocks[RELICS[id].lock])&&needOk(RELICS[id],army)&&!clash(id,camp.relics)),out=[];
   const sim=camp.inSim||SIMB(nm),want=(sim?3:2+(Math.random()<.5?1:0))+relicCount("coin"); // the Sim always offers 3
   for(let n=want;n>0&&pool.length;n--){ // each Copper Coin of Good Fortune adds a choice
     const tot=pool.reduce((t,id)=>t+RARITY_W[RELICS[id].r],0);let roll=Math.random()*tot,i=0;
@@ -5095,7 +5095,7 @@ function relicOffer(nm){
 }
 // Conqueror's Spoils: a new campaign opens with a choice of 3 Common relics (any a fresh army can use)
 function startOffer(){
-  const army=armyTypes(),base=Object.keys(RELICS).filter(id=>RELICS[id].r===0&&!RELICS[id].find&&RELICS[id].src!=="boss"&&RELICS[id].src!=="sim"&&(!RELICS[id].lock||unlocks[RELICS[id].lock])).sort(()=>Math.random()-.5);
+  const army=armyTypes(),base=Object.keys(RELICS).filter(id=>RELICS[id].r===0&&!RELICS[id].find&&RELICS[id].src!=="boss"&&RELICS[id].src!=="sim"&&RELICS[id].src!=="wilds"&&(!RELICS[id].lock||unlocks[RELICS[id].lock])).sort(()=>Math.random()-.5);
   const fit=base.filter(id=>RELICS[id].src!=="shop"&&needOk(RELICS[id],army)),out=fit.slice(0,3);
   base.forEach(id=>{if(out.length<3&&!out.includes(id))out.push(id)}); // always three: if too few suit the army, fill from the other commons
   return out.length?out:null;
@@ -5107,9 +5107,9 @@ function bossOffer(){
   const army=armyTypes(),ok=R=>(!R.lock||unlocks[R.lock])&&needOk(R,army);
   const have=id=>relicCount(id)>=(RELICS[id].max||1),rar=e=>e.startsWith("item:")?(ITEMS[e.slice(5)].r||0):RELICS[e].r;
   const pick=list=>{const tot=list.reduce((t,e)=>t+BOSS_W[rar(e)],0);let roll=Math.random()*tot,i=0;while(roll>=BOSS_W[rar(list[i])]){roll-=BOSS_W[rar(list[i])];i++}return list[i]};
-  const simList=camp.inSim?Object.keys(RELICS).filter(id=>RELICS[id].src==="sim"&&RELICS[id].r===2&&!have(id)):[]; // the Sim's boss guarantees one of its rares
+  const simList=camp.inSim||camp.inWilds?Object.keys(RELICS).filter(id=>RELICS[id].src===(camp.inSim?"sim":"wilds")&&RELICS[id].r===2&&!have(id)):[]; // the Sim's boss guarantees one of its rares, and so does the Forest Palace with the Wilds' own
   const bossList=simList.length?simList:Object.keys(RELICS).filter(id=>RELICS[id].src==="boss"&&ok(RELICS[id])&&!have(id)),out=bossList.length?[pick(bossList)]:[];
-  const pool=[...Object.keys(RELICS).filter(id=>{const R=RELICS[id];return !R.find&&R.src!=="shop"&&R.src!=="boss"&&R.src!=="sim"&&ok(R)&&!have(id)}),
+  const pool=[...Object.keys(RELICS).filter(id=>{const R=RELICS[id];return !R.find&&R.src!=="shop"&&R.src!=="boss"&&R.src!=="sim"&&R.src!=="wilds"&&ok(R)&&!have(id)}),
     ...Object.keys(ITEMS).filter(id=>ok(ITEMS[id])&&!carryMax(id)&&(!ITEMS[id].sim||camp.inSim)&&(!ITEMS[id].wilds||camp.inWilds)).map(id=>"item:"+id)];
   while(out.length<3&&pool.length){
     const cand=out.filter(e=>e.startsWith("item:")).length>=2?pool.filter(e=>!e.startsWith("item:")):pool;if(!cand.length)break;
