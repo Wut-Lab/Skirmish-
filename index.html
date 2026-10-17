@@ -415,6 +415,8 @@ border-radius:50%;border:4px solid #fff;box-shadow:0 0 12px rgba(255,120,80,.9);
 .u.usurp::before{content:"\265B";position:absolute;bottom:-5px;left:-5px;width:16px;height:16px;border-radius:50%;background:#2a1a26;color:#e0a0b0;font-size:.62rem;line-height:16px;text-align:center;box-shadow:0 0 0 1.5px #b0182a,0 0 8px 2px rgba(120,30,60,.7);z-index:3} /* a Usurper piece: a dark crown */
 .u.elite{box-shadow:0 0 0 2.500px #e8c050,0 0 0 4px rgba(90,60,10,.85),0 0 10px 3px rgba(240,200,80,.55),var(--bev)}
 .u.glitch:not(.elite){box-shadow:0 0 0 2px #3ad8ff,0 0 8px 2px rgba(192,106,255,.55),var(--bev)} /* Corrupted Pages */
+.vwrap path{stroke-dasharray:40;stroke-dashoffset:40;animation:vwrap 1.200s ease-out forwards}.vleaf{opacity:0;animation:vleaf .6s 1.400s ease-out forwards}@keyframes vwrap{to{stroke-dashoffset:0}}@keyframes vleaf{to{opacity:1}}@media (prefers-reduced-motion:reduce){.vwrap path{animation:none;stroke-dashoffset:0}.vleaf{animation:none;opacity:1}} /* the Overgrown Arch wrapping itself shut */
+.u.feral{box-shadow:0 0 0 2.500px #6ad08a,0 0 0 4px #b48aff,0 0 10px 3px rgba(150,240,170,.5),var(--bev)} /* the Warped Wilds' Warped Beasts */
 .u.elite.glitch{box-shadow:0 0 0 2.500px #c06aff,0 0 0 4px #3ad8ff,0 0 10px 3px rgba(122,232,255,.55),var(--bev)} /* the Sim's Corrupted Elites */
 .evart svg{display:block;width:100%;height:auto;border-radius:8px;border:2px solid #1a0f07;box-shadow:0 2px 0 #1a0f07;margin-bottom:10px}
 .u.redglow svg{filter:drop-shadow(0 0 3px rgba(225,40,40,.85))}
@@ -1244,8 +1246,8 @@ function genMap(o={}){
       }
     }
     if(seen.size===W*H-walls.size-chasm.size-light.size-deep.size-bars.size-camps.size-graves.size-lava.size-volc.size-koi.size){ // every open tile connects: lava never cuts anyone off
-      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;SWAMP=swamp;MURKY=o.swamp>=3;GRAVES=graves;HAUNTED=!!o.graves;LAVA=lava;MAGMA=magma;VOLC=volc;WISP=wisps;FLOWERS=flowers;MEADOW=meadow;GREENW=greenw;KOI=koi;VALE=!!o.sakura;VOLCANIC=!!o.lava;CHASM=chasm;CHAOS=chaos;LIGHT=light;VOID=vd;VINES=vines;DEN=den;WARPT=new Set([...forest].filter(k=>!den.has(k)&&!cherry.has(k)&&Math.random()<(o.palace?.5:o.wildlands?.2:0)));SIM=!!o.sim;SIMFORT=!!o.simfort;CHERRY=cherry;BARRELS=bars;XBAR=xbars;CAMPS=camps;WALLV=R(4);
-      groupForts(()=>o.palace?2:R(2));
+      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;SWAMP=swamp;MURKY=o.swamp>=3;GRAVES=graves;HAUNTED=!!o.graves;LAVA=lava;MAGMA=magma;VOLC=volc;WISP=wisps;FLOWERS=flowers;MEADOW=meadow;GREENW=greenw;KOI=koi;VALE=!!o.sakura;VOLCANIC=!!o.lava;CHASM=chasm;CHAOS=chaos;LIGHT=light;VOID=vd;VINES=vines;DEN=den;WARPT=new Set([...forest].filter(k=>!den.has(k)&&!cherry.has(k)&&Math.random()<(o.palace?.5:o.wildlands?.2:wildsAfter()?WOUT_TREE:0))); // warped trees: half the Forest Palace's woods, a fifth of the Wildlands', and now and then elsewhere once you've come out of the WildsSIM=!!o.sim;SIMFORT=!!o.simfort;CHERRY=cherry;BARRELS=bars;XBAR=xbars;CAMPS=camps;WALLV=R(4);
+      groupForts(()=>o.palace||wildsAfter()&&(o.forest>=9||o.swamp>=3)&&Math.random()<WOUT_PALACE?2:R(2)); // after the Wilds, a forest or swamp fortress may be built like the Forest Palace
       return;
     }
   }
@@ -1303,7 +1305,7 @@ const FOREST_V=[
  svg(tree(14,15,9,4.5,"#3a7d4a")+tree(28,13,9,4.5,"#2f6b3f")+tree(9,27,13,6,"#2f6b3f")+tree(31,28,14,6.5,"#3a7d4a")+tree(20,34,17,7.5,"#245a34")),
  svg(oak(30,9,4,"#b0561f")+oak(12,17,7,"#c07a2a")+oak(28,22,7.5,"#d59a3a")+tree(19,35,14,6,"#2f6b3f"))];
 // the Wildlands' Tanglevine Patch: a knot of thorny vines over the ground, a few odd violet buds where the Wilds went strange
-const VINE_V=[0,1,2].map(v=>{const q=k=>{const x=Math.sin((v+1)*91.7+k*47.3)*43758.5453;return x-Math.floor(x)},f=n=>n.toFixed(1);let vines="",hi="",leaves="",thorns="",buds="";
+const VINE_G=[0,1,2].map(v=>{const q=k=>{const x=Math.sin((v+1)*91.7+k*47.3)*43758.5453;return x-Math.floor(x)},f=n=>n.toFixed(1);let vines="",hi="",leaves="",thorns="",buds="";
   for(let i=0;i<5;i++){const x0=-2+q(i)*8+(i%2?30:0),y0=4+q(i+20)*32,x1=20+(q(i+40)-.5)*16,y1=20+(q(i+60)-.5)*20,x2=i%2?-2+q(i+80)*8:34+q(i+80)*8,y2=4+q(i+100)*32;
     const d=`M${f(x0)} ${f(y0)}Q${f(x1)} ${f(y1-10*(q(i+5)-.5))} ${f((x0+x2)/2)} ${f((y0+y2)/2)}T${f(x2)} ${f(y2)}`;vines+=`<path d="${d}"/>`;hi+=`<path d="${d}"/>`;
     for(let k=0;k<3;k++){const t=.2+k*.3,lx=x0+(x2-x0)*t+(q(i*7+k)-.5)*6,ly=y0+(y2-y0)*t+(q(i*9+k)-.5)*6,a=Math.round(q(i*11+k)*360);
@@ -1311,7 +1313,13 @@ const VINE_V=[0,1,2].map(v=>{const q=k=>{const x=Math.sin((v+1)*91.7+k*47.3)*437
       if(k!==1)thorns+=`<path d="M${f(lx+3)} ${f(ly-1)}l1.400-.4l-1 1.100z"/>`}}
   for(let i=0;i<3;i++){const cx=6+q(i+200)*28,cy=6+q(i+220)*28;vines+=`<path d="M${f(cx)} ${f(cy)}a2.400 2.400 0 1 1 2.400 2.400a1.300 1.300 0 1 1 -1.300-1.300"/>`} // curling tendrils
   for(let i=0;i<2+v%2;i++){const cx=6+q(i+300)*28,cy=6+q(i+320)*28;buds+=`<circle cx="${f(cx)}" cy="${f(cy)}" r="1.500" fill="#b47ae8"/><circle cx="${f(cx-.4)}" cy="${f(cy-.4)}" r=".6" fill="#ecd8ff"/>`}
-  return svg(`<rect width="40" height="40" fill="#3f5a2a" opacity=".3"/><g fill="none" stroke-linecap="round"><g stroke="#24401f" stroke-width="2.600">${vines}</g><g stroke="#6f9a44" stroke-width=".8" opacity=".85">${hi}</g></g>${leaves}<g fill="#d8c8a0">${thorns}</g>${buds}`)});
+  return `<rect width="40" height="40" fill="#3f5a2a" opacity=".3"/><g fill="none" stroke-linecap="round"><g stroke="#24401f" stroke-width="2.600">${vines}</g><g stroke="#6f9a44" stroke-width=".8" opacity=".85">${hi}</g></g>${leaves}<g fill="#d8c8a0">${thorns}</g>${buds}`}),VINE_V=VINE_G.map(svg);
+// Tanglevine patches side by side grow into one another: two thick strands run out to each shared edge (meeting the neighbour's strands across the gap; see joins())
+const VINE_J=[["M17 20Q11 10 15 0M23 19Q29 9 25 0",[13,7]],["M20 17Q30 11 40 15M21 23Q31 29 40 25",[33,11]],["M17 21Q11 31 15 40M23 21Q29 31 25 40",[27,33]],["M20 17Q10 11 0 15M19 23Q9 29 0 25",[7,29]]];
+function vineArt(x,y){
+  const j=[[0,-1],[1,0],[0,1],[-1,0]].map(([dx,dy])=>VINES.has((x+dx)+","+(y+dy))),d=VINE_J.filter((_,i)=>j[i]);
+  return svg(VINE_G[tv(x,y,3,79)]+(d.length?`<g fill="none" stroke-linecap="round"><path d="${d.map(e=>e[0]).join("")}" stroke="#24401f" stroke-width="3.200"/><path d="${d.map(e=>e[0]).join("")}" stroke="#6f9a44" stroke-width="1" opacity=".85"/></g>`+d.map(([,[lx,ly]],i)=>`<ellipse cx="${lx}" cy="${ly}" rx="2.800" ry="1.400" fill="#5a9a3e" transform="rotate(${i*55+20} ${lx} ${ly})"/>`).join(""):""));
+}
 // a warped tree for the Wilds' forests: a trunk twisted round on itself and a crown gone teal or violet, glowing faintly (plays exactly like forest)
 const WARPT_V=[0,1,2].map(v=>{const cc=v===1?["#5a4a9a","#7a62c0","#c8b0ff"]:["#2a7a6a","#3a9a84","#9af0d8"],x=v===2?22:19;
   return svg(`<defs><filter id="wtg${v}" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.400"/></filter></defs><circle cx="${x}" cy="15" r="13" fill="${cc[2]}" opacity=".3" filter="url(#wtg${v})"/><ellipse cx="${x+1}" cy="35" rx="9" ry="2.400" fill="rgba(0,0,0,.25)"/>`
@@ -1625,6 +1633,43 @@ function fortArt(m,v,keep,sim){ // sim: the Warped Sim's stronghold, whose corne
     +`<path d="M12.500 12.500L20 20L12.500 27.500z" fill="rgba(255,255,255,.18)"/><path d="M20 20V6.500" stroke="#3a2a1a" stroke-width="1.300"/><path d="M20 6.500l7.500 2.300-7.500 2.300z" fill="#f2c230" stroke="#7a5a10" stroke-width=".8"/>`;
   return svg(g);
 }
+// a Forest Palace tile: moonstone flagstones with gold inlay and moss, pale walls hung with leaf garlands and trimmed in gold, living trees twisted up at the outer corners,
+// a courtyard tree growing up through the floor here and there, and on one tile the domed hall: a ring of columns under an emerald dome with gold ribs and a glowing spire
+function palaceArt(m,keep,x,y){
+  const P=FORT_PAL[2],n=m&1,e=m&2,s=m&4,w=m&8,B=FORT_B,q=k=>tv(x,y,1000,k)/1000,f=v=>v.toFixed(1);
+  let g=`<defs><filter id="pglow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2"/></filter><radialGradient id="pdome" cx=".38" cy=".32" r=".75"><stop offset="0" stop-color="#8af0c0"/><stop offset=".5" stop-color="#2f8a6a"/><stop offset="1" stop-color="#164a36"/></radialGradient><linearGradient id="pgold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff0b0"/><stop offset=".5" stop-color="#d8b04a"/><stop offset="1" stop-color="#8a6a1a"/></linearGradient></defs>`
+    +`<rect width="40" height="40" fill="${P.floor}"/>`;
+  // flagstones, in offset courses, a few tinted
+  for(let r=0;r<4;r++)for(let c=-1;c<4;c++){const fx=c*12+(r%2?6:0),fy=r*10;if(fx>40)continue;const t=q(r*7+c+3);g+=`<rect x="${f(fx+.6)}" y="${f(fy+.6)}" width="10.800" height="8.800" rx="1" fill="${t<.25?"#d4dcc8":t>.8?"#b8c6ae":"#c8d2bc"}" stroke="rgba(70,100,70,.35)" stroke-width=".7"/>`}
+  g+=[0,1].map(i=>`<ellipse cx="${f(6+q(40+i)*28)}" cy="${f(6+q(50+i)*28)}" rx="${f(3+q(60+i)*3)}" ry="${f(1.600+q(70+i)*1.500)}" fill="#6a9a4a" opacity=".3"/>`).join(""); // moss in the cracks
+  if(!keep)g+=`<path d="M20 15l5 5l-5 5l-5-5z" fill="none" stroke="url(#pgold)" stroke-width="1"/><circle cx="20" cy="20" r="1.300" fill="${P.gold}"/>`; // a gold inlay
+  // a courtyard tree on about one interior tile in three: a gold-rimmed planter, a trunk twisted up out of it, a broad glowing crown
+  const court=!keep&&tv(x,y,3,97)===0;
+  if(court){const cx=20+(q(80)-.5)*6;g+=`<ellipse cx="${f(cx)}" cy="31" rx="7.500" ry="3" fill="#4a3a20" stroke="url(#pgold)" stroke-width="1.200"/><circle cx="${f(cx)}" cy="15" r="13" fill="#b8ffd8" opacity=".22" filter="url(#pglow)"/>`
+    +`<path d="M${f(cx-2)} 31q-4-5 1-9q5-4-1-8M${f(cx+2)} 31q3-5-1-9q-4-4 1-8" stroke="#5a3a1e" stroke-width="2.200" fill="none" stroke-linecap="round"/>`
+    +[[-6,13,6.500,"#2f8a6a"],[6,12,6.800,"#256e54"],[0,7,7,"#3aa47c"],[-2,15,5,"#2f8a6a"]].map(([dx,dy,r,c])=>`<circle cx="${f(cx+dx)}" cy="${dy}" r="${r}" fill="${c}"/>`).join("")
+    +`<circle cx="${f(cx-2)}" cy="5" r="2.600" fill="#8af0c0" opacity=".7"/><circle cx="${f(cx+6)}" cy="10" r="1.200" fill="${P.gold}"/><circle class="twk" cx="${f(cx-6)}" cy="14" r=".9" fill="#e8d8ff"/>`}
+  // walls on the open edges: a pale walkway with a gold inner trim, round balusters, and a garland of leaves along it
+  const band=(x0,y0,wd,ht)=>`<rect x="${x0}" y="${y0}" width="${wd}" height="${ht}" fill="${P.wall}"/>`;
+  const side=(hor,pos,inner)=>{let t=hor?band(-2,pos,44,B):band(pos,-2,B,44);t+=hor?`<path d="M-2 ${inner}H42" stroke="url(#pgold)" stroke-width="1"/>`:`<path d="M${inner} -2V42" stroke="url(#pgold)" stroke-width="1"/>`;
+    for(let i=0;i<5;i++){const c=4+i*8,lx=hor?c:pos+B/2,ly=hor?pos+B/2:c;t+=`<circle cx="${lx}" cy="${ly}" r="1.300" fill="#e0dcc8" stroke="${P.dark}" stroke-width=".6"/>`;
+      const gx=hor?c+4:pos+B/2,gy=hor?pos+B/2:c+4;t+=`<ellipse cx="${gx}" cy="${gy}" rx="2.200" ry="1.100" fill="${i%2?"#3aa47c":"#5ac08a"}" transform="rotate(${hor?(i%2?20:-20):(i%2?70:110)} ${gx} ${gy})"/>`+(q(i+90)<.3?`<circle cx="${gx}" cy="${gy}" r=".8" fill="#c8a8ff"/>`:"")}
+    return t};
+  if(!n)g+=side(1,0,B+.5);if(!s)g+=side(1,40-B,40-B-.5);if(!w)g+=side(0,0,B+.5);if(!e)g+=side(0,40-B,40-B-.5);
+  // outer corners: a living tree twisted up out of the wall, its crown glowing
+  const tree=(cx,cy)=>{const sx=cx<20?1:-1,sy=cy<20?1:-1;
+    return `<circle cx="${cx}" cy="${cy}" r="10" fill="#b8ffd8" opacity=".3" filter="url(#pglow)"/><path d="M${cx-sx*5} ${cy-sy*5}q${sx*6} ${sy*1} ${sx*4} ${sy*5}q${-sx*2} ${sy*3} ${sx*2} ${sy*6}M${cx-sx*5} ${cy-sy*2}q${sx*3} ${sy*2} ${sx*5} ${sy*1}" stroke="#5a3a1e" stroke-width="2.200" fill="none" stroke-linecap="round"/>`
+     +[[-2.600,-1.600,5.200,"#2f8a6a"],[2.600,-2,5.400,"#164a36"],[0,2.600,5.200,"#3aa47c"],[-1,-3.400,3,"#5ac08a"]].map(([dx,dy,r,c])=>`<circle cx="${f(cx+dx)}" cy="${f(cy+dy)}" r="${r}" fill="${c}"/>`).join("")
+     +`<circle cx="${f(cx-1.800)}" cy="${f(cy-3.400)}" r="1.800" fill="#8af0c0" opacity=".75"/><circle cx="${cx+3}" cy="${cy+1}" r="1" fill="${P.gold}"/><circle class="twk" cx="${cx-3}" cy="${cy+2.500}" r=".8" fill="#e8d8ff"/>`};
+  if(!n&&!w)g+=tree(7,7);if(!n&&!e)g+=tree(33,7);if(!s&&!w)g+=tree(7,33);if(!s&&!e)g+=tree(33,33);
+  // the domed hall: a ring of columns, an emerald dome with gold ribs, a vine climbing it, and a gold spire with a glowing orb
+  if(keep)g+=`<circle cx="20" cy="20" r="14" fill="#b8ffd8" opacity=".35" filter="url(#pglow)"/><circle cx="20" cy="21" r="12.500" fill="#e8e6d6" stroke="${P.dark}" stroke-width=".9"/>`
+    +[...Array(8)].map((_,i)=>{const a=i*Math.PI/4+.39;return `<circle cx="${f(20+Math.cos(a)*11)}" cy="${f(21+Math.sin(a)*11)}" r="1.600" fill="#f8f6ea" stroke="${P.dark}" stroke-width=".6"/>`}).join("")
+    +`<circle cx="20" cy="20" r="9" fill="url(#pdome)" stroke="#0e3a28" stroke-width="1"/>`+[0,1,2,3,4,5].map(i=>{const a=i*Math.PI/3;return `<path d="M20 20L${f(20+Math.cos(a)*9)} ${f(20+Math.sin(a)*9)}" stroke="url(#pgold)" stroke-width=".9"/>`}).join("")
+    +`<path d="M12 23q3-6 8-5q4 1 6-4" stroke="#3a6a2a" stroke-width="1.300" fill="none"/><ellipse cx="15" cy="20" rx="1.600" ry=".9" fill="#5ac08a" transform="rotate(-30 15 20)"/><ellipse cx="24" cy="16" rx="1.600" ry=".9" fill="#5ac08a" transform="rotate(40 24 16)"/>`
+    +`<circle cx="20" cy="20" r="3" fill="url(#pgold)" stroke="#7a5a10" stroke-width=".6"/><circle cx="20" cy="20" r="5" fill="#b8ffd8" opacity=".5" filter="url(#pglow)"/><circle cx="20" cy="20" r="1.400" fill="#f4fff0"/><path d="M15 15a7 7 0 0 1 4-2.600" stroke="rgba(255,255,255,.55)" stroke-width="1.200" fill="none"/>`;
+  return svg(g);
+}
 // fills the 2px board gap after a tile when it joins the tile to its right or below, so joined pieces read as one structure
 function joins(x,y){
   const k=x+","+y,isW=WALLS.has(k);
@@ -1639,6 +1684,10 @@ function joins(x,y){
   if(VOID.has(k)){ // the Grid: Empty Space's neon line runs through the gap into Empty Space beside it
     const r=VOID.has((x+1)+","+y),b=VOID.has(x+","+(y+1)),c=r&&b&&VOID.has((x+1)+","+(y+1)),bar=(st,dir)=>`<i class="jb" style="${st};background:linear-gradient(${dir},rgba(180,76,255,.55),#f0c8ff 50%,rgba(180,76,255,.55));box-shadow:0 0 3px rgba(180,76,255,.45)"></i>`;
     return (r?bar(`top:0;right:-2px;width:2px;height:${c?"calc(100% + 2px)":"100%"}`,"90deg"):"")+(b?bar("left:0;bottom:-2px;height:2px;width:100%","180deg"):"");
+  }
+  if(VINES.has(k)){ // Tanglevine strands run on across the gap into the patch beside it
+    const r=VINES.has((x+1)+","+y),b=VINES.has(x+","+(y+1)),bar=(st,dir)=>`<i class="jb" style="${st};background:linear-gradient(${dir},#56683c 34%,#24401f 34%,#4f7a34 37.500%,#24401f 41%,#56683c 41%,#56683c 59%,#24401f 59%,#4f7a34 62.500%,#24401f 66%,#56683c 66%)"></i>`;
+    return (r?bar("top:0;right:-2px;width:2px;height:100%","180deg"):"")+(b?bar("left:0;bottom:-2px;height:2px;width:100%","90deg"):"");
   }
   if(LAVA.has(k)){ // lava flows on across the gap into lava beside it
     const r=LAVA.has((x+1)+","+y),b=LAVA.has(x+","+(y+1)),c=r&&b&&LAVA.has((x+1)+","+(y+1)),bar=st=>`<i class="jb" style="${st};background:#e2531a"></i>`;
@@ -1701,10 +1750,10 @@ function tileArt(x,y){ // the art for one board tile, picking a stable variant p
     case "deep":return DP_V[tv(x,y,3,13)];case "shallow":return SH_V[tv(x,y,3,15)];case "swamp":return SW_V[tv(x,y,4,21)];case "forest":return WARPT.has(k)?WARPT_V[tv(x,y,3,89)]:HAUNTED||VOLCANIC?DEAD_V[tv(x,y,3,9)]:FOREST_V[tv(x,y,4,9)];case "greenwood":return GREENW_V[tv(x,y,3,67)];case "meadow":return meadow(x,y);
     case "cherry":return cherryArt(tv(x,y,3,43),joinMask(x,y,kk=>CHERRY.has(kk)),x,y);
     case "volcano":return VOLC_V[tv(x,y,2,25)];case "wisp":return WISP_V[tv(x,y,2,47)];case "flowers":return FLOWER_V[tv(x,y,3,53)];case "koi":return KOI_V[tv(x,y,2,59)];case "lava":return LAVA_V[tv(x,y,3,27)];case "magma":return MAGMA_V[tv(x,y,3,29)];
-    case "vines":return VINE_V[tv(x,y,3,79)];case "den":return DEN_V;
+    case "vines":return vineArt(x,y);case "den":return DEN_V;
     case "rubble":return RUBBLE_V[tv(x,y,2,61)];case "unsettled":return UNSET_V;
     case "chasm":return chasmArt(chasmMask(x,y),tv(x,y,3,71));case "chaos":return simGround(x,y,4)+CHAOS_V;case "lbrick":return simGround(x,y,4)+LBRICK_V;case "glitch":return simGround(x,y);case "void":return voidArt(x,y);case "quartz":return quartzArt(tv(x,y,7,73));
-    case "fort":return fortArt(fortMask(x,y),FORTV.get(k)||0,FORTK.has(k),SIMFORT);default:return VOLCANIC?ashGround(x,y):ground(x,y);
+    case "fort":return FORTV.get(k)===2?palaceArt(fortMask(x,y),FORTK.has(k),x,y):fortArt(fortMask(x,y),FORTV.get(k)||0,FORTK.has(k),SIMFORT);default:return VOLCANIC?ashGround(x,y):ground(x,y);
   }
 }
 // Rubble: a blasted fortress, broken blocks and grit on scorched ground
@@ -1727,7 +1776,7 @@ const fellAt=f=>{const u=[...new Set(f)];if(u.length<3)return listAnd(u);for(let
 const limitNames=()=>listAnd(poolNow().split("").filter(t=>LIMIT1.includes(t)).map(t=>"the "+cap(NAME[t])));
 
 // a campaign with nothing in it yet: the one list of what a new campaign starts from
-const freshCamp=()=>({cfg:null,pos:0,cleared:[],done:false,battle:null,sel:null,hp:null,gold:0,relics:[],items:[],offer:null,offerBoss:false,offerStart:0,found:[],lastGold:0,kills:[],region:1,mapsPrior:0,bossUsed:{loc:[],name:[]},merc:null,scout:0,portal:0,portalIn:0,inSim:0,escaped:0,inWilds:0,wildsGate:0,wildsIn:0,mercNote:"",news:null});
+const freshCamp=()=>({cfg:null,pos:0,cleared:[],done:false,battle:null,sel:null,hp:null,gold:0,relics:[],items:[],offer:null,offerBoss:false,offerStart:0,found:[],lastGold:0,kills:[],region:1,mapsPrior:0,bossUsed:{loc:[],name:[]},merc:null,scout:0,portal:0,portalIn:0,inSim:0,escaped:0,inWilds:0,wildsGate:0,wildsIn:0,wildsOut:0,mercNote:"",news:null});
 let camp=freshCamp(),campSetup=false,endMode="quick",worldLock=false,choice=null,locked=false,tile=null,info=null,paused=false,gid=0,seed=0,col={y:"blue",f:"red"},insp=null,units=[],sel=null,turn="y",over=false,busy=false,mode=null,mods={y:null,f:null},tpUsed={y:0,f:0},pick={t:null,m:null};
 const prevPos=new WeakMap();
 const $=id=>document.getElementById(id),board=$("board");
@@ -1737,7 +1786,7 @@ const helmed=u=>units.some(b=>b!==u&&b.t==="N"&&b.team===u.team&&rel(b,"helm")&&
 const ESCA_EV=.05,ESCA_ROUGH_EV=.1,PENDANT_EV=.05,RIDER_EV=.05,LIGHT_EV=.05,ELDORADO_GOLD=50,ELDORADO_MAX=2,LUCKYCROSS_GOLD=10,HELM_EV=.05,HEX_EV=.1,HEXBOOK_EV=.05; // HEX_EV: the Enchanter's hex makes its victim's targets harder to hit
 // as a side's turn begins: Empty Space (+1 movement this turn, read by mvOf) and the Shard of Empty Space (no unit on the 4 tiles beside)
 const markStart=own=>units.forEach(u=>{if(!own(u))return;const k=u.x+","+u.y;u.vs=VOID.has(k)?1:0;u.alone=units.some(v=>v!==u&&d(u,v)===1)?0:1;delete u.leftWood;delete u.woodMove;delete u.sentry;delete u.gfEv;delete u.gfDealt;u.cape=[[0,0],...DIRS,[1,1],[1,-1],[-1,1],[-1,-1]].some(([dx,dy])=>WOODS((u.x+dx)+","+(u.y+dy)))?1:0}); // the Red Clothes: forest moves last until this side's next turn; the Red Cape looks for trees
-const mvOf=u=>{const m=ST(u).mv+(friendly(u)&&rel(u,"eward")?1:0)+(helmed(u)?1:0)+(u.t==="K"&&rel(u,"lightarmor")?1:0)-(u.t==="C"&&rel(u,"bard")?1:0)+(firstTurn&&rel(u,"drills")?1:0)+(u.haste||0)+(u.rage?1:0)+(u.glitch==="clock"?1:0)+(u.vs?1:0)+(u.merc&&rel(u,"mercman")?1:0)+(u.cape&&rel(u,"rcape")?1:0)+(u.alone&&rel(u,"voidshard")?1:0);if(u.stepOnly)return 1;return u.slow?Math.min(m,TYPES.E.slow):m};
+const mvOf=u=>{const m=ST(u).mv+(friendly(u)&&rel(u,"eward")?1:0)+(helmed(u)?1:0)+(u.t==="K"&&rel(u,"lightarmor")?1:0)-(u.t==="C"&&rel(u,"bard")?1:0)+(firstTurn&&rel(u,"drills")?1:0)+(u.haste||0)+(u.rage?1:0)+(u.glitch==="clock"?1:0)+(u.vs?1:0)+(u.merc&&rel(u,"mercman")?1:0)+(u.cape&&rel(u,"rcape")?1:0)+(u.alone&&rel(u,"voidshard")?1:0)-(u.feral==="terror"&&ST(u).mv>1?1:0);if(u.stepOnly)return 1;return u.slow?Math.min(m,TYPES.E.slow):m};
 const inspired=(u,at=u)=>units.some(b=>b.t==="N"&&b.team===u.team&&b!==u&&d(b,at)<=BANNER_RANGE); // within a Banner Bearer's aura (at: where u would stand)
 /* ---------- Combat: the one place an attack's damage and hit chance are worked out ----------
    Every modifier is a labelled line in `parts`, so the attack menu, the game and the AI always agree.
@@ -1778,6 +1827,7 @@ function combat(a,b,from=a){
   add("Spurs",a.t==="C"&&rel(a,"spurs")&&turn===a.team&&(a.moved||from!==a)?1:0); // a charge: only on its own turn, after moving
   add("Berserker's Warpaint",rel(a,"warpaint")?1:0);
   add("Hidden Den",a.team==="w"&&denZone(from.x,from.y)?DEN_DMG:0); // an animal on its own ground
+  add("Long Claws",a.feral==="claws"?1:0);add("Warped Limbs",a.feral==="limbs"?-LIMBS_DMG:0);add("Terrifying Presence",b.feral==="terror"&&a.team!==b.team&&Math.abs(from.x-b.x)<=1&&Math.abs(from.y-b.y)<=1?-TERROR_DMG:0); // a Warped Beast
   add("Liquid Courage",(rel(a,"grog")?1:0)+(rel(b,"grog")?1:0)); // both ways: dealt and taken
   add("Tome of the Red Mages",a.t==="E"&&rel(a,"redtome")?1:0);
   add("Tome of the Black Mages",a.t==="E"&&rel(a,"blacktome")&&b.slow?1:0); // preying on the slowed
@@ -1798,10 +1848,10 @@ function combat(a,b,from=a){
   const armor=[["Armor",B.ar||0],["Sentry's Lantern",b.sentry&&rel(b,"lantern")?1:0],["Small Forces",b.sforce?1:0],["Shield Wall",walled(b)?1:0],["Forest Tactics",mods[b.team]==="FT"&&A.rg>1&&WOODS(k)?1:0],["Fortress",FORT.has(k)?1:0],["Dug in",b.dug?DIG_AR:0],["Sturdy Shields",b.t==="K"&&rel(b,"shield")?1:0],["Lightened Armor",b.t==="K"&&rel(b,"lightarmor")?-1:0],["Barding",b.t==="C"&&rel(b,"bard")?1:0],["Banner of the Fallen Keep",b.keep?1:0],["Vasco's Morion",b.vang?1:0],["Large Glowing Cube",b.cubeAr?1:0],["Recovery-Linked Ward",b.ward?1:0],["Stubborn as a Mule",muled(b)?MULE_AR:0],["Improvised Armor",desperate(b,"hide")&&units.some(v=>v.team===b.team&&v.t==="K"&&d(v,b)===1)?1:0]];
   if(acided(b)&&armor.reduce((t,x)=>t+x[1],0)>0)armor.push(["Acid Flask",-1]); // never below 0 armor
   armor.forEach(([l,v])=>add(l,-v));
-  add("Pierce",Math.min(a.t==="E"||a.t==="Z"||a.t==="J"?99:a.bruise?1:Math.max(0,(A.pi||0)+(redSet(a)&&a.woodMove&&turn===a.team?1:0)+(charging(a,from)?2:0)+(rel(a,"bluemagma")?1:0)+(rel(a,"crown")?1:0)+(a.t==="K"&&rel(a,"sallet")?1:0)+(a.t==="R"&&rel(a,"ammo")?1:0)+(a.t==="Q"&&rel(a,"escaupil")&&a.rough?1:0)+(a.rage?1:0)+(a.champ?1:0)+(sc?1:0)+(a.cret?1:0)+(a.ublade&&b.hp>maxHp(b)/2?1:0)-(b.cshield?1:0)),armor.reduce((t,x)=>t+x[1],0))); // Blue Magma and the Champion's Sword add pierce, the Usurper's Blade against the healthy; the Champion's Shield turns 1 aside
+  add("Pierce",Math.min(a.t==="E"||a.t==="Z"||a.t==="J"?99:a.bruise?1:Math.max(0,(A.pi||0)+(a.feral==="claws"?1:0)+(redSet(a)&&a.woodMove&&turn===a.team?1:0)+(charging(a,from)?2:0)+(rel(a,"bluemagma")?1:0)+(rel(a,"crown")?1:0)+(a.t==="K"&&rel(a,"sallet")?1:0)+(a.t==="R"&&rel(a,"ammo")?1:0)+(a.t==="Q"&&rel(a,"escaupil")&&a.rough?1:0)+(a.rage?1:0)+(a.champ?1:0)+(sc?1:0)+(a.cret?1:0)+(a.ublade&&b.hp>maxHp(b)/2?1:0)-(b.cshield?1:0)),armor.reduce((t,x)=>t+x[1],0))); // Blue Magma and the Champion's Sword add pierce, the Usurper's Blade against the healthy; the Champion's Shield turns 1 aside
   add("Patched Cloaks",rel(b,"cloak")&&!b.cloaked?-1:0); // the first blow to land each battle
   add("Pavise",b.t==="A"&&A.rg>1&&rel(b,"pavise")?-1:0); // a shield wall, not armor: pierce can't get past it
-  const ev=Math.max(0,-(rel(a,"rgloves")&&a.leftWood&&turn===a.team?GLOVES_EV:0)-(rel(a,"keen")&&rgOf(a)>1?KEEN_EV:0)-(rel(a,"cshades")?SHADES_EV:0)-(mods[a.team]==="AIM"?AIM_EV:0)-(b.t==="N"&&rel(b,"helm")?HELM_EV:0)-(b.hex&&b.hexPend?PENDANT_EV:0)-(b.rage?INCENSE_EV:0)+Math.min(EV_CAP,(B.ev||0)+(b.gfEv||0)+(rel(b,"tricorn")&&b.leftWood?TRICORN_EV:0)+(b.chill?DRYICE_EV:0)+(b.ash?PHOENIX_EV:0)+(rides(b)&&b.moved?RIDER_EV:0)+(b.t==="K"&&rel(b,"lightarmor")?LIGHT_EV:0)+(b.t==="Q"&&rel(b,"escaupil")?(b.rough?ESCA_ROUGH_EV:ESCA_EV):0)+(b.t==="E"&&rel(b,"hexbook")?HEXBOOK_EV:0)+(a.hex?HEX_EV:0)+(rel(b,"luck")?.05:0)+(b.trio?TRIO_EV:0)+(b.glitch==="flick"?FLICK_EV:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(rel(b,"sakurafan")&&[...blastOf(k),[b.x,b.y]].some(([x,y])=>CHERRY.has(x+","+y))?FAN_EV:0)+(blessed(b)?BLESS_EV:0)+(rested(b)?REST_EV:0)+(rel(b,"pebble")?PEBBLE_EV:0)+(rel(b,"voidshard")&&!units.some(v=>v!==b&&d(v,b)===1)?SHARD_EV:0)+bucklerEv(b)+(rallied(b)?RALLY_EV:0)+(b.team==="y"&&SMOKE.has(k)?SMOKE_EV:0)+(WOODS(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0))); // Keen Eye Charm: ranged attacks see through a little of it; Steady Aim, any attack
+  const ev=Math.max(0,-(terrorNear(b)?TERROR_EV:0)-(b.feral==="claws"?CLAW_EV:0)-(rel(a,"rgloves")&&a.leftWood&&turn===a.team?GLOVES_EV:0)-(rel(a,"keen")&&rgOf(a)>1?KEEN_EV:0)-(rel(a,"cshades")?SHADES_EV:0)-(mods[a.team]==="AIM"?AIM_EV:0)-(b.t==="N"&&rel(b,"helm")?HELM_EV:0)-(b.hex&&b.hexPend?PENDANT_EV:0)-(b.rage?INCENSE_EV:0)+Math.min(EV_CAP,(B.ev||0)+(b.gfEv||0)+(rel(b,"tricorn")&&b.leftWood?TRICORN_EV:0)+(b.chill?DRYICE_EV:0)+(b.ash?PHOENIX_EV:0)+(rides(b)&&b.moved?RIDER_EV:0)+(b.t==="K"&&rel(b,"lightarmor")?LIGHT_EV:0)+(b.t==="Q"&&rel(b,"escaupil")?(b.rough?ESCA_ROUGH_EV:ESCA_EV):0)+(b.t==="E"&&rel(b,"hexbook")?HEXBOOK_EV:0)+(a.hex?HEX_EV:0)+(rel(b,"luck")?.05:0)+(b.trio?TRIO_EV:0)+(b.glitch==="flick"?FLICK_EV:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(rel(b,"sakurafan")&&[...blastOf(k),[b.x,b.y]].some(([x,y])=>CHERRY.has(x+","+y))?FAN_EV:0)+(blessed(b)?BLESS_EV:0)+(rested(b)?REST_EV:0)+(rel(b,"pebble")?PEBBLE_EV:0)+(rel(b,"voidshard")&&!units.some(v=>v!==b&&d(v,b)===1)?SHARD_EV:0)+bucklerEv(b)+(rallied(b)?RALLY_EV:0)+(b.team==="y"&&SMOKE.has(k)?SMOKE_EV:0)+(WOODS(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0))); // Keen Eye Charm: ranged attacks see through a little of it; Steady Aim, any attack
   const blk=Math.max(0,-parts.filter(p=>armor.some(x=>x[0]===p[0])).reduce((t,p)=>t+p[1],0)-(parts.find(p=>p[0]==="Pierce")||[0,0])[1]); // damage the armor actually turned aside
   return {dmg:Math.max(1,parts.reduce((t,p)=>t+p[1],0)),hit:sc?1:1-ev,parts,blk}; // every hit deals at least 1; a scouted first strike never misses
 }
@@ -1974,7 +2024,7 @@ function render(){
     html+=`<button class="${cls}" data-x="${x}" data-y="${y}"${pd&&pd.k===k?` data-arrow="${pd.a}"`:""} aria-label="${label.replace(/"/g,"&quot;")}">`
       +'<i class="lt"></i>'+A.art[i]+(fr?'<i class="tint"></i>':"")+(SMOKE.has(k)?'<i class="smoke"></i>':"")+(skullZone(k)?'<i class="uzone"></i>':"")+(CALTROPS.has(k)?CALT_ART:"")+A.jn[i]+glowOf(k).map(([dx,dy])=>`<i class="lglow" style="background:linear-gradient(to ${dx>0?"left":dx<0?"right":dy>0?"top":"bottom"},rgba(255,226,60,.62),rgba(255,226,60,.16) 70%,rgba(255,226,60,.08))"></i>`).join(""); // fortress art covers its tile, so highlights go on a see-through layer above it
     if(u){
-      let uc="u "+u.team+(u.merc?" merc":"")+(u.auto&&!u.ctl&&u.team==="y"?" free":spent(u)?" done":"")+(u.slow||u.slowNext?" slow":"")+(u.stun?" stun":"")+(u.rage||u.oil?" rage":"")+(u.chill?" chill":"")+(u.scram?" scram":"")+(u.link?" link":"")+(u.spot>=pturn&&u.spotBy!==u.team?" spot":"")+(u.bounty?" bounty":"")+(u.gfhelm||u.gfshield||u.gfhammer?" gf":"")+(u.burn?" burn":"")+(u.ash?" ash":"")+(inspired(u)?" insp":"")+(blessed(u)||rested(u)?" blessed":"")+(u.t==="E"&&rel(u,"redtome")?" redglow":"")+(rallied(u)?" rallied":"")+(muled(u)?" mule":"")+(u.dug?" dug":"")+(u.elite||u.vet?" elite":"")+(u.glitch?" glitch":"")+(u.champ||u.cshield||u.cloak?" champ":"")+(u.ublade||u.ubulwark||u.ushroud?" usurp":"")+(u===sel||u===insp?" sel":""),mvs="";
+      let uc="u "+u.team+(u.merc?" merc":"")+(u.auto&&!u.ctl&&u.team==="y"?" free":spent(u)?" done":"")+(u.slow||u.slowNext?" slow":"")+(u.stun?" stun":"")+(u.rage||u.oil?" rage":"")+(u.chill?" chill":"")+(u.scram?" scram":"")+(u.link?" link":"")+(u.spot>=pturn&&u.spotBy!==u.team?" spot":"")+(u.bounty?" bounty":"")+(u.gfhelm||u.gfshield||u.gfhammer?" gf":"")+(u.burn?" burn":"")+(u.ash?" ash":"")+(inspired(u)?" insp":"")+(blessed(u)||rested(u)?" blessed":"")+(u.t==="E"&&rel(u,"redtome")?" redglow":"")+(rallied(u)?" rallied":"")+(muled(u)?" mule":"")+(u.dug?" dug":"")+(u.elite||u.vet?" elite":"")+(u.glitch?" glitch":"")+(u.feral?" feral":"")+(u.champ||u.cshield||u.cloak?" champ":"")+(u.ublade||u.ubulwark||u.ushroud?" usurp":"")+(u===sel||u===insp?" sel":""),mvs="";
       if(u.spawn){uc+=" tpin";if(u.spawnIn)mvs=`;animation-delay:${u.spawnIn}ms`;delete u.spawn;delete u.spawnIn} // spawnIn: a beat before it appears (militia answering the call)
       const pp=prevPos.get(u);prevPos.set(u,[x,y]);
       if(pp&&(pp[0]!==x||pp[1]!==y)){ // slide in from where it was last drawn (a long jump fades in instead)
@@ -2091,6 +2141,8 @@ function renderInfo(){
   if(scouting(u))notes.push("Scouted Ahead: its first attack this battle always hits, with +1 damage and +1 pierce.");
   if(u.team==="y"&&u.drum===pturn&&turn==="y")notes.push("War Drum: +1 damage this turn.");
   if(u.pages)notes.push(`Corrupted Pages: ${GLITCH[u.glitch][0]}, ${GLITCH[u.glitch][1]}`);
+  if(u.feral)notes.push(`Warped Beast: ${u.team==="w"?"a wild animal touched by the Wilds":"an animal fighting for the enemy"}. ${FERAL[u.feral][0]}: ${FERAL[u.feral][1]}`);
+  if(u.feral!=="terror"&&terrorNear(u))notes.push("Terrified: a Warped Beast's Terrifying Presence is beside it (5% less evasion, and 1 less damage against the beast).");
   if(u.elite)notes.push(u.glitch?`Corrupted Elite: +1 HP and +1 damage. ${GLITCH[u.glitch][0]}: ${GLITCH[u.glitch][1]}`:"Elite: +2 HP and +1 damage.");
   if(u.champ)notes.push("Champion's Sword: +1 damage and +1 pierce; can step 1 tile after a blow lands.");
   if(u.cshield)notes.push("Champion's Shield: attacks against it have 1 less pierce.");
@@ -2897,7 +2949,7 @@ function roundEnds(){ // as the enemy's turn ends: the Rose Barb Ward's thorns, 
   return checkEnd();
 }
 function denSpawn(){const[a,b]=pk([...DEN][0]),sp=[[a,b],...blastOf(a+","+b)].filter(([x,y])=>open(x,y));if(!sp.length)return null;
-  const[x,y]=sp[Math.floor(Math.random()*sp.length)],t=WILD[Math.floor(Math.random()*WILD.length)],w={t,team:"w",x,y,hp:TYPES[t].hp,moved:0,acted:0};units.push(w);later(()=>{if(units.includes(w))floatText(x,y,"From the den","thanks")},300);return w}
+  const[x,y]=sp[Math.floor(Math.random()*sp.length)],t=WILD[Math.floor(Math.random()*WILD.length)],w=feralize({t,team:"w",x,y,hp:TYPES[t].hp,moved:0,acted:0});units.push(w);later(()=>{if(units.includes(w))floatText(x,y,"From the den","thanks")},300);return w}
 function burnsBite(){leechesBite();units.filter(u=>u.burn&&u.team!=="y").forEach(u=>{const n=u.burn;delete u.burn;floatText(u.x,u.y,"Burn","slow");const by=units.find(v=>v.gfhammer);if(hurt(u,n)&&by)credit(by,u)})}
 function leechesBite(){if(!RELIC.has("leeches"))return;units.filter(u=>u.team==="f"&&(SWAMP.has(u.x+","+u.y)||SHALLOW.has(u.x+","+u.y))).forEach(u=>{floatText(u.x,u.y,"Leeches","slow");hurt(u,1)})} // the Jar of Fen Leeches
 function squirrelLeaves(){ // also sends the Bee Swarm home once its 3 turns are up
@@ -3042,7 +3094,8 @@ function gridStep(a,bx,by){
   walk(a,x,y);if(units.includes(a))floatText(a.x,a.y,"Fade","bless");
 }
 function attack(a,b,done){
-  const g=gid,bx=b.x,by=b.y,fin=()=>{gridStep(a,bx,by);if(done)done()};
+  const again=()=>{if(a.feral==="limbs"&&!a.twice&&!over&&units.includes(a)&&units.includes(b)&&targets(a).includes(b)){a.twice=1;later(()=>attack(a,b,()=>{delete a.twice;if(done)done()}),350)}else{delete a.twice;if(done)done()}}; // Warped Limbs: a second strike
+  const g=gid,bx=b.x,by=b.y,fin=()=>{gridStep(a,bx,by);again()};
   animAttack(a,b,()=>{
     applyAttack(a,b);
     const r=units.includes(a)&&units.includes(b)?retaliation(a,b):null;
@@ -3247,6 +3300,10 @@ function logCampaign(nm,how){
   while(HALL.list.length>REC_MAX){const j=HALL.list.map(r=>r.how==="won").lastIndexOf(false);HALL.list.splice(j<0?HALL.list.length-1:j,1)} // over the cap: the oldest loss goes first, conquests stay
   try{localStorage.setItem(RKEY,JSON.stringify(HALL))}catch(e){}
 }
+const FERAL={terror:["Terrifying Presence","Enemies on the 8 tiles around it lose 5% evasion, and they hit it for 1 less damage. Large and slow: 1 less movement (never below 1)."],claws:["Long Claws","+1 damage and +1 pierce, but 5% less evasion."],limbs:["Warped Limbs","Attacks twice, at 2 less damage each time."]},FERAL_TYPES="WBH",TERROR_EV=.05,TERROR_DMG=1,CLAW_EV=.05,LIMBS_DMG=2; // the Warped Wilds: one enemy in every battle is a Warped Beast, an animal fighting for them with one of these
+const WOUT_FERAL=.5,WOUT_PALACE=.15,WOUT_TREE=.04,wildsAfter=()=>!!camp.wildsOut&&!!camp.battle&&!chal&&!camp.inWilds; // after the Wilds: wild animals often come back warped, some forest and swamp fortresses look like the palace, and the odd warped tree grows
+const feralize=u=>{if(u&&wildsAfter()&&Math.random()<WOUT_FERAL)u.feral=Object.keys(FERAL)[Math.floor(Math.random()*3)];return u};
+const terrorNear=u=>units.some(v=>v.feral==="terror"&&v.team!==u.team&&v!==u&&Math.abs(v.x-u.x)<=1&&Math.abs(v.y-u.y)<=1); // standing in a Terrifying Presence
 const ELITE_HP=2,SIM_ELITE_HP=1,GLITCH={flick:["Flickering","+10% evasion."],clock:["Overclocked","+1 movement."],code:["Chaos Code","a unit that hits it in melee takes 1 damage, ignoring armor."]},FLICK_EV=.1; // the Sim's Corrupted Elites: +1 HP, +1 damage and one glitch
 const esc=r=>{const n=ESC.length,e=ESC[Math.min(r,n)-1];return r>n?{...e,relics:e.relics+Math.floor((r-n)/2)}:e},escFrom=k=>ESC.findIndex(e=>e[k]>0)+1;
 // relics an enemy army can make use of (no player-only actions, once-per-battle tricks or gold), and the unit each needs
@@ -3771,8 +3828,8 @@ const edgeOf=(a,b)=>EDGES.find(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a)); /
 const canGo=(a,b)=>{const e=edgeOf(a,b);return !!e&&(!e[2]||b===e[1])};
 function reachFrom(id){const seen=new Set([id]),q=[id];while(q.length){const a=q.shift();WORLD.forEach(n=>{if(!seen.has(n.id)&&canGo(a,n.id)){seen.add(n.id);q.push(n.id)}})}return seen}
 const SAVE="skirmish-campaign";
-function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,items:camp.items,offer:camp.offer,offerBoss:camp.offerBoss,offerStart:camp.offerStart||0,found:camp.found,kills:camp.kills,names:camp.names,wounds:camp.wounds,honors:camp.honors,falls:camp.falls,news:camp.news,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,merc:camp.merc||null,scout:camp.scout||0,portal:camp.portal||0,portalIn:camp.portalIn||0,inSim:camp.inSim||0,escaped:camp.escaped||0,inWilds:camp.inWilds||0,wildsGate:camp.wildsGate||0,wildsIn:camp.wildsIn||0,jewel:camp.jewel??null,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
-function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],items:d.items||[],offer:d.offer||null,offerBoss:!!d.offerBoss,offerStart:d.offerStart||0,found:Array.isArray(d.found)?d.found:d.found?[d.found]:[],kills:d.kills||[],names:d.names||null,wounds:d.wounds||[],honors:d.honors||[],falls:d.falls||[],news:d.news||null,region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},merc:d.merc||null,scout:d.scout||0,portal:d.portal||0,portalIn:d.portalIn||0,inSim:d.inSim||0,escaped:d.escaped||0,inWilds:d.inWilds||0,wildsGate:d.wildsGate||0,wildsIn:d.wildsIn||0,jewel:d.jewel??null,mercNote:"",lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
+function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,items:camp.items,offer:camp.offer,offerBoss:camp.offerBoss,offerStart:camp.offerStart||0,found:camp.found,kills:camp.kills,names:camp.names,wounds:camp.wounds,honors:camp.honors,falls:camp.falls,news:camp.news,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,merc:camp.merc||null,scout:camp.scout||0,portal:camp.portal||0,portalIn:camp.portalIn||0,inSim:camp.inSim||0,escaped:camp.escaped||0,inWilds:camp.inWilds||0,wildsGate:camp.wildsGate||0,wildsIn:camp.wildsIn||0,wildsOut:camp.wildsOut||0,jewel:camp.jewel??null,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
+function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],items:d.items||[],offer:d.offer||null,offerBoss:!!d.offerBoss,offerStart:d.offerStart||0,found:Array.isArray(d.found)?d.found:d.found?[d.found]:[],kills:d.kills||[],names:d.names||null,wounds:d.wounds||[],honors:d.honors||[],falls:d.falls||[],news:d.news||null,region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},merc:d.merc||null,scout:d.scout||0,portal:d.portal||0,portalIn:d.portalIn||0,inSim:d.inSim||0,escaped:d.escaped||0,inWilds:d.inWilds||0,wildsGate:d.wildsGate||0,wildsIn:d.wildsIn||0,wildsOut:d.wildsOut||0,jewel:d.jewel??null,mercNote:"",lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
 const nest=(str,x,y,w,style="")=>str.replace(/<svg[^>]*>/,`<svg x="${x}" y="${y}" width="${w}" height="${w}" viewBox="0 0 40 40" style="${style}">`);
 function mapArt(){
   let g='<defs><radialGradient id="pg" cx=".5" cy=".4" r=".85"><stop offset="0" stop-color="#eadfb8"/><stop offset="1" stop-color="#cbb78a"/></radialGradient><filter id="wsh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="1.200" dy="2.400" stdDeviation="1.600" flood-color="#3a2810" flood-opacity=".45"/></filter><radialGradient id="wnode" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></radialGradient><filter id="wblur"><feGaussianBlur stdDeviation="6"/></filter><filter id="wblur2" x="-50%" y="-100%" width="200%" height="300%"><feGaussianBlur stdDeviation="2.500"/></filter><linearGradient id="wmt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a7656"/><stop offset=".6" stop-color="#9c8762" stop-opacity=".9"/><stop offset="1" stop-color="#b8a27a" stop-opacity="0"/></linearGradient></defs><rect width="400" height="520" fill="url(#pg)"/>';
@@ -3818,6 +3875,20 @@ function mapArt(){
    +`<path d="M${200-tw} 49q${tw*.5} -5 ${tw} 0t${tw} 0" fill="none" stroke="#3e2810" stroke-width="1.100" stroke-linecap="round" opacity=".6"/><path d="M196 49.500l4 -3l4 3l-4 3z" opacity=".65"/></g>`;
   return g;
 }
+// the Overgrown Arch on the Wilds' map: two trunks bent into an arch, vines wrapped across the way back (cls " vwrap": they grow across as you watch)
+function archIcon(x,y,cls=""){
+  const V=[`M${x-7} ${y+8}q5-6 13-12`,`M${x+7} ${y+8}q-5-6-13-12`,`M${x-7} ${y+1}q7 3 14-1`,`M${x-6} ${y-4}q6 4 12 0`];
+  return `<path d="M${x-8} ${y+9}q-3-15 8-18q11 3 8 18" stroke="#fff" stroke-width="2.800" fill="none" stroke-linecap="round"/>`+[[-9,-4],[-5,-9],[0,-11],[5,-9],[9,-4]].map(([dx,dy])=>`<ellipse cx="${x+dx}" cy="${y+dy}" rx="2.400" ry="1.500" fill="#fff"/>`).join("")
+    +`<g class="${cls.trim()}" fill="none" stroke-linecap="round">${V.map((d,i)=>`<path d="${d}" stroke="#2a5a20" stroke-width="2.600" pathLength="40" style="animation-delay:${i*.25}s"/><path d="${d}" stroke="#9af07a" stroke-width="1.300" pathLength="40" style="animation-delay:${i*.25}s"/>`).join("")}</g>`
+    +`<g class="${cls?"vleaf":""}">${[[-3,5],[3,1],[-1,-3],[4,-6]].map(([dx,dy],i)=>`<ellipse cx="${x+dx}" cy="${y+dy}" rx="1.700" ry="1" fill="#c8f08a" transform="rotate(${i*50} ${x+dx} ${y+dy})"/>`).join("")}</g>`;
+}
+// after finding your way out of the Wilds: the Overgrown Arch stands faintly beside each starting camp, wrapped shut, its vines creeping out from it to behind the camp (on the far side from the Sim's portal, when both linger)
+function wildsOutArt(n){
+  const sd=n.x>200?-1:1,d=camp.escaped?-sd:sd,px=Math.max(18,Math.min(382,n.x+d*40)),py=n.y-4,f=v=>+v.toFixed(1);
+  let vines="",leaves="";for(let i=0;i<5;i++){const ex=n.x-d*(6+i*7),ey=n.y-14+i*5-(i%2)*6,mx=(px+ex)/2,my=Math.min(py,ey)-8-(i%3)*4;vines+=`M${f(px)} ${f(py+6)}Q${f(mx)} ${f(my)} ${f(ex)} ${f(ey)}`;leaves+=`<ellipse cx="${f(mx+(ex-mx)*.4)}" cy="${f(my+(ey-my)*.5)}" rx="2" ry="1.100" fill="#6ad08a" transform="rotate(${i*40} ${f(mx+(ex-mx)*.4)} ${f(my+(ey-my)*.5)})"/><circle cx="${f(ex)}" cy="${f(ey)}" r="1.100" fill="#b48aff" opacity=".7"/>`}
+  return `<g aria-hidden="true" pointer-events="none" opacity=".6"><ellipse cx="${px}" cy="${py}" rx="17" ry="16" fill="#6ad08a" opacity=".16"/><path d="${vines}" stroke="#1e4a1a" stroke-width="2.200" fill="none" opacity=".55" stroke-linecap="round"/><path d="${vines}" stroke="#7ac85a" stroke-width=".9" fill="none" opacity=".7" stroke-linecap="round"/>${leaves}
+    <g transform="translate(${px} ${py}) scale(.85) translate(${-px} ${-py})">${archIcon(px,py).replace(/#fff/g,"#e8f4d0")}</g></g>`;
+}
 // after escaping the Sim: the Closed Portal hangs faintly beside each starting camp, glitching, with a faint grid spreading from behind it to behind the camp
 function escapedArt(n){
   const d=n.x>200?-1:1,px=n.x+d*38,py=n.y-6,cx=(n.x+px)/2,cy=(n.y+py)/2,f=v=>+v.toFixed(1);
@@ -3844,7 +3915,8 @@ function renderWorld(){
   const stOf=n=>n.type==="camp"||done.has(n.id)?"cleared":canGo(camp.pos,n.id)?"open":"locked",reach=reachFrom(camp.pos);
   const label={cleared:"Cleared",open:"Battle ahead",locked:"Out of reach"},lab=n=>n.type==="boss"&&!SW&&isFinal()&&stOf(n)!=="cleared"?"Final battle":stOf(n)==="open"?(n.type==="heal"?"Healing spot":n.type==="shop"?"Merchant":NODE_B[n.b]?NODE_B[n.b][0]+" battle":label.open):label[stOf(n)];
   const SW=!!(camp.inSim&&DECO.sim); // the Warped Sim: neon paths and locations on a dark grid
-  const WW=!SW&&!!(camp.inWilds&&DECO.wilds); // the Warped Wilds: worn trails through a deep green forest
+  const WW=!SW&&!!(camp.inWilds&&DECO.wilds),shut=camp.archShut?" vwrap":""; // the Warped Wilds: worn trails through a deep green forest; shut: the arch has only just closed (its vines grow across once)
+  if(shut)setTimeout(()=>{delete camp.archShut},2600);
   const art=SW?simMapArt():WW?wildsMapArt():mapArt();let s="";
   EDGES.forEach(([a,b])=>{
     const A=WORLD[a],B=WORLD[b],both=stOf(A)==="cleared"&&stOf(B)==="cleared",hot=a===camp.pos||b===camp.pos;
@@ -3860,7 +3932,7 @@ function renderWorld(){
     const st=stOf(n),cl=st==="cleared"&&n.type!=="camp",fin=n.type==="boss"&&!SW&&isFinal(),r=fin?27:n.type==="boss"?21:17,S=fin?40:n.type==="boss"?30:24; // fin: the final stronghold, bigger and gilded
     const fill=SW?(n.type==="camp"?"#1a0c36":st==="locked"?"#3e3664":cl?"#2f8a6a":n.type==="heal"?"#1c6a80":n.type==="boss"?"#8a2058":n.b==="synth"?"#b08a10":n.b==="grid"?"#10081e":"#4e32a8"):fin?(cl?"#6aa55a":"#b01a20"):n.type==="camp"?"#8c7752":n.type==="heal"?(st==="locked"?"#a39a88":cl?"#9fc9a8":"#7fd1a0"):n.type==="shop"?(st==="locked"?"#a39a88":cl?"#c8b088":"#e0a84a"):cl?"#6aa55a":st==="open"?(n.type==="boss"?"#c4483a":NODE_B[n.b]?NODE_B[n.b][1]:"#e6b73f"):"#a39a88";
     const simCube=(x,y,c)=>`<path d="M${x} ${y-2.600}l2.250 1.300v2.600L${x} ${y+2.600}l-2.250-1.300v-2.600z" fill="${c?"#9ff0f0":"#e8dcff"}" stroke="#1c1238" stroke-width=".5"/>`;
-    const icon=WW&&n.type==="camp"?`<path d="M${n.x-8} ${n.y+9}q-3-15 8-18q11 3 8 18" stroke="#fff" stroke-width="2.800" fill="none" stroke-linecap="round"/><path d="M${n.x-5} ${n.y+9}q-1-10 5-12q6 2 5 12" stroke="#c8f08a" stroke-width="1.200" fill="none" opacity=".8"/>`+[[-9,-4],[-5,-9],[0,-11],[5,-9],[9,-4]].map(([dx,dy])=>`<ellipse cx="${n.x+dx}" cy="${n.y+dy}" rx="2.400" ry="1.500" fill="#fff"/>`).join("") // the Overgrown Arch
+    const icon=WW&&n.type==="camp"?archIcon(n.x,n.y,shut) // the Overgrown Arch, vines wrapped across it
       :SW&&n.type==="camp"?[...Array(10)].map((_,i)=>simCube(n.x+Math.cos(i*.628)*11,n.y+Math.sin(i*.628)*11.5,i===3)).join("")+`<path d="M${n.x-5.500} ${n.y-5.500}l11 11M${n.x+5.500} ${n.y-5.500}l-11 11" stroke="#fff" stroke-width="1.800" stroke-linecap="round" opacity=".85"/>` // the Closed Portal
       :n.b==="chasm"?`<path d="M${n.x-4} ${n.y-11}h6v4h3v5h-2v5h3v7h-7v-4h-3v-6h2v-5h-2z" fill="#06040e" stroke="#c8a8ff" stroke-width="1.400" stroke-linejoin="miter"/><path d="M${n.x+2} ${n.y-7}h3v5h-2v5h3v7" fill="none" stroke="#7ae8ff" stroke-width="1.200"/>` // a stepped rift
       :n.b==="grid"?`<path d="M${n.x-9} ${n.y-9}h18v18h-18zM${n.x-3} ${n.y-9}v18M${n.x+3} ${n.y-9}v18M${n.x-9} ${n.y-3}h18M${n.x-9} ${n.y+3}h18" fill="none" stroke="#c86aff" stroke-width="1.300"/><circle cx="${n.x+3}" cy="${n.y-3}" r="1.600" fill="#3ad8ff"/><circle cx="${n.x-3}" cy="${n.y+3}" r="1.300" fill="#ffe94a"/>` // a neon lattice
@@ -3885,6 +3957,7 @@ function renderWorld(){
       :n.b==="wildlands"?`<path d="M${n.x-8} ${n.y+9}q-1-9 5-11t4-9" stroke="#fff" stroke-width="2.400" fill="none" stroke-linecap="round"/><path d="M${n.x+1} ${n.y-11}a3 3 0 1 1 3 3" stroke="#fff" stroke-width="1.800" fill="none" stroke-linecap="round"/><ellipse cx="${n.x+5}" cy="${n.y+1}" rx="4.500" ry="2.200" fill="#fff" transform="rotate(-30 ${n.x+5} ${n.y+1})"/><ellipse cx="${n.x-7}" cy="${n.y-3}" rx="4" ry="2" fill="#fff" transform="rotate(35 ${n.x-7} ${n.y-3})"/><path d="M${n.x-4} ${n.y+5}l2.500-.800M${n.x-1} ${n.y-6}l2.500 .500" stroke="#fff" stroke-width="1.300" stroke-linecap="round"/>` // a curling, thorny vine
       :n.b==="wild"?nest(ICON.W,n.x-S/2,n.y-S/2,S,"--ic:#fff;--tc:#6b4a26")
       :`<path d="M${n.x-8} ${n.y-8}L${n.x+8} ${n.y+8}M${n.x+8} ${n.y-8}L${n.x-8} ${n.y+8}" stroke="#3b2a14" stroke-width="3" stroke-linecap="round"/>`;
+    if(n.type==="camp"&&!SW&&!WW&&camp.wildsOut)s+=wildsOutArt(n);
     if(n.type==="camp"&&!SW&&camp.escaped)s+=escapedArt(n);
     if(fin)s+=finalGlow(n,r);
     s+=`<g class="wn" data-id="${n.id}" role="button" tabindex="0" aria-label="${n.name}, ${n.id===camp.pos?"you are here":lab(n)}">`
@@ -4117,7 +4190,7 @@ const WILDS_CHANCE=.15,WILDS_ESC=1,WILDS_B=["wildlands"]; // WILDS_ESC: the Wild
 const WILDS_CAMP_TEXT="The arch has grown shut behind you, branch knotted into branch. The only way out is through.",WILDS_BOSS_TEXT="The heart of the Wilds, where the magic runs thickest. Whoever holds it holds the way out.";
 const wildsDue=()=>unlocks.wildwilds&&!camp.wildsGate&&!camp.inWilds&&!camp.inSim&&camp.region>=3&&camp.region<=6&&camp.pos===0&&Math.random()<WILDS_CHANCE;
 function enterWilds(){ // the region you've just reached becomes the Warped Wilds (its map comes from genWorld)
-  delete camp.wildsIn;camp.inWilds=1;camp.pos=0;camp.cleared=[];camp.done=false;camp.sel=0;camp.news="You stepped through the arch into the Warped Wilds.";
+  delete camp.wildsIn;camp.inWilds=1;camp.archShut=1;camp.pos=0;camp.cleared=[];camp.done=false;camp.sel=0;camp.news="You stepped through the arch into the Warped Wilds.";
   genWorld();saveCamp();openWorld();
 }
 // the Wilds' scenery: big forest patches, a few warped trees, glowing mushroom rings, motes of loose magic and now and then a stream, all kept clear of locations, labels and paths
@@ -4420,6 +4493,8 @@ function start(o={}){
     let gl=0;const glN=o.boss&&camp.escaped&&!camp.inSim&&Math.random()<ESC_GLITCH?1+(Math.random()<ESC_GLITCH_TWO?1:0):0,corrupt=()=>camp.inSim||simBattle()||gl<glN; // after escaping, 1-2 of a boss's Elites may come back Corrupted
     units.filter(u=>u.team==="f").sort(()=>Math.random()-.5).slice(0,E.elite).forEach(u=>{u.elite=1;if(corrupt()){u.glitch=Object.keys(GLITCH)[Math.floor(Math.random()*3)];u.hp+=SIM_ELITE_HP;gl++}else u.hp+=ELITE_HP});
     if(o.boss&&!camp.inSim&&gl)relicUsed.glitchBoss=1; // ...and then one of its spoils comes from the Sim
+    if(camp.inWilds){const fs=units.filter(u=>u.team==="f"&&!(o.boss&&u.x===5&&u.y===1)),pl=fs.filter(u=>!u.elite),u=(pl.length?pl:fs)[Math.floor(Math.random()*(pl.length||fs.length))]; // the Warped Wilds: one of the enemy's units is a Warped Beast
+      if(u){u.t=FERAL_TYPES[Math.floor(Math.random()*FERAL_TYPES.length)];u.feral=Object.keys(FERAL)[Math.floor(Math.random()*3)];u.hp=TYPES[u.t].hp+(u.elite?(u.glitch?SIM_ELITE_HP:ELITE_HP):0)}}
     if(o.boss)foeLoadout(ER);
     if(RELIC.has("gbook")){const ys=units.filter(u=>u.team==="y"&&!u.auto);if(ys.length){const u=ys[Math.floor(Math.random()*ys.length)];u.glitch=Object.keys(GLITCH)[Math.floor(Math.random()*3)];u.pages=1}} // the Glitchy Book's Corrupted Pages
   }
@@ -4464,7 +4539,7 @@ function start(o={}){
     const t=WILD[Math.floor(Math.random()*WILD.length)];
     for(let n=0;n<80&&!wild;n++){
       const x=Math.floor(Math.random()*W),y=4+Math.floor(Math.random()*4);
-      if(!solid(x+","+y)&&!at(x,y)){wild={t,team:"w",x,y,hp:TYPES[t].hp,moved:0,acted:0};units.push(wild)}
+      if(!solid(x+","+y)&&!at(x,y)){wild=feralize({t,team:"w",x,y,hp:TYPES[t].hp,moved:0,acted:0});units.push(wild)}
     }
   }
   const loc=camp.battle?WORLD[camp.battle.node].name+(o.boss?" (boss battle). ":". "):"";
@@ -5481,7 +5556,7 @@ $("tnew").onclick=()=>{gid++;$("triumph").hidden=true;camp.battle=null;openCampS
 // keep the army, its health, relics, gold and record, and march on to a freshly rolled map
 $("ttravel").onclick=()=>{
   gid++;$("triumph").hidden=true;camp.battle=null;
-  camp.mapsPrior+=battlesWon();camp.region+=1;camp.pos=0;camp.cleared=[];camp.done=false;camp.sel=0;if(camp.inSim)camp.escaped=1;camp.inSim=0;camp.inWilds=0; // escaped: the Closed Portal lingers by every camp from now on
+  camp.mapsPrior+=battlesWon();camp.region+=1;camp.pos=0;camp.cleared=[];camp.done=false;camp.sel=0;if(camp.inSim)camp.escaped=1;if(camp.inWilds)camp.wildsOut=1;camp.inSim=0;camp.inWilds=0; // wildsOut: the arch lingers by every camp from now on // escaped: the Closed Portal lingers by every camp from now on
   genWorld();saveCamp();openWorld();
 };
 $("tmenu").onclick=()=>{gid++;$("triumph").hidden=true;camp.battle=null;show("menu");if(conqNew){conqNew=false;discover()}}; // a reward unlocked by a conquest is announced back on the menu
@@ -5715,6 +5790,7 @@ const UNLOCKS=[
  {id:"vfalcata",relic:"vfalcata",hint:"His men are well funded."},
  {id:"conquistador",unit:"Q",hint:"The expedition begins anew."},
  {id:"spoils",spoils:1,hint:"Claim the last stronghold, and its spoils follow you home."},
+ {id:"wildwilds",wilds:1,secret:1},
  {id:"warpedsim",sim:1,secret:1},
  {id:"druid",relic:"druid",hint:"The wild things know who walks their land."},
  {id:"fskull",relic:"fskull",hint:"Not every grave sleeps soundly."},
@@ -5727,6 +5803,7 @@ const unlockInfo=o=>o.chal?(c=>({name:c.name,art:`<div class="tsw" style="${TERR
   :o.relic?{name:unlocks.vmorion?RELICS[o.relic].name:RELICS[o.relic].name.replace(/^Vasco's/,"???'s"),art:relicIcon(o.relic,44),desc:RELICS[o.relic].desc+` ${/^[AEIOU]/.test(RARITY[RELICS[o.relic].r][0])?"An":"A"} ${RARITY[RELICS[o.relic].r][0].toLowerCase()} relic `+(RELICS[o.relic].find?"found only in battle, never offered as a reward.":"that can be offered after campaign victories.")}
   :o.spoils?{name:"Conqueror's Spoils",art:LAUREL,desc:"Begin every campaign by choosing one of three Common relics."}
   :o.qrel?{name:"Relics?",art:QREL_ART,desc:"A new box when setting up a Quick Battle. Tick it, and before the fight you choose 3 of 6 relics, while the enemy carries 3 of its own."}
+  :o.wilds?{name:"The Warped Wilds",art:`<div class="tsw" style="background:#3f6a32">${VINE_V[0]}</div>`,desc:"A forest where magic has overflowed, and nature with it. After you take the spoils of a campaign boss in regions 2 to 5, an arch of living wood may stand across the road: step through for a short region of Wildlands, swamps and Warped Beasts, ending at the Forest Palace."}
   :o.sim?{name:"The Warped Sim",art:`<div class="tsw" style="background:#2e2752">${SIM_ICON}</div>`,desc:"A rift into a land that isn't quite real. After you defeat a campaign boss in regions 5 to 8, a portal may open: step through for a short, harsh region of glitched terrain, Chaos Springs and Light Bricks, with spoils to match."}
   :o.biome?{name:BIOME_NAME[o.biome],art:terrainSwatch(o.terrain),desc:BTEXT[o.biome]+" Can appear in campaigns and quick battles."}
   :o.terrain?{name:TERRAIN[o.terrain].name,art:terrainSwatch(o.terrain),desc:TERRAIN[o.terrain].desc}
