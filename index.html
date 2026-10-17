@@ -1710,7 +1710,7 @@ const fellAt=f=>{const u=[...new Set(f)];if(u.length<3)return listAnd(u);for(let
 const limitNames=()=>listAnd(poolNow().split("").filter(t=>LIMIT1.includes(t)).map(t=>"the "+cap(NAME[t])));
 
 // a campaign with nothing in it yet: the one list of what a new campaign starts from
-const freshCamp=()=>({cfg:null,pos:0,cleared:[],done:false,battle:null,sel:null,hp:null,gold:0,relics:[],items:[],offer:null,offerBoss:false,offerStart:0,found:[],lastGold:0,kills:[],region:1,mapsPrior:0,bossUsed:{loc:[],name:[]},merc:null,scout:0,portal:0,portalIn:0,inSim:0,escaped:0,mercNote:"",news:null});
+const freshCamp=()=>({cfg:null,pos:0,cleared:[],done:false,battle:null,sel:null,hp:null,gold:0,relics:[],items:[],offer:null,offerBoss:false,offerStart:0,found:[],lastGold:0,kills:[],region:1,mapsPrior:0,bossUsed:{loc:[],name:[]},merc:null,scout:0,portal:0,portalIn:0,inSim:0,escaped:0,inWilds:0,wildsGate:0,wildsIn:0,mercNote:"",news:null});
 let camp=freshCamp(),campSetup=false,endMode="quick",worldLock=false,choice=null,locked=false,tile=null,info=null,paused=false,gid=0,seed=0,col={y:"blue",f:"red"},insp=null,units=[],sel=null,turn="y",over=false,busy=false,mode=null,mods={y:null,f:null},tpUsed={y:0,f:0},pick={t:null,m:null};
 const prevPos=new WeakMap();
 const $=id=>document.getElementById(id),board=$("board");
@@ -3574,6 +3574,8 @@ const NAMES={
  chasm:["The Shattered Divide","Null Rift","The Broken Seam","Fault Line Sigma","The Split","The Long Rift","The Open Code"],
  grid:["Latticework","No-man's-land","Error","Silence Zone","#001","#004","Sector Zero","The Unrendered","#404"],
  synth:["Neon Drift","Afterglow Expanse","Starlit Grid","Chromewave Flats","The Glowing Horizon","Neon Latticework","Gridline Way"],
+ wildsheal:["Sunlit Glade","Mossbed Hollow","The Quiet Spring","Fae Ring","Hermit's Hollow","Dewdrop Clearing"], // the Warped Wilds' healing spots
+ wildsboss:["The Heartwood","The Elder Grove","Thornkeep","The Great Burrow","Rootcrown Hollow"], // and its stronghold
  simheal:["Restore Point","Patch Node","Recovery Cache","Stabile Zone","Green Zone","Anti-Corruption Sphere"], // the Warped Sim's healing spots
  simboss:["The Core Citadel","Fortress of Fading Code","The Final Render","Bit Fortress","Neon Walls","|3.0.$$"], // and its stronghold
  boss:["Blackspire","Ironcrown Citadel","Skullcrag Fortress","Duskhold","Ravenmoor Keep","Ashfall Citadel"]}; // boss locations
@@ -3587,14 +3589,14 @@ function fresh(list,used){
 // Builds a new random map: camp at the bottom, three rows of battles, a boss at the top.
 function genWorld(){
   if(camp.inSim)return genSimWorld();
-  const R=n=>Math.floor(Math.random()*n),rr=(a,b)=>a+Math.random()*(b-a),used=new Set();
-  const nodes=[{id:0,name:"Camp",x:Math.round(rr(50,350)),y:466,type:"camp",text:"Your starting camp. Nothing to fight here."}];
+  const R=n=>Math.floor(Math.random()*n),rr=(a,b)=>a+Math.random()*(b-a),used=new Set(),WL=!!camp.inWilds; // WL: the Warped Wilds (same layout; its own locations, no Merchant, and its own scenery)
+  const nodes=[WL?{id:0,name:"The Overgrown Arch",x:Math.round(rr(50,350)),y:466,type:"camp",text:WILDS_CAMP_TEXT}:{id:0,name:"Camp",x:Math.round(rr(50,350)),y:466,type:"camp",text:"Your starting camp. Nothing to fight here."}];
   const layers=[[0]];let bag=[];
-  const nextBiome=()=>{if(!bag.length)bag=["forest","plain","fort","wild","swamp",...(unlocks.graveyard?["graveyard"]:[]),...(unlocks.volcanic?["volcanic"]:[]),...(unlocks.sakura?["sakura"]:[])].sort(()=>Math.random()-.5);return bag.pop()};
+  const nextBiome=()=>{if(!bag.length)bag=WL?WILDS_B.slice().sort(()=>Math.random()-.5):["forest","plain","fort","wild","swamp",...(unlocks.graveyard?["graveyard"]:[]),...(unlocks.volcanic?["volcanic"]:[]),...(unlocks.sakura?["sakura"]:[])].sort(()=>Math.random()-.5);return bag.pop()};
   [378,292,206].forEach(y0=>{
     const c=2+R(2),ids=[];
     for(let i=0;i<c;i++){
-      let b=nextBiome();if(b==="sakura"&&camp.escaped&&Math.random()<ESC_SIM_BIOME)b=!nodes.some(n=>n.b==="grid")&&Math.random()<1/3?"grid":Math.random()<.5?"chasm":"synth"; // the Sim leaks out after you escape it (never more than one Grid)
+      let b=nextBiome();if(!WL&&b==="sakura"&&camp.escaped&&Math.random()<ESC_SIM_BIOME)b=!nodes.some(n=>n.b==="grid")&&Math.random()<1/3?"grid":Math.random()<.5?"chasm":"synth"; // the Sim leaks out after you escape it (never more than one Grid)
       const pool=NAMES[b].filter(n=>!used.has(n)),nm=pool[R(pool.length)];used.add(nm);
       ids.push(nodes.length);
       nodes.push({id:nodes.length,name:nm,x:Math.round(40+320*(i+.5)/c+rr(-10,10)),y:Math.round(y0+rr(-2,2)),type:"battle",b,text:BTEXT[b]});
@@ -3602,18 +3604,18 @@ function genWorld(){
     layers.push(ids);
   });
   if(!camp.bossUsed)camp.bossUsed={loc:[],name:[]};
-  nodes.push({id:nodes.length,name:fresh(NAMES.boss,camp.bossUsed.loc),boss:fresh(BOSS_NAMES,camp.bossUsed.name),x:Math.round(rr(140,260)),y:isFinal()?104:80,type:"boss",b:"boss",text:"The enemy stronghold. A fortress is guaranteed, and the enemy brings an extra unit."});
+  nodes.push({id:nodes.length,name:WL?NAMES.wildsboss[R(NAMES.wildsboss.length)]:fresh(NAMES.boss,camp.bossUsed.loc),boss:fresh(BOSS_NAMES,camp.bossUsed.name),x:Math.round(rr(140,260)),y:isFinal()?104:80,type:"boss",b:"boss",text:WL?WILDS_BOSS_TEXT:"The enemy stronghold. A fortress is guaranteed, and the enemy brings an extra unit."});
   layers.push([nodes.length-1]);
-  const HN=NAMES.heal.slice().sort(()=>Math.random()-.5),pl=[2+R(2)]; // exactly one healing spot per map
+  const HN=NAMES[WL?"wildsheal":"heal"].slice().sort(()=>Math.random()-.5),pl=[2+R(2)]; // exactly one healing spot per map
   pl.forEach((li,k)=>{const n=nodes[layers[li][R(layers[li].length)]];Object.assign(n,{name:HN[k],type:"heal",b:"heal",text:HEAL_TEXT,herb:!!unlocks.campsite&&Math.random()<HERB_SPOT})}); // herb: Herbert is quietly camped here
-  { // exactly one Merchant per map, in a different row from the healing spot
+  if(!WL){ // exactly one Merchant per map, in a different row from the healing spot (none in the Wilds)
     const li=[1,2,3].filter(l=>!pl.includes(l))[R(2)],c=layers[li].map(i=>nodes[i]).filter(n=>n.type==="battle");
     if(c.length)Object.assign(c[R(c.length)],{name:["Crossroads Market","Pedlar's Rest","Wayside Wagon","Lantern Crossing"][R(4)],type:"shop",b:"shop",text:SHOP_TEXT});
   }
-  const WN=["Mirewater Fen","Sodden Reach","Heron's Marsh","Drowned Meadow"].sort(()=>Math.random()-.5);
+  const WN=(WL?NAMES.swamp:["Mirewater Fen","Sodden Reach","Heron's Marsh","Drowned Meadow"]).slice().sort(()=>Math.random()-.5),WB=WL?"swamp":"wetlands"; // the Wilds: 1 or 2 swamps instead of wetlands
   [1,2,3].sort(()=>Math.random()-.5).slice(0,1+(Math.random()<.4?1:0)).forEach((li,k)=>{ // 1 or 2 wetlands, never in the same row
     const c=layers[li].map(i=>nodes[i]).filter(n=>n.type==="battle");
-    if(c.length)Object.assign(c[R(c.length)],{name:WN[k],b:"wetlands",text:BTEXT.wetlands});
+    if(c.length)Object.assign(c[R(c.length)],{name:WN[k],b:WB,text:BTEXT[WB]});
   });
   // labels are ~7.4 units per character at 12px bold: keep same-row neighbours far enough apart, and labels inside the map
   const half=n=>n.name.length*3.7+6;
@@ -3657,6 +3659,7 @@ function genWorld(){
   const bare=(x,y)=>ranges.every(c=>c.every(([a,b])=>Math.hypot(a-x,b-y)>30)),dry=([x,y])=>bare(x,y)&&riv.every(([a,b])=>Math.hypot(a-x,b-y)>22); // other scenery keeps off the mountain chains and the river
   const spot=(c,r)=>{const out=[];for(let t=0;t<400&&out.length<c;t++){const x=rr(20,380),y=rr(40,500);if(open(x,y,r)&&bare(x,y)&&out.every(([p,q])=>Math.hypot(p-x,q-y)>24))out.push([Math.round(x),Math.round(y)])}return out};
   const reeds=[];for(let t=0;t<30&&reeds.length<6;t++){const[x,y]=riv[2+R(37)],o=Math.random()<.5?-12:12;if(x>20&&x<380&&nodes.every(n=>Math.hypot(n.x-x,n.y-y-o)>34))reeds.push([Math.round(x),Math.round(y+o)])}
+  if(WL)return wildsDeco(nodes,E,half,segD,R,rr);
   DECO={trees:scatter(12).filter(dry).concat(spot(6,12)),rocks:scatter(5).filter(dry),ranges,hills:spot(7,12),grass:spot(14,6),reeds,river:`M-10 ${Y[0]} C 70 ${Y[1]} 120 ${Y[2]} 220 ${Y[3]} S 340 ${Y[4]} 420 ${Y[5]}`};
 }
 /* ---------- The Warped Sim's world map: short and harsh ----------
@@ -3724,8 +3727,8 @@ const edgeOf=(a,b)=>EDGES.find(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a)); /
 const canGo=(a,b)=>{const e=edgeOf(a,b);return !!e&&(!e[2]||b===e[1])};
 function reachFrom(id){const seen=new Set([id]),q=[id];while(q.length){const a=q.shift();WORLD.forEach(n=>{if(!seen.has(n.id)&&canGo(a,n.id)){seen.add(n.id);q.push(n.id)}})}return seen}
 const SAVE="skirmish-campaign";
-function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,items:camp.items,offer:camp.offer,offerBoss:camp.offerBoss,offerStart:camp.offerStart||0,found:camp.found,kills:camp.kills,names:camp.names,wounds:camp.wounds,honors:camp.honors,falls:camp.falls,news:camp.news,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,merc:camp.merc||null,scout:camp.scout||0,portal:camp.portal||0,portalIn:camp.portalIn||0,inSim:camp.inSim||0,escaped:camp.escaped||0,jewel:camp.jewel??null,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
-function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],items:d.items||[],offer:d.offer||null,offerBoss:!!d.offerBoss,offerStart:d.offerStart||0,found:Array.isArray(d.found)?d.found:d.found?[d.found]:[],kills:d.kills||[],names:d.names||null,wounds:d.wounds||[],honors:d.honors||[],falls:d.falls||[],news:d.news||null,region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},merc:d.merc||null,scout:d.scout||0,portal:d.portal||0,portalIn:d.portalIn||0,inSim:d.inSim||0,escaped:d.escaped||0,jewel:d.jewel??null,mercNote:"",lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
+function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,items:camp.items,offer:camp.offer,offerBoss:camp.offerBoss,offerStart:camp.offerStart||0,found:camp.found,kills:camp.kills,names:camp.names,wounds:camp.wounds,honors:camp.honors,falls:camp.falls,news:camp.news,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,merc:camp.merc||null,scout:camp.scout||0,portal:camp.portal||0,portalIn:camp.portalIn||0,inSim:camp.inSim||0,escaped:camp.escaped||0,inWilds:camp.inWilds||0,wildsGate:camp.wildsGate||0,wildsIn:camp.wildsIn||0,jewel:camp.jewel??null,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
+function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],items:d.items||[],offer:d.offer||null,offerBoss:!!d.offerBoss,offerStart:d.offerStart||0,found:Array.isArray(d.found)?d.found:d.found?[d.found]:[],kills:d.kills||[],names:d.names||null,wounds:d.wounds||[],honors:d.honors||[],falls:d.falls||[],news:d.news||null,region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},merc:d.merc||null,scout:d.scout||0,portal:d.portal||0,portalIn:d.portalIn||0,inSim:d.inSim||0,escaped:d.escaped||0,inWilds:d.inWilds||0,wildsGate:d.wildsGate||0,wildsIn:d.wildsIn||0,jewel:d.jewel??null,mercNote:"",lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
 const nest=(str,x,y,w,style="")=>str.replace(/<svg[^>]*>/,`<svg x="${x}" y="${y}" width="${w}" height="${w}" viewBox="0 0 40 40" style="${style}">`);
 function mapArt(){
   let g='<defs><radialGradient id="pg" cx=".5" cy=".4" r=".85"><stop offset="0" stop-color="#eadfb8"/><stop offset="1" stop-color="#cbb78a"/></radialGradient><filter id="wsh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="1.200" dy="2.400" stdDeviation="1.600" flood-color="#3a2810" flood-opacity=".45"/></filter><radialGradient id="wnode" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></radialGradient><filter id="wblur"><feGaussianBlur stdDeviation="6"/></filter><filter id="wblur2" x="-50%" y="-100%" width="200%" height="300%"><feGaussianBlur stdDeviation="2.500"/></filter><linearGradient id="wmt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a7656"/><stop offset=".6" stop-color="#9c8762" stop-opacity=".9"/><stop offset="1" stop-color="#b8a27a" stop-opacity="0"/></linearGradient></defs><rect width="400" height="520" fill="url(#pg)"/>';
@@ -3797,10 +3800,11 @@ function renderWorld(){
   const stOf=n=>n.type==="camp"||done.has(n.id)?"cleared":canGo(camp.pos,n.id)?"open":"locked",reach=reachFrom(camp.pos);
   const label={cleared:"Cleared",open:"Battle ahead",locked:"Out of reach"},lab=n=>n.type==="boss"&&!SW&&isFinal()&&stOf(n)!=="cleared"?"Final battle":stOf(n)==="open"?(n.type==="heal"?"Healing spot":n.type==="shop"?"Merchant":NODE_B[n.b]?NODE_B[n.b][0]+" battle":label.open):label[stOf(n)];
   const SW=!!(camp.inSim&&DECO.sim); // the Warped Sim: neon paths and locations on a dark grid
-  const art=SW?simMapArt():mapArt();let s="";
+  const WW=!SW&&!!(camp.inWilds&&DECO.wilds); // the Warped Wilds: worn trails through a deep green forest
+  const art=SW?simMapArt():WW?wildsMapArt():mapArt();let s="";
   EDGES.forEach(([a,b])=>{
     const A=WORLD[a],B=WORLD[b],both=stOf(A)==="cleared"&&stOf(B)==="cleared",hot=a===camp.pos||b===camp.pos;
-    s+=`<line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke="${SW?(both?"#5ae0b0":hot?"#f2eaff":"#b8a2ff"):both?"#4f7d3a":hot?"#3b2a14":"#8b6b3e"}" stroke-width="${hot?5:4}" stroke-linecap="round"${both?"":` stroke-dasharray="${hot?"9 6":"2 8"}"`}/>`;
+    s+=`<line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke="${SW?(both?"#5ae0b0":hot?"#f2eaff":"#b8a2ff"):WW?(both?"#c8f08a":hot?"#fff6dc":"#ecdcb0"):both?"#4f7d3a":hot?"#3b2a14":"#8b6b3e"}" stroke-width="${hot?5:4}" stroke-linecap="round"${both?"":` stroke-dasharray="${hot?"9 6":"2 8"}"`}/>`;
   });
   EDGES.forEach(([a,b,one])=>{if(!one)return; // one-way paths: worn, hand-inked chevrons pointing toward the boss (neon in the Sim)
     const A=WORLD[a],B=WORLD[b],ang=Math.atan2(B.y-A.y,B.x-A.x)*180/Math.PI,j=i=>((a*37+b*17+i*11)%10)/10;
@@ -3812,7 +3816,8 @@ function renderWorld(){
     const st=stOf(n),cl=st==="cleared"&&n.type!=="camp",fin=n.type==="boss"&&!SW&&isFinal(),r=fin?27:n.type==="boss"?21:17,S=fin?40:n.type==="boss"?30:24; // fin: the final stronghold, bigger and gilded
     const fill=SW?(n.type==="camp"?"#1a0c36":st==="locked"?"#3e3664":cl?"#2f8a6a":n.type==="heal"?"#1c6a80":n.type==="boss"?"#8a2058":n.b==="synth"?"#b08a10":n.b==="grid"?"#10081e":"#4e32a8"):fin?(cl?"#6aa55a":"#b01a20"):n.type==="camp"?"#8c7752":n.type==="heal"?(st==="locked"?"#a39a88":cl?"#9fc9a8":"#7fd1a0"):n.type==="shop"?(st==="locked"?"#a39a88":cl?"#c8b088":"#e0a84a"):cl?"#6aa55a":st==="open"?(n.type==="boss"?"#c4483a":NODE_B[n.b]?NODE_B[n.b][1]:"#e6b73f"):"#a39a88";
     const simCube=(x,y,c)=>`<path d="M${x} ${y-2.600}l2.250 1.300v2.600L${x} ${y+2.600}l-2.250-1.300v-2.600z" fill="${c?"#9ff0f0":"#e8dcff"}" stroke="#1c1238" stroke-width=".5"/>`;
-    const icon=SW&&n.type==="camp"?[...Array(10)].map((_,i)=>simCube(n.x+Math.cos(i*.628)*11,n.y+Math.sin(i*.628)*11.5,i===3)).join("")+`<path d="M${n.x-5.500} ${n.y-5.500}l11 11M${n.x+5.500} ${n.y-5.500}l-11 11" stroke="#fff" stroke-width="1.800" stroke-linecap="round" opacity=".85"/>` // the Closed Portal
+    const icon=WW&&n.type==="camp"?`<path d="M${n.x-8} ${n.y+9}q-3-15 8-18q11 3 8 18" stroke="#fff" stroke-width="2.800" fill="none" stroke-linecap="round"/><path d="M${n.x-5} ${n.y+9}q-1-10 5-12q6 2 5 12" stroke="#c8f08a" stroke-width="1.200" fill="none" opacity=".8"/>`+[[-9,-4],[-5,-9],[0,-11],[5,-9],[9,-4]].map(([dx,dy])=>`<ellipse cx="${n.x+dx}" cy="${n.y+dy}" rx="2.400" ry="1.500" fill="#fff"/>`).join("") // the Overgrown Arch
+      :SW&&n.type==="camp"?[...Array(10)].map((_,i)=>simCube(n.x+Math.cos(i*.628)*11,n.y+Math.sin(i*.628)*11.5,i===3)).join("")+`<path d="M${n.x-5.500} ${n.y-5.500}l11 11M${n.x+5.500} ${n.y-5.500}l-11 11" stroke="#fff" stroke-width="1.800" stroke-linecap="round" opacity=".85"/>` // the Closed Portal
       :n.b==="chasm"?`<path d="M${n.x-4} ${n.y-11}h6v4h3v5h-2v5h3v7h-7v-4h-3v-6h2v-5h-2z" fill="#06040e" stroke="#c8a8ff" stroke-width="1.400" stroke-linejoin="miter"/><path d="M${n.x+2} ${n.y-7}h3v5h-2v5h3v7" fill="none" stroke="#7ae8ff" stroke-width="1.200"/>` // a stepped rift
       :n.b==="grid"?`<path d="M${n.x-9} ${n.y-9}h18v18h-18zM${n.x-3} ${n.y-9}v18M${n.x+3} ${n.y-9}v18M${n.x-9} ${n.y-3}h18M${n.x-9} ${n.y+3}h18" fill="none" stroke="#c86aff" stroke-width="1.300"/><circle cx="${n.x+3}" cy="${n.y-3}" r="1.600" fill="#3ad8ff"/><circle cx="${n.x-3}" cy="${n.y+3}" r="1.300" fill="#ffe94a"/>` // a neon lattice
       :n.b==="synth"?`<rect x="${n.x-9}" y="${n.y-6}" width="18" height="12" rx="1.600" fill="#ffe94a" stroke="#5a4000" stroke-width="1.300"/><path d="M${n.x-9} ${n.y}h18M${n.x-3} ${n.y-6}v6M${n.x+3} ${n.y}v6" stroke="#8a6a00" stroke-width="1"/><path d="M${n.x-8} ${n.y-4.800}h16" stroke="#fffde8" stroke-width=".9"/>` // a Light Brick
@@ -3857,7 +3862,7 @@ function renderWorld(){
   $("warmy").innerHTML=armyTypes().map((t,i)=>{const mx=campMax(i),h=Math.min(mx,camp.hp&&camp.hp[i]!=null?camp.hp[i]:mx),w=woundsOf(i);return `<span class="stat" title="${heroName(i)}">${camp.names?camp.names[i]:cap(NAME[t])} <small>${cap(NAME[t])}</small> <b style="color:${h<=mx*.25?"#d64b3a":"inherit"}">${h}/${mx}</b>${w?`<i class="wnd" aria-label="${w} wound${w>1?"s":""}">${"\u2020".repeat(w)}</i>`:""}</span>`}).join("")
     +(camp.merc?`<span class="stat" title="${mercLine(camp.merc)}">${camp.merc.name} <small>Mercenary ${NAME[camp.merc.t]}, ${camp.merc.left} battle${camp.merc.left>1?"s":""} left</small> <b>${camp.merc.hp}/${camp.merc.st.hp}</b></span>`:"");
   const total=WORLD.filter(n=>n.type!=="camp"&&(done.has(n.id)||reach.has(n.id))).length,lost=WORLD.filter(n=>n.type!=="camp"&&!done.has(n.id)&&!reach.has(n.id)).length;
-  $("wtitle").textContent=`${SW?"The Warped Sim":"World Map"} \u2013 Region ${camp.region||1}${!SW&&isFinal()?" \u00b7 Final Region":""}`;
+  $("wtitle").textContent=`${SW?"The Warped Sim":camp.inWilds?"The Warped Wilds":"World Map"} \u2013 Region ${camp.region||1}${!SW&&isFinal()?" \u00b7 Final Region":""}`;
   $("wprog").textContent=camp.done?"Campaign complete! You defeated the boss.":`Locations cleared: ${camp.cleared.length} of ${total}${lost?` (${lost} cut off)`:""}. Tap a glowing location to travel there.`+(camp.mercNote?" "+camp.mercNote:"");
   const n=WORLD[camp.sel],st=stOf(n),here=n.id===camp.pos,can=!here&&canGo(camp.pos,n.id),e=can&&edgeOf(camp.pos,n.id),cut=!here&&!done.has(n.id)&&!reach.has(n.id);
   const btn=can?(st==="cleared"?"Travel Here":n.type==="heal"?"Rest Here":n.type==="shop"?"Visit the Merchant":"Travel to Battle"):"";
@@ -3873,7 +3878,7 @@ function healFx(n){ // a gentle glow at the healing spot: rings drift outward an
   $("wm").before(g);setTimeout(()=>g.remove(),2600);
   $("warmy").querySelectorAll(".stat").forEach(c=>c.classList.add("healed"));
 }
-function openWorld(){if(camp.portalIn&&$("relinfo").hidden)return enterSim(); // chose to enter the portal, then left before stepping through
+function openWorld(){if(camp.portalIn&&$("relinfo").hidden)return enterSim();if(camp.wildsIn&&$("relinfo").hidden)return enterWilds(); // chose to enter the portal, then left before stepping through
   camp.battle=null;camp.sel=camp.pos;if(camp.cfg&&!camp.names){rollNames();saveCamp()} // campaigns from before names existed
   renderWorld();if(camp.news){$("wprog").textContent=camp.news;camp.news=null;saveCamp()}show("world");renderGold();renderRelics();renderItems();showRelicOffer()}
 // The Beggar: a road-worn skeleton in ruined, oddly ornate armor, a battered kettle helm with a tattered golden plume, holding an old sack open; his seat matches the land ahead
@@ -4060,6 +4065,86 @@ function enterSim(){ // the region you've just reached becomes the Warped Sim (i
   delete camp.portalIn;camp.inSim=1;camp.pos=0;camp.cleared=[];camp.done=false;camp.sel=0;camp.news="You stepped out of the portal into the Warped Sim.";
   genWorld();saveCamp();openWorld();
 }
+/* ---------- The Warped Wilds (unlocked by "wildwilds") ----------
+   After you choose a boss's spoils from regions 2 to 5 (so, on arriving in regions 3 to 6), an arch of living wood may stand across the road, once per campaign whatever you choose.
+   Going through turns the region you've just reached into the Warped Wilds: nature taken to extremes by an overflow of magic (and, faintly, the Sim). Backing away leaves it as it is. */
+const WILDS_CHANCE=.15,WILDS_ESC=1,WILDS_B=["wildlands"]; // WILDS_ESC: the Wilds' enemies escalate as if this many regions further on; WILDS_B: the Wilds' own biomes (its 1-2 swamps come separately)
+const WILDS_CAMP_TEXT="The arch has grown shut behind you, branch knotted into branch. The only way out is through.",WILDS_BOSS_TEXT="The heart of the Wilds, where the magic runs thickest. Whoever holds it holds the way out.";
+const wildsDue=()=>unlocks.wildwilds&&!camp.wildsGate&&!camp.inWilds&&!camp.inSim&&camp.region>=3&&camp.region<=6&&camp.pos===0&&Math.random()<WILDS_CHANCE;
+function enterWilds(){ // the region you've just reached becomes the Warped Wilds (its map comes from genWorld)
+  delete camp.wildsIn;camp.inWilds=1;camp.pos=0;camp.cleared=[];camp.done=false;camp.sel=0;camp.news="You stepped through the arch into the Warped Wilds.";
+  genWorld();saveCamp();openWorld();
+}
+// the Wilds' scenery: big forest patches, a few warped trees, glowing mushroom rings, motes of loose magic and now and then a stream, all kept clear of locations, labels and paths
+function wildsDeco(nodes,E,half,segD,R,rr){
+  const open=(x,y,r)=>x>12+r*.5&&x<388-r*.5&&y>54&&y<512&&!(y<70&&Math.abs(x-200)<150)&&nodes.every(n=>Math.hypot(n.x-x,n.y-y)>r+24&&!(Math.abs(n.x-x)<half(n)+r*.5&&y>n.y&&y<n.y+40))&&E.every(([a,b])=>segD(x,y,nodes[a].x,nodes[a].y,nodes[b].x,nodes[b].y)>r+7);
+  let stream="",sp=[];
+  if(Math.random()<.45){const y0=rr(140,440),y1=y0+rr(-60,60),y2=y0+rr(-60,60),y3=rr(140,440);stream=`M-10 ${Math.round(y0)} C 120 ${Math.round(y1)} 260 ${Math.round(y2)} 410 ${Math.round(y3)}`;
+    for(let i=0;i<=30;i++){const t=i/30,b=(a,c,d,e)=>(1-t)**3*a+3*(1-t)**2*t*c+3*(1-t)*t*t*d+t**3*e;sp.push([b(-10,120,260,410),b(y0,y1,y2,y3)])}}
+  const dry=(x,y,r)=>sp.every(([a,b])=>Math.hypot(a-x,b-y)>r+9),ok=(x,y,r)=>open(x,y,r)&&dry(x,y,r),taken=[],far=(x,y,r)=>taken.every(([a,b,c])=>Math.hypot(a-x,b-y)>c+r);
+  const patches=[];for(let t=0;t<200&&patches.length<9;t++){const cx=rr(30,370),cy=rr(70,500),rx=rr(34,58),ry=rx*rr(.6,.85),tr=[];
+    for(let i=0;i<140&&tr.length<rx*1.2;i++){const a=Math.random()*6.283,d=Math.sqrt(Math.random()),x=cx+Math.cos(a)*rx*d,y=cy+Math.sin(a)*ry*d;if(ok(x,y,5)&&tr.every(([p,q])=>Math.hypot(p-x,q-y)>7))tr.push([Math.round(x),Math.round(y),+(rr(.7,1.15).toFixed(2)),R(4),R(5)])}
+    if(tr.length>=10&&far(cx,cy,rx*.6)){patches.push(tr.sort((a,b)=>a[1]-b[1]));taken.push([cx,cy,rx])}}
+  const place=(c,r)=>{const out=[];for(let t=0;t<300&&out.length<c;t++){const x=rr(20,380),y=rr(60,505);if(ok(x,y,r)&&far(x,y,r)){out.push([Math.round(x),Math.round(y),R(1000)]);taken.push([x,y,r])}}return out};
+  const warped=place(5,13),rings=place(3,9),trees=place(14,7);
+  const motes=[];for(let i=0;i<34;i++)motes.push([Math.round(rr(14,386)),Math.round(rr(50,506)),+(rr(.8,1.8).toFixed(1)),R(3),+(rr(0,2.4).toFixed(2))]);
+  const blots=[];for(let i=0;i<9;i++)blots.push([Math.round(rr(0,400)),Math.round(rr(0,520)),Math.round(rr(40,90)),Math.round(rr(20,50)),R(2)]);
+  DECO={wilds:{stream,patches,warped,rings,trees,motes,blots}};
+}
+// the Wilds' map art: deep green ground with lighter clearings, worn brown trails, dense forest patches, warped trees, glowing mushroom rings and motes of loose magic
+function wildsMapArt(){
+  const D=DECO.wilds,f=n=>n.toFixed(1),TC=["#2c5e2c","#1f4c26","#386c30","#2a6236"];
+  let g=`<defs><radialGradient id="wgbg" cx=".5" cy=".45" r=".8"><stop offset="0" stop-color="#6a9a48"/><stop offset=".7" stop-color="#4e7e3a"/><stop offset="1" stop-color="#355e2c"/></radialGradient><filter id="wsh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="1.200" dy="2.400" stdDeviation="1.600" flood-color="#14240e" flood-opacity=".5"/></filter><radialGradient id="wnode" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></radialGradient><filter id="wblur"><feGaussianBlur stdDeviation="6"/></filter><filter id="wblur2" x="-50%" y="-100%" width="200%" height="300%"><feGaussianBlur stdDeviation="2.500"/></filter><filter id="wgl" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="2.200"/></filter><radialGradient id="wgvg" cx=".5" cy=".5" r=".72"><stop offset=".6" stop-color="#0e1e0a" stop-opacity="0"/><stop offset="1" stop-color="#0e1e0a" stop-opacity=".55"/></radialGradient></defs><rect width="400" height="520" fill="url(#wgbg)"/>`;
+  g+=`<g filter="url(#wblur)">${D.blots.map(([x,y,rx,ry,k])=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${k?"#2e5a26":"#7aa852"}" opacity=".35"/>`).join("")}</g>`; // the undergrowth, darker and lighter
+  g+=`<g filter="url(#wblur)">${WORLD.filter(n=>n.type!=="camp").map(n=>`<ellipse cx="${n.x}" cy="${n.y+6}" rx="${n.type==="boss"?44:34}" ry="${n.type==="boss"?30:24}" fill="#a8cc6a" opacity=".5"/>`).join("")}</g>`; // a clearing around every location
+  // worn trails along every path: a dark rut under a sandy track
+  g+=EDGES.map(([a,b])=>{const A=WORLD[a],B=WORLD[b];return `<line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke="#4a3418" stroke-width="15" stroke-linecap="round" opacity=".35" filter="url(#wblur2)"/><line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke="#9a7444" stroke-width="10" stroke-linecap="round" opacity=".8"/><line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke="#b8925a" stroke-width="5" stroke-linecap="round" opacity=".55"/>`}).join("");
+  if(D.stream){const rp=(w,c,o,x="")=>`<path d="${D.stream}" stroke="${c}" stroke-width="${w}" fill="none" stroke-linecap="round" opacity="${o}"${x}/>`;
+    g+=rp(18,"#1e3a1a",".4",' filter="url(#wblur2)"')+rp(12,"#2a5a5a","1")+rp(8,"#4f9a94","1")+rp(3,"#a8e0d0",".55",' transform="translate(-1 -1.5)"')+rp(.9,"#e8fff4",".45",' stroke-dasharray="4 11 2 14"')}
+  const glow=(x,y,r,c,o=.5)=>`<circle cx="${f(x)}" cy="${f(y)}" r="${f(r)}" fill="${c}" opacity="${o}" filter="url(#wgl)"/>`;
+  // forest patches: a dark canopy floor, then the trees back to front
+  D.patches.forEach(tr=>{const xs=tr.map(t=>t[0]),ys=tr.map(t=>t[1]),cx=(Math.min(...xs)+Math.max(...xs))/2,cy=(Math.min(...ys)+Math.max(...ys))/2;
+    g+=`<ellipse cx="${f(cx)}" cy="${f(cy+6)}" rx="${f((Math.max(...xs)-Math.min(...xs))/2+12)}" ry="${f((Math.max(...ys)-Math.min(...ys))/2+10)}" fill="#1c3a18" opacity=".45" filter="url(#wblur2)"/>`
+     +tr.map(([x,y,s,c,k])=>k===4?oak(x,y-4*s,4.6*s,TC[c]):tree(x,y+6,15*s,5.6*s,TC[c])).join("")});
+  D.trees.forEach(([x,y,k])=>{g+=k%3?tree(x,y+6,14,5.400,TC[k%4]):oak(x,y-4,4.600,TC[k%4])});
+  // warped trees: a trunk twisted round on itself, curling boughs and a canopy gone strange (teal and violet), glowing faintly
+  D.warped.forEach(([x,y,k])=>{const v=k%2,cc=v?["#5a4a9a","#7a62c0","#b49aff"]:["#2a7a6a","#3a9a84","#8af0d0"];
+    g+=glow(x,y-14,15,cc[2],.35)+`<ellipse cx="${x+1}" cy="${y+3}" rx="10" ry="3" fill="#0e1e0a" opacity=".35"/>`
+     +`<path d="M${x-3} ${y+2}q-5-5 1-9q6-4 0-9q-5-4 2-8M${x+3} ${y+2}q4-5-1-9q-5-4 1-9q5-3-1-8" stroke="#4a2e18" stroke-width="2.600" fill="none" stroke-linecap="round"/><path d="M${x-2} ${y-15}q-8-2-10 4q-1 3 2 3M${x+2} ${y-17}q8-3 10 3q0 3-3 3" stroke="#4a2e18" stroke-width="1.600" fill="none" stroke-linecap="round"/>`
+     +`<ellipse cx="${x-6}" cy="${y-22}" rx="7" ry="5.500" fill="${cc[0]}"/><ellipse cx="${x+6}" cy="${y-23}" rx="7.500" ry="6" fill="${cc[0]}"/><ellipse cx="${x}" cy="${y-28}" rx="7" ry="5.500" fill="${cc[1]}"/><circle cx="${x-3}" cy="${y-30}" r="2.200" fill="${cc[2]}" opacity=".7"/><circle cx="${x+7}" cy="${y-25}" r="1.400" fill="${cc[2]}" opacity=".8"/><circle cx="${x-8}" cy="${y-21}" r="1.200" fill="${cc[2]}" opacity=".7"/>`});
+  // mushroom rings: a fairy circle of little caps, glowing
+  D.rings.forEach(([x,y,k])=>{const c=k%2?"#c8f06a":"#c8a8ff";g+=glow(x,y,10,c,.3);for(let i=0;i<7;i++){const a=i*.898+k,mx=x+Math.cos(a)*8,my=y+Math.sin(a)*4.500;g+=`<path d="M${f(mx)} ${f(my)}v-2.600" stroke="#efe6cf" stroke-width="1.100"/><ellipse cx="${f(mx)}" cy="${f(my-2.800)}" rx="2" ry="1.300" fill="${c}"/>`}});
+  // motes of loose magic, drifting and twinkling
+  g+=D.motes.map(([x,y,r,c,dl])=>{const col=["#f4ffb0","#d8b8ff","#b8fff0"][c];return `<g class="twk" style="animation-delay:${-dl}s">${glow(x,y,r*2.400,col,.5)}<circle cx="${x}" cy="${y}" r="${r*.6}" fill="#fff"/></g>`}).join("");
+  g+=`<rect width="400" height="520" fill="url(#wgvg)"/><rect x="7" y="7" width="386" height="506" rx="4" fill="none" stroke="#1e3a16" stroke-width="1.500" opacity=".6"/><rect x="11" y="11" width="378" height="498" rx="3" fill="none" stroke="#c8e09a" stroke-width=".7" opacity=".35"/>`;
+  g+=`<text x="200" y="40" text-anchor="middle" font-family="'Palatino Linotype','Book Antiqua',Palatino,Georgia,serif" font-style="italic" font-weight="700" font-size="20" fill="#f2f8dc" stroke="#16300f" stroke-width="3.200" paint-order="stroke">The Warped Wilds – Region ${camp.region||1}</text>`;
+  return g;
+}
+// the arch of living wood: two great trees bent toward each other until their boughs knotted together, the air inside shimmering green and violet
+function wildsGateScene(){
+  const rnd=(i,s)=>{const x=Math.sin(i*127.1+s*311.7)*43758.5453;return x-Math.floor(x)},f=n=>n.toFixed(1),CX=160;
+  let leaves="";for(let i=0;i<70;i++){const a=Math.PI*(1.05+rnd(i,1)*.9),r=70+rnd(i,2)*26,x=CX+Math.cos(a)*r*1.05,y=150+Math.sin(a)*r*1.15;leaves+=`<ellipse cx="${f(x)}" cy="${f(y)}" rx="${f(6+rnd(i,3)*6)}" ry="${f(4+rnd(i,4)*4)}" fill="${["#2c5e2c","#386c30","#1f4c26","#4a7e3a"][i%4]}" transform="rotate(${Math.round(rnd(i,5)*180)} ${f(x)} ${f(y)})"/>`}
+  let shim="";for(let i=0;i<16;i++){const a=Math.PI*(1.1+rnd(i,6)*.8),r=74+rnd(i,7)*20;shim+=`<circle class="twk" style="animation-delay:${-rnd(i,8)*2.400}s" cx="${f(CX+Math.cos(a)*r*1.05)}" cy="${f(150+Math.sin(a)*r*1.15)}" r="${f(1.200+rnd(i,9))}" fill="${i%3?"#d8ffb0":"#d8b8ff"}"/>`}
+  let motes="";for(let i=0;i<14;i++){const x=CX-40+rnd(i,10)*80,y=80+rnd(i,11)*90;motes+=`<circle class="twk" style="animation-delay:${-rnd(i,12)*2.400}s" cx="${f(x)}" cy="${f(y)}" r="${f(1+rnd(i,13)*1.400)}" fill="${i%2?"#f4ffb0":"#e0c8ff"}" opacity=".85"/>`}
+  let vines="";for(let i=0;i<7;i++){const x=CX-56+i*18+rnd(i,14)*6,l=14+rnd(i,15)*26,y0=72+Math.abs(x-CX)*.55;vines+=`<path d="M${f(x)} ${f(y0)}q${f(rnd(i,16)*6-3)} ${f(l/2)} 0 ${f(l)}" stroke="#2f5a26" stroke-width="1.300" fill="none"/><ellipse cx="${f(x)}" cy="${f(y0+l)}" rx="2" ry="1.200" fill="#4f8a3a"/>`}
+  let grass="";for(let i=0;i<46;i++){const x=4+rnd(i,20)*312,y=176+rnd(i,21)*42;if(Math.abs(x-CX)<40&&y<196)continue;grass+=`<path d="M${f(x)} ${f(y)}l-2-6M${f(x)} ${f(y)}l1-8M${f(x)} ${f(y)}l3-5" stroke="${y>196?"#1e3a16":"#2f5426"}" stroke-width="1.100" stroke-linecap="round"/>`}
+  let far="";for(let i=0;i<9;i++){const x=i*40+rnd(i,30)*20-10,h=40+rnd(i,31)*30;far+=`<path d="M${f(x)} 166l${f(10+rnd(i,32)*6)} ${f(-h)}l${f(10+rnd(i,33)*6)} ${f(h)}z" fill="#1c3a26" opacity=".8"/>`}
+  return `<svg viewBox="0 0 320 220" role="img" aria-label="A deep forest at dusk. Two great trees lean toward each other across the road, their trunks twisted and their boughs knotted together into an arch. The air inside the arch shimmers green and violet, flecked with drifting motes of light, and vines hang from the boughs.">
+<defs><linearGradient id="wgsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16281e"/><stop offset=".6" stop-color="#2e4a32"/><stop offset="1" stop-color="#4a6a3a"/></linearGradient><radialGradient id="wgwell" cx=".5" cy=".6" r=".6"><stop offset="0" stop-color="#f4ffd8"/><stop offset=".3" stop-color="#b8f08a"/><stop offset=".65" stop-color="#6a8ad0" stop-opacity=".75"/><stop offset="1" stop-color="#3a2a6a" stop-opacity="0"/></radialGradient><filter id="wgb" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter><linearGradient id="wggrd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a5e2c"/><stop offset="1" stop-color="#1c3216"/></linearGradient></defs>
+<rect width="320" height="220" fill="url(#wgsky)"/>${far}
+<path d="M0 168q80-8 160-4t160-2v58H0z" fill="url(#wggrd)"/><path d="M${CX-26} 220L${CX-10} 168h20L${CX+30} 220z" fill="#7a5a34" opacity=".55"/>
+<ellipse cx="${CX}" cy="128" rx="54" ry="62" fill="url(#wgwell)" opacity=".85" filter="url(#wgb)"/><ellipse cx="${CX}" cy="186" rx="50" ry="8" fill="#c8f08a" opacity=".25" filter="url(#wgb)"/>
+<path d="M${CX-58} 180q-14-40 -4-80q8-30 34-44q16-8 30-6" stroke="#3a2412" stroke-width="16" fill="none" stroke-linecap="round"/><path d="M${CX+58} 180q14-40 4-80q-8-30-34-44q-16-8-30-6" stroke="#3a2412" stroke-width="16" fill="none" stroke-linecap="round"/>
+<path d="M${CX-62} 172q-10-36 -2-70q7-26 30-40" stroke="#5a3a1e" stroke-width="5" fill="none" stroke-linecap="round" opacity=".8"/><path d="M${CX+60} 160q8-34 0-62" stroke="#5a3a1e" stroke-width="4" fill="none" stroke-linecap="round" opacity=".7"/>
+<path d="M${CX-26} 52q14 10 26 2q12-8 26 2" stroke="#3a2412" stroke-width="8" fill="none" stroke-linecap="round"/><path d="M${CX-10} 56q10-12 20 0" stroke="#5a3a1e" stroke-width="3" fill="none"/>
+<path d="M${CX-58} 184q-12 6-22 2M${CX-58} 184q4 8-4 14M${CX+58} 184q12 6 22 2M${CX+58} 184q-4 8 4 14" stroke="#3a2412" stroke-width="4" fill="none" stroke-linecap="round"/>
+${leaves}${vines}${shim}${motes}${grass}
+</svg>`;
+}
+const WILDS_GATE={t:"An Arch of Living Wood",tag:"The Wilds",rc:"#5a9a3a",go:()=>(sfx("portal"),{art:wildsGateScene(),
+  text:"As your army packs away the boss's hoard, the road ahead runs into the trees and stops. Two great trees lean across it, their trunks twisted and their boughs knotted into an arch. The air inside it shimmers green and violet, and the forest beyond looks far too deep to have grown here.",
+  opts:[{label:"Step Through the Arch",go:()=>{camp.wildsGate=1;camp.wildsIn=1;saveCamp();return "Your army ducks beneath the boughs, one by one. The air is thick and sweet and humming, and when you look back, the arch has already grown shut."}},
+    {label:"Leave It Be and Take the Road Around",go:()=>{camp.wildsGate=1;saveCamp();return "You lead your army the long way around. When you glance back, there are only ordinary trees standing by the road."}}]})};
 const ROAD_EVENTS=[
  {t:"A Broken-Down Cart",go:()=>{camp.gold+=15;sfx("coin");renderGold();return "Someone left in a hurry. Among the spilled crates, your army finds 15 gold."}},
  {t:"Abandoned Supplies",go:()=>{const k=["draught","smoke","fire","caltrops"][Math.floor(Math.random()*4)];if(camp.items.length<itemCap()){camp.items.push(k);renderItems();return `A soldier's pack lies by the trail. Inside: a ${ITEMS[k].name}.`}camp.gold+=10;sfx("coin");renderGold();return "A soldier's pack lies by the trail. Your own packs are full, so you take the 10 gold inside."}},
@@ -4110,7 +4195,7 @@ function roadEvent(to,done,ev){
 function travel(id){
   if(worldLock)return;
   const e=edgeOf(camp.pos,id);camp.mercNote="";
-  if(e&&camp.inSim){e[3]=e[4]=1;saveCamp()} // no sellswords, beggars or carts inside the Sim
+  if(e&&(camp.inSim||camp.inWilds)){e[3]=e[4]=1;saveCamp()} // no sellswords, beggars or carts inside the Sim or the Wilds
   if(e&&!e[4]){e[4]=1;saveCamp(); // any path, the first time you take it: sometimes a sellsword (or Vasco's expedition) waits along the way
     const ev=Math.random()<(hasRel("vetseal")?VET_ROAD:MERC_ROAD)?SELLSWORD:unlocks.conquistador&&!camp.scout&&Math.random()<VASCO_ROAD?EXPEDITION:null;
     if(ev){e[3]=1;const A=WORLD[camp.pos],B=WORLD[id];worldLock=true;camp.sel=id;$("wm").style.transform=`translate(${Math.round((A.x+B.x)/2)}px,${Math.round((A.y+B.y)/2)-28}px)`;
@@ -4146,6 +4231,7 @@ function beginBattle(n){
     resetBattle();chal=null;camp.battle={node:n.id,items0:camp.items.slice(),wounds0:(camp.wounds||[]).slice()}; // items0: the pack as the battle began, handed back if a saved battle is abandoned
     pick={x:camp.cfg.x.slice(),m:modOk(camp.cfg.m),c:camp.cfg.c};
     const o=Object.assign({},BIOME[n.b]);
+    if(camp.inWilds&&n.type==="boss")Object.assign(o,BIOME.wildlands,{fort:1,boss:1}); // the Wilds' stronghold: deep in the Wildlands, with its den
     if(camp.inSim&&n.type==="boss")Object.assign(o,unlocks.sakura&&Math.random()<SIM_BOSS_SAKURA?BIOME.sakura:BIOME[Math.random()<.5?"chasm":"synth"],{fort:1,boss:1,simfort:1}); // the Sim's stronghold: mostly a Sakura Vale, its fortress fading at the corners
     start(o);
   });
@@ -4284,7 +4370,7 @@ function start(o={}){
   const spot=(rows,xs)=>{for(const y of rows)for(const x of xs)if(!solid(x+","+y)&&!at(x,y))return [x,y];return null};
   if(camp.battle&&!chal&&camp.merc&&camp.merc.hp>0){const m=camp.merc,sp=spot([H-1,H-2],[5,2,7,0,9,4,6,1,3,8]);if(sp)units.push({t:m.t,team:"y",auto:1,merc:1,mname:m.name,st:m.st,vet:m.elite?1:0,x:sp[0],y:sp[1],hp:Math.min(m.hp,m.st.hp),moved:1,acted:1})} // your hired sword
   FOE_RELIC=new Set();FOE_ITEMS=[];
-  if(camp.battle&&!chal){const ER=(camp.region||1)+(camp.inSim?SIM_ESC:0),E=esc(ER); // escalation (see ESC): extra enemy units, then Elites, then the boss's loadout (the Sim fights as if two regions further on)
+  if(camp.battle&&!chal){const ER=(camp.region||1)+(camp.inSim?SIM_ESC:camp.inWilds?WILDS_ESC:0),E=esc(ER); // escalation (see ESC): extra enemy units, then Elites, then the boss's loadout (the Sim fights as if two regions further on)
     for(let i=0;i<E.extra;i++){const t=(camp.inSim||simBattle())&&Math.random()<SIM_GRID?"X":rnd(foe),sp=spot([1,0],[4,5,2,7,0,9,3,6,1,8]);if(sp){foe.push(t);units.push({t,team:"f",x:sp[0],y:sp[1],hp:TYPES[t].hp,moved:0,acted:0})}}
     let gl=0;const glN=o.boss&&camp.escaped&&!camp.inSim&&Math.random()<ESC_GLITCH?1+(Math.random()<ESC_GLITCH_TWO?1:0):0,corrupt=()=>camp.inSim||simBattle()||gl<glN; // after escaping, 1-2 of a boss's Elites may come back Corrupted
     units.filter(u=>u.team==="f").sort(()=>Math.random()-.5).slice(0,E.elite).forEach(u=>{u.elite=1;if(corrupt()){u.glitch=Object.keys(GLITCH)[Math.floor(Math.random()*3)];u.hp+=SIM_ELITE_HP;gl++}else u.hp+=ELITE_HP});
@@ -5293,7 +5379,8 @@ function showRelicOffer(){
     if(id.startsWith("item:")){camp.items.push(id.slice(5));renderItems()}else gainRelic(id);
     if(id==="chest"){camp.gold+=CHEST_GOLD;camp.lastGold=CHEST_GOLD;sfx("coin");renderGold()} // the war chest pays out at once
     const wasBoss=camp.offerBoss;camp.offer=null;camp.offerBoss=false;camp.offerStart=0;saveCamp();$("relicv").hidden=true;renderRelics();$("wmap").querySelector(".wn")&&renderWorld();
-    if(wasBoss&&portalDue())setTimeout(()=>roadEvent(0,()=>{if(camp.portalIn)enterSim()},PORTAL),350)}); // a boss's spoils in hand: sometimes, a portal
+    if(wasBoss&&portalDue())setTimeout(()=>roadEvent(0,()=>{if(camp.portalIn)enterSim()},PORTAL),350); // a boss's spoils in hand: sometimes, a portal
+    else if(wasBoss&&wildsDue())setTimeout(()=>roadEvent(0,()=>{if(camp.wildsIn)enterWilds()},WILDS_GATE),350)}); // ...or, earlier on, an arch into the Warped Wilds
   $("relicv").hidden=false;($("rchoices").querySelector('.rcard:not([aria-disabled="true"])')||$("rchoices").querySelector(".rcard")).focus();
 }
 /* ---------- Campaign triumph: after the boss falls ---------- */
@@ -5305,7 +5392,7 @@ function showTriumph(nm,fallen){ // fallen: how the campaign ended ("lost", "con
   const maps=camp.mapsPrior+battlesWon();
   $("ttitle").textContent=won?CONQUEST_LINES[0]:fallen?"Your Campaign Has Ended":"Congratulations!";$("ttravel").hidden=!!fallen;$("tnew").hidden=won;$("triumph").classList.toggle("conq",won);
   $("tsub").innerHTML=won?`You stormed <b>${nm.name}</b> and conquered all ${FINAL_REGION} regions.`:fallen?(fallen==="lost"?`Your army fell at <b>${nm.name}</b>.`:`You withdrew from <b>${nm.name}</b>, and the campaign ended there.`)+` You reached region ${camp.region}.`
-    :camp.inSim?"You've escaped this strange realm! Or, have you?":`You conquered <b>${nm.name}</b>`+(camp.region>1?` and won your ${["","","second","third","fourth","fifth"][camp.region]||camp.region+"th"} region!`:" and won the campaign!");
+    :camp.inSim?"You've escaped this strange realm! Or, have you?":camp.inWilds?"You've found your way out of the Warped Wilds!":`You conquered <b>${nm.name}</b>`+(camp.region>1?` and won your ${["","","second","third","fourth","fifth"][camp.region]||camp.region+"th"} region!`:" and won the campaign!");
   $("tstats").innerHTML='<h3>Roll of honor</h3>'+army.map((t,i)=>{const f=(camp.falls&&camp.falls[i])||[];return `<div class="trow">${hIcon(t,"y")}<span>${heroName(i)} <small>${cap(NAME[t])}${t==="T"&&kills[i]?", with militia":""}${f.length?` · fell at ${fellAt(f)}`:" · never fell"}</small></span><b title="enemies defeated">${kills[i]}</b></div>`}).join("")
     +`<div class="ttot"><span>Total defeated: ${total}</span><span>Maps cleared: ${maps}</span></div>`;
   $("therb").innerHTML=unlocks.campsite?`<div class="hport" aria-hidden="true">${campScene(camp.inSim?"sim":"plain").replace('viewBox="0 0 320 220"','viewBox="178 48 90 84" preserveAspectRatio="xMidYMid slice"')}</div><div class="cbub"><b>Herbert:</b> “${(camp.inSim?HERBERT_WIN_SIM:HERBERT_WIN)[Math.floor(Math.random()*(camp.inSim?HERBERT_WIN_SIM:HERBERT_WIN).length)]}”</div>`:"";
@@ -5337,7 +5424,7 @@ $("tnew").onclick=()=>{gid++;$("triumph").hidden=true;camp.battle=null;openCampS
 // keep the army, its health, relics, gold and record, and march on to a freshly rolled map
 $("ttravel").onclick=()=>{
   gid++;$("triumph").hidden=true;camp.battle=null;
-  camp.mapsPrior+=battlesWon();camp.region+=1;camp.pos=0;camp.cleared=[];camp.done=false;camp.sel=0;if(camp.inSim)camp.escaped=1;camp.inSim=0; // escaped: the Closed Portal lingers by every camp from now on
+  camp.mapsPrior+=battlesWon();camp.region+=1;camp.pos=0;camp.cleared=[];camp.done=false;camp.sel=0;if(camp.inSim)camp.escaped=1;camp.inSim=0;camp.inWilds=0; // escaped: the Closed Portal lingers by every camp from now on
   genWorld();saveCamp();openWorld();
 };
 $("tmenu").onclick=()=>{gid++;$("triumph").hidden=true;camp.battle=null;show("menu");if(conqNew){conqNew=false;discover()}}; // a reward unlocked by a conquest is announced back on the menu
