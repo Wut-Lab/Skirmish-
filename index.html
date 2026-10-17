@@ -5008,6 +5008,7 @@ const HERBERT_MEAL_SIM=["Followed you through that ring of cubes! Couldn't let y
 const HERBERT_WIN_SIM=["You found the way out! I'll admit, I was starting to like the humming.","Out of the Sim and into the sun! Well, a sun. I'm checking that it's round."];
 // in the Warped Wilds: Herbert followed you through the arch, a little nervous and very cosy
 const HERBERT_WILDS=["Wow, I've never seen a forest like this before.... Oh well. The soup is still warm.","Goodness, it's warm here. I guess my cocoa won't cool off!","It's beautiful here! ... Too bad it's so scary. Oh, well. I still have my cocoa."];
+const HERBERT_WIN_WILDS=["Hey, remember that time you walked through a weird arch?"];
 const wildsCamp=()=>!!camp.inWilds&&!chal; // Herbert followed you into the Warped Wilds
 let campDone=null; // what leaving the camp screen does
 const simCamp=()=>!!camp.inSim&&!chal||simBattle(); // Herbert followed you into the Warped Sim
@@ -5541,7 +5542,7 @@ function showTriumph(nm,fallen){ // fallen: how the campaign ended ("lost", "con
     :camp.inSim?"You've escaped this strange realm! Or, have you?":camp.inWilds?"Whew,... You made it! That was weird. I don't think we're going back.":`You conquered <b>${nm.name}</b>`+(camp.region>1?` and won your ${["","","second","third","fourth","fifth"][camp.region]||camp.region+"th"} region!`:" and won the campaign!");
   $("tstats").innerHTML='<h3>Roll of honor</h3>'+army.map((t,i)=>{const f=(camp.falls&&camp.falls[i])||[];return `<div class="trow">${hIcon(t,"y")}<span>${heroName(i)} <small>${cap(NAME[t])}${t==="T"&&kills[i]?", with militia":""}${f.length?` · fell at ${fellAt(f)}`:" · never fell"}</small></span><b title="enemies defeated">${kills[i]}</b></div>`}).join("")
     +`<div class="ttot"><span>Total defeated: ${total}</span><span>Maps cleared: ${maps}</span></div>`;
-  $("therb").innerHTML=unlocks.campsite?`<div class="hport" aria-hidden="true">${campScene(camp.inSim?"sim":camp.inWilds?"wilds":"plain").replace('viewBox="0 0 320 220"','viewBox="178 48 90 84" preserveAspectRatio="xMidYMid slice"')}</div><div class="cbub"><b>Herbert:</b> “${(camp.inSim?HERBERT_WIN_SIM:HERBERT_WIN)[Math.floor(Math.random()*(camp.inSim?HERBERT_WIN_SIM:HERBERT_WIN).length)]}”</div>`:"";
+  $("therb").innerHTML=unlocks.campsite?`<div class="hport" aria-hidden="true">${campScene(camp.inSim?"sim":camp.inWilds?"wilds":"plain").replace('viewBox="0 0 320 220"','viewBox="178 48 90 84" preserveAspectRatio="xMidYMid slice"')}</div><div class="cbub"><b>Herbert:</b> “${((L=>L[Math.floor(Math.random()*L.length)])(camp.inSim?HERBERT_WIN_SIM:camp.inWilds?HERBERT_WIN_WILDS:HERBERT_WIN))}”</div>`:"";
   if(fallen&&!won&&unlocks.campsite)$("therb").querySelector(".cbub").innerHTML=`<b>Herbert:</b> “${HERBERT_LOSS[Math.floor(Math.random()*HERBERT_LOSS.length)]}”`;
   $("triumph").hidden=false;(won?$("tmenu"):fallen?$("tnew"):$("ttravel")).focus();
 }
