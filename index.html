@@ -22,7 +22,9 @@ h1{font-size:1.4rem;margin:0 0 4px}
 .t.dp{background:var(--dp,#2f6f9c);cursor:default}
 .t.brl{cursor:pointer}
 .t.sh{background:var(--sh,#86c4dc)}
-.murky{--dp:#1f2d27;--sh:#4c5d4a} /* Murky Swamp maps: dark, stagnant water (set on the board and the Terrain panel) */
+.murky{--dp:#1f2d27;--sh:#4c5d4a}
+.deepw{--tile:#857a5e;--tile2:#7e7358;--dp:#1a2420;--sh:#3a4a3e}.deepw .t.fo{background-image:linear-gradient(rgba(16,28,14,.4),rgba(16,28,14,.4))}.deepw .t.sw{background:#33321f} /* the Hungry Deepwoods: dark loam, deep shade under the trees */
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .deepw{--tile:#3a3628;--tile2:#36321f}}:root[data-theme="dark"] .deepw{--tile:#3a3628;--tile2:#36321f} /* Murky Swamp maps: dark, stagnant water (set on the board and the Terrain panel) */
 .haunted{--tile:#a39f92;--tile2:#9b978a;--dp:#26303a;--sh:#5c6a74} /* Haunted Graveyard: ashen ground, still dark water */
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .haunted{--tile:#3c3b38;--tile2:#373633}}
 :root[data-theme="dark"] .haunted{--tile:#3c3b38;--tile2:#373633}
@@ -946,7 +948,7 @@ function doHalo(a){
 }
 const canBugle=u=>u.t==="T"&&u.team==="y"&&rel(u,"bugle")&&!u.acted&&!u.auto&&units.some(m=>m.cap===u); // Goading Bugle: needs militia to goad
 // the Frowning Skull: once per battle, any of your units sets it on an open tile beside it (free); relicUsed.skull holds where it lies
-const DEN_SPAWN=1/3,DEN_HEAL=1,DEN_DMG=1,denZone=(x,y)=>[...DEN].some(k=>{const[a,b]=pk(k);return Math.abs(a-x)<=1&&Math.abs(b-y)<=1}); // the Hidden Den: an animal's chance to come out each round while none roams; what its ground gives animals
+const BLOOD_DMG=1,DEN_SPAWN=1/3,DEN_HEAL=1,DEN_DMG=1,denZone=(x,y)=>[...DEN].some(k=>{const[a,b]=pk(k);return Math.abs(a-x)<=1&&Math.abs(b-y)<=1}); // the Hidden Den: an animal's chance to come out each round while none roams; what its ground gives animals
 const SKULL_DMG=1,SKULL_AVOID=2.5,TROPHY_GOLD=1,BOUNTY_GOLD=15,RIBBON_HEAL=2,GONG_RANGE=2,HOOK_RANGE=3,TRICORN_EV=.03,GLOVES_EV=.03,CANTEEN_HEAL=2,GOLEM_TURN=2,HIVE_RANGE=3,HIVE_TURNS=3,FCHARM_HP=2,WAND_TILES=4;
 const friendly=u=>u.team==="y"&&!!u.auto&&!u.merc; // the Chicken, Squirrel, Spark, Golem and Bees: on your side, on their own
 const RED_SET=["rcape","tricorn","rgloves"],redSet=u=>RED_SET.every(id=>rel(u,id)); // the Red Clothes, all three
@@ -1011,7 +1013,7 @@ const MODS={
  SW:{name:"Shield Wall Formations",desc:"Your units get +1 armor while next to an ally."},
  AIM:{name:"Steady Aim",desc:`Enemies get ${AIM_EV*100}% less evasion against your attacks.`},
  REST:{name:"Field Rest",desc:"At the end of your turn, each of your units that neither moved nor attacked that turn recovers 2 HP."}};
-let SKULLS=new Set(),RUBBLE=new Set(),MURKY=false,HAUNTED=false,VOLCANIC=false,CHERRY=new Set(),SMOKE=new Set(),CALTROPS=new Set(),LAVA=new Set(),MAGMA=new Set(),VOLC=new Set(),WISP=new Set(),FLOWERS=new Set(),MEADOW=new Set(),GREENW=new Set(),KOI=new Set(),VALE=false,CHASM=new Set(),CHAOS=new Set(),LIGHT=new Set(),VOID=new Set(),VINES=new Set(),DEN=new Set(),WARPT=new Set(),SIM=false,SIMFORT=false,GRAVES=new Set(),WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set(),SWAMP=new Set();
+let SKULLS=new Set(),RUBBLE=new Set(),MURKY=false,HAUNTED=false,VOLCANIC=false,CHERRY=new Set(),SMOKE=new Set(),CALTROPS=new Set(),LAVA=new Set(),MAGMA=new Set(),VOLC=new Set(),WISP=new Set(),FLOWERS=new Set(),MEADOW=new Set(),GREENW=new Set(),KOI=new Set(),VALE=false,CHASM=new Set(),CHAOS=new Set(),LIGHT=new Set(),VOID=new Set(),VINES=new Set(),DEN=new Set(),WARPT=new Set(),BLOOD=new Set(),DEEPW=false,SIM=false,SIMFORT=false,GRAVES=new Set(),WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set(),SWAMP=new Set();
 // Bump PROGRESS_EPOCH to wipe unlocks and the campaign save once on next load (editor drafts and sound settings stay).
 const PROGRESS_EPOCH=2;try{if(+localStorage.getItem("skirmish_epoch")!==PROGRESS_EPOCH){localStorage.removeItem("skirmish_unlocks_v1");localStorage.removeItem("skirmish-campaign");localStorage.removeItem("skirmish_records_v1");["quick","camp","chal"].forEach(m=>localStorage.removeItem("skirmish_hold_"+m));localStorage.setItem("skirmish_epoch",PROGRESS_EPOCH)}}catch(e){}
 const UKEY="skirmish_unlocks_v1",unlocks=(()=>{try{return JSON.parse(localStorage.getItem(UKEY)||"{}")||{}}catch(e){return{}}})();
@@ -1129,7 +1131,7 @@ function genMap(o={}){
     const apart=(a,b)=>[...light,K(W-1-a,H-1-b)].every(k=>{const[c,e]=pk(k);return(c===a&&e===b&&!light.has(k))||Math.abs(c-a)+Math.abs(e-b)>3}); // apart from each other (and their own mirror image), so glows never merge
     if(o.synth||o.grid)scatter(light,o.grid?3+R(3):2+R(2),(a,b)=>b>=3&&b<=H-4&&!chasm.has(K(a,b))&&DIRS.every(([dx,dy])=>{const x=a+dx,y=b+dy;return x>=0&&x<W&&!chasm.has(K(x,y))})&&apart(a,b));
     const graves=new Set(); // gravestones (Haunted Graveyard): single impassable stones
-    const vines=new Set(),den=new Set(); // the Wildlands: Tanglevine Patches and a Hidden Den
+    const vines=new Set(),den=new Set(),blood=new Set(); // the Wildlands: Tanglevine Patches and a Hidden Den; the Hungry Deepwoods: Blood Oaks
     const free=(a,b)=>a>=0&&a<W&&!vines.has(a+","+b)&&!den.has(a+","+b)&&!light.has(a+","+b)&&!glowing(a,b)&&!walls.has(a+","+b)&&!forest.has(a+","+b)&&!graves.has(a+","+b)&&!taken(a,b)&&!hot(a,b);
     const put=(set,pairs,chunk)=>{
       for(let n=pairs,t=0;n>0&&t++<300;){
@@ -1140,7 +1142,11 @@ function genMap(o={}){
       }
     };
     if(o.graves)put(graves,5+R(3),false);
-    put(walls,o.grid||o.palace?0:o.wildlands?1:o.graves?2+R(2):3+R(3),true);put(forest,o.sim?0:o.forest||4+R(4),false);
+    put(walls,o.grid||o.palace?0:o.wildlands||o.deepwoods?1:o.graves?2+R(2):3+R(3),true);put(forest,o.sim?0:o.forest||4+R(4),false);
+    if(o.deepwoods){ // the Hungry Deepwoods: a mirrored pair of Blood Oak clumps, 3-4 trees each (they count as forest)
+      for(let t=0;t<300&&!blood.size;t++){const tl=grow(3+R(2),1+R(W-2),3+R(H-6)),ok=(a,b)=>!walls.has(K(a,b))&&!taken(a,b)&&!light.has(K(a,b));if(tl.length<3||!tl.every(([a,b])=>ok(a,b)&&ok(W-1-a,H-1-b))||tl.some(([a,b])=>tl.some(([c,e])=>Math.abs(c-(W-1-a))+Math.abs(e-(H-1-b))<=1)))continue;tl.forEach(([a,b])=>{both(blood,a,b);both(forest,a,b)})}
+      if(!blood.size)continue;
+    }
     if(o.wildlands){ // the Wildlands (the Forest Palace has no den): one Hidden Den (a forest tile) on the middle rows with room around it, then 3-6 Tanglevine tiles in clumps of 2-3 (a mirrored pair, or now and then one clump of 3 in the middle)
       for(let t=0;t<200&&!den.size&&!o.palace;t++){const a=2+R(W-4),b=5+R(2);if(!walls.has(K(a,b))&&!taken(a,b)&&blastOf(K(a,b)).filter(([x,y])=>!walls.has(K(x,y))&&!taken(x,y)).length>=6){forest.add(K(a,b));den.add(K(a,b))}}
       const vok=(a,b)=>free(a,b)&&!vines.has(K(a,b));
@@ -1171,7 +1177,8 @@ function genMap(o={}){
       if(!tl.every(([a,b])=>free(a,b)&&free(W-1-a,H-1-b)&&!swamp.has(K(a,b))&&!swamp.has(K(W-1-a,H-1-b))))continue;
       tl.forEach(([a,b])=>both(swamp,a,b));n--;
     }
-    if(walls.size<5&&!o.grid&&!o.wildlands&&!o.palace)continue;
+    if(o.deepwoods&&swamp.size<8)continue; // the Deepwoods are half bog
+    if(walls.size<5&&!o.grid&&!o.wildlands&&!o.palace&&!o.deepwoods)continue;
     const fort=new Set();
     if(o.palace){ // the Forest Palace: one great mirrored stronghold across the middle, a 2x2 hall with wings grown out of it (the trees cleared to make room)
       const core=[[4,5],[5,5]],tl=core.concat(grow(3+R(3),3+R(4),5).filter(([a,b])=>!core.some(([c,e])=>c===a&&e===b))),all=[...tl,...tl.map(([a,b])=>[W-1-a,H-1-b])];
@@ -1209,10 +1216,10 @@ function genMap(o={}){
       if(ok(x,y)&&!forest.has(K(x,y))&&!shal.has(K(x,y))&&DIRS.filter(([dx,dy])=>ok(x+dx,y+dy)).length>=3)camps.add(K(x,y));
     }
     const wisps=new Set(); // Will-o'-the-Wisp (unlockable): swamp maps often, and forest maps now and then, get one in the middle or a mirrored pair
-    if(unlocks.wisp&&Math.random()<(o.swamp>=3?.6:o.swamp?.3:o.forest>=9?.15:0)){
+    if(unlocks.wisp&&Math.random()<(o.deepwoods?.5:o.swamp>=3?.6:o.swamp?.3:o.forest>=9?.15:0)){
       const ok=(a,b)=>a>=0&&a<W&&b>=0&&b<H&&!vines.has(K(a,b))&&!walls.has(K(a,b))&&!graves.has(K(a,b))&&!fort.has(K(a,b))&&!bars.has(K(a,b))&&!camps.has(K(a,b))&&!deep.has(K(a,b))&&!forest.has(K(a,b))&&!hot(a,b)&&!wisps.has(K(a,b));
       const roomy=(a,b)=>ok(a,b)&&DIRS.filter(([dx,dy])=>ok(a+dx,b+dy)).length>=3;
-      if(Math.random()<.5){for(let t=0;t<60;t++){const a=2+R(W-4),b=5+R(2);if(roomy(a,b)){wisps.add(K(a,b));break}}}
+      if(o.deepwoods||Math.random()<.5){for(let t=0;t<60;t++){const a=2+R(W-4),b=5+R(2);if(roomy(a,b)){wisps.add(K(a,b));break}}}
       else for(let t=0;t<80;t++){const a=1+R(W-2),b=3+R(2);if(roomy(a,b)&&roomy(W-1-a,H-1-b)){both(wisps,a,b);break}}
       wisps.forEach(k=>{swamp.delete(k);shal.delete(k)});
     }
@@ -1227,7 +1234,7 @@ function genMap(o={}){
       for(let n=1+R(3),t=0;n>0&&t<60;t++){const tl=grow(1+R(3),R(W),2+R(H-4));if(tl.every(([a,b])=>open(a,b))){tl.forEach(([a,b])=>flowers.add(K(a,b)));n--}}
     }
     const meadow=new Set(),greenw=new Set(); // cosmetic green patches (mirrored): open ground inside becomes Green Meadow, plain forest becomes Greenwood; not on ashen graveyard or volcanic maps
-    if(!o.graves&&!o.lava&&!o.sim&&Math.random()<.6)for(let n=1+R(3);n>0;n--)grow(4+R(6),R(W),R(H)).forEach(([a,b])=>[[a,b],[W-1-a,H-1-b]].forEach(([x,y])=>{const k=K(x,y);
+    if(!o.graves&&!o.lava&&!o.sim&&!o.deepwoods&&Math.random()<.6)for(let n=1+R(3);n>0;n--)grow(4+R(6),R(W),R(H)).forEach(([a,b])=>[[a,b],[W-1-a,H-1-b]].forEach(([x,y])=>{const k=K(x,y);
       if(forest.has(k)){if(!cherry.has(k))greenw.add(k)}else if(![vines,walls,deep,shal,swamp,fort,bars,camps,graves,lava,magma,volc,wisps,koi,flowers].some(st=>st.has(k)))meadow.add(k)}));
     // Sim features that come one per map on a middle row, or in mirrored pairs: Chaos Springs (one on the Fractured Chasm, 2-3 in Synthwave Space) and Synthwave Space's 2-3 Light Bricks
     const chaos=new Set(),busy=k=>chasm.has(k)||walls.has(k)||chaos.has(k)||light.has(k)||camps.has(k)||fort.has(k),roomy=(a,b)=>a>=0&&a<W&&!busy(K(a,b))&&blastOf(K(a,b)).filter(([x,y])=>!busy(K(x,y))).length>=5;
@@ -1246,7 +1253,7 @@ function genMap(o={}){
       }
     }
     if(seen.size===W*H-walls.size-chasm.size-light.size-deep.size-bars.size-camps.size-graves.size-lava.size-volc.size-koi.size){ // every open tile connects: lava never cuts anyone off
-      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;SWAMP=swamp;MURKY=o.swamp>=3;GRAVES=graves;HAUNTED=!!o.graves;LAVA=lava;MAGMA=magma;VOLC=volc;WISP=wisps;FLOWERS=flowers;MEADOW=meadow;GREENW=greenw;KOI=koi;VALE=!!o.sakura;VOLCANIC=!!o.lava;CHASM=chasm;CHAOS=chaos;LIGHT=light;VOID=vd;VINES=vines;DEN=den;WARPT=new Set([...forest].filter(k=>!den.has(k)&&!cherry.has(k)&&Math.random()<(o.palace?.5:o.wildlands?.2:wildsAfter()?WOUT_TREE:0))); // warped trees: half the Forest Palace's woods, a fifth of the Wildlands', and now and then elsewhere once you've come out of the WildsSIM=!!o.sim;SIMFORT=!!o.simfort;CHERRY=cherry;BARRELS=bars;XBAR=xbars;CAMPS=camps;WALLV=R(4);
+      WALLS=walls;FOREST=forest;FORT=fort;DEEP=deep;SHALLOW=shal;SWAMP=swamp;MURKY=o.swamp>=3;GRAVES=graves;HAUNTED=!!o.graves;LAVA=lava;MAGMA=magma;VOLC=volc;WISP=wisps;FLOWERS=flowers;MEADOW=meadow;GREENW=greenw;KOI=koi;VALE=!!o.sakura;VOLCANIC=!!o.lava;CHASM=chasm;CHAOS=chaos;LIGHT=light;VOID=vd;VINES=vines;DEN=den;BLOOD=blood;DEEPW=!!o.deepwoods;WARPT=new Set([...forest].filter(k=>!den.has(k)&&!cherry.has(k)&&Math.random()<(o.palace?.5:o.wildlands?.2:o.deepwoods?.12:wildsAfter()?WOUT_TREE:0))); // warped trees: half the Forest Palace's woods, a fifth of the Wildlands', and now and then elsewhere once you've come out of the WildsSIM=!!o.sim;SIMFORT=!!o.simfort;CHERRY=cherry;BARRELS=bars;XBAR=xbars;CAMPS=camps;WALLV=R(4);
       groupForts(()=>o.palace||wildsAfter()&&(o.forest>=9||o.swamp>=3)&&Math.random()<WOUT_PALACE?2:R(2)); // after the Wilds, a forest or swamp fortress may be built like the Forest Palace
       return;
     }
@@ -1325,6 +1332,15 @@ const WARPT_V=[0,1,2].map(v=>{const cc=v===1?["#5a4a9a","#7a62c0","#c8b0ff"]:["#
   return svg(`<defs><filter id="wtg${v}" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.400"/></filter></defs><circle cx="${x}" cy="15" r="13" fill="${cc[2]}" opacity=".3" filter="url(#wtg${v})"/><ellipse cx="${x+1}" cy="35" rx="9" ry="2.400" fill="rgba(0,0,0,.25)"/>`
    +`<path d="M${x-3} 35q-5-5 1-9q6-4 0-9q-4-3 1-6M${x+3} 35q4-5-1-9q-5-4 1-9q4-3-1-6" stroke="#4a2e18" stroke-width="2.600" fill="none" stroke-linecap="round"/><path d="M${x-2} 18q-9-1-11 5q-1 3 2 3M${x+2} 16q9-2 11 4q0 3-3 3" stroke="#4a2e18" stroke-width="1.700" fill="none" stroke-linecap="round"/>`
    +`<ellipse cx="${x-6}" cy="12" rx="8" ry="6" fill="${cc[0]}"/><ellipse cx="${x+6}" cy="11" rx="8.500" ry="6.500" fill="${cc[0]}"/><ellipse cx="${x}" cy="6" rx="8" ry="5.500" fill="${cc[1]}"/><circle cx="${x-3}" cy="4.500" r="2.400" fill="${cc[2]}" opacity=".7"/><circle cx="${x+8}" cy="9" r="1.400" fill="${cc[2]}" opacity=".85"/><circle cx="${x-9}" cy="13" r="1.200" fill="${cc[2]}" opacity=".75"/><circle class="twk" cx="${x+4}" cy="20" r=".9" fill="#fff"/>`)});
+// the Hungry Deepwoods' own woods: tall, near-black conifers, dark gnarled oaks with a dead tree among them, and (here and there) a pair of eyes watching from the dark
+const DEEPF_V=[svg(tree(10,30,20,7,"#16301e")+tree(30,26,18,6.500,"#1c3a24")+tree(20,38,22,8,"#12281a")),
+ svg(oak(12,16,7,"#24361e")+deadTree(28,32,20,1)+oak(16,30,7.500,"#1e2e1a")),
+ svg(tree(12,26,19,7,"#12281a")+tree(29,34,21,7.500,"#16301e")+`<circle class="twk" style="animation-duration:6s" cx="19" cy="22" r=".9" fill="#ffd25a"/><circle class="twk" style="animation-duration:6s" cx="22.500" cy="22" r=".9" fill="#ffd25a"/>`)];
+// Blood Oaks: a clump of red and deep red oaks, their trunks knotted with dark vines, a faint red haze about them
+const BLOOD_V=[0,1,2].map(v=>{const C=[["#7a1418","#a8241e","#4a0a10"],["#9a1c1c","#5e0c12","#c0342a"],["#6a1016","#8a1a1a","#b02a22"]][v],P=[[[12,17,6.500],[28,14,7],[20,27,7.500]],[[11,14,6.800],[27,19,7.200],[17,29,6.500]],[[26,13,6.500],[13,20,7],[27,29,6.800]]][v];
+  return svg(`<ellipse cx="20" cy="22" rx="18" ry="14" fill="#a01818" opacity=".14"/>`+P.map(([x,y,r],i)=>oak(x,y,r,C[i])).join("")
+   +`<g fill="none" stroke-linecap="round"><path d="M${P[0][0]-2} ${P[0][1]+8}q4-3 2-7q-2-3 3-5M${P[2][0]+2} ${P[2][1]+7}q-5-2-3-7q2-4-2-6M${P[1][0]-1} ${P[1][1]+8}q3-4 0-8" stroke="#1a2a12" stroke-width="1.600"/><path d="M${P[0][0]-2} ${P[0][1]+8}q4-3 2-7M${P[2][0]+2} ${P[2][1]+7}q-5-2-3-7" stroke="#4a6a2a" stroke-width=".6"/></g>`
+   +P.map(([x,y],i)=>`<circle cx="${x+(i%2?3:-3)}" cy="${y-2}" r=".9" fill="#ff5a4a" opacity=".85"/><circle cx="${x+(i%2?-2:2)}" cy="${y+1}" r=".7" fill="#ff8a6a" opacity=".7"/>`).join(""))});
 // the Hidden Den: a burrow dug in under the trees, a pair of eyes glinting in the dark
 const DEN_V=svg(tree(8,21,17,6.500,"#2f6b3f")+tree(33,19,16,6,"#245a34")+tree(21,12,11,5,"#3a7d4a")+`<ellipse cx="21" cy="31" rx="15" ry="5" fill="rgba(0,0,0,.25)"/><path d="M6 31q2-12 15-13q13 1 15 13z" fill="#6a4a2a"/><path d="M6 31q2-12 15-13q6 .5 10 4q-8-2-13 2q-6 3-12 7z" fill="#82603a" opacity=".7"/><path d="M13 31q0-8 8-8.500q8 .5 8 8.500z" fill="#1a120a"/><path d="M14.500 31q.5-6 6.500-6.500" stroke="#3a2614" stroke-width="1" fill="none"/><circle class="deneye" cx="18.600" cy="27.600" r="1" fill="#ffd25a"/><circle class="deneye" cx="22.800" cy="27.600" r="1" fill="#ffd25a"/><path d="M4 32q4-2 7 0M30 32q4-2 7 0" stroke="#4a3018" stroke-width="1.400" fill="none" stroke-linecap="round"/><path d="M31 34l4 1.500" stroke="#ece4d0" stroke-width="1.300" stroke-linecap="round"/><circle cx="30.800" cy="33.800" r=".9" fill="#ece4d0"/><circle cx="35.200" cy="35.600" r=".9" fill="#ece4d0"/><path d="M9 22q-2-3 1-5M33 22q2-2 0-5" stroke="#3a6a2a" stroke-width="1.200" fill="none" stroke-linecap="round"/>`);
 // Greenwood's trees: white birches, slim poplars and round lindens, on green grass
@@ -1740,17 +1756,18 @@ const TERRAIN={
  void:{name:"Empty Space",bg:"background:#08060f",art:()=>[0,1,2,3].map(v=>voidArt(3,4,v)),unlock:"warpedsim",desc:"Open ground with nothing under it: black, with faint swirls and the odd spark. A unit that starts its turn on Empty Space gets +1 movement for that turn. Covers most of the Grid."},
  lbrick:{name:"Light Brick",bg:"background:#5a4c8c",art:()=>[LBRICK_V],unlock:"warpedsim",desc:"Impassable, but attacks can pass over it. Found in Synthwave Space and the Grid. Its neon glow spills onto the 4 tiles beside it: a unit that moves onto or through a glowing tile is slowed on its next turn."},
  vines:{name:"Tanglevine Patch",bg:"background:#5f7040",art:()=>VINE_V,unlock:"wildwilds",desc:"Thorny vines, knotted thick. Entering a patch costs 1 extra movement. Tangled: a unit standing in one can't retaliate. Found in clumps in the Wildlands."},
+ bloodoak:{name:"Blood Oaks",bg:TF,art:()=>BLOOD_V,unlock:"wildwilds",desc:`A clump of red oaks, knotted with vines. Plays like a forest (leaving costs 1 movement, +10% evasion), but they are hungry: a unit that ends its turn among them takes ${BLOOD_DMG} damage, ignoring armor. Found in clumps of 3-4 in the Hungry Deepwoods.`},
  den:{name:"Hidden Den",bg:TF,art:()=>[DEN_V],unlock:"wildwilds",desc:`One per Wildlands map. Plays like a forest. Its ground is the den and the 8 tiles around it: animals there deal +1 damage and recover ${DEN_HEAL} HP at the end of their turn, and any unit that steps onto it while an animal is there becomes that animal's target. While no animal roams the map, one may come out of the den at the end of each round (${Math.round(DEN_SPAWN*100)}%).`},
  fort:{name:"Fortress",bg:FR,art:()=>[fortArt(0,0,true),fortArt(0,1,true)],desc:"Uncommon. A unit standing on one gets +1 armor."}};
-const terrainKey=k=>DEN.has(k)?"den":VINES.has(k)?"vines":SKULLS.has(k)?"unsettled":CHASM.has(k)?"chasm":LIGHT.has(k)?"lbrick":CHAOS.has(k)?"chaos":RUBBLE.has(k)?"rubble":CAMPS.has(k)?"campsite":GRAVES.has(k)?"grave":VOLC.has(k)?"volcano":WISP.has(k)?"wisp":KOI.has(k)?"koi":FLOWERS.has(k)?"flowers":LAVA.has(k)?"lava":MAGMA.has(k)?"magma":BARRELS.has(k)?(XBAR.has(k)?"xbarrel":"barrels"):WALLS.has(k)?(SIM?"quartz":"wall"):DEEP.has(k)?"deep":SHALLOW.has(k)?"shallow":SWAMP.has(k)?"swamp":CHERRY.has(k)?"cherry":FOREST.has(k)?(GREENW.has(k)?"greenwood":"forest"):FORT.has(k)?"fort":MEADOW.has(k)?"meadow":VOID.has(k)?"void":SIM?"glitch":"ground";
+const terrainKey=k=>DEN.has(k)?"den":VINES.has(k)?"vines":BLOOD.has(k)?"bloodoak":SKULLS.has(k)?"unsettled":CHASM.has(k)?"chasm":LIGHT.has(k)?"lbrick":CHAOS.has(k)?"chaos":RUBBLE.has(k)?"rubble":CAMPS.has(k)?"campsite":GRAVES.has(k)?"grave":VOLC.has(k)?"volcano":WISP.has(k)?"wisp":KOI.has(k)?"koi":FLOWERS.has(k)?"flowers":LAVA.has(k)?"lava":MAGMA.has(k)?"magma":BARRELS.has(k)?(XBAR.has(k)?"xbarrel":"barrels"):WALLS.has(k)?(SIM?"quartz":"wall"):DEEP.has(k)?"deep":SHALLOW.has(k)?"shallow":SWAMP.has(k)?"swamp":CHERRY.has(k)?"cherry":FOREST.has(k)?(GREENW.has(k)?"greenwood":"forest"):FORT.has(k)?"fort":MEADOW.has(k)?"meadow":VOID.has(k)?"void":SIM?"glitch":"ground";
 function tileArt(x,y){ // the art for one board tile, picking a stable variant per tile
   const k=x+","+y;
   switch(terrainKey(k)){
     case "campsite":return CAMP_V;case "grave":return GRAVE_V[tv(x,y,4,23)];case "xbarrel":return XBAR_V;case "barrels":return BAR_V[tv(x,y,2,19)];case "wall":return wallArt(WALLV,wallMask(x,y));
-    case "deep":return DP_V[tv(x,y,3,13)];case "shallow":return SH_V[tv(x,y,3,15)];case "swamp":return SW_V[tv(x,y,4,21)];case "forest":return WARPT.has(k)?WARPT_V[tv(x,y,3,89)]:HAUNTED||VOLCANIC?DEAD_V[tv(x,y,3,9)]:FOREST_V[tv(x,y,4,9)];case "greenwood":return GREENW_V[tv(x,y,3,67)];case "meadow":return meadow(x,y);
+    case "deep":return DP_V[tv(x,y,3,13)];case "shallow":return SH_V[tv(x,y,3,15)];case "swamp":return SW_V[tv(x,y,4,21)];case "forest":return WARPT.has(k)?WARPT_V[tv(x,y,3,89)]:DEEPW?(tv(x,y,10,101)<2?DEAD_V[tv(x,y,3,9)]:DEEPF_V[tv(x,y,3,107)]):HAUNTED||VOLCANIC?DEAD_V[tv(x,y,3,9)]:FOREST_V[tv(x,y,4,9)];case "greenwood":return GREENW_V[tv(x,y,3,67)];case "meadow":return meadow(x,y);
     case "cherry":return cherryArt(tv(x,y,3,43),joinMask(x,y,kk=>CHERRY.has(kk)),x,y);
     case "volcano":return VOLC_V[tv(x,y,2,25)];case "wisp":return WISP_V[tv(x,y,2,47)];case "flowers":return FLOWER_V[tv(x,y,3,53)];case "koi":return KOI_V[tv(x,y,2,59)];case "lava":return LAVA_V[tv(x,y,3,27)];case "magma":return MAGMA_V[tv(x,y,3,29)];
-    case "vines":return vineArt(x,y);case "den":return DEN_V;
+    case "vines":return vineArt(x,y);case "bloodoak":return BLOOD_V[tv(x,y,3,103)];case "den":return DEN_V;
     case "rubble":return RUBBLE_V[tv(x,y,2,61)];case "unsettled":return UNSET_V;
     case "chasm":return chasmArt(chasmMask(x,y),tv(x,y,3,71));case "chaos":return simGround(x,y,4)+CHAOS_V;case "lbrick":return simGround(x,y,4)+LBRICK_V;case "glitch":return simGround(x,y);case "void":return voidArt(x,y);case "quartz":return quartzArt(tv(x,y,7,73));
     case "fort":return FORTV.get(k)===2?palaceArt(fortMask(x,y),FORTK.has(k),x,y):fortArt(fortMask(x,y),FORTV.get(k)||0,FORTK.has(k),SIMFORT);default:return VOLCANIC?ashGround(x,y):ground(x,y);
@@ -1986,7 +2003,7 @@ function terrainArt(){
 function render(){
   units.forEach(u=>{if((u.slow||u.slowNext)&&u.team==="y"&&!u.slowRoll&&rel(u,"lcube")){u.slowRoll=1;if(Math.random()<CUBE_SLOW){delete u.slow;delete u.slowNext;floatText(u.x,u.y,"Shrugged off","bless")}}if(!u.slow&&!u.slowNext)delete u.slowRoll; // the Large Glowing Cube shrugs off a fifth of slows
     if(u.slowNext&&calm(u))delete u.slowNext;if(u.slow&&calm(u)){delete u.slow;delete u.hex;delete u.hexPend;floatText(u.x,u.y,"Calm","bless")}});
-  board.classList.toggle("murky",MURKY);board.classList.toggle("haunted",HAUNTED);board.classList.toggle("volcanic",VOLCANIC);board.classList.toggle("sim",SIM);
+  board.classList.toggle("murky",MURKY);board.classList.toggle("deepw",DEEPW);board.classList.toggle("haunted",HAUNTED);board.classList.toggle("volcanic",VOLCANIC);board.classList.toggle("sim",SIM);
   const mv=new Set(),tg=new Set(),ig=new Set(),ir=new Set(),pr=new Set(),hs=new Set(),bt=new Set(),it=mode==="bombard"&&sel?new Set(bombTargets(sel)):mode==="skull"&&sel?new Set(skullTargets(sel)):mode==="hive"&&sel?new Set(hiveTargets(sel)):mode==="hook"&&sel?new Set(hookTargets(sel)):mode==="flute"&&sel?new Set(fluteTargets()):mode==="bribe"&&sel?new Set(bribeTargets(sel)):mode==="decoy"&&sel?new Set(decoyTargets(sel)):mode&&mode.startsWith("item:")&&sel&&turn==="y"?itemTargets(sel,mode.slice(5)):new Set();
   if(sel&&turn==="y"&&!over){
     if(mode==="ushove"&&shoveT)shoveT.ds.forEach(k=>mv.add(k));
@@ -3233,6 +3250,8 @@ function hazards(team,done){
   const denned=team!=="y"&&DEN.size?units.filter(u=>u.team==="w"&&u.hp<maxHp(u)&&denZone(u.x,u.y)):[]; // the Hidden Den: animals on its ground lick their wounds
   denned.forEach(u=>{u.hp=Math.min(maxHp(u),u.hp+DEN_HEAL);floatText(u.x,u.y,"+"+DEN_HEAL,"heal")});
   if(denned.length)msg.push(`The wild ${NAME[denned[0].t]} rested by its den.`);
+  const oaked=BLOOD.size?units.filter(u=>mine(u)&&BLOOD.has(u.x+","+u.y)):[]; // the Blood Oaks drink from whoever lingers among them
+  oaked.forEach(u=>{floatText(u.x,u.y,"Blood Oaks","slow");hurt(u,BLOOD_DMG)});if(oaked.length)msg.push(oaked.length===1?`The Blood Oaks fed on ${who(oaked[0])}.`:`The Blood Oaks fed on ${oaked.length} units.`);
   const burnt=units.filter(u=>mine(u)&&MAGMA.has(u.x+","+u.y));
   burnt.forEach(u=>hurt(u,MAGMA_DMG));
   if(burnt.length)msg.push(burnt.length===1?"Magma burned "+who(burnt[0])+".":`Magma burned ${burnt.length} units.`);
@@ -3256,7 +3275,7 @@ function hazards(team,done){
   if(prey){prey.hp-=1;floatText(prey.x,prey.y,"-1");msg.push(`The Hollow King's Crown fed on ${who(prey)}.`)}
   const bled=units.filter(u=>u.team===team&&u.bleed&&u.hp>1); // the Bleeding Statue (never the last HP)
   bled.forEach(u=>{u.hp-=1;floatText(u.x,u.y,"-1")});if(bled.length)msg.push(`The Bleeding Statue drew blood from ${who(bled[0])}.`);
-  if(!burnt.length&&!denned.length&&!blasts.length&&!calmed.length&&!prey&&!bled.length&&!chaos.length&&!haunted.length)return done();
+  if(!burnt.length&&!oaked.length&&!denned.length&&!blasts.length&&!calmed.length&&!prey&&!bled.length&&!chaos.length&&!haunted.length)return done();
   busy=true;say(msg.join(" "));render();blasts.forEach(([x,y])=>eruptFx(x,y));
   if(checkEnd())return;
   later(()=>{if(g===gid&&!over)done()},900);
@@ -3307,7 +3326,7 @@ function logCampaign(nm,how){
   try{localStorage.setItem(RKEY,JSON.stringify(HALL))}catch(e){}
 }
 const FERAL={terror:["Terrifying Presence","Enemies on the 8 tiles around it lose 5% evasion, and they hit it for 1 less damage. Large and slow: 1 less movement (never below 1)."],claws:["Long Claws","+1 damage and +1 pierce, but 5% less evasion."],limbs:["Warped Limbs","Attacks twice, at 1 less damage each time (2 less for a bear)."]},FERAL_TYPES="WBH",TERROR_EV=.05,TERROR_DMG=1,CLAW_EV=.05,LIMBS_DMG=1,LIMBS_BEAR=2; // the Warped Wilds: one enemy in every battle is a Warped Beast, an animal fighting for them with one of these
-const WOUT_FERAL=.5,WOUT_PALACE=.15,WOUT_TREE=.04,wildsAfter=()=>!!camp.wildsOut&&!!camp.battle&&!chal&&!camp.inWilds; // after the Wilds: wild animals often come back warped, some forest and swamp fortresses look like the palace, and the odd warped tree grows
+const WOUT_DEEP=.35,WOUT_FERAL=.5,WOUT_PALACE=.15,WOUT_TREE=.04,wildsAfter=()=>!!camp.wildsOut&&!!camp.battle&&!chal&&!camp.inWilds; // after the Wilds: wild animals often come back warped, some forest and swamp fortresses look like the palace, and the odd warped tree grows
 const feralize=u=>{if(u&&wildsAfter()&&Math.random()<WOUT_FERAL)u.feral=Object.keys(FERAL)[Math.floor(Math.random()*3)];return u};
 const terrorNear=u=>units.some(v=>v.feral==="terror"&&v.team!==u.team&&v!==u&&Math.abs(v.x-u.x)<=1&&Math.abs(v.y-u.y)<=1); // standing in a Terrifying Presence
 const ELITE_HP=2,SIM_ELITE_HP=1,GLITCH={flick:["Flickering","+10% evasion."],clock:["Overclocked","+1 movement."],code:["Chaos Code","a unit that hits it in melee takes 1 damage, ignoring armor."]},FLICK_EV=.1; // the Sim's Corrupted Elites: +1 HP, +1 damage and one glitch
@@ -3490,7 +3509,7 @@ function evalTile(u,x,y,D,foes,xv){
   const care=(.5+(1-u.hp/T.hp)*.9)/(1+(u.idle||0)); // wounded units value safety more; patience (idle turns) wears it down
   let s=(threat+wt)*care+(WOODS(k)?(mods[u.team]==="FT"?-1.5:1.5):0)+(CHERRY.has(k)?.5-(1-u.hp/T.hp):0)+(FORT.has(k)?-2:0)+(SHALLOW.has(k)?1.5:0); // forests slow the next move, but Forest Tactics likes them
   s+=blastOf(k).filter(([a,b])=>XBAR.has(a+","+b)).length*2+(glowOf(k).length&&!u.slowNext?1.2:0); // don't loiter beside exploding barrels, or step into a Light Brick's glow
-  s+=(u.team!=="y"&&skullZone(k)?SKULL_AVOID:0)+(MAGMA.has(k)?3:0)+blastOf(k).filter(([a,b])=>VOLC.has(a+","+b)).length*.6+([...blastOf(k),pk(k)].filter(([a,b])=>WISP.has(a+","+b)).length)*.4; // ...and wisps might slow // magma burns at turn end; volcanoes might erupt
+  s+=(u.team!=="y"&&skullZone(k)?SKULL_AVOID:0)+(MAGMA.has(k)?3:0)+(BLOOD.has(k)?3:0)+blastOf(k).filter(([a,b])=>VOLC.has(a+","+b)).length*.6+([...blastOf(k),pk(k)].filter(([a,b])=>WISP.has(a+","+b)).length)*.4; // ...and wisps might slow // magma burns at turn end; volcanoes might erupt
   const atk=inR.length?20+Math.max(...inR.map(p=>{const c=combat(u,p,g),kill=c.dmg>=p.hp,r=kill?null:retaliation(u,p,g); // a kill avoids any retaliation
     return c.hit*(10*c.dmg/p.hp+(kill?12:0))+(VAL[p.t]||0)-(r?r.hit*(r.dmg*2.5+(r.dmg>=u.hp?15:0))*care:0)})):0;
   const bv=(xv||[]).reduce((m,[bk,v])=>{const[a,b]=pk(bk),dd=Math.abs(a-x)+Math.abs(b-y);return dd>=T.mn&&dd<=rg&&!(Math.abs(a-x)<=1&&Math.abs(b-y)<=1)?Math.max(m,14+v):m},0);
@@ -3652,6 +3671,7 @@ function enemyTurn(note=""){
 /* ---------- World map ---------- */
 let WORLD=[],EDGES=[],DECO={trees:[],rocks:[],river:""};
 const BTEXT={
+ deepwoods:"The Hungry Deepwoods. Deep, dark and twisted: thick woods and black swamp, and clumps of Blood Oaks that feed on anyone who lingers among them. A will-o'-the-wisp may drift through the gloom.",
  fpalace:"The Forest Palace. The Wilds' stronghold: a great palace of pale stone and living trees, deep in the woods.",
  wildlands:"The Wildlands. Deep, overgrown woods with a few clearings. Tanglevine Patches snag anyone who wades in, and somewhere under the trees a Hidden Den keeps its animals close. A roaming animal is guaranteed.",
  grid:"The Grid. Mostly Empty Space under neon lines: a unit that starts its turn on Empty Space gets +1 movement. A few Light Bricks glow among it, and dazzle anyone who walks through.",
@@ -3667,6 +3687,7 @@ const BTEXT={
  volcanic:"Molten wastes. Rivers and pools of lava block the way, magma crust scorches anyone who lingers on it, and volcanoes rumble overhead.",
  sakura:"Sakura Vale. Cherry groves in full bloom, wildflower fields, and still koi ponds whose calm restores the weary."};
 const NAMES={
+ deepwoods:["The Sunless Wood","Gnawing Thicket","Bloodroot Hollow","Mawwood","The Hungry Dark","Rotheart Mire","The Whispering Deep"],
  wildlands:["Thornwild","The Tangled Reach","Briarwood Hollow","Gnarlroot","The Overgrowth","Den of Whispers","Wildheart","Wildwhip Woods","Elderberry Hollow","The Deep Den","The Blackwood","Den of the Deep Woods"],
  forest:["Whispering Woods","Mossy Ford","Bramble Wood","Thornfield","Forest of Twilight","The Blackwoods","Weisswald"],
  plain:["Ashen Pass","Iron Bridge","Cinder Fields","Grey Marsh"],
@@ -3724,6 +3745,7 @@ function genWorld(){
     const c=layers[li].map(i=>nodes[i]).filter(n=>n.type==="battle");
     if(c.length)Object.assign(c[R(c.length)],{name:WN[k],b:WB,text:BTEXT[WB]});
   });
+  if(!WL&&camp.wildsOut&&Math.random()<WOUT_DEEP){const c=nodes.filter(n=>n.type==="battle"&&!SIMB(n)&&n.b!=="wetlands");if(c.length)Object.assign(c[R(c.length)],{name:NAMES.deepwoods[R(NAMES.deepwoods.length)],b:"deepwoods",text:BTEXT.deepwoods})} // after the Wilds: now and then, one location has grown into the Hungry Deepwoods
   // labels are ~7.4 units per character at 12px bold: keep same-row neighbours far enough apart, and labels inside the map
   const half=n=>n.name.length*3.7+6;
   layers.forEach(ids=>{
@@ -3825,10 +3847,10 @@ function simMapArt(){
   const tt=`The Warped Sim \u2013 Region ${camp.region||1}`;
   return g+`<text x="200" y="40" text-anchor="middle" font-family="'Palatino Linotype','Book Antiqua',Palatino,Georgia,serif" font-style="italic" font-weight="700" font-size="20" fill="#efe6ff" stroke="#120c28" stroke-width="3" paint-order="stroke">${tt}</text><path d="M110 49h180" stroke="#b48aff" stroke-width="1" opacity=".75"/><path d="M110 49h180" stroke="#3ad8ff" stroke-width="3" opacity=".25" filter="url(#sbl)"/>`;
 }
-const BIOME_NAME={fpalace:"Forest Palace",wildlands:"The Wildlands",grid:"The Grid",chasm:"The Fractured Chasm",synth:"Synthwave Space",forest:"Forest",plain:"Plains",fort:"Stronghold",wild:"Wilds",wetlands:"Wetlands",swamp:"Murky Swamp",graveyard:"Haunted Graveyard",volcanic:"Molten Wastes",sakura:"Sakura Vale",boss:"Enemy Stronghold"};
+const BIOME_NAME={deepwoods:"The Hungry Deepwoods",fpalace:"Forest Palace",wildlands:"The Wildlands",grid:"The Grid",chasm:"The Fractured Chasm",synth:"Synthwave Space",forest:"Forest",plain:"Plains",fort:"Stronghold",wild:"Wilds",wetlands:"Wetlands",swamp:"Murky Swamp",graveyard:"Haunted Graveyard",volcanic:"Molten Wastes",sakura:"Sakura Vale",boss:"Enemy Stronghold"};
 // a Quick Battle map has no biome of its own, so name it from what was generated
-const guessBiome=()=>DEN.size?"wildlands":VOID.size?"grid":LIGHT.size?"synth":CHASM.size?"chasm":VALE||KOI.size?"sakura":LAVA.size||VOLC.size?"volcanic":GRAVES.size?"graveyard":SWAMP.size>=10?"swamp":DEEP.size+SHALLOW.size>=20?"wetlands":FORT.size?"fort":units.some(u=>u.team==="w")?"wild":FOREST.size>=16?"forest":"plain";
-const BIOME={mixed:{},wildlands:{wildlands:1,wild:1,forest:17,flowers:1},grid:{grid:1,sim:1},chasm:{chasm:1,sim:1},synth:{synth:1,sim:1},sakura:{sakura:1,forest:2,flowers:1},forest:{forest:9,flowers:1},plain:{forest:2,flowers:1},fort:{fort:1},wild:{wild:1,flowers:1},boss:{fort:1,boss:1},wetlands:{water:1,forest:3,swamp:1},swamp:{swamp:3,pond:1,forest:6},graveyard:{graves:1,forest:5},volcanic:{lava:1,forest:3}};
+const guessBiome=()=>BLOOD.size?"deepwoods":DEN.size?"wildlands":VOID.size?"grid":LIGHT.size?"synth":CHASM.size?"chasm":VALE||KOI.size?"sakura":LAVA.size||VOLC.size?"volcanic":GRAVES.size?"graveyard":SWAMP.size>=10?"swamp":DEEP.size+SHALLOW.size>=20?"wetlands":FORT.size?"fort":units.some(u=>u.team==="w")?"wild":FOREST.size>=16?"forest":"plain";
+const BIOME={mixed:{},deepwoods:{deepwoods:1,forest:12,swamp:3},wildlands:{wildlands:1,wild:1,forest:17,flowers:1},grid:{grid:1,sim:1},chasm:{chasm:1,sim:1},synth:{synth:1,sim:1},sakura:{sakura:1,forest:2,flowers:1},forest:{forest:9,flowers:1},plain:{forest:2,flowers:1},fort:{fort:1},wild:{wild:1,flowers:1},boss:{fort:1,boss:1},wetlands:{water:1,forest:3,swamp:1},swamp:{swamp:3,pond:1,forest:6},graveyard:{graves:1,forest:5},volcanic:{lava:1,forest:3}};
 const ONEWAY_SHARE=2/3,ROAD_EVENT=.25;
 const edgeOf=(a,b)=>EDGES.find(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a)); // e[2]: one-way (only from e[0] up to e[1]); e[3]: its road event has been rolled
 const canGo=(a,b)=>{const e=edgeOf(a,b);return !!e&&(!e[2]||b===e[1])};
@@ -3914,7 +3936,7 @@ function finalGlow(n,r){
     +`<circle cx="${n.x}" cy="${n.y}" r="${r+9}" fill="none" stroke="#b81818" stroke-width="1.400" stroke-dasharray="3 3" opacity=".7"/></g>`;
 }
 // open battle locations on the world map, by biome: [label, colour]
-const NODE_B={wetlands:["Wetlands","#5fb3c9"],swamp:["Swamp","#6d7a4f"],graveyard:["Graveyard","#7d7590"],volcanic:["Volcanic","#b8461f"],sakura:["Sakura","#e48aa8"],chasm:["Fractured Chasm","#6a4ac8"],synth:["Synthwave","#c8409a"],grid:["Grid","#1a0e30"],wildlands:["Wildlands","#3f7a34"]};
+const NODE_B={wetlands:["Wetlands","#5fb3c9"],swamp:["Swamp","#6d7a4f"],graveyard:["Graveyard","#7d7590"],volcanic:["Volcanic","#b8461f"],sakura:["Sakura","#e48aa8"],chasm:["Fractured Chasm","#6a4ac8"],synth:["Synthwave","#c8409a"],grid:["Grid","#1a0e30"],wildlands:["Wildlands","#3f7a34"],deepwoods:["Deepwoods","#7a2024"]};
 function renderWorld(){
   const done=new Set(camp.cleared),cur=WORLD[camp.pos],pc=COLORS[camp.cfg.c];
   if(camp.sel==null)camp.sel=camp.pos;
@@ -3960,6 +3982,7 @@ function renderWorld(){
       :n.b==="fort"?nest(FORT_ICON[0],n.x-S/2,n.y-S/2,S)
       :n.b==="boss"?nest(FORT_ICON[1],n.x-S/2,n.y-S/2,S)
       :n.b==="fpalace"?`<path d="M${n.x-10} ${n.y+9}V${n.y-1}h4V${n.y+9}M${n.x+6} ${n.y+9}V${n.y-1}h4V${n.y+9}M${n.x-5} ${n.y+9}V${n.y-3}h10V${n.y+9}z" fill="#fff" stroke="#164a36" stroke-width="1.200"/><path d="M${n.x-6} ${n.y-3}q6-11 12 0z" fill="#3aa47c" stroke="#164a36" stroke-width="1.200"/><path d="M${n.x} ${n.y-9}v-4" stroke="#d8b04a" stroke-width="1.600"/><circle cx="${n.x}" cy="${n.y-13.500}" r="1.400" fill="#d8b04a"/><circle cx="${n.x-8}" cy="${n.y-4}" r="3.600" fill="#3aa47c" stroke="#164a36" stroke-width="1"/><circle cx="${n.x+8}" cy="${n.y-4}" r="3.600" fill="#3aa47c" stroke="#164a36" stroke-width="1"/><path d="M${n.x-2} ${n.y+9}v-5a2 2 0 0 1 4 0v5" fill="#164a36"/>` // the Forest Palace: a domed hall between two tree-crowned towers
+      :n.b==="deepwoods"?`<path d="M${n.x} ${n.y+9}v-7q-4-3-7-1M${n.x} ${n.y+2}q3-4 7-2M${n.x} ${n.y-1}q-1-4 2-6" stroke="#fff" stroke-width="2.400" fill="none" stroke-linecap="round"/><circle cx="${n.x-5}" cy="${n.y-6}" r="4.200" fill="#fff"/><circle cx="${n.x+4}" cy="${n.y-8}" r="4.600" fill="#fff"/><circle cx="${n.x+7}" cy="${n.y-2}" r="3.600" fill="#fff"/><circle cx="${n.x-3}" cy="${n.y-7}" r="1.100" fill="#c0342a"/><circle cx="${n.x+5}" cy="${n.y-9}" r="1.100" fill="#c0342a"/><circle cx="${n.x+7}" cy="${n.y-2}" r="1" fill="#c0342a"/>` // a gnarled blood oak
       :n.b==="wildlands"?`<path d="M${n.x-8} ${n.y+9}q-1-9 5-11t4-9" stroke="#fff" stroke-width="2.400" fill="none" stroke-linecap="round"/><path d="M${n.x+1} ${n.y-11}a3 3 0 1 1 3 3" stroke="#fff" stroke-width="1.800" fill="none" stroke-linecap="round"/><ellipse cx="${n.x+5}" cy="${n.y+1}" rx="4.500" ry="2.200" fill="#fff" transform="rotate(-30 ${n.x+5} ${n.y+1})"/><ellipse cx="${n.x-7}" cy="${n.y-3}" rx="4" ry="2" fill="#fff" transform="rotate(35 ${n.x-7} ${n.y-3})"/><path d="M${n.x-4} ${n.y+5}l2.500-.800M${n.x-1} ${n.y-6}l2.500 .500" stroke="#fff" stroke-width="1.300" stroke-linecap="round"/>` // a curling, thorny vine
       :n.b==="wild"?nest(ICON.W,n.x-S/2,n.y-S/2,S,"--ic:#fff;--tc:#6b4a26")
       :`<path d="M${n.x-8} ${n.y-8}L${n.x+8} ${n.y+8}M${n.x+8} ${n.y-8}L${n.x-8} ${n.y+8}" stroke="#3b2a14" stroke-width="3" stroke-linecap="round"/>`;
@@ -4192,7 +4215,7 @@ function enterSim(){ // the region you've just reached becomes the Warped Sim (i
 /* ---------- The Warped Wilds (unlocked by "wildwilds") ----------
    After you choose a boss's spoils from regions 2 to 5 (so, on arriving in regions 3 to 6), an arch of living wood may stand across the road, once per campaign whatever you choose.
    Going through turns the region you've just reached into the Warped Wilds: nature taken to extremes by an overflow of magic (and, faintly, the Sim). Backing away leaves it as it is. */
-const WILDS_CHANCE=.15,WILDS_ESC=1,WILDS_B=["wildlands"]; // WILDS_ESC: the Wilds' enemies escalate as if this many regions further on; WILDS_B: the Wilds' own biomes (its 1-2 swamps come separately)
+const WILDS_CHANCE=.15,WILDS_ESC=1,WILDS_B=["wildlands","deepwoods"]; // WILDS_ESC: the Wilds' enemies escalate as if this many regions further on; WILDS_B: the Wilds' own biomes (its 1-2 swamps come separately)
 const WILDS_CAMP_TEXT="The arch has grown shut behind you, branch knotted into branch. The only way out is through.",WILDS_BOSS_TEXT="The heart of the Wilds, where the magic runs thickest. Whoever holds it holds the way out.";
 const wildsDue=()=>unlocks.wildwilds&&!camp.wildsGate&&!camp.inWilds&&!camp.inSim&&camp.region>=3&&camp.region<=6&&camp.pos===0&&Math.random()<WILDS_CHANCE;
 function enterWilds(){ // the region you've just reached becomes the Warped Wilds (its map comes from genWorld)
@@ -4726,7 +4749,7 @@ CAMP_SET.wilds={sky:["#04100a","#1e3a2a"],hz:"#7ae0a0",moon:"#e0ffd8",rune:"#b8f
     +[[60,100,0],[150,60,1],[200,96,2],[296,78,3],[110,110,4],[24,70,5],[240,50,6]].map(([x,y,k])=>`<g class="twk" style="animation-delay:-${k*.45}s"><circle cx="${x}" cy="${y}" r="4" fill="${k%2?"#d8b8ff":"#e8ffb0"}" opacity=".18"/><circle cx="${x}" cy="${y}" r="1.100" fill="#fff"/></g>`).join("")},
  mid:()=>{const tw=CAMP_SET.wilds.twist;return [[22,56,"#7ae0b0",0],[76,40,"#b49aff",1],[300,50,"#7ae0b0",2]].map(([x,h,c,k])=>tw(x,h,c,k)).join("")+[[262,168,0],[300,176,1],[30,170,2]].map(([x,y,k])=>[0,1,2,3,4].map(i=>{const a=i*1.256+k,mx=x+Math.cos(a)*9,my=y+Math.sin(a)*3;return `<path d="M${mx.toFixed(1)} ${my.toFixed(1)}v-3" stroke="#d8d0b8" stroke-width="1.100"/><ellipse cx="${mx.toFixed(1)}" cy="${(my-3.200).toFixed(1)}" rx="2.300" ry="1.400" fill="${k%2?"#b49aff":"#9af07a"}"/>`}).join("")+`<ellipse cx="${x}" cy="${y-3}" rx="13" ry="5" fill="${k%2?"#b49aff":"#9af07a"}" opacity=".18"/>`).join("")},
  fore:()=>`<path d="M0 196q12-14 30-12q-10 6-12 18M2 210q16-10 34-6" stroke="#1e3a16" stroke-width="2.200" fill="none" stroke-linecap="round"/>`+[[14,206],[30,214],[300,210]].map(([x,y])=>`<path d="M${x} ${y}q-8-6-16-4M${x} ${y}q-2-10 4-16M${x} ${y}q8-6 14-2" stroke="#2f5a26" stroke-width="1.400" fill="none"/>`).join("")+`<path d="M318 168q-10 6-12 20q-1 8 4 14" stroke="#2a4a20" stroke-width="1.600" fill="none"/><circle cx="306" cy="188" r="1.600" fill="#b49aff"/>`};
-CAMP_SET.fpalace=CAMP_SET.wildlands=CAMP_SET.wilds;
+CAMP_SET.fpalace=CAMP_SET.wildlands=CAMP_SET.deepwoods=CAMP_SET.wilds;
 CAMP_SET.sakura={...CAMP_SET.plain,sky:["#140c18","#5a3048"],hz:"#e88aa8",moon:"#ffe4ee",fog:"#e8b8c8"}; // Sakura Vale: a rose-tinted dusk
 // Marcus the skeleton pedlar and his mule Parsnip, at his lamplit wagon (the shop scene, 320x220)
 // Parsley, the rainbow macaw, perched on the lantern pole (Marcus' Bag of Bird Seed)
@@ -5619,7 +5642,7 @@ function applyMap(def){
   const S={ground:new Set(),forest:new Set(),shallow:new Set(),deep:new Set(),swamp:new Set(),wall:new Set(),fort:new Set(),barrels:new Set(),xbarrel:new Set(),grave:new Set(),campsite:new Set(),lava:new Set(),magma:new Set(),volcano:new Set(),cherry:new Set(),wisp:new Set(),flowers:new Set(),koi:new Set(),meadow:new Set(),greenwood:new Set(),unsettled:new Set()};
   def.rows.forEach((r,y)=>[...r].forEach((c,x)=>{const k=MAPCH[c]||"ground";S[k].add(x+","+y);if(k==="xbarrel")S.barrels.add(x+","+y)}));
   WALLS=S.wall;FOREST=S.forest;FORT=S.fort;DEEP=S.deep;SHALLOW=S.shallow;SWAMP=S.swamp;GRAVES=S.grave;BARRELS=S.barrels;XBAR=S.xbarrel;CAMPS=S.campsite;LAVA=S.lava;MAGMA=S.magma;VOLC=S.volcano;WISP=S.wisp;FLOWERS=S.flowers;KOI=S.koi;CHERRY=S.cherry;S.cherry.forEach(k=>FOREST.add(k));MEADOW=S.meadow;GREENW=S.greenwood;GREENW.forEach(k=>FOREST.add(k));SKULLS=S.unsettled;
-  MURKY=def.biome==="swamp";HAUNTED=def.biome==="graveyard";VOLCANIC=def.biome==="volcanic";VALE=def.biome==="sakura";WALLV=def.wallStyle||0;CHASM=new Set();CHAOS=new Set();LIGHT=new Set();VOID=new Set();VINES=new Set();DEN=new Set();WARPT=new Set();SIM=false;SIMFORT=false;groupForts(()=>0);
+  MURKY=def.biome==="swamp";HAUNTED=def.biome==="graveyard";VOLCANIC=def.biome==="volcanic";VALE=def.biome==="sakura";WALLV=def.wallStyle||0;CHASM=new Set();CHAOS=new Set();LIGHT=new Set();VOID=new Set();VINES=new Set();DEN=new Set();WARPT=new Set();BLOOD=new Set();DEEPW=false;SIM=false;SIMFORT=false;groupForts(()=>0);
 }
 // what's wrong with a map, if anything (an empty list means it's playable); notes are warnings that don't block play
 function mapProblems(def,notes=[]){
@@ -5951,8 +5974,8 @@ const getHold=m=>{try{return JSON.parse(localStorage.getItem(HOLD(m))||"null")}c
 $("phold").onclick=()=>{
   if(turn!=="y"||busy||over)return;
   const A=x=>[...x],m=chal?"chal":camp.battle?"camp":"quick";
-  const h={t:[WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS,WISP,FLOWERS,KOI,CALTROPS,MEADOW,GREENW,RUBBLE,CHASM,CHAOS,LIGHT,VOID,SKULLS,VINES,DEN,WARPT].map(A),
-    f:{MURKY,HAUNTED,VOLCANIC,VALE,SIM,SIMFORT,WALLV,seed,BIOME_KEY,herbertMet,firstTurn,pturn},fv:A(FORTV),fk:A(FORTK),
+  const h={t:[WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS,WISP,FLOWERS,KOI,CALTROPS,MEADOW,GREENW,RUBBLE,CHASM,CHAOS,LIGHT,VOID,SKULLS,VINES,DEN,WARPT,BLOOD].map(A),
+    f:{MURKY,HAUNTED,VOLCANIC,VALE,DEEPW,SIM,SIMFORT,WALLV,seed,BIOME_KEY,herbertMet,firstTurn,pturn},fv:A(FORTV),fk:A(FORTK),
     units,mods,col,tpUsed,relic:A(RELIC),foeRelic:A(FOE_RELIC),foeItems:FOE_ITEMS.slice(),relicUsed,pick,def:chal&&chal.def,node:camp.battle?camp.battle.node:null,items0:camp.battle&&camp.battle.items0,wounds0:camp.battle&&camp.battle.wounds0,biome:$("biome").innerHTML};
   try{localStorage.setItem(HOLD(m),JSON.stringify(h))}catch(e){return}
   if(m==="camp")saveCamp();
@@ -5961,8 +5984,8 @@ $("phold").onclick=()=>{
 };
 function resumeHold(h){
   resetBattle();
-  [WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS,WISP=new Set(),FLOWERS=new Set(),KOI=new Set(),CALTROPS=new Set(),MEADOW=new Set(),GREENW=new Set(),RUBBLE=new Set(),CHASM=new Set(),CHAOS=new Set(),LIGHT=new Set(),VOID=new Set(),SKULLS=new Set(),VINES=new Set(),DEN=new Set(),WARPT=new Set()]=h.t.map(a=>new Set(a));
-  ({MURKY,HAUNTED,VOLCANIC,VALE=false,SIM=false,SIMFORT=false,WALLV,seed,BIOME_KEY,herbertMet,firstTurn,pturn}=h.f);
+  [WALLS,FOREST,FORT,DEEP,SHALLOW,SWAMP,GRAVES,LAVA,MAGMA,VOLC,CHERRY,SMOKE,BARRELS,XBAR,CAMPS,WISP=new Set(),FLOWERS=new Set(),KOI=new Set(),CALTROPS=new Set(),MEADOW=new Set(),GREENW=new Set(),RUBBLE=new Set(),CHASM=new Set(),CHAOS=new Set(),LIGHT=new Set(),VOID=new Set(),SKULLS=new Set(),VINES=new Set(),DEN=new Set(),WARPT=new Set(),BLOOD=new Set()]=h.t.map(a=>new Set(a));
+  ({MURKY,HAUNTED,VOLCANIC,VALE=false,DEEPW=false,SIM=false,SIMFORT=false,WALLV,seed,BIOME_KEY,herbertMet,firstTurn,pturn}=h.f);
   FORTV=new Map(h.fv);FORTK=new Set(h.fk);units=h.units;mods={y:modOk(h.mods.y),f:modOk(h.mods.f)};col=h.col;tpUsed=h.tpUsed;RELIC=new Set(h.relic);FOE_RELIC=new Set(h.foeRelic||[]);FOE_ITEMS=(h.foeItems||[]).slice();relicUsed=h.relicUsed;pick=h.pick;
   chal=h.def?{def:h.def,test:false}:null;camp.battle=h.node!=null?{node:h.node,items0:h.items0,wounds0:h.wounds0}:null;
   $("biome").innerHTML=h.biome;show("game");say("Battle resumed. Your turn. Select one of your units.");render();
