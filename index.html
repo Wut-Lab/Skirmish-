@@ -1827,7 +1827,7 @@ function combat(a,b,from=a){
   add("Spurs",a.t==="C"&&rel(a,"spurs")&&turn===a.team&&(a.moved||from!==a)?1:0); // a charge: only on its own turn, after moving
   add("Berserker's Warpaint",rel(a,"warpaint")?1:0);
   add("Hidden Den",a.team==="w"&&denZone(from.x,from.y)?DEN_DMG:0); // an animal on its own ground
-  add("Long Claws",a.feral==="claws"?1:0);add("Warped Limbs",a.feral==="limbs"?-LIMBS_DMG:0);add("Terrifying Presence",b.feral==="terror"&&a.team!==b.team&&Math.abs(from.x-b.x)<=1&&Math.abs(from.y-b.y)<=1?-TERROR_DMG:0); // a Warped Beast
+  add("Long Claws",a.feral==="claws"?1:0);add("Warped Limbs",a.feral==="limbs"?-(a.t==="B"?LIMBS_BEAR:LIMBS_DMG):0);add("Terrifying Presence",b.feral==="terror"&&a.team!==b.team&&Math.abs(from.x-b.x)<=1&&Math.abs(from.y-b.y)<=1?-TERROR_DMG:0); // a Warped Beast
   add("Liquid Courage",(rel(a,"grog")?1:0)+(rel(b,"grog")?1:0)); // both ways: dealt and taken
   add("Tome of the Red Mages",a.t==="E"&&rel(a,"redtome")?1:0);
   add("Tome of the Black Mages",a.t==="E"&&rel(a,"blacktome")&&b.slow?1:0); // preying on the slowed
@@ -3300,7 +3300,7 @@ function logCampaign(nm,how){
   while(HALL.list.length>REC_MAX){const j=HALL.list.map(r=>r.how==="won").lastIndexOf(false);HALL.list.splice(j<0?HALL.list.length-1:j,1)} // over the cap: the oldest loss goes first, conquests stay
   try{localStorage.setItem(RKEY,JSON.stringify(HALL))}catch(e){}
 }
-const FERAL={terror:["Terrifying Presence","Enemies on the 8 tiles around it lose 5% evasion, and they hit it for 1 less damage. Large and slow: 1 less movement (never below 1)."],claws:["Long Claws","+1 damage and +1 pierce, but 5% less evasion."],limbs:["Warped Limbs","Attacks twice, at 2 less damage each time."]},FERAL_TYPES="WBH",TERROR_EV=.05,TERROR_DMG=1,CLAW_EV=.05,LIMBS_DMG=2; // the Warped Wilds: one enemy in every battle is a Warped Beast, an animal fighting for them with one of these
+const FERAL={terror:["Terrifying Presence","Enemies on the 8 tiles around it lose 5% evasion, and they hit it for 1 less damage. Large and slow: 1 less movement (never below 1)."],claws:["Long Claws","+1 damage and +1 pierce, but 5% less evasion."],limbs:["Warped Limbs","Attacks twice, at 1 less damage each time (2 less for a bear)."]},FERAL_TYPES="WBH",TERROR_EV=.05,TERROR_DMG=1,CLAW_EV=.05,LIMBS_DMG=1,LIMBS_BEAR=2; // the Warped Wilds: one enemy in every battle is a Warped Beast, an animal fighting for them with one of these
 const WOUT_FERAL=.5,WOUT_PALACE=.15,WOUT_TREE=.04,wildsAfter=()=>!!camp.wildsOut&&!!camp.battle&&!chal&&!camp.inWilds; // after the Wilds: wild animals often come back warped, some forest and swamp fortresses look like the palace, and the odd warped tree grows
 const feralize=u=>{if(u&&wildsAfter()&&Math.random()<WOUT_FERAL)u.feral=Object.keys(FERAL)[Math.floor(Math.random()*3)];return u};
 const terrorNear=u=>units.some(v=>v.feral==="terror"&&v.team!==u.team&&v!==u&&Math.abs(v.x-u.x)<=1&&Math.abs(v.y-u.y)<=1); // standing in a Terrifying Presence
