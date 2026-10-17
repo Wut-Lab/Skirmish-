@@ -2695,7 +2695,7 @@ if(document.addEventListener){
   document.addEventListener("visibilitychange",()=>document.hidden?stopMusic():startMusic());
 }
 // Items from Marcus's wagon: using one takes the unit's action
-const itemPrompt=id=>id==="warp"?"Choose an ally on one of the 8 tiles around this unit to swap with.":id==="vrations"?"Choose this unit or an ally beside it to eat the rations.":id==="scramble"?"Choose an enemy on one of the 8 tiles around this unit.":id==="dtl"?"Choose an ally on one of the 8 tiles around this unit to link with.":id==="motherboard"?"Tap this unit to smash the motherboard. Every unit on the field glitches and takes 2 damage, yours too.":id==="pixel"?"Choose an enemy within 3 to throw the Pixel Bomb at.":id==="flash"?"Choose an enemy within 2 to throw the vial at.":id==="incense"?"Choose this unit or an ally beside it to burn the incense by.":id==="dryice"?"Choose a unit within 3 to tip the dry ice by.":id==="wake"?"Choose this unit or an ally beside it to wake up.":id==="acid"?"Choose an enemy within 3 to throw the acid flask at.":id==="viper"?"Tap this unit to coat its weapon.":id==="lightning"?"Choose an enemy within 3 to throw the jar at. The lightning leaps to every unit beside it, yours too.":id==="tangle"?"Choose an enemy within 3 to throw the tanglefoot bag at.":id==="caltrops"?"Choose a tile within 2 to throw the caltrops at.":id==="tonic"?"Tap this unit to drink the tonic.":id==="koijar"?"Choose an empty tile next to this unit for the koi pond.":id==="medkit"?"Choose this unit or a wounded ally beside it to mend.":id==="mule"?"Tap this unit to drink the potion.":id==="feather"?"Choose an ally within 2 tiles to swap places with.":id==="draught"?"Choose this unit or a wounded ally beside it.":id==="smoke"?"Choose a tile within 3 to throw the smoke bomb at.":"Choose an enemy within 3 to throw the fire flask at.";
+const itemPrompt=id=>id==="whip"?"Choose a tile within 3 (not an impassable one) to throw the Whipvine Sack at.":id==="warp"?"Choose an ally on one of the 8 tiles around this unit to swap with.":id==="vrations"?"Choose this unit or an ally beside it to eat the rations.":id==="scramble"?"Choose an enemy on one of the 8 tiles around this unit.":id==="dtl"?"Choose an ally on one of the 8 tiles around this unit to link with.":id==="motherboard"?"Tap this unit to smash the motherboard. Every unit on the field glitches and takes 2 damage, yours too.":id==="pixel"?"Choose an enemy within 3 to throw the Pixel Bomb at.":id==="flash"?"Choose an enemy within 2 to throw the vial at.":id==="incense"?"Choose this unit or an ally beside it to burn the incense by.":id==="dryice"?"Choose a unit within 3 to tip the dry ice by.":id==="wake"?"Choose this unit or an ally beside it to wake up.":id==="acid"?"Choose an enemy within 3 to throw the acid flask at.":id==="viper"?"Tap this unit to coat its weapon.":id==="lightning"?"Choose an enemy within 3 to throw the jar at. The lightning leaps to every unit beside it, yours too.":id==="tangle"?"Choose an enemy within 3 to throw the tanglefoot bag at.":id==="caltrops"?"Choose a tile within 2 to throw the caltrops at.":id==="tonic"?"Tap this unit to drink the tonic.":id==="koijar"?"Choose an empty tile next to this unit for the koi pond.":id==="medkit"?"Choose this unit or a wounded ally beside it to mend.":id==="mule"?"Tap this unit to drink the potion.":id==="feather"?"Choose an ally within 2 tiles to swap places with.":id==="draught"?"Choose this unit or a wounded ally beside it.":id==="smoke"?"Choose a tile within 3 to throw the smoke bomb at.":"Choose an enemy within 3 to throw the fire flask at.";
 // would blocking tile k cut a stretch of open ground off from the rest? (fields that are already split stay allowed)
 function areas(skip){
   const seen=new Set();let n=0;
@@ -2732,6 +2732,7 @@ function itemTargets(u,id){
   else if(id==="incense")units.forEach(b=>{if(b.team==="y"&&!b.auto&&d(u,b)<=1&&!b.rage)out.add(b.x+","+b.y)});
   else if(id==="dryice")units.forEach(b=>{if(d(u,b)<=3)out.add(b.x+","+b.y)});
   else if(id==="tangle")units.forEach(b=>{if(b.team!=="y"&&d(u,b)<=3&&!b.slow&&!calm(b))out.add(b.x+","+b.y)});
+  else if(id==="whip"){for(let y=0;y<H;y++)for(let x=0;x<W;x++){const k=x+","+y;if(Math.abs(x-u.x)+Math.abs(y-u.y)<=3&&!solid(k)&&!VINES.has(k)&&!DEN.has(k))out.add(k)}}
   else if(id==="caltrops"){for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(Math.abs(x-u.x)+Math.abs(y-u.y)<=2&&!solid(x+","+y))out.add(x+","+y)}
   else for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(Math.abs(x-u.x)+Math.abs(y-u.y)<=3)out.add(x+","+y);
   return out;
@@ -2835,6 +2836,11 @@ function useItem(a,id,x,y,rub,dir){
   if(id==="tangle"){
     const b=at(x,y);b.slow=1;sfx("slow");floatText(b.x,b.y,"Tangled","slow");info=b;
     say(`Your ${NAME[a.t]}'s Tanglefoot Bag slowed ${who(b)}: it can move only 1 tile on its next turn.`);return afterAction();
+  }
+  if(id==="whip"){ // the vines take root: whatever grew there is choked out, and the tile becomes a Tanglevine Patch
+    const k=x+","+y;[FOREST,CHERRY,SWAMP,SHALLOW,MAGMA,FLOWERS,WISP,FORT,FORTK,SMOKE,CALTROPS,MEADOW,GREENW,WARPT,VOID].forEach(st=>st.delete(k));FORTV.delete(k);VINES.add(k);
+    sfx("whisk");const b=at(x,y);if(b)floatText(x,y,"Tangled","slow");info=b||null;
+    say(`Your ${NAME[a.t]} threw the Whipvine Sack: the vines took root${b?` around ${who(b)}, which can't retaliate while it stands there`:""}. Entering the patch costs 1 extra movement.`);return render();
   }
   if(id==="caltrops"){
     calLine(x,y,dir).forEach(k=>CALTROPS.add(k));sfx("caltrops");info=null;
@@ -5061,10 +5067,15 @@ const relicCount=id=>camp.relics.filter(r=>r===id).length;
 const needOk=(R,army)=>(!R.need||[].concat(R.need).some(t=>army.includes(t)))&&(!R.needR||R.needR.some(id=>(camp.relics||[]).includes(id))); // needR: a relic (any of a list) you must already carry // need: a unit type (or list of types) the army must have
 const shopRelics=()=>{const army=armyTypes();return Object.keys(RELICS).filter(id=>{const R=RELICS[id];return (R.src==="shop"||R.src==="both")&&(!R.lock||unlocks[R.lock])&&needOk(R,army)&&relicCount(id)<(R.max||1)&&!clash(id,camp.relics)})};
 // the Sim's consumable reward: one of its own most of the time, else anything from Marcus's stock; rarer ones less often either way
-const SIM_OWN=.6;
+const SIM_OWN=.6,WILDS_OWN=.6; // WILDS_OWN: how often a Wilds battle's consumable is one of the Wilds' own
+function wildsItem(){ // the Warped Wilds' consumable reward: one of its own most of the time, else anything from Marcus's stock
+  const own=Math.random()<WILDS_OWN,w=id=>ITEM_STOCK[ITEMS[id].r||0];
+  const pool=Object.keys(ITEMS).filter(id=>!ITEMS[id].sim&&!!ITEMS[id].wilds===own&&(!ITEMS[id].lock||unlocks[ITEMS[id].lock])&&!carryMax(id));
+  if(!pool.length)return null;let r=Math.random()*pool.reduce((t,id)=>t+w(id),0),i=0;while(r>=w(pool[i])){r-=w(pool[i]);i++}return pool[i];
+}
 function simItem(){
   const own=Math.random()<SIM_OWN,w=id=>ITEM_STOCK[ITEMS[id].r||0];
-  const pool=Object.keys(ITEMS).filter(id=>!!ITEMS[id].sim===own&&(!ITEMS[id].lock||unlocks[ITEMS[id].lock])&&!carryMax(id));
+  const pool=Object.keys(ITEMS).filter(id=>!!ITEMS[id].sim===own&&!ITEMS[id].wilds&&(!ITEMS[id].lock||unlocks[ITEMS[id].lock])&&!carryMax(id));
   if(!pool.length)return null;let r=Math.random()*pool.reduce((t,id)=>t+w(id),0),i=0;while(r>=w(pool[i])){r-=w(pool[i]);i++}return pool[i];
 }
 const simRelic=(skip=[])=>{const sp=Object.keys(RELICS).filter(id=>RELICS[id].src==="sim"&&RELICS[id].r<2&&!camp.relics.includes(id)&&!skip.includes(id));if(!sp.length)return null; // a common or uncommon Sim relic, by rarity weight
@@ -5079,6 +5090,7 @@ function relicOffer(nm){
   }
   if(sim){const sr=simRelic(out),it=simItem(); // the Sim (and its locations outside it): one of its own relics, a consumable, and usual relics to fill out the choice
     return [...(sr?[sr]:[]),...out.slice(0,want-(sr?1:0)-(it?1:0)),...(it?["item:"+it]:[])]}
+  if(camp.inWilds){const it=wildsItem();return [...out.slice(0,want-(it?1:0)),...(it?["item:"+it]:[])]} // the Warped Wilds: a consumable among the choices, usually one of its own
   return out.length?out:null;
 }
 // Conqueror's Spoils: a new campaign opens with a choice of 3 Common relics (any a fresh army can use)
@@ -5098,7 +5110,7 @@ function bossOffer(){
   const simList=camp.inSim?Object.keys(RELICS).filter(id=>RELICS[id].src==="sim"&&RELICS[id].r===2&&!have(id)):[]; // the Sim's boss guarantees one of its rares
   const bossList=simList.length?simList:Object.keys(RELICS).filter(id=>RELICS[id].src==="boss"&&ok(RELICS[id])&&!have(id)),out=bossList.length?[pick(bossList)]:[];
   const pool=[...Object.keys(RELICS).filter(id=>{const R=RELICS[id];return !R.find&&R.src!=="shop"&&R.src!=="boss"&&R.src!=="sim"&&ok(R)&&!have(id)}),
-    ...Object.keys(ITEMS).filter(id=>ok(ITEMS[id])&&!carryMax(id)&&(!ITEMS[id].sim||camp.inSim)).map(id=>"item:"+id)];
+    ...Object.keys(ITEMS).filter(id=>ok(ITEMS[id])&&!carryMax(id)&&(!ITEMS[id].sim||camp.inSim)&&(!ITEMS[id].wilds||camp.inWilds)).map(id=>"item:"+id)];
   while(out.length<3&&pool.length){
     const cand=out.filter(e=>e.startsWith("item:")).length>=2?pool.filter(e=>!e.startsWith("item:")):pool;if(!cand.length)break;
     const e=pick(cand);out.push(e);pool.splice(pool.indexOf(e),1);
@@ -5296,6 +5308,7 @@ const ITEMS={ // consumables, used in battle (campaign only); using one takes th
  flash:{name:"Flash Vial",price:70,r:2,desc:"Throw at an enemy within 2: a blinding burst deals 1 damage, ignoring armor, and the target can't move or attack on its next turn."},
  incense:{name:"Enraging Incense",price:80,r:2,max:1,desc:"You can carry only one. Burn it beside this unit or an adjacent ally: for the rest of the battle it gets +1 damage, +1 movement and +1 pierce, but 5% less evasion. The smoke smells of iron and bad decisions."},
  pixel:{name:"Pixel Bomb",r:2,sim:1,desc:"Found only in the Warped Sim. Throw at an enemy within 3: it takes 3 damage, ignoring armor, then it and every enemy beside it glitch to random empty tiles within 2. Fortresses and forests won't save them."},
+ whip:{name:"Whipvine Sack",r:1,wilds:1,desc:"Found only in the Warped Wilds. Throw at a tile within 3 that isn't impassable: the vines take root and it becomes a Tanglevine Patch for the rest of the battle (entering costs 1 extra movement, and a unit standing in it can't retaliate). Whatever grew there before is choked out."},
  warp:{name:"Warp Cube",r:0,sim:1,free:1,desc:"Found only in the Warped Sim. This unit swaps places with an ally on one of the 8 tiles around it. Neither unit uses its move or action."},
  vrations:{name:"Virtual Rations",r:0,sim:1,free:1,desc:"Found only in the Warped Sim. This unit or an adjacent ally recovers 2 HP and shakes off being slowed. Using them doesn't use either unit's move or action. Tastes exactly like bread. Suspiciously exactly."},
  scramble:{name:"Scramble Protocol",r:1,sim:1,desc:"Found only in the Warped Sim. Run it on an enemy on one of the 8 tiles around this unit: its base damage and armor swap until the start of your next turn. Bonuses still add on top."},
@@ -5311,6 +5324,7 @@ const carryMax=id=>!!ITEMS[id].max&&camp.items.filter(x=>x===id).length>=ITEMS[i
 const priceOf=p=>Math.round(p*(camp.relics.includes("token")?1-TOKEN_OFF:1)*(camp.relics.includes("chest")?1-CHEST_OFF:1)); // Marcus's Loyalty Token, Boss's War Chest
 const IICON={
  draught:'<path d="M14 4h4v4q7 3 7 10q0 7-9 7t-9-7q0-7 7-10z" fill="rgba(200,60,50,.55)" stroke="#2a1410" stroke-width="1.100"/><path d="M8.600 17q0 6 7.400 6.500q7.400-.5 7.400-6.500z" fill="#b8372d"/><rect x="13.400" y="2" width="5.200" height="3.400" rx="1" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M10 13q-1 4 0 7" stroke="#fff" stroke-width="1.100" fill="none" opacity=".6"/><path d="M14 16h4M16 14v4" stroke="#fff4f0" stroke-width="1.300" stroke-linecap="round"/>',
+ whip:'<ellipse cx="16" cy="29" rx="10" ry="2" fill="rgba(0,0,0,.18)"/><path d="M9 14q-4 6-2 11q2 4 9 4t9-4q2-5-2-11z" fill="#a8885a" stroke="#4a3418" stroke-width="1.200" stroke-linejoin="round"/><path d="M10 18q6 2 12 0M9.500 23q7 2 13 0" stroke="#7a5a30" stroke-width=".8" fill="none" stroke-dasharray="1.600 1.200"/><path d="M9 14q7 3 14 0" stroke="#4a3418" stroke-width="2" fill="none"/><path d="M13 13q-6-5-3-10q2-3 4 0M17 12q1-6 6-8q3-1 3 2q0 2-2 2M15 13q-1-5 2-6" stroke="#24401f" stroke-width="2.200" fill="none" stroke-linecap="round"/><path d="M13 13q-6-5-3-10q2-3 4 0M17 12q1-6 6-8q3-1 3 2q0 2-2 2" stroke="#6f9a44" stroke-width=".8" fill="none" stroke-linecap="round"/><ellipse cx="8.500" cy="7" rx="2.200" ry="1.100" fill="#5a9a3e" transform="rotate(-40 8.500 7)"/><ellipse cx="21" cy="5" rx="2.200" ry="1.100" fill="#5a9a3e" transform="rotate(20 21 5)"/><path d="M11 9l-1.500-.5M22 7l.5-1.500" stroke="#d8c8a0" stroke-width=".9"/><circle cx="25.500" cy="6" r="1.200" fill="#b47ae8"/>',
  smoke:'<circle cx="15" cy="19" r="9" fill="#26262a" stroke="#0a0a0c" stroke-width="1.100"/><circle cx="12" cy="16" r="2.600" fill="#fff" opacity=".25"/><path d="M20 12q3-6 8-5" stroke="#8a6a3a" stroke-width="1.600" fill="none"/><circle cx="28" cy="7" r="2" fill="#ffb347"/><circle cx="28" cy="7" r="4" fill="#ffb347" opacity=".25"/><g fill="#b8b4b0" opacity=".55"><circle cx="6" cy="9" r="3"/><circle cx="9" cy="6" r="2.400"/></g>',
  tonic:'<rect x="13" y="3" width="6" height="4" rx="1" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M13.500 7h5v5l5 12q1 4-3 4H11q-4 0-3-4l5-12z" fill="rgba(230,190,90,.45)" stroke="#3a2a10" stroke-width="1.100" stroke-linejoin="round"/><path d="M9.200 21h13.600l1 3q.8 3-2.400 3H10.600q-3.200 0-2.400-3z" fill="#e0a02a"/><path d="M17 13l-4 6h3l-2 5l5-7h-3z" fill="#fff6c8" stroke="#8a6418" stroke-width=".6" stroke-linejoin="round"/><path d="M3 13h4M2 17h5M4 21h3" stroke="#8a8f96" stroke-width="1.400" stroke-linecap="round"/>',
  koijar:'<rect x="11" y="3" width="10" height="4" rx="1" fill="#8a5a2a" stroke="#3a2412" stroke-width=".8"/><path d="M10 7h12q1 3-1 5q5 3 5 9q0 8-10 8t-10-8q0-6 5-9q-2-2-1-5z" fill="rgba(150,210,230,.55)" stroke="#2a4a5a" stroke-width="1.100"/><path d="M7.200 18q8.800-2 17.600 0v3q0 7-8.800 7.500q-8.800-.5-8.800-7.500z" fill="#3f7f78" opacity=".85"/><path d="M11 21q3-2.400 6 0q-3 2.400-6 0zM11 21l-2.400-1.600v3.200z" fill="#f08a30"/><path d="M16 24.500q3-2 5.600 0q-2.600 2-5.600 0zM21.600 24.500l2-1.400v2.800z" fill="#fbfaf2"/><circle cx="18.600" cy="24.200" r=".8" fill="#e5554f"/><path d="M11 10q-1 5 0 8" stroke="#fff" stroke-width="1" opacity=".6" fill="none"/>',
@@ -5378,7 +5392,7 @@ function shopStock(){
   return {relics:rel,sold:[],items:shopItems(),mercs:Math.random()<(hasRel("vetseal")?VET_SHOP:MERC_SHOP)?Array.from({length:1+Math.floor(Math.random()*2)},()=>rollMerc()):[]};
 }
 function perchItems(){ // Parsley's perch: PERCH_ITEMS consumables, at least one uncommon or better
-  const pool=Object.keys(ITEMS).filter(id=>!ITEMS[id].sim&&(!ITEMS[id].lock||unlocks[ITEMS[id].lock])),w=id=>ITEM_STOCK[ITEMS[id].r||0],out=[];
+  const pool=Object.keys(ITEMS).filter(id=>!ITEMS[id].sim&&!ITEMS[id].wilds&&(!ITEMS[id].lock||unlocks[ITEMS[id].lock])),w=id=>ITEM_STOCK[ITEMS[id].r||0],out=[];
   const draw=list=>{let r=Math.random()*list.reduce((t,id)=>t+w(id),0),i=0;while(r>=w(list[i])){r-=w(list[i]);i++}return list[i]};
   const good=pool.filter(id=>ITEMS[id].r);if(good.length)out.push(draw(good));
   while(out.length<PERCH_ITEMS){const rest=pool.filter(id=>!out.includes(id));if(!rest.length)break;out.push(draw(rest))}
@@ -5386,7 +5400,7 @@ function perchItems(){ // Parsley's perch: PERCH_ITEMS consumables, at least one
 }
 const perchPrice=I=>Math.round(priceOf(I.price)*(1-PERCH_OFF));
 function shopItems(){ // SHOP_ITEMS picks, weighted by ITEM_STOCK (uncommon items turn up half as often, rare ones a quarter)
-  const pool=Object.keys(ITEMS).filter(id=>!ITEMS[id].sim&&(!ITEMS[id].lock||unlocks[ITEMS[id].lock])),out=[],w=id=>ITEM_STOCK[ITEMS[id].r||0];
+  const pool=Object.keys(ITEMS).filter(id=>!ITEMS[id].sim&&!ITEMS[id].wilds&&(!ITEMS[id].lock||unlocks[ITEMS[id].lock])),out=[],w=id=>ITEM_STOCK[ITEMS[id].r||0];
   while(out.length<SHOP_ITEMS&&pool.length){let r=Math.random()*pool.reduce((t,id)=>t+w(id),0),i=0;while(r>=w(pool[i])){r-=w(pool[i]);i++}out.push(pool.splice(i,1)[0])}
   return out;
 }
