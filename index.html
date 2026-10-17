@@ -4260,7 +4260,7 @@ ${leaves}${vines}${shim}${motes}${grass}
 </svg>`;
 }
 const WILDS_GATE={t:"An Arch of Living Wood",tag:"The Wilds",rc:"#5a9a3a",go:()=>(sfx("portal"),{art:wildsGateScene(),
-  text:"As your army packs away the boss's hoard, the road ahead runs into the trees and stops. Two great trees lean across it, their trunks twisted and their boughs knotted into an arch. The air inside it shimmers green and violet, and the forest beyond looks far too deep to have grown here.",
+  text:"A whimsical looking arch grows out of the ground before you.... Should we go in?",
   opts:[{label:"Step Through the Arch",go:()=>{camp.wildsGate=1;camp.wildsIn=1;saveCamp();return "Your army ducks beneath the boughs, one by one. The air is thick and sweet and humming, and when you look back, the arch has already grown shut."}},
     {label:"Leave It Be and Take the Road Around",go:()=>{camp.wildsGate=1;saveCamp();return "You lead your army the long way around. When you glance back, there are only ordinary trees standing by the road."}}]})};
 const ROAD_EVENTS=[
@@ -5524,7 +5524,7 @@ function showTriumph(nm,fallen){ // fallen: how the campaign ended ("lost", "con
   const maps=camp.mapsPrior+battlesWon();
   $("ttitle").textContent=won?CONQUEST_LINES[0]:fallen?"Your Campaign Has Ended":"Congratulations!";$("ttravel").hidden=!!fallen;$("tnew").hidden=won;$("triumph").classList.toggle("conq",won);
   $("tsub").innerHTML=won?`You stormed <b>${nm.name}</b> and conquered all ${FINAL_REGION} regions.`:fallen?(fallen==="lost"?`Your army fell at <b>${nm.name}</b>.`:`You withdrew from <b>${nm.name}</b>, and the campaign ended there.`)+` You reached region ${camp.region}.`
-    :camp.inSim?"You've escaped this strange realm! Or, have you?":camp.inWilds?"You've found your way out of the Warped Wilds!":`You conquered <b>${nm.name}</b>`+(camp.region>1?` and won your ${["","","second","third","fourth","fifth"][camp.region]||camp.region+"th"} region!`:" and won the campaign!");
+    :camp.inSim?"You've escaped this strange realm! Or, have you?":camp.inWilds?"Whew,... You made it! That was weird. I don't think we're going back.":`You conquered <b>${nm.name}</b>`+(camp.region>1?` and won your ${["","","second","third","fourth","fifth"][camp.region]||camp.region+"th"} region!`:" and won the campaign!");
   $("tstats").innerHTML='<h3>Roll of honor</h3>'+army.map((t,i)=>{const f=(camp.falls&&camp.falls[i])||[];return `<div class="trow">${hIcon(t,"y")}<span>${heroName(i)} <small>${cap(NAME[t])}${t==="T"&&kills[i]?", with militia":""}${f.length?` · fell at ${fellAt(f)}`:" · never fell"}</small></span><b title="enemies defeated">${kills[i]}</b></div>`}).join("")
     +`<div class="ttot"><span>Total defeated: ${total}</span><span>Maps cleared: ${maps}</span></div>`;
   $("therb").innerHTML=unlocks.campsite?`<div class="hport" aria-hidden="true">${campScene(camp.inSim?"sim":camp.inWilds?"wilds":"plain").replace('viewBox="0 0 320 220"','viewBox="178 48 90 84" preserveAspectRatio="xMidYMid slice"')}</div><div class="cbub"><b>Herbert:</b> “${(camp.inSim?HERBERT_WIN_SIM:HERBERT_WIN)[Math.floor(Math.random()*(camp.inSim?HERBERT_WIN_SIM:HERBERT_WIN).length)]}”</div>`:"";
