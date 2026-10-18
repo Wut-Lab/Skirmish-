@@ -418,6 +418,8 @@ border-radius:50%;border:4px solid #fff;box-shadow:0 0 12px rgba(255,120,80,.9);
 .u.elite{box-shadow:0 0 0 2.500px #e8c050,0 0 0 4px rgba(90,60,10,.85),0 0 10px 3px rgba(240,200,80,.55),var(--bev)}
 .u.glitch:not(.elite){box-shadow:0 0 0 2px #3ad8ff,0 0 8px 2px rgba(192,106,255,.55),var(--bev)} /* Corrupted Pages */
 .vwrap path{stroke-dasharray:40;stroke-dashoffset:40;animation:vwrap 1.200s ease-out forwards}.vleaf{opacity:0;animation:vleaf .6s 1.400s ease-out forwards}@keyframes vwrap{to{stroke-dashoffset:0}}@keyframes vleaf{to{opacity:1}}@media (prefers-reduced-motion:reduce){.vwrap path{animation:none;stroke-dashoffset:0}.vleaf{animation:none;opacity:1}} /* the Overgrown Arch wrapping itself shut */
+.u.wood{filter:sepia(.85) saturate(1.6) hue-rotate(-12deg) brightness(.85);box-shadow:0 0 0 2.500px #6a4426,0 0 0 4px #c0342a,var(--bev)} /* the Immortal Rose: turned to wood */
+.fatal{color:#b0181e;font-weight:800;white-space:nowrap} /* a relic that can kill your own units */
 .u.feral{box-shadow:0 0 0 2.500px #6ad08a,0 0 0 4px #b48aff,0 0 10px 3px rgba(150,240,170,.5),var(--bev)} /* the Warped Wilds' Warped Beasts */
 .u.elite.glitch{box-shadow:0 0 0 2.500px #c06aff,0 0 0 4px #3ad8ff,0 0 10px 3px rgba(122,232,255,.55),var(--bev)} /* the Sim's Corrupted Elites */
 .evart svg{display:block;width:100%;height:auto;border-radius:8px;border:2px solid #1a0f07;box-shadow:0 2px 0 #1a0f07;margin-bottom:10px}
@@ -739,6 +741,7 @@ const MUSTER_USES=2,MUSTER_ALIVE=2,BATON_HP=2,BANNER_RANGE=2; // Captain: muster
 // Where a relic comes from — src:"shop" = the shop only; src:"both" = the shop and the pick after battles; no src = after battles only;
 // find:1 = found during a battle (the biome relics), never offered or sold. max: how many can be carried (default 1).
 // src:"boss" = offered only as a boss's spoils (the boss list).
+const FATAL='<b class="fatal">\u2620 Can be fatal</b> '; // marks a relic whose harm to your own units can kill them (the ones that can't say "never the last HP")
 const RELICS={
  drum:{name:"War Drum",r:1,desc:"Your units that end your turn without moving deal +1 damage on your following turn."},
  muster:{name:"Muster Roll",r:1,lock:"captain",need:"T",desc:"Your Captain can muster militia one extra time each battle."},
@@ -820,7 +823,7 @@ const RELICS={
  leeches:{name:"Jar of Fen Leeches",r:0,src:"both",desc:"Enemies that start their turn in a swamp or shallow water take 1 damage, ignoring armor. Uncork it near the water and step back."},
  miser:{name:"Miser's Purse",r:0,src:"both",desc:"Cursed. Each battle you win pays 4 extra gold, but your units start each battle with 1 less HP (never below 1). It's always a little heavier than what you put in."},
  stockpile:{name:"Portable Stockpile",r:2,src:"both",desc:"Each consumable you use has a 25% chance to be kept instead of used up (not passive ones, or ones you can carry only one of). Consumables that deal damage deal +1. A collapsible crate with more pockets than it has any right to."},
- reaper:{name:"Reaper's Countdown Clock",r:2,src:"both",desc:"From the end of turn 4, every enemy takes 1 damage at the end of each turn, ignoring armor. From the end of turn 5, so do your own units and friends. It ticks louder the longer you take."},
+ reaper:{name:"Reaper's Countdown Clock",r:2,src:"both",desc:FATAL+"From the end of turn 4, every enemy takes 1 damage at the end of each turn, ignoring armor. From the end of turn 5, so do your own units and friends. It ticks louder the longer you take."},
  anvil:{name:"Hammer and Anvil",r:2,src:"both",desc:"Your units deal +1 damage to an enemy that is next to another of your units, or +2 when your units stand on opposite sides of it. Pin it, then strike."},
  eight:{name:"Pieces of Eight",r:2,src:"both",lock:"conquistador",need:"Q",desc:"Once per battle, a Conquistador can spend its action and 15 gold to bribe an enemy next to it (not an Elite). It switches sides for the rest of the battle and fights on its own. Everyone has a price; most of them are lower than you'd think."},
  eward:{name:"Encouraging Ward",r:0,src:"both",needR:["chicken","druid","spark","golem","hive","decoy","jewel","impatient"],desc:"Your friends, the units that fight beside you on their own, get +1 movement. Only offered once a friend has joined you."},
@@ -885,6 +888,15 @@ const RELICS={
  cshades:{name:"Cyber Shades",r:0,src:"sim",set:"cyber",lock:"warpedsim",desc:"Targeting: your units ignore 2% of the enemy's evasion when they attack or retaliate."},
  cgaunt:{name:"Cyber Gauntlets",r:1,src:"sim",set:"cyber",lock:"warpedsim",desc:"Your units deal +1 damage and get +1 pierce when they retaliate. Adds to the Spiked Gauntlets."},
  cplate:{name:"Cyber Breastplate",r:2,src:"sim",set:"cyber",lock:"warpedsim",desc:"Your units with less than 3 damage attack for 3 (before armor), unless other bonuses already lift them higher. When your units retaliate, they always deal at least 2 damage."},
+ mrose:{name:"Modest Bleeding Rose",r:0,src:"wilds",lock:"wildwilds",set:"rose",desc:"Your units with an ally directly beside them (up, down, left or right) get +3% evasion. A single bloom, still wet at the stem."},
+ erose:{name:"Enduring Bleeding Rose",r:1,src:"wilds",lock:"wildwilds",set:"rose",desc:"Your units under half health with an ally directly beside them get +1 armor and +1 movement. It wilts, and wilts, and never quite dies."},
+ irose:{name:"Immortal Bleeding Rose",r:2,src:"wilds",lock:"wildwilds",set:"rose",desc:FATAL+"The thorns: at the end of your turn, each of your units with an ally directly beside it takes 1 damage, ignoring armor (this can kill). Turn to Wood: a unit with an ally beside it can spend its action to turn to wood. Until your next turn begins it can't be harmed (the thorns included), and it can't attack or retaliate. Never two turns running."},
+ knife:{name:"Bloodletting Knife",r:1,src:"wilds",lock:"wildwilds",desc:"As each of your turns begins, it draws blood from a random unit of yours with an enemy in reach: 1 damage (never the last HP), and +1 damage for that turn. A clean, thin cut. It barely stings. At first."},
+ fheart:{name:"Feral Heart",r:1,src:"wilds",lock:"wildwilds",desc:"Blood in the Water: your units at half health or less deal +1 damage and get +1 movement. A hard, dark seed that beats faintly in your palm. Squeeze it and you can smell the woods."},
+ ruby:{name:"Imbedded Ruby of Sapping",r:2,src:"wilds",lock:"wildwilds",desc:"When you take it, choose a unit to imbed it in: that unit gets +2 damage, +2 max HP, +2 pierce and +1 movement. Every other unit in your army has 1 less max HP. It drinks from all of them to feed one."},
+ bshot:{name:"Blood Shot",r:2,src:"wilds",lock:"wildwilds",desc:FATAL+"Your ranged units get +2 range. A shot beyond a unit's own base range costs it 2 HP, ignoring armor (this can kill), and a shot within it deals +1 damage. Draw the string back far enough and it draws blood."},
+ bboots:{name:"Boots of Bestial Speed",r:0,src:"wilds",lock:"wildwilds",desc:"When one of your units is hurt by a retaliation, it can step 1 tile afterward. Lined with fur that isn't quite any animal's."},
+ bleaf:{name:"Burning Leaf",r:0,src:"wilds",lock:"wildwilds",desc:"Once each turn, as your turn ends, one of your units standing in a forest sets a random enemy beside it burning: it takes 1 damage, ignoring armor, as its next turn begins. It smoulders, and never burns away."},
  gbook:{name:"Glitchy Book",r:0,src:"sim",lock:"warpedsim",desc:"Corrupted Pages: as each battle begins, one random unit of yours gets a random glitch for that battle: Flickering (+10% evasion), Overclocked (+1 movement) or Chaos Code (a unit that hits it in melee takes 1 damage)."},
  pavise:{name:"Pavise",r:0,lock:"pavise",desc:"Archers take 1 less damage from ranged attacks. Pierce can't get past it."},
  font:{name:"Font of the Wise Ones",r:2,lock:"font",find:1,desc:"Once per battle, each of your units can spend its action to bless an adjacent ally: the ally gets +5% evasion until the end of your next turn."},
@@ -908,6 +920,7 @@ const RELIC_SETS={
  improvised:{name:"Improvised Arms",rule:"For your Apothecaries, Enchanters and Banner Bearers at a third of their health or less.",bonus:"No set bonus: each covers a different need, so together a cornered healer hits back, slips away and hides behind a Knight."},
  tomes:{name:"Tomes of the Mages' College",rule:"For your Enchanters.",bonus:"No set bonus: the Black Tome's healing pays the Red Tome's toll."},
  cyber:{name:"Cyber Gear",rule:"Found only in the Warped Sim.",bonus:"No set bonus: all three make your counterattacks count, the Shades by finding the target, the Gauntlets and Breastplate by hitting harder."},
+ rose:{name:"The Rose Bouquet",rule:"Found only in the Warped Wilds. Each bloom rewards units that stand together, and the last one makes them bleed for it.",bonus:"No set bonus: the Immortal Rose's thorns push your units under half health, where the Enduring Rose takes over."},
  cubes:{name:"The Glowing Cubes",rule:"Found only in the Warped Sim.",bonus:"No set bonus: the Small and Large Cubes' extra healing adds up, and the Medium Cube gets the drinker out of trouble."},
  hexing:{name:"Hexing Charms",rule:"Common finds. Each hexes the first enemy in a battle to do what it names: on its next turn it moves only 1 tile, and its targets get +10% evasion.",bonus:"All three: their hexes last 2 turns."},
  vasco:{name:"Gear of the Lost Expedition",rule:"Given by the Beggar, in thanks for the gold you've given him.",bonus:"No set bonus: the Morion shields whoever leads the push, the Falcata sharpens with every enemy it takes, and the Gloves pay the way."}};
@@ -1002,7 +1015,7 @@ const canTrumpet=u=>rel(u,"trumpet")&&!relicUsed.trumpet&&!u.acted&&!u.auto&&uni
 const WOODS=k=>FOREST.has(k)&&!CHERRY.has(k),calm=u=>CHERRY.has(u.x+","+u.y);
 const BLUSH_R=2,blush=(x,y)=>{if(!VALE||!/^(ground|forest|cherry|flowers|koi|meadow|greenwood)$/.test(terrainKey(x+","+y)))return"";let m=9;CHERRY.forEach(c=>{const[a,b]=pk(c);m=Math.min(m,Math.abs(a-x)+Math.abs(b-y))});return m<2?" bsh1":m<=BLUSH_R?" bsh2":""}; // Sakura Vale: the groves and the open ground, woods, wildflowers and koi ponds within a diamond of a cherry grove take a pink tint, deeper beside it
 const healOf=u=>ST(u).heal+(rel(u,"salts")?1:0); // how much a healer restores, with relics
-const rgOf=u=>ST(u).rg+(u.t==="A"&&rel(u,"long")?1:0)+(u.t==="Q"&&rel(u,"musket")?1:0)+(firstTurn&&ST(u).rg>1&&rel(u,"spyglass")?1:0); // a unit's attack range, with relics
+const rgOf=u=>ST(u).rg+(rel(u,"bshot")&&TYPES[u.t]&&TYPES[u.t].rg>1?BSHOT_RG:0)+(u.t==="A"&&rel(u,"long")?1:0)+(u.t==="Q"&&rel(u,"musket")?1:0)+(firstTurn&&ST(u).rg>1&&rel(u,"spyglass")?1:0); // a unit's attack range, with relics
 const DEBRIS_DMG=1,SPLINTER_DMG=1; // Debris Shot splash: small, so it softens clusters without replacing a second attack
 const NAME={J:"vengeful spirit",V:"straw decoy",O:"friendly golem",Z:"bee swarm",G:"angry chicken",L:"loyal squirrel",K:"knight",A:"archer",R:"artillery",W:"wolf",B:"bear",H:"hawk",D:"badger",C:"cavalry",P:"apothecary",E:"enchanter",T:"captain",N:"banner bearer",Q:"conquistador",M:"militia",X:"grid elemental",S:"friendly spark"};
 const AIM_EV=.05,MOD_OLD={PUSH:"SW",PAD:"AIM"},modOk=k=>MODS[k]?k:MOD_OLD[k]||null; // retired modifiers in old saves and map codes become their replacements
@@ -1803,7 +1816,7 @@ const helmed=u=>units.some(b=>b!==u&&b.t==="N"&&b.team===u.team&&rel(b,"helm")&&
 const ESCA_EV=.05,ESCA_ROUGH_EV=.1,PENDANT_EV=.05,RIDER_EV=.05,LIGHT_EV=.05,ELDORADO_GOLD=50,ELDORADO_MAX=2,LUCKYCROSS_GOLD=10,HELM_EV=.05,HEX_EV=.1,HEXBOOK_EV=.05; // HEX_EV: the Enchanter's hex makes its victim's targets harder to hit
 // as a side's turn begins: Empty Space (+1 movement this turn, read by mvOf) and the Shard of Empty Space (no unit on the 4 tiles beside)
 const markStart=own=>units.forEach(u=>{if(!own(u))return;const k=u.x+","+u.y;u.vs=VOID.has(k)?1:0;u.alone=units.some(v=>v!==u&&d(u,v)===1)?0:1;delete u.leftWood;delete u.woodMove;delete u.sentry;delete u.gfEv;delete u.gfDealt;u.cape=[[0,0],...DIRS,[1,1],[1,-1],[-1,1],[-1,-1]].some(([dx,dy])=>WOODS((u.x+dx)+","+(u.y+dy)))?1:0}); // the Red Clothes: forest moves last until this side's next turn; the Red Cape looks for trees
-const mvOf=u=>{const m=ST(u).mv+(friendly(u)&&rel(u,"eward")?1:0)+(helmed(u)?1:0)+(u.t==="K"&&rel(u,"lightarmor")?1:0)-(u.t==="C"&&rel(u,"bard")?1:0)+(firstTurn&&rel(u,"drills")?1:0)+(u.haste||0)+(u.rage?1:0)+(u.glitch==="clock"?1:0)+(u.vs?1:0)+(u.merc&&rel(u,"mercman")?1:0)+(u.cape&&rel(u,"rcape")?1:0)+(u.alone&&rel(u,"voidshard")?1:0)-(u.feral==="terror"&&ST(u).mv>1?1:0);if(u.stepOnly)return 1;return u.slow?Math.min(m,TYPES.E.slow):m};
+const mvOf=u=>{const m=ST(u).mv+(friendly(u)&&rel(u,"eward")?1:0)+(helmed(u)?1:0)+(u.t==="K"&&rel(u,"lightarmor")?1:0)-(u.t==="C"&&rel(u,"bard")?1:0)+(firstTurn&&rel(u,"drills")?1:0)+(u.haste||0)+(u.rage?1:0)+(u.glitch==="clock"?1:0)+(u.vs?1:0)+(u.merc&&rel(u,"mercman")?1:0)+(u.cape&&rel(u,"rcape")?1:0)+(u.alone&&rel(u,"voidshard")?1:0)-(u.feral==="terror"&&ST(u).mv>1?1:0)+(rel(u,"erose")&&under(u)&&rosed(u)?1:0)+(rel(u,"fheart")&&halfOrLess(u)?1:0)+(rubyOn(u)?1:0);if(u.stepOnly)return 1;return u.slow?Math.min(m,TYPES.E.slow):m};
 const inspired=(u,at=u)=>units.some(b=>b.t==="N"&&b.team===u.team&&b!==u&&d(b,at)<=BANNER_RANGE); // within a Banner Bearer's aura (at: where u would stand)
 /* ---------- Combat: the one place an attack's damage and hit chance are worked out ----------
    Every modifier is a labelled line in `parts`, so the attack menu, the game and the AI always agree.
@@ -1844,6 +1857,10 @@ function combat(a,b,from=a){
   add("Spurs",a.t==="C"&&rel(a,"spurs")&&turn===a.team&&(a.moved||from!==a)?1:0); // a charge: only on its own turn, after moving
   add("Berserker's Warpaint",rel(a,"warpaint")?1:0);
   add("Hidden Den",a.team==="w"&&denZone(from.x,from.y)?DEN_DMG:0); // an animal on its own ground
+  add("Feral Heart",rel(a,"fheart")&&halfOrLess(a)?1:0);
+  add("Bloodletting Knife",a.knife===pturn&&turn===a.team?1:0);
+  add("Imbedded Ruby",rubyOn(a)?RUBY_DMG:0);
+  add("Blood Shot",rel(a,"bshot")&&TYPES[a.t].rg>1&&!longShot(a,b,from)?1:0); // a shot within its own range
   add("Long Claws",a.feral==="claws"?1:0);add("Warped Limbs",a.feral==="limbs"?-(a.t==="B"?LIMBS_BEAR:LIMBS_DMG):0);add("Terrifying Presence",b.feral==="terror"&&a.team!==b.team&&Math.abs(from.x-b.x)<=1&&Math.abs(from.y-b.y)<=1?-TERROR_DMG:0); // a Warped Beast
   add("Liquid Courage",(rel(a,"grog")?1:0)+(rel(b,"grog")?1:0)); // both ways: dealt and taken
   add("Tome of the Red Mages",a.t==="E"&&rel(a,"redtome")?1:0);
@@ -1862,13 +1879,13 @@ function combat(a,b,from=a){
   add("Vasco's Falcata",a.conq||0);
   const sc=scouting(a);add("Scouted Ahead",sc?1:0);
   if(rel(a,"cplate")){const t=parts.reduce((n,p)=>n+p[1],0);if(t<CPLATE_DMG)add("Cyber Breastplate",CPLATE_DMG-t)} // lifts weak hitters to 3 before armor
-  const armor=[["Armor",B.ar||0],["Sentry's Lantern",b.sentry&&rel(b,"lantern")?1:0],["Small Forces",b.sforce?1:0],["Shield Wall",walled(b)?1:0],["Forest Tactics",mods[b.team]==="FT"&&A.rg>1&&WOODS(k)?1:0],["Fortress",FORT.has(k)?1:0],["Dug in",b.dug?DIG_AR:0],["Sturdy Shields",b.t==="K"&&rel(b,"shield")?1:0],["Lightened Armor",b.t==="K"&&rel(b,"lightarmor")?-1:0],["Barding",b.t==="C"&&rel(b,"bard")?1:0],["Banner of the Fallen Keep",b.keep?1:0],["Vasco's Morion",b.vang?1:0],["Large Glowing Cube",b.cubeAr?1:0],["Recovery-Linked Ward",b.ward?1:0],["Stubborn as a Mule",muled(b)?MULE_AR:0],["Improvised Armor",desperate(b,"hide")&&units.some(v=>v.team===b.team&&v.t==="K"&&d(v,b)===1)?1:0]];
+  const armor=[["Armor",B.ar||0],["Enduring Rose",rel(b,"erose")&&under(b)&&rosed(b)?1:0],["Sentry's Lantern",b.sentry&&rel(b,"lantern")?1:0],["Small Forces",b.sforce?1:0],["Shield Wall",walled(b)?1:0],["Forest Tactics",mods[b.team]==="FT"&&A.rg>1&&WOODS(k)?1:0],["Fortress",FORT.has(k)?1:0],["Dug in",b.dug?DIG_AR:0],["Sturdy Shields",b.t==="K"&&rel(b,"shield")?1:0],["Lightened Armor",b.t==="K"&&rel(b,"lightarmor")?-1:0],["Barding",b.t==="C"&&rel(b,"bard")?1:0],["Banner of the Fallen Keep",b.keep?1:0],["Vasco's Morion",b.vang?1:0],["Large Glowing Cube",b.cubeAr?1:0],["Recovery-Linked Ward",b.ward?1:0],["Stubborn as a Mule",muled(b)?MULE_AR:0],["Improvised Armor",desperate(b,"hide")&&units.some(v=>v.team===b.team&&v.t==="K"&&d(v,b)===1)?1:0]];
   if(acided(b)&&armor.reduce((t,x)=>t+x[1],0)>0)armor.push(["Acid Flask",-1]); // never below 0 armor
   armor.forEach(([l,v])=>add(l,-v));
-  add("Pierce",Math.min(a.t==="E"||a.t==="Z"||a.t==="J"?99:a.bruise?1:Math.max(0,(A.pi||0)+(a.feral==="claws"?1:0)+(redSet(a)&&a.woodMove&&turn===a.team?1:0)+(charging(a,from)?2:0)+(rel(a,"bluemagma")?1:0)+(rel(a,"crown")?1:0)+(a.t==="K"&&rel(a,"sallet")?1:0)+(a.t==="R"&&rel(a,"ammo")?1:0)+(a.t==="Q"&&rel(a,"escaupil")&&a.rough?1:0)+(a.rage?1:0)+(a.champ?1:0)+(sc?1:0)+(a.cret?1:0)+(a.ublade&&b.hp>maxHp(b)/2?1:0)-(b.cshield?1:0)),armor.reduce((t,x)=>t+x[1],0))); // Blue Magma and the Champion's Sword add pierce, the Usurper's Blade against the healthy; the Champion's Shield turns 1 aside
+  add("Pierce",Math.min(a.t==="E"||a.t==="Z"||a.t==="J"?99:a.bruise?1:Math.max(0,(A.pi||0)+(a.feral==="claws"?1:0)+(rubyOn(a)?RUBY_PI:0)+(redSet(a)&&a.woodMove&&turn===a.team?1:0)+(charging(a,from)?2:0)+(rel(a,"bluemagma")?1:0)+(rel(a,"crown")?1:0)+(a.t==="K"&&rel(a,"sallet")?1:0)+(a.t==="R"&&rel(a,"ammo")?1:0)+(a.t==="Q"&&rel(a,"escaupil")&&a.rough?1:0)+(a.rage?1:0)+(a.champ?1:0)+(sc?1:0)+(a.cret?1:0)+(a.ublade&&b.hp>maxHp(b)/2?1:0)-(b.cshield?1:0)),armor.reduce((t,x)=>t+x[1],0))); // Blue Magma and the Champion's Sword add pierce, the Usurper's Blade against the healthy; the Champion's Shield turns 1 aside
   add("Patched Cloaks",rel(b,"cloak")&&!b.cloaked?-1:0); // the first blow to land each battle
   add("Pavise",b.t==="A"&&A.rg>1&&rel(b,"pavise")?-1:0); // a shield wall, not armor: pierce can't get past it
-  const ev=Math.max(0,-(terrorNear(b)?TERROR_EV:0)-(b.feral==="claws"?CLAW_EV:0)-(rel(a,"rgloves")&&a.leftWood&&turn===a.team?GLOVES_EV:0)-(rel(a,"keen")&&rgOf(a)>1?KEEN_EV:0)-(rel(a,"cshades")?SHADES_EV:0)-(mods[a.team]==="AIM"?AIM_EV:0)-(b.t==="N"&&rel(b,"helm")?HELM_EV:0)-(b.hex&&b.hexPend?PENDANT_EV:0)-(b.rage?INCENSE_EV:0)+Math.min(EV_CAP,(B.ev||0)+(b.gfEv||0)+(rel(b,"tricorn")&&b.leftWood?TRICORN_EV:0)+(b.chill?DRYICE_EV:0)+(b.ash?PHOENIX_EV:0)+(rides(b)&&b.moved?RIDER_EV:0)+(b.t==="K"&&rel(b,"lightarmor")?LIGHT_EV:0)+(b.t==="Q"&&rel(b,"escaupil")?(b.rough?ESCA_ROUGH_EV:ESCA_EV):0)+(b.t==="E"&&rel(b,"hexbook")?HEXBOOK_EV:0)+(a.hex?HEX_EV:0)+(rel(b,"luck")?.05:0)+(b.trio?TRIO_EV:0)+(b.glitch==="flick"?FLICK_EV:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(rel(b,"sakurafan")&&[...blastOf(k),[b.x,b.y]].some(([x,y])=>CHERRY.has(x+","+y))?FAN_EV:0)+(blessed(b)?BLESS_EV:0)+(rested(b)?REST_EV:0)+(rel(b,"pebble")?PEBBLE_EV:0)+(rel(b,"voidshard")&&!units.some(v=>v!==b&&d(v,b)===1)?SHARD_EV:0)+bucklerEv(b)+(rallied(b)?RALLY_EV:0)+(b.team==="y"&&SMOKE.has(k)?SMOKE_EV:0)+(WOODS(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0))); // Keen Eye Charm: ranged attacks see through a little of it; Steady Aim, any attack
+  const ev=Math.max(0,-(terrorNear(b)?TERROR_EV:0)-(b.feral==="claws"?CLAW_EV:0)-(rel(a,"rgloves")&&a.leftWood&&turn===a.team?GLOVES_EV:0)-(rel(a,"keen")&&rgOf(a)>1?KEEN_EV:0)-(rel(a,"cshades")?SHADES_EV:0)-(mods[a.team]==="AIM"?AIM_EV:0)-(b.t==="N"&&rel(b,"helm")?HELM_EV:0)-(b.hex&&b.hexPend?PENDANT_EV:0)-(b.rage?INCENSE_EV:0)+Math.min(EV_CAP,(B.ev||0)+(b.gfEv||0)+(rel(b,"tricorn")&&b.leftWood?TRICORN_EV:0)+(b.chill?DRYICE_EV:0)+(b.ash?PHOENIX_EV:0)+(rides(b)&&b.moved?RIDER_EV:0)+(b.t==="K"&&rel(b,"lightarmor")?LIGHT_EV:0)+(b.t==="Q"&&rel(b,"escaupil")?(b.rough?ESCA_ROUGH_EV:ESCA_EV):0)+(b.t==="E"&&rel(b,"hexbook")?HEXBOOK_EV:0)+(a.hex?HEX_EV:0)+(rel(b,"luck")?.05:0)+(b.trio?TRIO_EV:0)+(b.glitch==="flick"?FLICK_EV:0)+(FORT.has(k)&&rel(b,"pennant")?.05:0)+(rel(b,"sakurafan")&&[...blastOf(k),[b.x,b.y]].some(([x,y])=>CHERRY.has(x+","+y))?FAN_EV:0)+(blessed(b)?BLESS_EV:0)+(rested(b)?REST_EV:0)+(rel(b,"pebble")?PEBBLE_EV:0)+(rel(b,"mrose")&&rosed(b)?MROSE_EV:0)+(rel(b,"voidshard")&&!units.some(v=>v!==b&&d(v,b)===1)?SHARD_EV:0)+bucklerEv(b)+(rallied(b)?RALLY_EV:0)+(b.team==="y"&&SMOKE.has(k)?SMOKE_EV:0)+(WOODS(k)?(mods[a.team]==="FT"?FT_FOREST_EV:FOREST_EV):0))); // Keen Eye Charm: ranged attacks see through a little of it; Steady Aim, any attack
   const blk=Math.max(0,-parts.filter(p=>armor.some(x=>x[0]===p[0])).reduce((t,p)=>t+p[1],0)-(parts.find(p=>p[0]==="Pierce")||[0,0])[1]); // damage the armor actually turned aside
   return {dmg:Math.max(1,parts.reduce((t,p)=>t+p[1],0)),hit:sc?1:1-ev,parts,blk}; // every hit deals at least 1; a scouted first strike never misses
 }
@@ -1876,7 +1893,7 @@ function combat(a,b,from=a){
 function retaliation(att,def,from=att){
   const T=ST(def),dd=d(def,from);
   if(!canRetaliate(def.t)||dd<T.mn||dd>rgOf(def)||rel(def,"warpaint")||charging(att,from))return null; // nobody parries a lance at full gallop // Berserker's Warpaint: no parrying
-  if(calm(def)||CHERRY.has(from.x+","+from.y)||VINES.has(def.x+","+def.y))return null; // Moment of Calm: nobody fights back under the blossoms; Tanglevine: too tangled to fight back // e.g. Artillery firing from 4 tiles outranges an Archer
+  if(calm(def)||def.wood||CHERRY.has(from.x+","+from.y)||VINES.has(def.x+","+def.y))return null; // Moment of Calm: nobody fights back under the blossoms; Tanglevine: too tangled to fight back // e.g. Artillery firing from 4 tiles outranges an Archer
   if(rel(def,"cgaunt"))def.cret=1; // the Cyber Gauntlets: a counter that punches through
   const c=combat(def,{...att,x:from.x,y:from.y});delete def.cret;
   const dm=Math.max(rel(def,"cplate")?CPLATE_RET:1,Math.floor(c.dmg*RET_SHARE))+(rel(def,"gauntlets")?1:0)+(rel(def,"cgaunt")?1:0);return {dmg:rel(att,"gambeson")?Math.max(0,dm-1):dm,hit:c.hit}; // Padded Gambeson: softens what comes back // Spiked (and Cyber) Gauntlets: +1 when hitting back; the Cyber Breastplate: never less than 2
@@ -1977,8 +1994,8 @@ function muster(u){ // 1-2 militia appear beside the captain, nearest the enemy 
   if(n){hornFx(u);sfx("bugle");for(let i=0;i<n;i++)later(()=>sfx("pat"),MUSTER_BEAT*(i+1)+60)} // the call, then a footfall as each one steps in
   return n;
 }
-const spent=u=>(!!u.acted&&!!u.moved)||!!u.auto&&!u.ctl||(u.team!=="w"&&!!u.moved&&!canMuster(u)&&!canTrumpet(u)&&!canBugle(u)&&!canHalo(u)&&!canBombard(u)&&!(u.team==="y"&&!u.acted&&camp.battle&&!chal&&camp.items&&camp.items.some(id=>!ITEMS[id].passive))&&!targets(u).length&&!healTargets(u).length&&!(rel(u,"font")&&units.some(b=>canBless(u,b)))&&(u.team!=="y"||!breakables(u).length)&&!(u.t==="K"&&units.some(b=>b.team==="y"&&pushable(u,b))));
-const targets=u=>u.t==="O"||u.t==="V"?[]:units.filter(e=>u.team!=="f"||e.t!=="O").filter(e=>e.team!==u.team&&(u.team!=="f"||e.team!=="w")&&d(u,e)<=rgOf(u)&&d(u,e)>=ST(u).mn);
+const spent=u=>(!!u.acted&&!!u.moved)||!!u.auto&&!u.ctl||(u.team!=="w"&&!!u.moved&&!canMuster(u)&&!canWood(u)&&!canTrumpet(u)&&!canBugle(u)&&!canHalo(u)&&!canBombard(u)&&!(u.team==="y"&&!u.acted&&camp.battle&&!chal&&camp.items&&camp.items.some(id=>!ITEMS[id].passive))&&!targets(u).length&&!healTargets(u).length&&!(rel(u,"font")&&units.some(b=>canBless(u,b)))&&(u.team!=="y"||!breakables(u).length)&&!(u.t==="K"&&units.some(b=>b.team==="y"&&pushable(u,b))));
+const targets=u=>u.t==="O"||u.t==="V"?[]:units.filter(e=>(u.team!=="f"||e.t!=="O")&&!e.wood).filter(e=>e.team!==u.team&&(u.team!=="f"||e.team!=="w")&&d(u,e)<=rgOf(u)&&d(u,e)>=ST(u).mn);
 
 const spotsOf=(u,rc)=>[[u.x,u.y],...rc.map(k=>pk(k))];
 function atkZone(u,spots,set,bar){
@@ -2041,7 +2058,7 @@ function render(){
     html+=`<button class="${cls}" data-x="${x}" data-y="${y}"${pd&&pd.k===k?` data-arrow="${pd.a}"`:""} aria-label="${label.replace(/"/g,"&quot;")}">`
       +'<i class="lt"></i>'+A.art[i]+(fr?'<i class="tint"></i>':"")+(SMOKE.has(k)?'<i class="smoke"></i>':"")+(skullZone(k)?'<i class="uzone"></i>':"")+(CALTROPS.has(k)?CALT_ART:"")+A.jn[i]+glowOf(k).map(([dx,dy])=>`<i class="lglow" style="background:linear-gradient(to ${dx>0?"left":dx<0?"right":dy>0?"top":"bottom"},rgba(255,226,60,.62),rgba(255,226,60,.16) 70%,rgba(255,226,60,.08))"></i>`).join(""); // fortress art covers its tile, so highlights go on a see-through layer above it
     if(u){
-      let uc="u "+u.team+(u.merc?" merc":"")+(u.auto&&!u.ctl&&u.team==="y"?" free":spent(u)?" done":"")+(u.slow||u.slowNext?" slow":"")+(u.stun?" stun":"")+(u.rage||u.oil?" rage":"")+(u.chill?" chill":"")+(u.scram?" scram":"")+(u.link?" link":"")+(u.spot>=pturn&&u.spotBy!==u.team?" spot":"")+(u.bounty?" bounty":"")+(u.gfhelm||u.gfshield||u.gfhammer?" gf":"")+(u.burn?" burn":"")+(u.ash?" ash":"")+(inspired(u)?" insp":"")+(blessed(u)||rested(u)?" blessed":"")+(u.t==="E"&&rel(u,"redtome")?" redglow":"")+(rallied(u)?" rallied":"")+(muled(u)?" mule":"")+(u.dug?" dug":"")+(u.elite||u.vet?" elite":"")+(u.glitch?" glitch":"")+(u.feral?" feral":"")+(u.champ||u.cshield||u.cloak?" champ":"")+(u.ublade||u.ubulwark||u.ushroud?" usurp":"")+(u===sel||u===insp?" sel":""),mvs="";
+      let uc="u "+u.team+(u.merc?" merc":"")+(u.auto&&!u.ctl&&u.team==="y"?" free":spent(u)?" done":"")+(u.slow||u.slowNext?" slow":"")+(u.stun?" stun":"")+(u.rage||u.oil?" rage":"")+(u.chill?" chill":"")+(u.scram?" scram":"")+(u.link?" link":"")+(u.spot>=pturn&&u.spotBy!==u.team?" spot":"")+(u.bounty?" bounty":"")+(u.gfhelm||u.gfshield||u.gfhammer?" gf":"")+(u.burn?" burn":"")+(u.ash?" ash":"")+(inspired(u)?" insp":"")+(blessed(u)||rested(u)?" blessed":"")+(u.t==="E"&&rel(u,"redtome")?" redglow":"")+(rallied(u)?" rallied":"")+(muled(u)?" mule":"")+(u.dug?" dug":"")+(u.elite||u.vet?" elite":"")+(u.glitch?" glitch":"")+(u.feral?" feral":"")+(u.wood?" wood":"")+(u.champ||u.cshield||u.cloak?" champ":"")+(u.ublade||u.ubulwark||u.ushroud?" usurp":"")+(u===sel||u===insp?" sel":""),mvs="";
       if(u.spawn){uc+=" tpin";if(u.spawnIn)mvs=`;animation-delay:${u.spawnIn}ms`;delete u.spawn;delete u.spawnIn} // spawnIn: a beat before it appears (militia answering the call)
       const pp=prevPos.get(u);prevPos.set(u,[x,y]);
       if(pp&&(pp[0]!==x||pp[1]!==y)){ // slide in from where it was last drawn (a long jump fades in instead)
@@ -2158,6 +2175,9 @@ function renderInfo(){
   if(scouting(u))notes.push("Scouted Ahead: its first attack this battle always hits, with +1 damage and +1 pierce.");
   if(u.team==="y"&&u.drum===pturn&&turn==="y")notes.push("War Drum: +1 damage this turn.");
   if(u.pages)notes.push(`Corrupted Pages: ${GLITCH[u.glitch][0]}, ${GLITCH[u.glitch][1]}`);
+  if(u.wood)notes.push("Turned to wood (Immortal Bleeding Rose): nothing can harm it until your next turn, and it can't attack or retaliate.");
+  if(rubyOn(u))notes.push(`Imbedded Ruby of Sapping: +${RUBY_DMG} damage, +${RUBY_HP} max HP, +${RUBY_PI} pierce and +1 movement.`);
+  if(u.knife===pturn&&turn==="y")notes.push("Bloodletting Knife: bled for it, +1 damage this turn.");
   if(u.feral)notes.push(`Warped Beast: ${u.team==="w"?"a wild animal touched by the Wilds":"an animal fighting for the enemy"}. ${FERAL[u.feral][0]}: ${FERAL[u.feral][1]}`);
   if(u.feral!=="terror"&&terrorNear(u))notes.push("Terrified: a Warped Beast's Terrifying Presence is beside it (5% less evasion, and 1 less damage against the beast).");
   if(u.elite)notes.push(u.glitch?`Corrupted Elite: +1 HP and +1 damage. ${GLITCH[u.glitch][0]}: ${GLITCH[u.glitch][1]}`:"Elite: +2 HP and +1 damage.");
@@ -2228,7 +2248,7 @@ function buildMenu(){
   const opt=(html,fn,off)=>{const b=document.createElement("button");b.innerHTML=html;b.onclick=fn;b.disabled=!!off;m.append(b)};
   const cm=pendingMove(),go=fn=>()=>{const a=sel;choice=null;if(cm)moveThen(a,cm,()=>fn(a));else fn(a)};
   if(t.team!=="y"){const c=combat(sel,t,cm||sel),note=combatNote(c),r=c.dmg<t.hp?retaliation(sel,t,cm||sel):null;
-    opt(`<b>${cm?"Move &amp; Attack":"Attack"}</b><small>${c.dmg} damage${c.hit<1?` \u00b7 ${pct(c.hit)} to hit`:""}</small>${note?`<small class="bd">${note}</small>`:""}${r?`<small class="bd">Retaliates for ${r.dmg}${r.hit<1?` (${pct(r.hit)})`:""}</small>`:""}`,go(a=>doAttack(a,t)))}
+    opt(`<b>${cm?"Move &amp; Attack":"Attack"}</b><small>${c.dmg} damage${c.hit<1?` \u00b7 ${pct(c.hit)} to hit`:""}</small>${note?`<small class="bd">${note}</small>`:""}${r?`<small class="bd">Retaliates for ${r.dmg}${r.hit<1?` (${pct(r.hit)})`:""}</small>`:""}${longShot(sel,t,cm||sel)?`<small class="bd fatal">Blood Shot: costs ${BSHOT_DMG} HP${sel.hp<=BSHOT_DMG?` \u2620 it will kill your ${NAME[sel.t]}`:""}</small>`:""}`,go(a=>doAttack(a,t)))}
   if(!cm&&sel.t==="K"&&t!==sel&&d(sel,t)===1){
     const ok=pushable(sel,t);
     opt(`<b>${!ok?"Can't Push":n?`Push ${n} Tile${n>1?"s":""}`:"Push (Blocked)"}</b><small>${!ok?"Too heavy":t.team==="y"?"Reposition ally":bruises(sel,t)?`Strikes for ${combat({...sel,bruise:1},t).dmg} \u00b7 instead of attacking`:"Instead of attacking"}</small>`,()=>{choice=null;doPush(sel,t)},!ok||!n);
@@ -2271,6 +2291,7 @@ function unitActs(u){
   if(canTrumpet(u))add("Sound Trumpet","",()=>doTrumpet(u));
   if(canBugle(u))add("Sound the Bugle","",()=>doBugle(u));
   if(canHalo(u))add("Invigorating Halo","",()=>doHalo(u));
+  if(canWood(u))add("Turn to Wood","Uses this unit's action",()=>{u.wood=1;u.woodTurn=pturn;u.acted=u.moved=1;delete u.stepOnly;sel=null;insp=null;lastMove=null;info=u;sfx("bless");floatText(u.x,u.y,"Turned to wood","bless");say(`Your ${NAME[u.t]} turned to wood: nothing can harm it until your next turn, but it can't attack or retaliate.`);render()}); // the Immortal Bleeding Rose
   if(canBombard(u))add("Wall-breaker Charge","",()=>{mode="bombard";say("Choose a fortress tile in range to blast into rubble.");render()});
   if(canSundial(u))add("Turn the Sundial","Move again, once per battle",()=>{relicUsed.sundial=1;u.moved=0;delete u.mvFrom;lastMove=null;floatText(u.x,u.y,"Borrowed time","bless");say("The sundial's shadow slips back. Tap a green tile to move again.");render()});
   if(canGong(u))add("Strike the Gong","Once per battle, free",()=>strikeGong(u));
@@ -2409,6 +2430,8 @@ function doAttack(a,u){
       if(a.champStep&&units.includes(a)&&!over){delete a.champStep;a.moved=0;a.stepOnly=1;sel=a;info=a;say("The champion's blow landed: it can step 1 tile.")}
       else if(a.goaded===pturn&&turn==="y"&&units.includes(a)&&!over){a.moved=0;a.stepOnly=1;sel=a;info=a;say("Goaded on: it can step 1 tile.")} // Goading Bugle
       else if(units.includes(a)&&!over&&desperate(a,"stick")){a.moved=0;a.stepOnly=1;sel=a;info=a;say("Poke and back off: it can step 1 tile.")} // Long Stick
+      else if(a.bootStep&&units.includes(a)&&!over){a.moved=0;a.stepOnly=1;sel=a;info=a;say("Boots of Bestial Speed: hurt, it can step 1 tile.")}
+      delete a.bootStep;
       afterAction()};
     const t=a.ushove;delete a.ushove;
     if(t&&!over&&units.includes(a)&&units.includes(t)){const ds=shoveDests(t);
@@ -2890,6 +2913,7 @@ const who=u=>(u.team==="y"?"your ":u.team==="f"?"the enemy ":"the wild ")+NAME[u
 // every point of damage goes through here, so Herbert's Mug and Nightcap see it all; returns true when u falls
 const ownUnit=u=>!u.auto&&u.t!=="M"&&u.team!=="w"; // one of a side's own units: not militia, a mercenary or a friend
 function hurt(u,n){
+  if(u.wood){floatText(u.x,u.y,"Wooden","bless");return false} // the Immortal Rose: turned to wood, nothing harms it
   if(u.t==="O"){floatText(u.x,u.y,"Unharmed","bless");return false} // the Friendly Golem can't be hurt
   if(n>1&&u.team!=="w"&&turn!==u.team&&relicUsed["ipen_"+u.team]!==pturn&&units.some(b=>b!==u&&b.t==="N"&&b.team===u.team&&rel(b,"ipennant")&&d(b,u)<=BANNER_RANGE)){ // Pennant of Inspiration: once per enemy turn
     relicUsed["ipen_"+u.team]=pturn;n-=1;later(()=>{if(units.includes(u))floatText(u.x,u.y,"Steadied","bless")},300)}
@@ -2961,6 +2985,17 @@ function greekFireEnd(){
   if(u.gfshield&&units.includes(u)){const e=units.filter(v=>v.team==="f"&&d(u,v)===1).sort((p,q)=>p.hp-q.hp)[0];if(e)burn(e,1)}
   if(u.gftrio&&units.includes(u)&&u.gfDealt){u.gfEv=Math.min(GF_EV_MAX,u.gfDealt*.01);floatText(u.x,u.y,"Heat haze","bless")}
   if(units.some(v=>v.team==="f"))sfx("flame");
+}
+// the Warped Wilds' relics as your turn ends: the Burning Leaf sets one enemy smouldering, then the Immortal Rose's thorns bite every unit that stands with an ally
+function wildsRelicsEnd(){
+  if(RELIC.has("bleaf")){const c=units.filter(u=>u.team==="y"&&WOODS(u.x+","+u.y)&&units.some(e=>e.team==="f"&&d(u,e)===1)),u=c[Math.floor(Math.random()*c.length)];
+    if(u){const es=units.filter(e=>e.team==="f"&&d(u,e)===1),e=es[Math.floor(Math.random()*es.length)];e.burn=(e.burn||0)+1;floatText(e.x,e.y,"Burning","slow");sfx("flame")}}
+  if(RELIC.has("irose"))units.filter(u=>u.team==="y"&&!u.wood&&rosed(u)).forEach(u=>{if(units.includes(u)){floatText(u.x,u.y-.4,"Thorns","slow");hurt(u,1)}}); // this can kill
+}
+// the Bloodletting Knife: as your turn begins, a random unit of yours with an enemy in reach is cut for 1 (never the last HP) and hits 1 harder that turn
+function knifeCut(){
+  if(!RELIC.has("knife")||over)return;const c=units.filter(u=>u.team==="y"&&!u.auto&&u.hp>1&&units.some(e=>e.team==="f"&&d(u,e)<=mvOf(u)+rgOf(u)));if(!c.length)return;
+  const u=c[Math.floor(Math.random()*c.length)];u.hp-=1;u.knife=pturn;floatText(u.x,u.y,"Bled","slow");render();
 }
 // the Hammer of Greek Fire's burn bites as the enemy's turn begins
 function roundEnds(){ // as the enemy's turn ends: the Rose Barb Ward's thorns, then the Reaper's Countdown Clock; true when that ended the battle
@@ -3119,11 +3154,13 @@ function gridStep(a,bx,by){
 function attack(a,b,done){
   const again=()=>{if(a.feral==="limbs"&&!a.twice&&!over&&units.includes(a)&&units.includes(b)&&targets(a).includes(b)){a.twice=1;later(()=>attack(a,b,()=>{delete a.twice;if(done)done()}),350)}else{delete a.twice;if(done)done()}}; // Warped Limbs: a second strike
   const g=gid,bx=b.x,by=b.y,fin=()=>{gridStep(a,bx,by);again()};
+  const ls=longShot(a,b); // Blood Shot: a long shot costs the shooter
   animAttack(a,b,()=>{
     applyAttack(a,b);
+    if(ls&&units.includes(a)){floatText(a.x,a.y-.4,"Blood Shot","slow");hurt(a,BSHOT_DMG);if(!units.includes(a)){checkEnd();return fin()}}
     const r=units.includes(a)&&units.includes(b)?retaliation(a,b):null;
     if(!r)return fin();
-    later(()=>{if(g!==gid)return;if(!units.includes(a)||!units.includes(b))return fin();animAttack(b,a,()=>{hitFor(b,a,r,true);fin()})},300);
+    later(()=>{if(g!==gid)return;if(!units.includes(a)||!units.includes(b))return fin();animAttack(b,a,()=>{const hit=hitFor(b,a,r,true);if(hit&&r.dmg>0&&units.includes(a)&&rel(a,"bboots"))a.bootStep=1;fin()})},300);
   });
 }
 function burst(rb,bw){
@@ -3328,6 +3365,11 @@ function logCampaign(nm,how){
 const FERAL={terror:["Terrifying Presence","Enemies on the 8 tiles around it lose 5% evasion, and they hit it for 1 less damage. Large and slow: 1 less movement (never below 1)."],claws:["Long Claws","+1 damage and +1 pierce, but 5% less evasion."],limbs:["Warped Limbs","Attacks twice, at 1 less damage each time (2 less for a bear)."]},FERAL_TYPES="WBH",TERROR_EV=.05,TERROR_DMG=1,CLAW_EV=.05,LIMBS_DMG=1,LIMBS_BEAR=2; // the Warped Wilds: one enemy in every battle is a Warped Beast, an animal fighting for them with one of these
 const WOUT_DEEP=.35,WOUT_FERAL=.5,WOUT_PALACE=.15,WOUT_TREE=.04,wildsAfter=()=>!!camp.wildsOut&&!!camp.battle&&!chal&&!camp.inWilds; // after the Wilds: wild animals often come back warped, some forest and swamp fortresses look like the palace, and the odd warped tree grows
 const feralize=u=>{if(u&&wildsAfter()&&Math.random()<WOUT_FERAL)u.feral=Object.keys(FERAL)[Math.floor(Math.random()*3)];return u};
+const MROSE_EV=.03,BSHOT_DMG=2,BSHOT_RG=2,RUBY_DMG=2,RUBY_HP=2,RUBY_PI=2; // the Warped Wilds' relics
+const rosed=u=>units.some(v=>v!==u&&v.team===u.team&&d(v,u)===1),under=u=>u.hp*2<maxHp(u),halfOrLess=u=>u.hp*2<=maxHp(u); // rosed: an ally directly beside it (the Rose Bouquet)
+const rubyOn=u=>u.team==="y"&&u.ci!=null&&!!camp.battle&&camp.relics.includes("ruby")&&camp.ruby===u.ci,rubyDrained=u=>u.team==="y"&&u.ci!=null&&!!camp.battle&&camp.relics.includes("ruby")&&camp.ruby!=null&&camp.ruby!==u.ci; // the Imbedded Ruby of Sapping: its bearer, and the rest of the army it drinks from
+const longShot=(a,b,from=a)=>rel(a,"bshot")&&TYPES[a.t].rg>1&&d(from,b)>TYPES[a.t].rg; // Blood Shot: beyond the unit's own base range
+const canWood=u=>u.team==="y"&&rel(u,"irose")&&!u.acted&&!u.auto&&!u.wood&&u.woodTurn!==pturn-1&&rosed(u); // the Immortal Rose's Turn to Wood: never two turns running
 const terrorNear=u=>units.some(v=>v.feral==="terror"&&v.team!==u.team&&v!==u&&Math.abs(v.x-u.x)<=1&&Math.abs(v.y-u.y)<=1); // standing in a Terrifying Presence
 const ELITE_HP=2,SIM_ELITE_HP=1,GLITCH={flick:["Flickering","+10% evasion."],clock:["Overclocked","+1 movement."],code:["Chaos Code","a unit that hits it in melee takes 1 damage, ignoring armor."]},FLICK_EV=.1; // the Sim's Corrupted Elites: +1 HP, +1 damage and one glitch
 const esc=r=>{const n=ESC.length,e=ESC[Math.min(r,n)-1];return r>n?{...e,relics:e.relics+Math.floor((r-n)/2)}:e},escFrom=k=>ESC.findIndex(e=>e[k]>0)+1;
@@ -3367,12 +3409,13 @@ function foeUseItems(){
   return msg.join(" ");
 }
 const hpUp=(t,has)=>Object.keys(RELICS).filter(id=>[].concat(RELICS[id].hpUp||[]).includes(t)&&has(id)).length; // relics that raise a unit type's max HP (hpUp: the type, or a list of types)
-const WOUND_MAX=3,CROSS_SPARE=.15,MEDKIT_DOUBLE=.25,maxHp=u=>ST(u).hp-(u.wounds||0)+(u.elite?(u.glitch?SIM_ELITE_HP:ELITE_HP):0)+hpUp(u.t,id=>rel(u,id))+(u.t!=="O"&&friendly(u)&&rel(u,"fcharm")?FCHARM_HP:0)+(u.merc&&rel(u,"mercman")?1:0)+(u.sforce?1:0)-(u.team==="y"&&u.ci!=null&&camp.battle&&camp.relics.includes("jewel")&&camp.jewel===u.ci?1:0);
-const woundsOf=i=>(camp.wounds&&camp.wounds[i])||0,campMax=i=>TYPES[armyTypes()[i]].hp-woundsOf(i)+hpUp(armyTypes()[i],id=>camp.relics.includes(id))-(camp.relics.includes("jewel")&&camp.jewel===i?1:0);
+const WOUND_MAX=3,CROSS_SPARE=.15,MEDKIT_DOUBLE=.25,maxHp=u=>ST(u).hp-(u.wounds||0)+(u.elite?(u.glitch?SIM_ELITE_HP:ELITE_HP):0)+hpUp(u.t,id=>rel(u,id))+(u.t!=="O"&&friendly(u)&&rel(u,"fcharm")?FCHARM_HP:0)+(u.merc&&rel(u,"mercman")?1:0)+(u.sforce?1:0)-(u.team==="y"&&u.ci!=null&&camp.battle&&camp.relics.includes("jewel")&&camp.jewel===u.ci?1:0)+(rubyOn(u)?RUBY_HP:rubyDrained(u)?-1:0);
+const woundsOf=i=>(camp.wounds&&camp.wounds[i])||0,campMax=i=>TYPES[armyTypes()[i]].hp-woundsOf(i)+hpUp(armyTypes()[i],id=>camp.relics.includes(id))-(camp.relics.includes("jewel")&&camp.jewel===i?1:0)+(camp.relics.includes("ruby")&&camp.ruby!=null?(camp.ruby===i?RUBY_HP:-1):0);
 // taking a relic: one that raises max HP first pins the army's current HP, so gaining it never heals
 function gainRelic(id){if(RELICS[id].hpUp&&!camp.hp)camp.hp=campHps();camp.relics.push(id);
   if(id==="lcube"&&camp.items.length<itemCap())camp.items.push("draught"); // the Large Glowing Cube comes with a draught
   if(id==="jewel")setTimeout(jewelPick,60); // choose who wears it
+  if(id==="ruby")setTimeout(rubyPick,60); // choose where it's imbedded
   if(id==="sack"){camp.gold+=SACK_GOLD;sfx("coin");if(typeof renderGold==="function")renderGold()} // a Small Sack of Gold pays out at once
   if(id==="credits"){camp.gold+=CREDITS_GOLD;sfx("coin");if(typeof renderGold==="function")renderGold()}} // Strange Credits pay out at once
 // the Vengeful Spirit's Jewel: as you take it, choose who wears it (they lose 1 max HP)
@@ -3381,6 +3424,15 @@ function jewelPick(){
   $("rtitle").textContent="Vengeful Spirit's Jewel";$("relicv").querySelector(".rsub").textContent="Choose who wears it. They lose 1 max HP, and a spirit hunts whoever wounds them.";
   $("rchoices").innerHTML=army.map((t,i)=>`<button class="rcard" data-i="${i}" style="--rc:${RARITY[2][1]}"><span class="ri"><span class="jpk">${disc(t,pc)}</span></span><span class="rr">${cap(NAME[t])}</span><b>${heroName(i)}</b><small>Max HP ${campMax(i)} \u2192 ${campMax(i)-1}</small></button>`).join("");
   $("rchoices").querySelectorAll(".rcard").forEach(b=>b.onclick=()=>{const i=+b.dataset.i;camp.jewel=i;if(camp.hp&&camp.hp[i]!=null)camp.hp[i]=Math.min(camp.hp[i],campMax(i));saveCamp();
+    $("relicv").hidden=true;$("relicv").style.zIndex="";renderRelics();if($("wmap").querySelector(".wn"))renderWorld()});
+  $("relicv").style.zIndex=20;$("relicv").hidden=false;$("rchoices").querySelector(".rcard").focus();
+}
+// the Imbedded Ruby of Sapping: as you take it, choose the unit it's imbedded in (+2 max HP; every other unit loses 1)
+function rubyPick(){
+  const army=armyTypes(),pc=COLORS[camp.cfg&&camp.cfg.c]||COLORS[col.y];if(!army.length)return;
+  $("rtitle").textContent="Imbedded Ruby of Sapping";$("relicv").querySelector(".rsub").textContent="Choose who it's imbedded in: +2 damage, +2 max HP, +2 pierce and +1 movement. Everyone else loses 1 max HP.";
+  $("rchoices").innerHTML=army.map((t,i)=>`<button class="rcard" data-i="${i}" style="--rc:${RARITY[2][1]}"><span class="ri"><span class="jpk">${disc(t,pc)}</span></span><span class="rr">${cap(NAME[t])}</span><b>${heroName(i)}</b><small>Max HP ${campMax(i)} \u2192 ${campMax(i)+RUBY_HP}</small></button>`).join("");
+  $("rchoices").querySelectorAll(".rcard").forEach(b=>b.onclick=()=>{camp.ruby=+b.dataset.i;if(camp.hp)camp.hp=camp.hp.map((h,i)=>h==null?h:Math.min(i===camp.ruby?h+RUBY_HP:h,campMax(i)));saveCamp();
     $("relicv").hidden=true;$("relicv").style.zIndex="";renderRelics();if($("wmap").querySelector(".wn"))renderWorld()});
   $("relicv").style.zIndex=20;$("relicv").hidden=false;$("rchoices").querySelector(".rcard").focus();
 }
@@ -3657,12 +3709,12 @@ function enemyTurn(note=""){
       if(roundEnds())return;
       SMOKE=new Set(); // the smoke drifts away as your turn begins
       const healed=mods.f==="REST"?rest("f"):0;
-      units.forEach(u=>{u.moved=u.acted=0;if(u.ctl)u.acted=1;delete u.cubeAr;if(u.team==="y")delete u.ward;delete u.aim;delete u.mvFrom;delete u.amb;delete u.rough;delete u.chill;delete u.ash;delete u.scram;delete u.link;if(u.team!=="y"){delete u.stun;delete u.slow;delete u.hex;delete u.hexPend;delete u.weak;if(u.cursed){u.weak=1;delete u.cursed}if(u.slowNext){u.slow=1;delete u.slowNext}if(u.hexNext){if(!calm(u)){u.slow=1;u.hex=1}if(--u.hexNext<=0)delete u.hexNext}}});
+      units.forEach(u=>{u.moved=u.acted=0;if(u.ctl)u.acted=1;delete u.wood;delete u.cubeAr;if(u.team==="y")delete u.ward;delete u.aim;delete u.mvFrom;delete u.amb;delete u.rough;delete u.chill;delete u.ash;delete u.scram;delete u.link;if(u.team!=="y"){delete u.stun;delete u.slow;delete u.hex;delete u.hexPend;delete u.weak;if(u.cursed){u.weak=1;delete u.cursed}if(u.slowNext){u.slow=1;delete u.slowNext}if(u.hexNext){if(!calm(u)){u.slow=1;u.hex=1}if(--u.hexNext<=0)delete u.hexNext}}});
       units.forEach(u=>{if(u.team!=="y"||u.auto)return; // as your turn begins: the Sanguine Chalice drinks, the Mysterious Rosary mends
         if(rel(u,"chalice")&&u.hp>1){u.hp-=1;floatText(u.x,u.y,"-1","slow")}
         else if(pturn>=3&&rel(u,"rosary")&&u.hp<maxHp(u)&&Math.random()<ROSARY_HEAL){u.hp+=1;floatText(u.x,u.y,"+1","heal")}});
       const wisped=wispsAct(),sparked=sparkArrives(),golemed=golemArrives();
-      vanguard();markStart(u=>u.team==="y");turn="y";busy=false;say((wisped?wisped+" ":"")+(sparked?sparked+" ":"")+(golemed?golemed+" ":"")+"Your turn. Select one of your units."+(healed?" Resting enemy units recovered HP.":""));render();notify("Enemy turn ended — your move");
+      vanguard();markStart(u=>u.team==="y");turn="y";knifeCut();busy=false;say((wisped?wisped+" ":"")+(sparked?sparked+" ":"")+(golemed?golemed+" ":"")+"Your turn. Select one of your units."+(healed?" Resting enemy units recovered HP.":""));render();notify("Enemy turn ended — your move");
     });
   }
   step();
@@ -3856,8 +3908,8 @@ const edgeOf=(a,b)=>EDGES.find(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a)); /
 const canGo=(a,b)=>{const e=edgeOf(a,b);return !!e&&(!e[2]||b===e[1])};
 function reachFrom(id){const seen=new Set([id]),q=[id];while(q.length){const a=q.shift();WORLD.forEach(n=>{if(!seen.has(n.id)&&canGo(a,n.id)){seen.add(n.id);q.push(n.id)}})}return seen}
 const SAVE="skirmish-campaign";
-function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,items:camp.items,offer:camp.offer,offerBoss:camp.offerBoss,offerStart:camp.offerStart||0,found:camp.found,kills:camp.kills,names:camp.names,wounds:camp.wounds,honors:camp.honors,falls:camp.falls,news:camp.news,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,merc:camp.merc||null,scout:camp.scout||0,portal:camp.portal||0,portalIn:camp.portalIn||0,inSim:camp.inSim||0,escaped:camp.escaped||0,inWilds:camp.inWilds||0,wildsGate:camp.wildsGate||0,wildsIn:camp.wildsIn||0,wildsOut:camp.wildsOut||0,jewel:camp.jewel??null,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
-function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],items:d.items||[],offer:d.offer||null,offerBoss:!!d.offerBoss,offerStart:d.offerStart||0,found:Array.isArray(d.found)?d.found:d.found?[d.found]:[],kills:d.kills||[],names:d.names||null,wounds:d.wounds||[],honors:d.honors||[],falls:d.falls||[],news:d.news||null,region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},merc:d.merc||null,scout:d.scout||0,portal:d.portal||0,portalIn:d.portalIn||0,inSim:d.inSim||0,escaped:d.escaped||0,inWilds:d.inWilds||0,wildsGate:d.wildsGate||0,wildsIn:d.wildsIn||0,wildsOut:d.wildsOut||0,jewel:d.jewel??null,mercNote:"",lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
+function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,items:camp.items,offer:camp.offer,offerBoss:camp.offerBoss,offerStart:camp.offerStart||0,found:camp.found,kills:camp.kills,names:camp.names,wounds:camp.wounds,honors:camp.honors,falls:camp.falls,news:camp.news,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,merc:camp.merc||null,scout:camp.scout||0,portal:camp.portal||0,portalIn:camp.portalIn||0,inSim:camp.inSim||0,escaped:camp.escaped||0,inWilds:camp.inWilds||0,wildsGate:camp.wildsGate||0,wildsIn:camp.wildsIn||0,wildsOut:camp.wildsOut||0,jewel:camp.jewel??null,ruby:camp.ruby??null,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
+function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],items:d.items||[],offer:d.offer||null,offerBoss:!!d.offerBoss,offerStart:d.offerStart||0,found:Array.isArray(d.found)?d.found:d.found?[d.found]:[],kills:d.kills||[],names:d.names||null,wounds:d.wounds||[],honors:d.honors||[],falls:d.falls||[],news:d.news||null,region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},merc:d.merc||null,scout:d.scout||0,portal:d.portal||0,portalIn:d.portalIn||0,inSim:d.inSim||0,escaped:d.escaped||0,inWilds:d.inWilds||0,wildsGate:d.wildsGate||0,wildsIn:d.wildsIn||0,wildsOut:d.wildsOut||0,jewel:d.jewel??null,ruby:d.ruby??null,mercNote:"",lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
 const nest=(str,x,y,w,style="")=>str.replace(/<svg[^>]*>/,`<svg x="${x}" y="${y}" width="${w}" height="${w}" viewBox="0 0 40 40" style="${style}">`);
 function mapArt(){
   let g='<defs><radialGradient id="pg" cx=".5" cy=".4" r=".85"><stop offset="0" stop-color="#eadfb8"/><stop offset="1" stop-color="#cbb78a"/></radialGradient><filter id="wsh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="1.200" dy="2.400" stdDeviation="1.600" flood-color="#3a2810" flood-opacity=".45"/></filter><radialGradient id="wnode" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></radialGradient><filter id="wblur"><feGaussianBlur stdDeviation="6"/></filter><filter id="wblur2" x="-50%" y="-100%" width="200%" height="300%"><feGaussianBlur stdDeviation="2.500"/></filter><linearGradient id="wmt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a7656"/><stop offset=".6" stop-color="#9c8762" stop-opacity=".9"/><stop offset="1" stop-color="#b8a27a" stop-opacity="0"/></linearGradient></defs><rect width="400" height="520" fill="url(#pg)"/>';
@@ -4462,7 +4514,7 @@ function resetBattle(){
 /* ---------- Relics? (a hidden reward for the first conquest): quick battles where both sides carry relics ----------
    You pick 3 of 6 (3 Common, 2-3 Uncommon, 0-1 Rare); the enemy gets one of each rarity. Relics that only pay off between campaign battles are left out. */
 const QR_KEY="skirmish_qrel",qrOn=()=>{if(!unlocks.qrelics)return false;try{return localStorage.getItem(QR_KEY)==="1"}catch(e){return false}};
-const QR_RARE=.5,QR_NO=["eight","invlog","birdseed","ggaunt","miser","mdiscount","vetseal","mercman","contracts","sack","coin","saddle","ledger","coffer","bottle","cross","chest","token","rations","bandages","luckycross","eldorado","vgloves","credits","warm","horseshoe","scube","mcube","lcube"];
+const QR_RARE=.5,QR_NO=["ruby","eight","invlog","birdseed","ggaunt","miser","mdiscount","vetseal","mercman","contracts","sack","coin","saddle","ledger","coffer","bottle","cross","chest","token","rations","bandages","luckycross","eldorado","vgloves","credits","warm","horseshoe","scube","mcube","lcube"];
 let QREL=null; // {y: your chosen relics} for the quick battle about to start (the enemy's are rolled in start)
 const QREL_ART='<svg viewBox="0 0 48 48" role="img" aria-hidden="true"><rect width="48" height="48" rx="8" fill="#3a2c1a"/><path d="M10 20h28v18H10z" fill="#9a6a34" stroke="#2a1a0a" stroke-width="1.400"/><path d="M8 14h32v7H8z" fill="#b8844a" stroke="#2a1a0a" stroke-width="1.400"/><path d="M22 14h4v24h-4z" fill="#e8b530"/><text x="24" y="33" text-anchor="middle" font-size="13" font-weight="800" fill="#fff6d8" stroke="#2a1a0a" stroke-width=".8" paint-order="stroke">?</text></svg>';
 function quickRelicChoices(){
@@ -4528,7 +4580,7 @@ function start(o={}){
     if(RELIC.has("gbook")){const ys=units.filter(u=>u.team==="y"&&!u.auto);if(ys.length){const u=ys[Math.floor(Math.random()*ys.length)];u.glitch=Object.keys(GLITCH)[Math.floor(Math.random()*3)];u.pages=1}} // the Glitchy Book's Corrupted Pages
   }
   if(!camp.battle&&!chal&&QREL){quickFoeRelics();if(RELIC.has("gbook")){const ys=units.filter(u=>u.team==="y");const u=ys[Math.floor(Math.random()*ys.length)];u.glitch=Object.keys(GLITCH)[Math.floor(Math.random()*3)];u.pages=1}} // Relics? quick battles: the enemy's three, and the Glitchy Book works here too
-  vanguard();markStart(u=>u.team==="y");
+  vanguard();markStart(u=>u.team==="y");if(RELIC.has("knife"))later(knifeCut,700); // the Bloodletting Knife's first cut
   if(camp.battle&&!chal)relicUsed.under=units.filter(u=>u.team==="f").length>units.filter(u=>u.team==="y"&&!friendly(u)).length; // Underdog: the enemy fields more units than you (your mercenary counts; your critters don't)
   if(FOE_RELIC.has("keep")){const fs=units.filter(u=>u.team==="f");fs[Math.floor(Math.random()*fs.length)].keep=1}
   ["y","f"].forEach(team=>{ // the Shimmering Champion pieces: one random unit (above half health when it can) takes every piece its side carries
@@ -5102,11 +5154,14 @@ function simItem(){
   const pool=Object.keys(ITEMS).filter(id=>!!ITEMS[id].sim===own&&!ITEMS[id].wilds&&(!ITEMS[id].lock||unlocks[ITEMS[id].lock])&&!carryMax(id));
   if(!pool.length)return null;let r=Math.random()*pool.reduce((t,id)=>t+w(id),0),i=0;while(r>=w(pool[i])){r-=w(pool[i]);i++}return pool[i];
 }
+const WILDSB=n=>!!n&&(n.b==="wildlands"||n.b==="deepwoods"||n.b==="fpalace"); // a location of the Warped Wilds (inside it, or grown out of it)
+const wildsRelic=(skip=[])=>{const sp=Object.keys(RELICS).filter(id=>RELICS[id].src==="wilds"&&RELICS[id].r<2&&!camp.relics.includes(id)&&!skip.includes(id));if(!sp.length)return null; // a common or uncommon Wilds relic, by rarity weight
+  const tot=sp.reduce((t,id)=>t+RARITY_W[RELICS[id].r],0);let roll=Math.random()*tot,i=0;while(roll>=RARITY_W[RELICS[sp[i]].r]){roll-=RARITY_W[RELICS[sp[i]].r];i++}return sp[i]};
 const simRelic=(skip=[])=>{const sp=Object.keys(RELICS).filter(id=>RELICS[id].src==="sim"&&RELICS[id].r<2&&!camp.relics.includes(id)&&!skip.includes(id));if(!sp.length)return null; // a common or uncommon Sim relic, by rarity weight
   const tot=sp.reduce((t,id)=>t+RARITY_W[RELICS[id].r],0);let roll=Math.random()*tot,i=0;while(roll>=RARITY_W[RELICS[sp[i]].r]){roll-=RARITY_W[RELICS[sp[i]].r];i++}return sp[i]};
 function relicOffer(nm){
   const army=armyTypes(),pool=Object.keys(RELICS).filter(id=>relicCount(id)<(RELICS[id].max||1)&&!RELICS[id].find&&RELICS[id].src!=="shop"&&RELICS[id].src!=="boss"&&RELICS[id].src!=="sim"&&RELICS[id].src!=="wilds"&&(!RELICS[id].lock||unlocks[RELICS[id].lock])&&needOk(RELICS[id],army)&&!clash(id,camp.relics)),out=[];
-  const sim=camp.inSim||SIMB(nm),want=(sim?3:2+(Math.random()<.5?1:0))+relicCount("coin"); // the Sim always offers 3
+  const sim=camp.inSim||SIMB(nm),want=(sim||camp.inWilds||WILDSB(nm)?3:2+(Math.random()<.5?1:0))+relicCount("coin"); // the Sim always offers 3
   for(let n=want;n>0&&pool.length;n--){ // each Copper Coin of Good Fortune adds a choice
     const tot=pool.reduce((t,id)=>t+RARITY_W[RELICS[id].r],0);let roll=Math.random()*tot,i=0;
     while(roll>=RARITY_W[RELICS[pool[i]].r]){roll-=RARITY_W[RELICS[pool[i]].r];i++}
@@ -5114,7 +5169,7 @@ function relicOffer(nm){
   }
   if(sim){const sr=simRelic(out),it=simItem(); // the Sim (and its locations outside it): one of its own relics, a consumable, and usual relics to fill out the choice
     return [...(sr?[sr]:[]),...out.slice(0,want-(sr?1:0)-(it?1:0)),...(it?["item:"+it]:[])]}
-  if(camp.inWilds){const it=wildsItem();return [...out.slice(0,want-(it?1:0)),...(it?["item:"+it]:[])]} // the Warped Wilds: a consumable among the choices, usually one of its own
+  if(camp.inWilds||WILDSB(nm)){const wr=wildsRelic(out),it=wildsItem();return [...(wr?[wr]:[]),...out.slice(0,want-(wr?1:0)-(it?1:0)),...(it?["item:"+it]:[])]} // the Warped Wilds (and its locations that grow elsewhere): one of its own relics and a consumable among the choices
   return out.length?out:null;
 }
 // Conqueror's Spoils: a new campaign opens with a choice of 3 Common relics (any a fresh army can use)
@@ -5273,6 +5328,15 @@ const RICON={ // small 32-unit relic icons
  mercy:'<path d="M17 3l3 3l-9 15l-3-1z" fill="#c8ccd2" stroke="#2e3338" stroke-width="1.100" stroke-linejoin="round"/><path d="M18.500 4.500l-8.500 15" stroke="#f4f6f8" stroke-width=".9" opacity=".8"/><path d="M5 18l9 5" stroke="#5a3a1c" stroke-width="2.600" stroke-linecap="round"/><path d="M9 21l-3 6" stroke="#3a2412" stroke-width="2.600" stroke-linecap="round"/><path d="M7.500 24l2 1" stroke="#c9962a" stroke-width="1.200"/><circle cx="5.500" cy="28" r="1.700" fill="#c9962a" stroke="#3a2412" stroke-width=".8"/><path d="M14 13q2 1 1 3" stroke="#8a1a14" stroke-width="1.300" fill="none" stroke-linecap="round"/>',
  druid:'<path d="M16 2v6" stroke="#6a4a2a" stroke-width="1.100"/><path d="M9 3q7 5 14 0" stroke="#7a5a32" stroke-width="1" fill="none"/><g transform="rotate(-20 16 17)"><path d="M10 13q-3-1-3 2t3 2l12 0q3 1 3-2t-3-2q-1-3-4-1h-4q-3-2-4 1z" fill="#ece4cc" stroke="#5a4a32" stroke-width="1" stroke-linejoin="round"/><path d="M11 15h10" stroke="#c8bc9c" stroke-width=".8"/></g><circle cx="16" cy="8.500" r="1.800" fill="#5a8a3a" stroke="#2a4a1a" stroke-width=".7"/><path d="M8 20q-3 4-2 9q3-3 4-6z" fill="#4a7a3a" stroke="#1e3a14" stroke-width=".8" stroke-linejoin="round"/><path d="M24 20q4 3 4 8q-3-2-5-5z" fill="#7a9a3a" stroke="#2a3a14" stroke-width=".8" stroke-linejoin="round"/><path d="M13 22l-1 6M19 22l1 7M16 23v7" stroke="#6a4a2a" stroke-width=".9"/><circle cx="12" cy="28.500" r="1.300" fill="#c84a2a" stroke="#5a1a0a" stroke-width=".5"/><circle cx="20" cy="29.500" r="1.300" fill="#d8b24a" stroke="#6a4c10" stroke-width=".5"/><path d="M16 30l-1.200 2h2.400z" fill="#e8e0c8" stroke="#5a4a32" stroke-width=".5"/>',
  fskull:'<circle cx="16" cy="16" r="14" fill="#7a3a9a" opacity=".14"/><path d="M6 15q0-11 10-11t10 11q0 4-2.500 6.500v4h-15v-4q-2.500-2.500-2.500-6.500z" fill="#e2dac4" stroke="#3a3028" stroke-width="1.200" stroke-linejoin="round"/><path d="M9 11.500l5 2M23 11.500l-5 2" stroke="#2a221c" stroke-width="1.700" stroke-linecap="round"/><ellipse cx="11.800" cy="15.800" rx="2.600" ry="2.300" fill="#1e1814"/><ellipse cx="20.200" cy="15.800" rx="2.600" ry="2.300" fill="#1e1814"/><circle cx="11.800" cy="15.800" r=".8" fill="#b06ad0"/><circle cx="20.200" cy="15.800" r=".8" fill="#b06ad0"/><path d="M16 18.500l-1.300 2.600h2.600z" fill="#2a221c"/><path d="M11 26q5-3.500 10 0" stroke="#2a221c" stroke-width="1.200" fill="none" stroke-linecap="round"/><path d="M12.500 22.500v3M16 22.500v3.300M19.500 22.500v3" stroke="#9a9280" stroke-width=".8"/><path d="M21 6q2 2 1 4" stroke="#b8b09a" stroke-width=".9" fill="none"/><path d="M4 30l5-3l3 2l4-2l4 2l3-2l5 3" stroke="#4a3e30" stroke-width="1.100" fill="none" stroke-linejoin="round"/>',
+ mrose:'<path d="M16 30q-1-8 0-15" stroke="#2f5a26" stroke-width="1.800" fill="none"/><path d="M16 24l-2.400-.8M16 20l2.400-.6" stroke="#2f5a26" stroke-width="1.200"/><ellipse cx="12" cy="22" rx="3.200" ry="1.400" fill="#4a8a3a" transform="rotate(-30 12 22)"/><circle cx="16" cy="10.5" r="5.5" fill="#b0181e"/><path d="M12.15 9.95q3.8499999999999996 -4.95 7.699999999999999 0q-1.1 4.4 -3.8499999999999996 3.8499999999999996q-2.75 0 -3.8499999999999996 -3.8499999999999996z" fill="#e0303a"/><path d="M14.35 8.3q1.65 -1.65 3.3 0" stroke="#3a0408" stroke-width=".8" fill="none"/><path d="M17.500 16q1 3-.5 5" stroke="#c0101a" stroke-width="1.300" fill="none" stroke-linecap="round"/><circle cx="17" cy="22.500" r="1.200" fill="#c0101a"/>',
+ erose:'<path d="M11 30q-1-8 1-14M21 30q1-7-1-12" stroke="#2f5a26" stroke-width="1.700" fill="none"/><path d="M11.500 24l-2.200-.6M20.500 22l2.200-.6" stroke="#2f5a26" stroke-width="1.100"/><circle cx="12" cy="12" r="5" fill="#8a1218"/><path d="M8.5 11.5q3.5 -4.5 7.0 0q-1.0 4.0 -3.5 3.5q-2.5 0 -3.5 -3.5z" fill="#c0202a"/><path d="M10.5 10.0q1.5 -1.5 3.0 0" stroke="#3a0408" stroke-width=".8" fill="none"/><circle cx="21" cy="15" r="4.2" fill="#a0161e"/><path d="M18.06 14.58q2.94 -3.7800000000000002 5.88 0q-0.8400000000000001 3.3600000000000003 -2.94 2.94q-2.1 0 -2.94 -2.94z" fill="#d02a32"/><path d="M19.74 13.32q1.26 -1.26 2.52 0" stroke="#3a0408" stroke-width=".8" fill="none"/><path d="M21 9q-1-3 1-4" stroke="#6a1a1a" stroke-width="1" fill="none"/><circle cx="13.500" cy="19.500" r="1.100" fill="#c0101a"/><circle cx="22" cy="21" r=".9" fill="#c0101a"/>',
+ irose:'<circle cx="16" cy="13" r="11" fill="#c0342a" opacity=".14"/><path d="M16 31q-2-6 0-12q1-3 0-5" stroke="#6a4426" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M15 26q-3-1-5 1M17 22q3-1 5 1" stroke="#6a4426" stroke-width="1.600" fill="none" stroke-linecap="round"/><path d="M15 29q1-6 0-10" stroke="#a87a4a" stroke-width=".8" fill="none"/><path d="M13 25l-1.400-1M19 21l1.400-1M14 17l-1.400-.6" stroke="#2a1a0a" stroke-width="1.100"/><circle cx="16" cy="10" r="6" fill="#7a0a12"/><path d="M11.8 9.4q4.199999999999999 -5.4 8.399999999999999 0q-1.2000000000000002 4.800000000000001 -4.199999999999999 4.199999999999999q-3.0 0 -4.199999999999999 -4.199999999999999z" fill="#c01822"/><path d="M14.2 7.6q1.7999999999999998 -1.7999999999999998 3.5999999999999996 0" stroke="#3a0408" stroke-width=".8" fill="none"/><circle cx="16" cy="10" r="1.300" fill="#ffd25a" opacity=".85"/><path d="M19.500 15q.5 3-1 4.500" stroke="#c0101a" stroke-width="1.300" fill="none" stroke-linecap="round"/><circle cx="18.300" cy="20.500" r="1.100" fill="#c0101a"/>',
+ knife:'<path d="M7 25l14-14q4-3 6-1q1 3-3 6L10 28z" fill="#d8dce0" stroke="#3a3e44" stroke-width="1.100" stroke-linejoin="round"/><path d="M10 24l13-13" stroke="#fff" stroke-width=".7" opacity=".7"/><path d="M4 30l5-5l2 2l-5 5z" fill="#5a3418" stroke="#2a1608" stroke-width="1"/><path d="M8 24l3 3" stroke="#8a6a2a" stroke-width="2.200"/><path d="M18 14q2 2 3 0M22 11q-1 3 1 4" stroke="#b0181e" stroke-width="1.300" fill="none"/><path d="M14 22q-1 3 0 4q1 1 1-1z" fill="#c0101a"/><circle cx="14.600" cy="27.800" r="1.100" fill="#c0101a"/>',
+ fheart:'<path d="M16 28q-11-7-11-15q0-5 5-6q4-1 6 4q2-5 6-4q5 1 5 6q0 8-11 15z" fill="#4a0e14" stroke="#1a0406" stroke-width="1.200"/><path d="M16 11q-1 6 1 10M16 15l-4 3M16 17l4 2M12 10q2 4 1 7" stroke="#d0303a" stroke-width=".9" fill="none" opacity=".9"/><path d="M8 11q1-2 3-2" stroke="#fff" stroke-width=".8" opacity=".35" fill="none"/><path d="M19 6q3-4 7-3q-2 4-7 3z" fill="#3a7a2a"/><path d="M19 6q3-2 6-3" stroke="#1e4a16" stroke-width=".6" fill="none"/>',
+ ruby:'<circle cx="16" cy="15" r="12" fill="#e02a3a" opacity=".16"/><path d="M8 12l4-5h8l4 5l-8 13z" fill="#a0101e" stroke="#4a0408" stroke-width="1.100" stroke-linejoin="round"/><path d="M8 12h16M12 7l2 5l2-5l2 5l2-5M14 12l2 13l2-13" stroke="#ff6a7a" stroke-width=".7" fill="none" opacity=".75"/><path d="M12 7l2 5h-6z" fill="#ff8a96" opacity=".55"/><path d="M16 25q-1 2 0 4q1 1 1-1z" fill="#c0101a"/><path d="M10 15q-3 4-5 4M22 15q3 4 5 4" stroke="#7a0a12" stroke-width="1.100" fill="none" stroke-linecap="round"/>',
+ bshot:'<path d="M5 27L23 9" stroke="#6a4426" stroke-width="2" stroke-linecap="round"/><path d="M23 9l5-4l-1 6z" fill="#b0181e" stroke="#4a0408" stroke-width="1" stroke-linejoin="round"/><path d="M5 27l-1 3l3-1M7 25l-3-1M7 25l1 3" stroke="#d8c8a0" stroke-width="1.300" stroke-linecap="round"/><path d="M26 12q1 3 0 5q-1 1-1-1z" fill="#c0101a"/><circle cx="25.500" cy="19.500" r="1" fill="#c0101a"/><path d="M14 18q-2 2-4 1" stroke="#c0101a" stroke-width=".9" fill="none" opacity=".7"/>',
+ bboots:'<path d="M8 6h8v12l6 3q3 2 2 5H7z" fill="#6a4a2a" stroke="#2a1a0a" stroke-width="1.100" stroke-linejoin="round"/><path d="M7 6q4-3 10 0" fill="#c8b090" stroke="#2a1a0a" stroke-width="1"/><path d="M8 9q2-1 3 1M12 8q2 1 2 3M9 13q2-1 3 1" stroke="#c8b090" stroke-width="1.100" fill="none"/><path d="M24 26l3 1.500M22 26l2 3M20 26l1 3" stroke="#e8e0cc" stroke-width="1.400" stroke-linecap="round"/><path d="M7 26h17" stroke="#1a0e06" stroke-width="1.600"/>',
+ bleaf:'<path d="M16 29q-11-6-9-17q8-1 13 4q5 6-4 13z" fill="#4a7a2a" stroke="#1e3a12" stroke-width="1.100"/><path d="M16 29q-3-8-6-15M12 19l3-1M11 15l3 .5" stroke="#1e3a12" stroke-width=".9" fill="none"/><path d="M19 16q-1-5 2-9q0 4 3 5q0-4 2-5q2 6-1 10q-3 3-6-1z" fill="#ff8a2a"/><path d="M20.500 15q0-3 1.500-5q.5 3 2 3.500q1-2 1-3q1 4-1 5q-2 1.500-3.500-.5z" fill="#ffd25a"/><circle cx="24" cy="5" r="1" fill="#ffb347" opacity=".7"/>',
  voidshard:'<circle cx="16" cy="15" r="13" fill="#a24aff" opacity=".16"/><path d="M10 6H22L28 12L16 28L4 12z" fill="#08060f" stroke="#c86aff" stroke-width="1.400" stroke-linejoin="round"/><path d="M4 12H28M10 6L13 12L16 6L19 12L22 6M13 12L16 28L19 12" fill="none" stroke="#c86aff" stroke-width=".7" opacity=".6"/><path d="M11 17q3-3 6-1t-1 4" stroke="#3a1a66" stroke-width="1.300" fill="none"/><path d="M11 7.500L9 11" stroke="#f0d0ff" stroke-width=".9" stroke-linecap="round" opacity=".8"/><circle cx="21" cy="9" r="1.100" fill="#3ad8ff"/><circle cx="12" cy="19" r=".9" fill="#ffe94a"/><circle cx="20" cy="16" r=".8" fill="#e7a6ff"/>',
  horn:'<path d="M6 8q2-5 10-4q8 1 10 9" fill="none" stroke="#5a3a1c" stroke-width="1.300"/><path d="M4 9Q6 26 25 25L25 13Q11 18 7 8z" fill="#e8dcbc" stroke="#3a2412" stroke-width="1.200" stroke-linejoin="round"/><path d="M8 11q2 8 12 9" fill="none" stroke="#fff8e6" stroke-width="1" opacity=".8"/><ellipse cx="25.500" cy="19" rx="3" ry="6.500" fill="#3a2a1a" stroke="#c9962a" stroke-width="1.600"/><path d="M19 16.500l.5 8M14 15l-.5 8" stroke="#c9962a" stroke-width="1.800"/><path d="M3 8.500l3-2l2 3l-3 1.500z" fill="#c9962a" stroke="#3a2412" stroke-width=".9"/><path d="M10 28q3-4 8-3q-3 3-8 3zM2 18q1-4 4-3q0 3-4 3z" fill="#3f7a3a" stroke="#1e4a1c" stroke-width=".9"/>',
  dandelion:'<path d="M16 29q-1-8 0-15" stroke="#4a8a3a" stroke-width="1.600" fill="none" stroke-linecap="round"/><path d="M16 25q-5-1-7-5q4 0 7 3M16 23q4-2 6-6q-4 1-6 4" fill="#5a9a48" stroke="#2e5a24" stroke-width=".8"/><circle cx="16" cy="10" r="8" fill="#fff" opacity=".35"/><g stroke="#bab6aa" stroke-width=".7"><path d="M16 10l7.00 0.00"/><path d="M16 10l6.06 3.50"/><path d="M16 10l3.50 6.06"/><path d="M16 10l0.00 7.00"/><path d="M16 10l-3.50 6.06"/><path d="M16 10l-6.06 3.50"/><path d="M16 10l-7.00 0.00"/><path d="M16 10l-6.06 -3.50"/><path d="M16 10l-3.50 -6.06"/><path d="M16 10l-0.00 -7.00"/><path d="M16 10l3.50 -6.06"/><path d="M16 10l6.06 -3.50"/></g><g fill="#fff" stroke="#a8a498" stroke-width=".4"><circle cx="23.00" cy="10.00" r="1.300"/><circle cx="22.06" cy="13.50" r="1.300"/><circle cx="19.50" cy="16.06" r="1.300"/><circle cx="16.00" cy="17.00" r="1.300"/><circle cx="12.50" cy="16.06" r="1.300"/><circle cx="9.94" cy="13.50" r="1.300"/><circle cx="9.00" cy="10.00" r="1.300"/><circle cx="9.94" cy="6.50" r="1.300"/><circle cx="12.50" cy="3.94" r="1.300"/><circle cx="16.00" cy="3.00" r="1.300"/><circle cx="19.50" cy="3.94" r="1.300"/><circle cx="22.06" cy="6.50" r="1.300"/></g><circle cx="16" cy="10" r="1.800" fill="#c9a83a" stroke="#6a5a1a" stroke-width=".6"/><path d="M26 5l3-2M27 9l3-.5" stroke="#bab6aa" stroke-width=".6"/><circle cx="29.300" cy="2.800" r="1" fill="#fff" stroke="#a8a498" stroke-width=".4"/><circle cx="30.300" cy="8.500" r="1" fill="#fff" stroke="#a8a498" stroke-width=".4"/>',
@@ -5902,7 +5966,7 @@ $("end").onclick=()=>{
   units.forEach(u=>{if(u.cubeMend){if(u.hp<maxHp(u)){u.hp+=1;floatText(u.x,u.y,"+1","heal")}delete u.cubeMend}}); // the Small Glowing Cube
   units.forEach(u=>{if(u.team==="y"){delete u.weak;if(u.cursed){u.weak=1;delete u.cursed}delete u.slow;delete u.hex;delete u.hexPend;delete u.haste;delete u.stepOnly;if(u.slowNext){u.slow=1;delete u.slowNext}}});
   lastMove=null;notify("You ended your turn");
-  const go=()=>{const gone=squirrelLeaves();if(gone)render();greekFireEnd();if(checkEnd())return;hazards("y",()=>{burnsBite();if(checkEnd())return;enemyTurn(gone+(n?"Your resting units recovered HP. ":""))})};
+  const go=()=>{const gone=squirrelLeaves();if(gone)render();greekFireEnd();wildsRelicsEnd();if(checkEnd())return;hazards("y",()=>{burnsBite();if(checkEnd())return;enemyTurn(gone+(n?"Your resting units recovered HP. ":""))})};
   if(units.some(u=>u.auto&&u.team==="y")){busy=true;render();chickensAct(()=>{if(!over)go()})}else go();
 };
 // The terrain list shared by the in-game Terrain Guide and How to Play. Locked terrain only appears in the Unlocks menu.
