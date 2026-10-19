@@ -3524,7 +3524,7 @@ function campaignRecord(nm){
   }
   camp.news=news.join(" ")||null;
 }
-const CAMP_HEAL=.2; // share of max HP every surviving unit recovers after a campaign win
+const CAMP_HEAL=.33; // share of max HP every surviving unit recovers after a campaign win
 const campHeal=t=>Math.ceil(TYPES[t].hp*CAMP_HEAL);
 const HEAL_SPOT=.7,HEAL_TEXT="A safe resting place. Visiting it restores 70% of each unit's health, once.",HERB_SPOT=.2; // HERB_SPOT: chance Herbert camps at a healing spot (once he's unlocked)
 const armyTypes=()=>[...CORE,...(camp.cfg?camp.cfg.x:[])];
