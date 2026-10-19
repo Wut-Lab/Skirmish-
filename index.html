@@ -1018,13 +1018,13 @@ const healOf=u=>ST(u).heal+(rel(u,"salts")?1:0); // how much a healer restores, 
 const rgOf=u=>ST(u).rg+(rel(u,"bshot")&&TYPES[u.t]&&TYPES[u.t].rg>1?BSHOT_RG:0)+(u.t==="A"&&rel(u,"long")?1:0)+(u.t==="Q"&&rel(u,"musket")?1:0)+(firstTurn&&ST(u).rg>1&&rel(u,"spyglass")?1:0); // a unit's attack range, with relics
 const DEBRIS_DMG=1,SPLINTER_DMG=1; // Debris Shot splash: small, so it softens clusters without replacing a second attack
 const NAME={J:"vengeful spirit",V:"straw decoy",O:"friendly golem",Z:"bee swarm",G:"angry chicken",L:"loyal squirrel",K:"knight",A:"archer",R:"artillery",W:"wolf",B:"bear",H:"hawk",D:"badger",C:"cavalry",P:"apothecary",E:"enchanter",T:"captain",N:"banner bearer",Q:"conquistador",M:"militia",X:"grid elemental",S:"friendly spark"};
-const AIM_EV=.05,MOD_OLD={PUSH:"SW",PAD:"AIM"},modOk=k=>MODS[k]?k:MOD_OLD[k]||null; // retired modifiers in old saves and map codes become their replacements
-const walled=u=>mods[u.team]==="SW"&&units.some(v=>v.team===u.team&&(v.x!==u.x||v.y!==u.y)&&d(v,u)===1); // Shield Wall Formations: next to an ally
+const AIM_EV=.1,MOD_OLD={PUSH:"SW",PAD:"AIM"},modOk=k=>MODS[k]?k:MOD_OLD[k]||null; // retired modifiers in old saves and map codes become their replacements
+const walled=u=>mods[u.team]==="SW"?Math.min(2,units.filter(v=>v.team===u.team&&(v.x!==u.x||v.y!==u.y)&&d(v,u)===1).length):0; // Shield Wall Formations: +1 armor next to an ally, +2 next to two or more
 const MODS={
  TP:{name:"Teleport",desc:"Once per battle, one unit may teleport to any open tile on the far edge (replaces its move)."},
- FT:{name:"Forest Tactics",desc:"Your units in a forest get +1 armor against ranged attacks. Enemies in a forest only get +5% evasion against your attacks, instead of +10%."},
- SW:{name:"Shield Wall Formations",desc:"Your units get +1 armor while next to an ally."},
- AIM:{name:"Steady Aim",desc:`Enemies get ${AIM_EV*100}% less evasion against your attacks.`},
+ FT:{name:"Forest Tactics",desc:"Your units in a forest get +1 armor, and leaving a forest costs them no extra movement. Enemies in a forest only get +5% evasion against your attacks, instead of +10%."},
+ SW:{name:"Shield Wall Formations",desc:"Your units get +1 armor while next to an ally, or +2 next to two or more, and can't be pushed, shoved or knocked back while next to one."},
+ AIM:{name:"Steady Aim",desc:`Enemies get ${AIM_EV*100}% less evasion against your attacks, and an attack that misses still grazes for 1 damage.`},
  REST:{name:"Field Rest",desc:"At the end of your turn, each of your units that neither moved nor attacked that turn recovers 2 HP."}};
 let SKULLS=new Set(),RUBBLE=new Set(),MURKY=false,HAUNTED=false,VOLCANIC=false,CHERRY=new Set(),SMOKE=new Set(),CALTROPS=new Set(),LAVA=new Set(),MAGMA=new Set(),VOLC=new Set(),WISP=new Set(),FLOWERS=new Set(),MEADOW=new Set(),GREENW=new Set(),KOI=new Set(),VALE=false,CHASM=new Set(),CHAOS=new Set(),LIGHT=new Set(),VOID=new Set(),VINES=new Set(),DEN=new Set(),WARPT=new Set(),BLOOD=new Set(),DEEPW=false,SIM=false,SIMFORT=false,GRAVES=new Set(),WALLS=new Set(),FOREST=new Set(),FORT=new Set(),DEEP=new Set(),SHALLOW=new Set(),SWAMP=new Set();
 // Bump PROGRESS_EPOCH to wipe unlocks and the campaign save once on next load (editor drafts and sound settings stay).
@@ -1879,7 +1879,7 @@ function combat(a,b,from=a){
   add("Vasco's Falcata",a.conq||0);
   const sc=scouting(a);add("Scouted Ahead",sc?1:0);
   if(rel(a,"cplate")){const t=parts.reduce((n,p)=>n+p[1],0);if(t<CPLATE_DMG)add("Cyber Breastplate",CPLATE_DMG-t)} // lifts weak hitters to 3 before armor
-  const armor=[["Armor",B.ar||0],["Enduring Rose",rel(b,"erose")&&under(b)&&rosed(b)?1:0],["Sentry's Lantern",b.sentry&&rel(b,"lantern")?1:0],["Small Forces",b.sforce?1:0],["Shield Wall",walled(b)?1:0],["Forest Tactics",mods[b.team]==="FT"&&A.rg>1&&WOODS(k)?1:0],["Fortress",FORT.has(k)?1:0],["Dug in",b.dug?DIG_AR:0],["Sturdy Shields",b.t==="K"&&rel(b,"shield")?1:0],["Lightened Armor",b.t==="K"&&rel(b,"lightarmor")?-1:0],["Barding",b.t==="C"&&rel(b,"bard")?1:0],["Banner of the Fallen Keep",b.keep?1:0],["Vasco's Morion",b.vang?1:0],["Large Glowing Cube",b.cubeAr?1:0],["Recovery-Linked Ward",b.ward?1:0],["Stubborn as a Mule",muled(b)?MULE_AR:0],["Improvised Armor",desperate(b,"hide")&&units.some(v=>v.team===b.team&&v.t==="K"&&d(v,b)===1)?1:0]];
+  const armor=[["Armor",B.ar||0],["Enduring Rose",rel(b,"erose")&&under(b)&&rosed(b)?1:0],["Sentry's Lantern",b.sentry&&rel(b,"lantern")?1:0],["Small Forces",b.sforce?1:0],["Shield Wall",walled(b)],["Forest Tactics",mods[b.team]==="FT"&&WOODS(k)?1:0],["Fortress",FORT.has(k)?1:0],["Dug in",b.dug?DIG_AR:0],["Sturdy Shields",b.t==="K"&&rel(b,"shield")?1:0],["Lightened Armor",b.t==="K"&&rel(b,"lightarmor")?-1:0],["Barding",b.t==="C"&&rel(b,"bard")?1:0],["Banner of the Fallen Keep",b.keep?1:0],["Vasco's Morion",b.vang?1:0],["Large Glowing Cube",b.cubeAr?1:0],["Recovery-Linked Ward",b.ward?1:0],["Stubborn as a Mule",muled(b)?MULE_AR:0],["Improvised Armor",desperate(b,"hide")&&units.some(v=>v.team===b.team&&v.t==="K"&&d(v,b)===1)?1:0]];
   if(acided(b)&&armor.reduce((t,x)=>t+x[1],0)>0)armor.push(["Acid Flask",-1]); // never below 0 armor
   armor.forEach(([l,v])=>add(l,-v));
   add("Pierce",Math.min(a.t==="E"||a.t==="Z"||a.t==="J"?99:a.bruise?1:Math.max(0,(A.pi||0)+(a.feral==="claws"?1:0)+(rubyOn(a)?RUBY_PI:0)+(redSet(a)&&a.woodMove&&turn===a.team?1:0)+(charging(a,from)?2:0)+(rel(a,"bluemagma")?1:0)+(rel(a,"crown")?1:0)+(a.t==="K"&&rel(a,"sallet")?1:0)+(a.t==="R"&&rel(a,"ammo")?1:0)+(a.t==="Q"&&rel(a,"escaupil")&&a.rough?1:0)+(a.rage?1:0)+(a.champ?1:0)+(sc?1:0)+(a.cret?1:0)+(a.ublade&&b.hp>maxHp(b)/2?1:0)-(b.cshield?1:0)),armor.reduce((t,x)=>t+x[1],0))); // Blue Magma and the Champion's Sword add pierce, the Usurper's Blade against the healthy; the Champion's Shield turns 1 aside
@@ -1903,7 +1903,7 @@ const dmgTo=(a,b,from)=>combat(a,b,from).dmg;
 const combatNote=c=>c.parts.length>1?c.parts.map(([l,v],i)=>i?`${v>0?"+":"\u2212"}${Math.abs(v)} ${l}`:`${v} base`).join(" "):"";
 const open=(x,y)=>x>=0&&y>=0&&x<W&&y<H&&!solid(x+","+y)&&!at(x,y);
 const farRow=t=>{const y=t==="y"?0:H-1,r=[];for(let x=0;x<W;x++)if(open(x,y))r.push([x,y]);return r};
-const rooted=u=>muled(u)||!!u.dug||u.t==="O"; // can't be pushed, shoved or knocked back: Stubborn as a Mule, or a dug-in Badger
+const rooted=u=>muled(u)||!!u.dug||u.t==="O"||walled(u)>0; // can't be pushed, shoved or knocked back: Stubborn as a Mule, a dug-in Badger, or a Shield Wall
 const pushable=(a,b)=>a.t==="K"&&b!==a&&!rooted(b)&&b.t!=="R"&&b.t!=="C"&&d(a,b)===1;
 const pushLen=a=>2+(a.t==="K"&&rel(a,"bruiser")&&a.moved?1:0); // Gauntlets of the Bruiser: a Knight that moved first pushes 3
 const bruises=(a,b)=>a.t==="K"&&rel(a,"bruiser")&&b.team!==a.team; // Gauntlets of the Bruiser: the push strikes too
@@ -1927,7 +1927,7 @@ const CHARGE_RUN=3,charging=(a,from=a)=>{const s=a.mvFrom||[a.x,a.y];return a.t=
 const rides=u=>u.t==="C"&&rel(u,"rsaddle"); // Swift Rider's Saddle: Cavalry ride through enemy lines
 function reach(u){ // entering shallow water costs 2; leaving a forest costs 1 extra; entering a swamp ends the move
   if((u.slow&&!muled(u))||u.stepOnly)return DIRS.map(([dx,dy])=>[u.x+dx,u.y+dy]).filter(([x,y])=>x>=0&&y>=0&&x<W&&y<H&&!solid(x+","+y)&&!at(x,y)).map(([x,y])=>x+","+y); // a slow (or the champion's step) always allows 1 tile, whatever the terrain costs
-  const fly=u.t==="Z"||u.t==="J",wade=rel(u,"wboots"),nimble=fly||u.t==="G"||u.t==="L"||u.t==="Q",bud=mvOf(u)-(!nimble&&!rel(u,"hatchet")&&FOREST.has(u.x+","+u.y)?1:0),k0=u.x+","+u.y; // leaving a forest costs 1 extra (the Angry Chicken and the Conquistador skip both of these costs)
+  const fly=u.t==="Z"||u.t==="J",wade=rel(u,"wboots"),nimble=fly||u.t==="G"||u.t==="L"||u.t==="Q",bud=mvOf(u)-(!nimble&&!rel(u,"hatchet")&&mods[u.team]!=="FT"&&FOREST.has(u.x+","+u.y)?1:0),k0=u.x+","+u.y; // leaving a forest costs 1 extra (the Angry Chicken and the Conquistador skip both of these costs, and so does Forest Tactics)
   const cost=new Map([[k0,0]]),q=[[u.x,u.y]];
   while(q.length){
     q.sort((a,b)=>cost.get(a+"")-cost.get(b+""));
@@ -2100,8 +2100,8 @@ function renderTile(){
   const el=$("tinfo");
   if(!tile){el.className="pb empty";el.innerHTML='<div class="lbl">Terrain</div><div class="ph">Tap a tile to see its terrain.</div>';return}
   const{x,y}=tile,k=x+","+y,f=WOODS(k),u=at(x,y),key=terrainKey(k),T=TERRAIN[key],lines=[T.desc];
-  if(f&&mods.y==="FT")lines.push(`Forest Tactics: your units here get +1 armor against ranged attacks, and enemies here only get +${pct(FT_FOREST_EV)} evasion against you.`);
-  if(f&&mods.f==="FT")lines.push("The enemy has Forest Tactics: its units here get +1 armor against ranged attacks.");
+  if(f&&mods.y==="FT")lines.push(`Forest Tactics: your units here get +1 armor and leave at no extra cost, and enemies here only get +${pct(FT_FOREST_EV)} evasion against you.`);
+  if(f&&mods.f==="FT")lines.push("The enemy has Forest Tactics: its units here get +1 armor and leave at no extra cost.");
   if(SMOKE.has(k))lines.push("Smoke: your units here get +20% evasion until your next turn.");
   if(glowOf(k).length)lines.push("Light Brick glow: a unit that moves onto or through this tile is slowed on its next turn.");
   if(skullZone(k))lines.push("Beside Unsettling Ground: an enemy that ends its turn here takes 1 damage, ignoring armor, and is slowed on its next turn (never two turns running).");
@@ -2146,7 +2146,7 @@ function renderInfo(){
   if(rel(u,"font")&&!u.blessUsed)notes.push("Font of the Wise Ones: can bless an adjacent ally once this battle.");
   if(fo)notes.push(`In a forest: +${pct(FOREST_EV)} evasion, and leaving costs 1 movement.`);
   if(FORT.has(u.x+","+u.y))notes.push("On a fortress: +1 armor."+(rel(u,"pennant")?" Garrison Pennant: +5% evasion.":""));
-  if(walled(u))notes.push("Shield Wall Formations: +1 armor while next to an ally.");
+  if(walled(u))notes.push(`Shield Wall Formations: +${walled(u)} armor while next to ${walled(u)>1?"two or more allies":"an ally"}, and it can't be pushed.`);
   if(u.gfhelm||u.gfshield||u.gfhammer)notes.push("Bears the Arms of Greek Fire: "+["gfhelm","gfshield","gfhammer"].filter(id=>u[id]).map(id=>RELICS[id].name.replace(" of Greek Fire","")).join(", ")+(u.gftrio?". All three: dealing damage stokes a heat haze (evasion) as your turn ends.":"."));
   if(u.gfEv)notes.push(`Heat haze: +${pct(u.gfEv)} evasion until your next turn.`);
   if(u.burn)notes.push(`Burning: takes ${u.burn} damage as its next turn begins.`);
@@ -2162,9 +2162,9 @@ function renderInfo(){
   if(friendly(u)&&rel(u,"fcharm"))notes.push("Friend Charm: +1 damage"+(u.t==="O"?".":" and +2 max HP."));
   if(rel(u,"cloak")&&!u.cloaked)notes.push("Patched Cloaks: the first blow to land on it this battle deals 1 less damage.");
   if(u.t==="A"&&rel(u,"pavise"))notes.push("Pavise: takes 1 less damage from ranged attacks.");
-  if(mods[u.team]==="FT"&&fo)notes.push("Forest Tactics: +1 armor against ranged attacks here.");
+  if(mods[u.team]==="FT"&&fo)notes.push("Forest Tactics: +1 armor here, and leaving costs no extra movement.");
   if(u.auto);else if(u.team==="y"&&u.acted&&!u.moved)notes.push("Rallied: can move again, but has already acted.");else if(u.team==="y"&&u.acted)notes.push("Finished for this turn.");else if(u.team==="y"&&u.moved)notes.push("Has moved this turn.");
-  const arm=(T.ar||0)+(walled(u)?1:0)+(u.t==="K"&&rel(u,"shield")?1:0)-(u.t==="K"&&rel(u,"lightarmor")?1:0)+(u.t==="C"&&rel(u,"bard")?1:0)+(u.keep?1:0)+(u.vang?1:0)+(u.ward?1:0)-(acided(u)?1:0);
+  const arm=(T.ar||0)+walled(u)+(u.t==="K"&&rel(u,"shield")?1:0)-(u.t==="K"&&rel(u,"lightarmor")?1:0)+(u.t==="C"&&rel(u,"bard")?1:0)+(u.keep?1:0)+(u.vang?1:0)+(u.ward?1:0)-(acided(u)?1:0);
   if(u.vs&&VOID.size)notes.push("Empty Space: started the turn on it, +1 movement this turn.");
   if(u.alone&&rel(u,"voidshard"))notes.push("Shard of Empty Space: started the turn alone, +1 movement this turn.");
   if(rel(u,"voidshard")&&!units.some(v=>v!==u&&d(v,u)===1))notes.push("Shard of Empty Space: nobody beside it, +3% evasion.");
@@ -3086,7 +3086,9 @@ function thanks(u){later(()=>{if(units.includes(u))floatText(u.x,u.y,"Thanks Her
 const HEX_SET=["hfeeble","hmeek","htorpid"];
 function charmHex(u,id){if(!RELIC.has(id)||relicUsed[id]||calm(u))return;relicUsed[id]=1;u.hexNext=HEX_SET.every(k=>RELIC.has(k))?2:1;later(()=>{if(units.includes(u))floatText(u.x,u.y,"Hex charm","slow")},350)} // hexed as its next turn begins
 function hitFor(a,b,c,back){ // resolve one blow from a to b: dodge roll, damage, removal; true when it landed
-  if(Math.random()<1-c.hit){floatText(b.x,b.y,"Evade",true);sfx(b.glitch==="flick"?"glitch":"evade");say(sent(who(b))+" evaded "+(back?"the retaliation.":"the attack."));return false}
+  if(Math.random()<1-c.hit){floatText(b.x,b.y,"Evade",true);sfx(b.glitch==="flick"?"glitch":"evade");say(sent(who(b))+" evaded "+(back?"the retaliation.":"the attack."));
+    if(!back&&mods[a.team]==="AIM"&&c.dmg>0){later(()=>{if(units.includes(b))floatText(b.x,b.y-.4,"Graze -1")},250);if(hurt(b,1)){credit(a,b);say(sent(who(b))+" evaded, but the graze finished it.")}} // Steady Aim: a miss still grazes
+    return false}
   if(rel(b,"cloak"))b.cloaked=1; // Patched Cloaks: spent on the first blow that lands
   if(b.team==="y"&&b.t==="A"&&a.team!=="y"&&ST(a).rg>1){unlocks.ah=(unlocks.ah||0)+1;saveU();if(unlocks.ah>=10)unlock("pavise")} // archers under arrow fire learn to raise a wall
   if(b.team==="y"&&c.blk){unlocks.ab=(unlocks.ab||0)+c.blk;saveU();if(unlocks.ab>=BUCKLER_UNLOCK)unlock("buckler")} // blows turned aside by your armor
