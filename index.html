@@ -811,7 +811,7 @@ const RELICS={
  gfhelm:{name:"Helm of Greek Fire",r:0,src:"both",set:"greek",desc:"At the end of your turn, every enemy the bearer damaged that turn burns for 1 more damage, ignoring armor."},
  gfshield:{name:"Shield of Greek Fire",r:1,src:"both",set:"greek",desc:"At the end of your turn, the bearer scorches the weakest enemy beside it for 1 damage, ignoring armor. Anything that damages the bearer takes 1 damage back."},
  gfhammer:{name:"Hammer of Greek Fire",r:2,src:"both",set:"greek",excl:["csword","ublade"],desc:"The bearer deals +1 damage to adjacent enemies, and an enemy it damages burns for 2 damage, ignoring armor, at the start of its next turn. Can't be carried with the Champion's or the Usurper's sword."},
- textbook:{name:"First Aid Textbook",r:1,src:"both",desc:"Healing Draughts heal 6 HP, Advanced Med Kits also heal 3 HP as they mend a wound, and Virtual Rations heal 1 more. Chapter one: apply pressure. Chapter two: apply more pressure."},
+ textbook:{name:"First Aid Textbook",r:1,src:"both",desc:"Healing Draughts heal 6 HP, Advanced Med Kits also heal 3 HP as they mend a wound, Weak Healing Splash Potions heal 2 instead of 1, and Virtual Rations heal 1 more. Chapter one: apply pressure. Chapter two: apply more pressure."},
  mercman:{name:"Merc Tactics Manual",r:1,src:"both",desc:"Your mercenaries get +1 movement and +1 max HP. Dog-eared, coffee-stained, and annotated in at least four handwritings."},
  contracts:{name:"Extended Contracts",r:1,src:"both",desc:"Mercenaries you hire from now on serve 1 more battle, and ask 5 more gold for it. Read the fine print. Then read the finer print."},
  mdiscount:{name:"Defense Discount",r:0,src:"both",desc:"Mercenaries cost 10 gold less to hire. A coupon clipped from a recruiting poster. Marcus honors it, grudgingly."},
@@ -2903,8 +2903,8 @@ function useItem(a,id,x,y,rub,dir){
     say(`Your ${NAME[a.t]} burned the Enraging Incense${b===a?"":" beside your "+NAME[b.t]}: +1 damage, +1 movement and +1 pierce for the rest of the battle, but 5% less evasion.`);return render();
   }
   if(id==="hsplash"){
-    const hit=splashed(a).filter(b=>b.hp<maxHp(b));hit.forEach(b=>{b.hp+=1;floatText(b.x,b.y,"+1","heal");mendFx(b)});sfx("heal");info=a;
-    say(`Your ${NAME[a.t]} shattered the Weak Healing Splash Potion: ${hit.length===1?"1 unit recovers":hit.length+" units recover"} 1 HP.`);return render();
+    const hit=splashed(a).filter(b=>b.hp<maxHp(b)),h=rel(a,"textbook")?2:1;hit.forEach(b=>{const n=Math.min(h,maxHp(b)-b.hp);b.hp+=n;floatText(b.x,b.y,"+"+n,"heal");mendFx(b)});sfx("heal");info=a; // the First Aid Textbook doubles it
+    say(`Your ${NAME[a.t]} shattered the Weak Healing Splash Potion: ${hit.length===1?"1 unit recovers":hit.length+" units recover"} up to ${h} HP.`);return render();
   }
   if(id==="dryice"){
     const c=at(x,y),hit=units.filter(u=>Math.abs(u.x-c.x)<=1&&Math.abs(u.y-c.y)<=1);hit.forEach(u=>{u.chill=1;floatText(u.x,u.y,"Chilled","bless")});sfx("smoke");info=c;
