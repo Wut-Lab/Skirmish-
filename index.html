@@ -797,6 +797,8 @@ const RELICS={
  canteen:{name:"Tin Canteen",r:0,src:"both",desc:"As each battle begins, your most wounded unit recovers 2 HP. Dented all over, but it has never leaked."},
  wand:{name:"Wild Terrain Warping Wand",r:1,src:"both",desc:"As each battle begins, the wand flares: a clump of 4 tiles of rough or blocking terrain between the two armies (walls, rocks, water, swamp, forest, rubble and the like) turns into open ground. Fortresses and camp sites are left alone."},
  wboots:{name:"Boots of Water Walking",r:1,src:"both",desc:"Shallow water no longer slows your units, and they can wade into deep water, which costs them 1 extra movement to enter."},
+ afeather:{name:"Angel's Feather",r:1,src:"shrine",find:1,desc:"As your 3rd turn begins, an angel descends beside your most wounded unit and stays for 2 turns. It can't be hurt or pushed, never moves or fights, and the enemy pays it no mind. At the end of each of your turns, your units on the 8 tiles around it recover 1 HP, and while they stand there they get +1 armor. Found only at a forest shrine, if you've paid the Font of the Gods its tribute."},
+ bangel:{name:"Bleeding Angel's Feather",r:2,src:"shrine",find:1,desc:"Cursed. As each battle begins, your units lose 1 HP for every 75 gold you carry (at least 1, at most 2, never the last HP). Your Knights, Archers and Cavalry deal +1 damage on your first 3 turns, and each battle you win pays 3 extra gold for every unit left at a third of its health or less. It found you at a forest shrine, after you took the Font of the Gods' gold, and it won't leave your pack."},
  golem:{name:"Friendly Golem",r:1,src:"both",desc:"As your second turn of each battle begins, a Friendly Golem forms beside your unit nearest the enemy. It can't be hurt or pushed, and the enemy pays it no mind. You can move it each turn, but it never attacks; it only hits back, for 1, when something strikes it. It's just there to take up space, and it is very good at it."},
  fcharm:{name:"Friend Charm",r:1,src:"both",needR:["chicken","druid","spark","golem","hive","decoy","jewel","impatient"],desc:"Your friends, the units that fight beside you on their own (never mercenaries), get +2 max HP and +1 damage. Only offered once a friend has joined your cause."},
  hive:{name:"Beehive in a Jar",r:1,src:"both",desc:"Once per battle, one of your units can throw it at an open tile within 3, without using its move or action: a Bee Swarm bursts out. It acts on its own at the end of your turn, flying over any terrain, and its sting deals 1 damage that ignores armor. It buzzes off after 3 turns."},
@@ -938,7 +940,7 @@ const BLESS_EV=.05;
 const blessed=u=>u.team==="y"&&u.blessUntil>=pturn; // Font of the Wise Ones: lasts through the enemy turn and your next one
 const canBless=(a,b)=>rel(a,"font")&&!a.blessUsed&&!a.acted&&b!==a&&b.team==="y"&&d(a,b)===1; // adjacent allies only
 const BUCKLER_STEP=.02,BUCKLER_MAX=.06,BUCKLER_UNLOCK=40; // Charmed Buckler: +2% evasion per 2 armor across the army; unlocked by 40 damage turned aside by your armor
-const ownArmor=u=>Math.max(0,(ST(u).ar||0)+(u.t==="K"&&rel(u,"shield")?1:0)-(u.t==="K"&&rel(u,"lightarmor")?1:0)+(u.t==="C"&&rel(u,"bard")?1:0)+(u.keep?1:0)+(u.vang?1:0)+(muled(u)?MULE_AR:0)-(acided(u)?1:0)); // a unit's own armor, without terrain or formations
+const ownArmor=u=>Math.max(0,(ST(u).ar||0)+(u.t==="K"&&rel(u,"shield")?1:0)-(u.t==="K"&&rel(u,"lightarmor")?1:0)+(u.t==="C"&&rel(u,"bard")?1:0)+(u.keep?1:0)+(u.vang?1:0)+(haloed(u)?1:0)+(muled(u)?MULE_AR:0)-(acided(u)?1:0)); // a unit's own armor, without terrain or formations
 const bucklerEv=u=>rel(u,"buckler")?Math.min(BUCKLER_MAX,BUCKLER_STEP*Math.floor(units.filter(v=>v.team===u.team).reduce((t,v)=>t+ownArmor(v),0)/2)):0;
 const spotted=(u,team)=>u.spot>=pturn&&u.spotBy===team; // Spotter's Mark: marked by a ranged blow from that side, through the end of its next turn
 const PEBBLE_EV=.01,SHARD_EV=.03,KEEN_EV=.03,NONCOMBAT=["P","E","N"],LOW_HP=1/3,REST_EV=.02,low=u=>u.hp<=maxHp(u)*LOW_HP,desperate=(u,id)=>rel(u,id)&&NONCOMBAT.includes(u.t)&&low(u); // the Improvised relics: non-combat units at or below a third of their health
@@ -968,7 +970,7 @@ const canBugle=u=>u.t==="T"&&u.team==="y"&&rel(u,"bugle")&&!u.acted&&!u.auto&&un
 // the Frowning Skull: once per battle, any of your units sets it on an open tile beside it (free); relicUsed.skull holds where it lies
 const BLOOD_DMG=1,DEN_SPAWN=1/3,DEN_HEAL=1,DEN_DMG=1,denZone=(x,y)=>[...DEN].some(k=>{const[a,b]=pk(k);return Math.abs(a-x)<=1&&Math.abs(b-y)<=1}); // the Hidden Den: an animal's chance to come out each round while none roams; what its ground gives animals
 const SKULL_DMG=1,SKULL_AVOID=2.5,TROPHY_GOLD=1,BOUNTY_GOLD=15,RIBBON_HEAL=2,GONG_RANGE=2,HOOK_RANGE=3,TRICORN_EV=.03,GLOVES_EV=.03,CANTEEN_HEAL=2,GOLEM_TURN=2,HIVE_RANGE=3,HIVE_TURNS=3,FCHARM_HP=2,WAND_TILES=4;
-const friendly=u=>u.team==="y"&&!!u.auto&&!u.merc; // the Chicken, Squirrel, Spark, Golem and Bees: on your side, on their own
+const friendly=u=>u.team==="y"&&!!u.auto&&!u.merc&&!u.angel; // the Chicken, Squirrel, Spark, Golem and Bees: on your side, on their own
 const RED_SET=["rcape","tricorn","rgloves"],redSet=u=>RED_SET.every(id=>rel(u,id)); // the Red Clothes, all three
 const skullZone=k=>{if(!SKULLS.size||SKULLS.has(k))return false;const[x,y]=pk(k);for(const s of SKULLS){const[a,b]=pk(s);if(Math.abs(a-x)<=1&&Math.abs(b-y)<=1)return true}return false}; // the 8 tiles around any Unsettling Ground
 const skullTargets=u=>DIRS.map(([dx,dy])=>[u.x+dx,u.y+dy]).filter(([x,y])=>open(x,y)&&!FORT.has(x+","+y)&&!splits(x+","+y)).map(([x,y])=>x+","+y);
@@ -1812,7 +1814,7 @@ const fellAt=f=>{const u=[...new Set(f)];if(u.length<3)return listAnd(u);for(let
 const limitNames=()=>listAnd(poolNow().split("").filter(t=>LIMIT1.includes(t)).map(t=>"the "+cap(NAME[t])));
 
 // a campaign with nothing in it yet: the one list of what a new campaign starts from
-const freshCamp=()=>({cfg:null,pos:0,cleared:[],done:false,battle:null,sel:null,hp:null,gold:0,relics:[],items:[],offer:null,offerBoss:false,offerStart:0,found:[],lastGold:0,kills:[],region:1,mapsPrior:0,bossUsed:{loc:[],name:[]},merc:null,scout:0,wrath:0,portal:0,portalIn:0,inSim:0,escaped:0,inWilds:0,wildsGate:0,wildsIn:0,wildsOut:0,mercNote:"",news:null});
+const freshCamp=()=>({cfg:null,pos:0,cleared:[],done:false,battle:null,sel:null,hp:null,gold:0,relics:[],items:[],offer:null,offerBoss:false,offerStart:0,found:[],lastGold:0,kills:[],region:1,mapsPrior:0,bossUsed:{loc:[],name:[]},merc:null,scout:0,wrath:0,font:"",feathers:[],portal:0,portalIn:0,inSim:0,escaped:0,inWilds:0,wildsGate:0,wildsIn:0,wildsOut:0,mercNote:"",news:null});
 let camp=freshCamp(),campSetup=false,endMode="quick",worldLock=false,choice=null,locked=false,tile=null,info=null,paused=false,gid=0,seed=0,col={y:"blue",f:"red"},insp=null,units=[],sel=null,turn="y",over=false,busy=false,mode=null,mods={y:null,f:null},tpUsed={y:0,f:0},pick={t:null,m:null};
 const prevPos=new WeakMap();
 const $=id=>document.getElementById(id),board=$("board");
@@ -1869,6 +1871,7 @@ function combat(a,b,from=a){
   add("Blood Shot",rel(a,"bshot")&&TYPES[a.t].rg>1&&!longShot(a,b,from)?1:0); // a shot within its own range
   add("Long Claws",a.feral==="claws"?1:0);add("Warped Limbs",a.feral==="limbs"?-(a.t==="B"?LIMBS_BEAR:LIMBS_DMG):0);add("Terrifying Presence",b.feral==="terror"&&a.team!==b.team&&Math.abs(from.x-b.x)<=1&&Math.abs(from.y-b.y)<=1?-TERROR_DMG:0); // a Warped Beast
   add("Liquid Courage",(rel(a,"grog")?1:0)+(rel(b,"grog")?1:0)); // both ways: dealt and taken
+  add("Bleeding Angel's Feather",rel(a,"bangel")&&a.team==="y"&&"KAC".includes(a.t)&&pturn<=BANGEL_TURNS?1:0); // core units, first 3 turns
   add("Tome of the Red Mages",a.t==="E"&&rel(a,"redtome")?1:0);
   add("Tome of the Black Mages",a.t==="E"&&rel(a,"blacktome")&&b.slow?1:0); // preying on the slowed
   add("Elite",a.elite?1:0);
@@ -1885,7 +1888,7 @@ function combat(a,b,from=a){
   add("Vasco's Falcata",a.conq||0);
   const sc=scouting(a);add("Scouted Ahead",sc?1:0);
   if(rel(a,"cplate")){const t=parts.reduce((n,p)=>n+p[1],0);if(t<CPLATE_DMG)add("Cyber Breastplate",CPLATE_DMG-t)} // lifts weak hitters to 3 before armor
-  const armor=[["Armor",B.ar||0],["Enduring Rose",rel(b,"erose")&&under(b)&&rosed(b)?1:0],["Sentry's Lantern",b.sentry&&rel(b,"lantern")?1:0],["Small Forces",b.sforce?1:0],["Shield Wall",walled(b)],["Forest Tactics",mods[b.team]==="FT"&&WOODS(k)?1:0],["Fortress",FORT.has(k)?1:0],["Dug in",b.dug?DIG_AR:0],["Sturdy Shields",b.t==="K"&&rel(b,"shield")?1:0],["Lightened Armor",b.t==="K"&&rel(b,"lightarmor")?-1:0],["Barding",b.t==="C"&&rel(b,"bard")?1:0],["Banner of the Fallen Keep",b.keep?1:0],["Vasco's Morion",b.vang?1:0],["Large Glowing Cube",b.cubeAr?1:0],["Recovery-Linked Ward",b.ward?1:0],["Stubborn as a Mule",muled(b)?MULE_AR:0],["Improvised Armor",desperate(b,"hide")&&units.some(v=>v.team===b.team&&v.t==="K"&&d(v,b)===1)?1:0]];
+  const armor=[["Armor",B.ar||0],["Enduring Rose",rel(b,"erose")&&under(b)&&rosed(b)?1:0],["Sentry's Lantern",b.sentry&&rel(b,"lantern")?1:0],["Small Forces",b.sforce?1:0],["Shield Wall",walled(b)],["Forest Tactics",mods[b.team]==="FT"&&WOODS(k)?1:0],["Fortress",FORT.has(k)?1:0],["Dug in",b.dug?DIG_AR:0],["Sturdy Shields",b.t==="K"&&rel(b,"shield")?1:0],["Lightened Armor",b.t==="K"&&rel(b,"lightarmor")?-1:0],["Barding",b.t==="C"&&rel(b,"bard")?1:0],["Banner of the Fallen Keep",b.keep?1:0],["Vasco's Morion",b.vang?1:0],["Angel's Feather",haloed(b)?1:0],["Large Glowing Cube",b.cubeAr?1:0],["Recovery-Linked Ward",b.ward?1:0],["Stubborn as a Mule",muled(b)?MULE_AR:0],["Improvised Armor",desperate(b,"hide")&&units.some(v=>v.team===b.team&&v.t==="K"&&d(v,b)===1)?1:0]];
   if(acided(b)&&armor.reduce((t,x)=>t+x[1],0)>0)armor.push(["Acid Flask",-1]); // never below 0 armor
   armor.forEach(([l,v])=>add(l,-v));
   add("Pierce",Math.min(a.t==="E"||a.t==="Z"||a.t==="J"?99:a.bruise?1:Math.max(0,(A.pi||0)+(a.feral==="claws"?1:0)+(rubyOn(a)?RUBY_PI:0)+(redSet(a)&&a.woodMove&&turn===a.team?1:0)+(charging(a,from)?2:0)+(rel(a,"bluemagma")?1:0)+(rel(a,"crown")?1:0)+(a.t==="K"&&rel(a,"sallet")?1:0)+(a.t==="R"&&rel(a,"ammo")?1:0)+(a.t==="Q"&&rel(a,"escaupil")&&a.rough?1:0)+(a.rage?1:0)+(spored(a)?SHROOM_PI:0)+(a.champ?1:0)+(sc?1:0)+(a.cret?1:0)+(a.ublade&&b.hp>maxHp(b)/2?1:0)-(b.cshield?1:0)),armor.reduce((t,x)=>t+x[1],0))); // Blue Magma and the Champion's Sword add pierce, the Usurper's Blade against the healthy; the Champion's Shield turns 1 aside
@@ -1899,7 +1902,7 @@ function combat(a,b,from=a){
 function retaliation(att,def,from=att){
   const T=ST(def),dd=d(def,from);
   if(!canRetaliate(def.t)||dd<T.mn||dd>rgOf(def)||rel(def,"warpaint")||charging(att,from))return null; // nobody parries a lance at full gallop // Berserker's Warpaint: no parrying
-  if(calm(def)||def.wood||def.vined||CHERRY.has(from.x+","+from.y)||VINES.has(def.x+","+def.y))return null; // Moment of Calm: nobody fights back under the blossoms; Tanglevine: too tangled to fight back // e.g. Artillery firing from 4 tiles outranges an Archer
+  if(calm(def)||def.angel||def.wood||def.vined||CHERRY.has(from.x+","+from.y)||VINES.has(def.x+","+def.y))return null; // Moment of Calm: nobody fights back under the blossoms; Tanglevine: too tangled to fight back // e.g. Artillery firing from 4 tiles outranges an Archer
   if(rel(def,"cgaunt"))def.cret=1; // the Cyber Gauntlets: a counter that punches through
   const c=combat(def,{...att,x:from.x,y:from.y});delete def.cret;
   const dm=Math.max(rel(def,"cplate")?CPLATE_RET:1,Math.floor(c.dmg*RET_SHARE))+(rel(def,"gauntlets")?1:0)+(rel(def,"cgaunt")?1:0);return {dmg:rel(att,"gambeson")?Math.max(0,dm-1):dm,hit:c.hit}; // Padded Gambeson: softens what comes back // Spiked (and Cyber) Gauntlets: +1 when hitting back; the Cyber Breastplate: never less than 2
@@ -2072,8 +2075,8 @@ function render(){
         if(dist>6)uc+=" tpin";
         else{uc+=" mv";stepped=1;mvs=`;--dx:${ddx*122}%;--dy:${ddy*122}%;--dur:${.1+.06*dist}s`}
       }
-      const c=COLORS[col[u.team]],hr=u.hp/maxHp(u),bg=u.auto&&!u.merc?`color-mix(in srgb,${c[1]} 55%,#fff)`:c[1]; // units that act on their own wear a lighter shade
-      html+=`<div class="${uc}" data-t="${u.t}" data-team="${u.team}" style="background:${bg};--tc:${bg};--ic:${c[2]}${mvs}">${u.merc?'<b class="ms"></b>':""}${u.trio?CHAMP_ICON:u.utrio?USURP_ICON:ICON[u.t]}${u.aim?'<i class="aimk" aria-label="Holding aim"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" fill="none" stroke="#9fe0b0" stroke-width="1.600"/><path d="M8 1v4M8 11v4M1 8h4M11 8h4" stroke="#9fe0b0" stroke-width="1.600"/></svg></i>':""}</div>`
+      const c=u.angel?ANGEL_COL:COLORS[col[u.team]],hr=u.hp/maxHp(u),bg=u.angel?c[1]:u.auto&&!u.merc?`color-mix(in srgb,${c[1]} 55%,#fff)`:c[1]; // units that act on their own wear a lighter shade
+      html+=`<div class="${uc}" data-t="${u.t}" data-team="${u.team}" style="background:${bg};--tc:${bg};--ic:${c[2]}${mvs}">${u.merc?'<b class="ms"></b>':""}${u.angel?ANGEL_ICON:u.trio?CHAMP_ICON:u.utrio?USURP_ICON:ICON[u.t]}${u.aim?'<i class="aimk" aria-label="Holding aim"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" fill="none" stroke="#9fe0b0" stroke-width="1.600"/><path d="M8 1v4M8 11v4M1 8h4M11 8h4" stroke="#9fe0b0" stroke-width="1.600"/></svg></i>':""}</div>`
         +`<div class="hp"><i style="width:${100*hr}%;background-color:${u.t==="O"?"#c3cad2":hr>.5?"#5fd068":hr>.25?"#f0c33a":"#ee5a45"}"></i></div>`;
     }
     out.push(html+"</button>");
@@ -2112,7 +2115,7 @@ function renderTile(){
   if(glowOf(k).length)lines.push("Light Brick glow: a unit that moves onto or through this tile is slowed on its next turn.");
   if(skullZone(k))lines.push("Beside Unsettling Ground: an enemy that ends its turn here takes 1 damage, ignoring armor, and is slowed on its next turn (never two turns running).");
   if(CALTROPS.has(k))lines.push("Caltrops: an enemy that crosses this tile takes 1 damage, ignoring armor. Your own units should know better, but 50% of the time they don't.");
-  if(u)lines.push("Occupied by "+(u.team==="y"?"your ":u.team==="f"?"an enemy ":"a wild ")+NAME[u.t]+".");
+  if(u)lines.push("Occupied by "+(u.team==="y"?"your ":u.team==="f"?"an enemy ":"a wild ")+(u.angel?"angel":NAME[u.t])+".");
   el.className="pb"+(MURKY?" murky":"")+(HAUNTED?" haunted":"")+(VOLCANIC?" volcanic":"")+(SIM?" sim":""); // murky water on Murky Swamp maps, ashen ground in graveyards
   el.innerHTML=`<div class="lbl">Terrain</div><div class="row">${terrainSwatch(key,tileArt(x,y))}<div class="ib"><div class="nm"><strong>${T.name}</strong><span>Tile ${String.fromCharCode(65+x)}${y+1}</span></div>${lines.map(l=>`<small>${l}</small>`).join("")}</div></div>`;
 }
@@ -2123,7 +2126,7 @@ function renderInfo(){
   const u=info,T=ST(u),c=COLORS[col[u.team]],fo=WOODS(u.x+","+u.y),r=u.hp/maxHp(u),notes=[],hero=camp.battle&&!chal&&u.team==="y"&&u.ci!=null&&camp.names;
   if(u.team==="w")notes.push(u.t!=="D"?"Wild: wanders at random and attacks any unit in range.":u.dug?`Dug in: +${DIG_AR} armor and can't be pushed. Strikes the first unit to move next to it each turn.`:`Wild: heads for a choke point and digs in there, or after ${DIG_TURNS} turns.`);
   if(u.merc&&u.team==="y")notes.push(`${u.vet?`Elite mercenary (+${VET_HP} HP and +${VET_DMG} damage)`:"Mercenary"}: fights on its own at the end of your turn.${camp.merc?` ${camp.merc.left} battle${camp.merc.left>1?"s":""} left on its contract.`:""}`);
-  if(ABILITY[u.t])notes.push(u.t==="P"?ABILITY.P.replace(TYPES.P.heal+" HP",healOf(u)+" HP"):ABILITY[u.t]); // the Apothecary's note carries its heal, relics included
+  if(ABILITY[u.t]&&!u.angel)notes.push(u.t==="P"?ABILITY.P.replace(TYPES.P.heal+" HP",healOf(u)+" HP"):ABILITY[u.t]); // the Apothecary's note carries its heal, relics included
   if(u.t==="T")notes.push(`Musters left this battle: ${musterUses(u)-(u.musters||0)}.`);
   if(inspired(u))notes.push("Inspired by a nearby Banner Bearer: deals +1 damage.");
   if(acided(u))notes.push("Acid-eaten: 1 less armor until the end of your next turn (never below 0).");
@@ -2173,7 +2176,9 @@ function renderInfo(){
   if(u.t==="A"&&rel(u,"pavise"))notes.push("Pavise: takes 1 less damage from ranged attacks.");
   if(mods[u.team]==="FT"&&fo)notes.push("Forest Tactics: +1 armor here, and leaving costs no extra movement.");
   if(u.auto);else if(u.team==="y"&&u.acted&&!u.moved)notes.push("Rallied: can move again, but has already acted.");else if(u.team==="y"&&u.acted)notes.push("Finished for this turn.");else if(u.team==="y"&&u.moved)notes.push("Has moved this turn.");
-  const arm=(T.ar||0)+walled(u)+(u.t==="K"&&rel(u,"shield")?1:0)-(u.t==="K"&&rel(u,"lightarmor")?1:0)+(u.t==="C"&&rel(u,"bard")?1:0)+(u.keep?1:0)+(u.vang?1:0)+(u.ward?1:0)-(acided(u)?1:0);
+  const arm=(T.ar||0)+walled(u)+(u.t==="K"&&rel(u,"shield")?1:0)-(u.t==="K"&&rel(u,"lightarmor")?1:0)+(u.t==="C"&&rel(u,"bard")?1:0)+(u.keep?1:0)+(u.vang?1:0)+(haloed(u)?1:0)+(u.ward?1:0)-(acided(u)?1:0);
+  if(u.angel)notes.push("Angel: can't be hurt or pushed, never moves or fights, and the enemy pays it no mind. Your units on the 8 tiles around it get +1 armor and recover 1 HP at the end of your turn. It leaves as your 5th turn begins.");
+  if(haloed(u))notes.push("Angel's Feather: beside the angel, +1 armor, and it recovers 1 HP at the end of your turn.");
   if(u.vs&&VOID.size)notes.push("Empty Space: started the turn on it, +1 movement this turn.");
   if(u.alone&&rel(u,"voidshard"))notes.push("Shard of Empty Space: started the turn alone, +1 movement this turn.");
   if(rel(u,"voidshard")&&!units.some(v=>v!==u&&d(v,u)===1))notes.push("Shard of Empty Space: nobody beside it, +3% evasion.");
@@ -2218,7 +2223,7 @@ function renderInfo(){
   if(u.bloom)notes.push(`Last Bloom: +${u.bloom} damage this battle, for a fallen comrade.`);
   const stats=[["Move",mvOf(u)],["Range",rangeTxt({...T,rg:rgOf(u)})],["Damage",T.dmg+(u.t==="A"&&rel(u,"whet")?1:0)+(u.t==="M"&&rel(u,"pitchfork")?1:0)+(u.bloom||0)+(u.champ?1:0)+(u.ublade?1:0)+(u.vengeance?1:0)+(u.rage?1:0)+(spored(u)?SHROOM_DMG:0)+(inspired(u)?"+1":"")],["Armor",arm],["Pierce",u.t==="E"?"All":(T.pi||0)+(u.t==="R"&&rel(u,"ammo")?1:0)+(u.t==="Q"&&rel(u,"escaupil")&&u.rough?1:0)+(u.rage?1:0)+(spored(u)?SHROOM_PI:0)],["Evasion",pct(Math.max(0,(T.ev||0)+(rides(u)&&u.moved?RIDER_EV:0)+(u.t==="Q"&&rel(u,"escaupil")?(u.rough?ESCA_ROUGH_EV:ESCA_EV):0)-(u.t==="N"&&rel(u,"helm")?HELM_EV:0)+(u.t==="E"&&rel(u,"hexbook")?HEXBOOK_EV:0)+(u.chill?DRYICE_EV:0)+(u.ash?PHOENIX_EV:0)-(u.rage?INCENSE_EV:0)))]].map(([k,v])=>`<span class="stat${v===0||v==="0%"?" nil":""}">${k} <b>${v}</b></span>`).join(""); // the same six stats on every card, zeros dimmed
   el.className="pb";el.style.borderLeft=`8px solid ${c[1]}`;
-  el.innerHTML=`<div class="lbl">Unit</div><div class="row top"><div class="pv">${u.trio||u.utrio?disc(u.t,c).replace(ICON[u.t],u.trio?CHAMP_ICON:USURP_ICON):disc(u.t,c,u.merc,u.auto&&u.team==="y")}</div><div class="ib"><div class="nm"><strong>${u.merc?u.mname:hero?heroName(u.ci):cap(NAME[u.t])}</strong><span>${u.trio?"The Champion":u.utrio?"The Usurper":u.merc?(u.team==="y"?"Your mercenary ":"Enemy mercenary ")+NAME[u.t]:hero?cap(NAME[u.t]):u.team==="y"?"Your unit":u.team==="w"?"Wild":"Enemy"}</span></div><div class="hprow"><span>HP</span><b>${u.hp} / ${maxHp(u)}</b></div><div class="hpb"><i style="width:${100*r}%;background:${r>.5?"#4caf50":r>.25?"#e0b21c":"#d64b3a"}"></i></div><div class="stats">${stats}</div>${notes.map(n=>`<small>${n}</small>`).join("")}</div></div>`;
+  el.innerHTML=`<div class="lbl">Unit</div><div class="row top"><div class="pv">${u.trio||u.utrio?disc(u.t,c).replace(ICON[u.t],u.trio?CHAMP_ICON:USURP_ICON):(u.angel?disc(u.t,ANGEL_COL).replace(ICON[u.t],ANGEL_ICON):disc(u.t,c,u.merc,u.auto&&u.team==="y"))}</div><div class="ib"><div class="nm"><strong>${u.merc?u.mname:hero?heroName(u.ci):u.angel?"Angel":cap(NAME[u.t])}</strong><span>${u.trio?"The Champion":u.utrio?"The Usurper":u.merc?(u.team==="y"?"Your mercenary ":"Enemy mercenary ")+NAME[u.t]:hero?cap(NAME[u.t]):u.team==="y"?"Your unit":u.team==="w"?"Wild":"Enemy"}</span></div><div class="hprow"><span>HP</span><b>${u.hp} / ${maxHp(u)}</b></div><div class="hpb"><i style="width:${100*r}%;background:${r>.5?"#4caf50":r>.25?"#e0b21c":"#d64b3a"}"></i></div><div class="stats">${stats}</div>${notes.map(n=>`<small>${n}</small>`).join("")}</div></div>`;
 }
 function floatText(x,y,t,miss){
   if(miss==="heal"&&t!=="+0"){const u=at(x,y);if(u)mended(u)} // every heal shows its "+n" here
@@ -2393,6 +2398,7 @@ function click(x,y){
   }
   if(mode==="push"&&u&&pushable(sel,u)){choice=u;say("Choose an action next to the unit.");return render()}
   if(u&&u.team==="y"&&sel&&sel!==u&&!mode&&!sel.acted&&(healable(sel,u)||canBless(sel,u)||pushable(sel,u))){choice=u;say("Choose an action next to the unit.");return render()}
+  if(u&&u.angel){insp=null;info=u;say("The angel answers to no one. It keeps watch over the units around it.");return render()}
   if(u&&u.auto&&!u.ctl){insp=null;info=u;say(u.merc?`${u.mname} fights for pay, not orders. It acts at the end of your turn.`:"The Angry Chicken answers to no one. It charges at the end of your turn.");return render()}
   if(u&&u.team==="y"){
     if(sel===u){sel=null;mode=null;info=null;say("Select one of your units.");return render()}
@@ -3086,9 +3092,27 @@ function squirrelLeaves(){ // also sends the Bee Swarm home once its 3 turns are
   const out=bees.length?"The Bee Swarm buzzed off. ":"",sq=units.filter(u=>u.t==="L");if(pturn<=SQUIRREL_TURNS||!sq.length)return out;
   sq.forEach(u=>{floatText(u.x,u.y,"Scampers off","thanks");units.splice(units.indexOf(u),1)});return out+"The Loyal Squirrel scampered back into the trees. ";
 }
+// Angel's Feather: as your 3rd turn begins, an angel descends beside your most wounded unit (by share of health) for 2 turns
+const ANGEL_TURN=3,ANGEL_STAY=2,ANGEL_COL=["Gold","#d8b84a","#fffaf0"],BANGEL_GOLD=75,BANGEL_MAX=2,BANGEL_TURNS=3,BANGEL_PAY=3;
+const ANGEL_ICON='<svg viewBox="0 0 40 40"><ellipse cx="20" cy="5.500" rx="6" ry="1.800" fill="none" stroke="#fff3b0" stroke-width="1.600"/><path d="M17 17q-9-7-14-1q2 8 10 10q-6-1-8 3q8 3 13-5z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M23 17q9-7 14-1q-2 8-10 10q6-1 8 3q-8 3-13-5z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><path d="M16 17h8l4 18H12z" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8" stroke-linejoin="round"/><circle cx="20" cy="12" r="3.600" fill="var(--ic)" stroke="rgba(0,0,0,.3)" stroke-width=".8"/><path d="M20 19v15M16 23q4 2 8 0" stroke="rgba(0,0,0,.2)" stroke-width=".8" fill="none"/></svg>';
+const haloed=u=>u.team==="y"&&!u.angel&&units.some(a=>a.angel&&Math.max(Math.abs(a.x-u.x),Math.abs(a.y-u.y))===1);
+function angelArrives(){
+  if(!RELIC.has("afeather"))return "";
+  if(pturn===ANGEL_TURN+ANGEL_STAY&&units.some(u=>u.angel)){units=units.filter(u=>!u.angel);return "The angel spreads its wings and rises out of sight."}
+  if(pturn!==ANGEL_TURN||units.some(u=>u.angel))return "";
+  for(const w of units.filter(u=>u.team==="y"&&!u.auto).sort((a,b)=>a.hp/maxHp(a)-b.hp/maxHp(b))){
+    const sp=[...DIRS,[1,1],[1,-1],[-1,1],[-1,-1]].map(([dx,dy])=>[w.x+dx,w.y+dy]).find(([x,y])=>open(x,y));
+    if(sp){units.push({t:"O",angel:1,team:"y",auto:1,x:sp[0],y:sp[1],hp:TYPES.O.hp,moved:1,acted:1,spawn:1});sfx("bless");return `An angel descended beside your ${NAME[w.t]}. Gather around it.`}
+  }
+  return "";
+}
+function bleedFeather(){ // the Bleeding Angel's Feather: 1 HP per 75 gold carried (1 to 2), never the last
+  const n=Math.min(BANGEL_MAX,Math.max(1,Math.floor((camp.battle?camp.gold:0)/BANGEL_GOLD)));
+  units.forEach(u=>{if(u.team!=="y"||u.auto||u.hp<=1)return;const h=Math.min(n,u.hp-1);u.hp-=h;later(()=>{if(units.includes(u))floatText(u.x,u.y,"-"+h,"slow")},600)});
+}
 // Friendly Golem: as your second turn begins, it forms beside your unit nearest the enemy
 function golemArrives(){
-  if(pturn!==GOLEM_TURN||!RELIC.has("golem")||units.some(u=>u.t==="O"))return "";
+  if(pturn!==GOLEM_TURN||!RELIC.has("golem")||units.some(u=>u.t==="O"&&!u.angel))return "";
   const fs=units.filter(u=>u.team==="f"),near=u=>fs.length?Math.min(...fs.map(e=>d(u,e))):0;
   for(const w of units.filter(u=>u.team==="y"&&!u.auto).sort((a,b)=>near(a)-near(b))){
     const sp=DIRS.map(([dx,dy])=>[w.x+dx,w.y+dy]).find(([x,y])=>open(x,y));
@@ -3789,8 +3813,8 @@ function enemyTurn(note=""){
         if(rel(u,"chalice")&&u.hp>1){u.hp-=1;floatText(u.x,u.y,"-1","slow")}
         else if(pturn>=3&&rel(u,"rosary")&&u.hp<maxHp(u)&&Math.random()<ROSARY_HEAL){u.hp+=1;floatText(u.x,u.y,"+1","heal")}});
       if(RELIC.has("fairy")&&FAIRY_TURNS.includes(pturn))units.forEach(u=>{if(u.team==="y"&&u.hp<maxHp(u)){u.hp+=1;later(()=>{if(units.includes(u))floatText(u.x,u.y,"+1","heal")},200)}}); // the Ring of the Benevolent Fairy: every third turn, a little mending
-      const wisped=wispsAct(),sparked=sparkArrives(),golemed=golemArrives();
-      vanguard();markStart(u=>u.team==="y");turn="y";knifeCut();busy=false;say((wisped?wisped+" ":"")+(sparked?sparked+" ":"")+(golemed?golemed+" ":"")+"Your turn. Select one of your units."+(healed?" Resting enemy units recovered HP.":""));render();notify("Enemy turn ended — your move");
+      const wisped=wispsAct(),sparked=sparkArrives(),golemed=golemArrives(),angeled=angelArrives();
+      vanguard();markStart(u=>u.team==="y");turn="y";knifeCut();busy=false;say((wisped?wisped+" ":"")+(sparked?sparked+" ":"")+(golemed?golemed+" ":"")+(angeled?angeled+" ":"")+"Your turn. Select one of your units."+(healed?" Resting enemy units recovered HP.":""));render();notify("Enemy turn ended — your move");
     });
   }
   step();
@@ -3984,8 +4008,8 @@ const edgeOf=(a,b)=>EDGES.find(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a)); /
 const canGo=(a,b)=>{const e=edgeOf(a,b);return !!e&&(!e[2]||b===e[1])};
 function reachFrom(id){const seen=new Set([id]),q=[id];while(q.length){const a=q.shift();WORLD.forEach(n=>{if(!seen.has(n.id)&&canGo(a,n.id)){seen.add(n.id);q.push(n.id)}})}return seen}
 const SAVE="skirmish-campaign";
-function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,items:camp.items,offer:camp.offer,offerBoss:camp.offerBoss,offerStart:camp.offerStart||0,found:camp.found,kills:camp.kills,names:camp.names,wounds:camp.wounds,honors:camp.honors,falls:camp.falls,news:camp.news,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,merc:camp.merc||null,scout:camp.scout||0,wrath:camp.wrath||0,portal:camp.portal||0,portalIn:camp.portalIn||0,inSim:camp.inSim||0,escaped:camp.escaped||0,inWilds:camp.inWilds||0,wildsGate:camp.wildsGate||0,wildsIn:camp.wildsIn||0,wildsOut:camp.wildsOut||0,jewel:camp.jewel??null,ruby:camp.ruby??null,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
-function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],items:d.items||[],offer:d.offer||null,offerBoss:!!d.offerBoss,offerStart:d.offerStart||0,found:Array.isArray(d.found)?d.found:d.found?[d.found]:[],kills:d.kills||[],names:d.names||null,wounds:d.wounds||[],honors:d.honors||[],falls:d.falls||[],news:d.news||null,region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},merc:d.merc||null,scout:d.scout||0,wrath:d.wrath||0,portal:d.portal||0,portalIn:d.portalIn||0,inSim:d.inSim||0,escaped:d.escaped||0,inWilds:d.inWilds||0,wildsGate:d.wildsGate||0,wildsIn:d.wildsIn||0,wildsOut:d.wildsOut||0,jewel:d.jewel??null,ruby:d.ruby??null,mercNote:"",lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
+function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,items:camp.items,offer:camp.offer,offerBoss:camp.offerBoss,offerStart:camp.offerStart||0,found:camp.found,kills:camp.kills,names:camp.names,wounds:camp.wounds,honors:camp.honors,falls:camp.falls,news:camp.news,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,merc:camp.merc||null,scout:camp.scout||0,wrath:camp.wrath||0,font:camp.font||"",feathers:camp.feathers||[],portal:camp.portal||0,portalIn:camp.portalIn||0,inSim:camp.inSim||0,escaped:camp.escaped||0,inWilds:camp.inWilds||0,wildsGate:camp.wildsGate||0,wildsIn:camp.wildsIn||0,wildsOut:camp.wildsOut||0,jewel:camp.jewel??null,ruby:camp.ruby??null,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
+function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],items:d.items||[],offer:d.offer||null,offerBoss:!!d.offerBoss,offerStart:d.offerStart||0,found:Array.isArray(d.found)?d.found:d.found?[d.found]:[],kills:d.kills||[],names:d.names||null,wounds:d.wounds||[],honors:d.honors||[],falls:d.falls||[],news:d.news||null,region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},merc:d.merc||null,scout:d.scout||0,wrath:d.wrath||0,font:d.font||"",feathers:d.feathers||[],portal:d.portal||0,portalIn:d.portalIn||0,inSim:d.inSim||0,escaped:d.escaped||0,inWilds:d.inWilds||0,wildsGate:d.wildsGate||0,wildsIn:d.wildsIn||0,wildsOut:d.wildsOut||0,jewel:d.jewel??null,ruby:d.ruby??null,mercNote:"",lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
 const nest=(str,x,y,w,style="")=>str.replace(/<svg[^>]*>/,`<svg x="${x}" y="${y}" width="${w}" height="${w}" viewBox="0 0 40 40" style="${style}">`);
 function mapArt(){
   let g='<defs><radialGradient id="pg" cx=".5" cy=".4" r=".85"><stop offset="0" stop-color="#eadfb8"/><stop offset="1" stop-color="#cbb78a"/></radialGradient><filter id="wsh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="1.200" dy="2.400" stdDeviation="1.600" flood-color="#3a2810" flood-opacity=".45"/></filter><radialGradient id="wnode" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></radialGradient><filter id="wblur"><feGaussianBlur stdDeviation="6"/></filter><filter id="wblur2" x="-50%" y="-100%" width="200%" height="300%"><feGaussianBlur stdDeviation="2.500"/></filter><linearGradient id="wmt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a7656"/><stop offset=".6" stop-color="#9c8762" stop-opacity=".9"/><stop offset="1" stop-color="#b8a27a" stop-opacity="0"/></linearGradient></defs><rect width="400" height="520" fill="url(#pg)"/>';
@@ -4436,6 +4460,29 @@ ${fog}<circle cx="${CX}" cy="78" r="70" fill="url(#fgglow)"/><ellipse cx="${CX}"
 ${grass}
 </svg>`;
 }
+function shrineScene(bloody){ // the Favor of the Gods: an abandoned forest shrine, incense burning before a stone angel (a bloodied wing, if you robbed the Font)
+  const rnd=(i,s)=>{const x=Math.sin(i*127.1+s*311.7)*43758.5453;return x-Math.floor(x)},f=n=>n.toFixed(1),CX=160;
+  let trees="";for(let i=0;i<11;i++){const x=i*31+rnd(i,1)*14-6,h=70+rnd(i,2)*50,w=10+rnd(i,3)*8;trees+=`<path d="M${f(x)} 168l${f(w)} ${f(-h)}l${f(w)} ${f(h)}z" fill="${i%2?"#1c3324":"#22402c"}"/>`}
+  let near="";[[18,8],[302,6]].forEach(([x,k])=>{near+=`<path d="M${x-4} 220v-90" stroke="#2a1c12" stroke-width="9"/><path d="M${x} 150l-26 0l26-40l26 40zM${x} 122l-20 0l20-34l20 34z" fill="#18301e" transform="translate(0 ${k})"/>`});
+  let grass="";for(let i=0;i<40;i++){const x=4+rnd(i,14)*312,y=180+rnd(i,15)*38;if(x>110&&x<210&&y<200)continue;grass+=`<path d="M${f(x)} ${f(y)}l-2-6M${f(x)} ${f(y)}l1-8M${f(x)} ${f(y)}l3-5" stroke="${y>198?"#1c3018":"#2c4a26"}" stroke-width="1.100" stroke-linecap="round"/>`}
+  let smoke="";for(let i=0;i<3;i++)smoke+=`<path d="M${CX-2+i*2} 140q${-8+i*6} -12 0 -24q${8-i*4} -12 -2 -26q-8-10 0-22" stroke="#d8d4c8" stroke-width="${f(2.200-i*.5)}" fill="none" opacity="${f(.45-i*.1)}" stroke-linecap="round"/>`;
+  const blood=bloody?`<path d="M${CX+30} 66q6 4 8 12q1 6-2 12" stroke="#8a1418" stroke-width="3" fill="none" stroke-linecap="round" opacity=".9"/><path d="M${CX+24} 70q4 6 3 14" stroke="#8a1418" stroke-width="2" fill="none" stroke-linecap="round" opacity=".8"/><path d="M${CX+36} 90q1 6-1 10" stroke="#8a1418" stroke-width="1.600" fill="none" stroke-linecap="round"/><circle cx="${CX+35}" cy="102" r="1.600" fill="#8a1418"/>`:"";
+  return `<svg viewBox="0 0 320 220" role="img" aria-label="An abandoned shrine in a dim forest. A weathered stone angel with spread wings stands on a plinth, and before it a small pedestal holds a bowl of burning incense, its smoke curling upward${bloody?". Something dark and red streaks the angel's right wing":""}.">
+<defs><linearGradient id="srsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a2a22"/><stop offset=".7" stop-color="#2e4434"/><stop offset="1" stop-color="#3e5640"/></linearGradient><radialGradient id="srglow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffe0a0" stop-opacity=".55"/><stop offset="1" stop-color="#ffe0a0" stop-opacity="0"/></radialGradient><linearGradient id="srstone" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#6a6e66"/><stop offset=".45" stop-color="#b4b6aa"/><stop offset="1" stop-color="#5a5e56"/></linearGradient><filter id="srb" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter></defs>
+<rect width="320" height="220" fill="url(#srsky)"/><path d="M120 0l-30 170h40zM200 0l-10 170h46z" fill="#fff2c8" opacity=".06"/>${trees}
+<path d="M0 166q80-6 160-2t160 0v56H0z" fill="#2a3e28"/><ellipse cx="${CX}" cy="196" rx="90" ry="14" fill="#5a5e52" opacity=".55"/>
+<path d="M${CX-70} 200h140l-8-8h-124zM${CX-58} 192h116l-6-7h-104z" fill="#7a7c70" stroke="#2a2c26" stroke-width="1"/>
+<circle cx="${CX}" cy="120" r="64" fill="url(#srglow)"/>
+<path d="M${CX-26} 185v-34h52v34z" fill="url(#srstone)" stroke="#2a2c26" stroke-width="1.200"/><path d="M${CX-30} 151h60l-4-6h-52z" fill="#8a8c80" stroke="#2a2c26" stroke-width="1"/>
+<path d="M${CX-8} 74q-30-14-46-2q4 22 30 30q-14 0-18 10q22 6 34-16z" fill="url(#srstone)" stroke="#2a2c26" stroke-width="1.200" stroke-linejoin="round"/><path d="M${CX+8} 74q30-14 46-2q-4 22-30 30q14 0 18 10q-22 6-34-16z" fill="url(#srstone)" stroke="#2a2c26" stroke-width="1.200" stroke-linejoin="round"/>
+<path d="M${CX-40} 76q14 6 26 16M${CX+40} 76q-14 6-26 16M${CX-44} 88q12 2 22 8M${CX+44} 88q-12 2-22 8" stroke="#6a6c62" stroke-width="1" fill="none"/>${blood}
+<path d="M${CX-10} 76h20l8 69h-36z" fill="url(#srstone)" stroke="#2a2c26" stroke-width="1.200" stroke-linejoin="round"/><path d="M${CX} 80v62M${CX-6} 96q6 4 12 0" stroke="#6a6c62" stroke-width="1" fill="none"/>
+<circle cx="${CX}" cy="66" r="9" fill="url(#srstone)" stroke="#2a2c26" stroke-width="1.200"/><ellipse cx="${CX}" cy="53" rx="11" ry="3" fill="none" stroke="#c8b47a" stroke-width="1.600" opacity=".8"/>
+<path d="M${CX-7} 186v-30h14v30z" fill="#8a8c80" stroke="#2a2c26" stroke-width="1"/><path d="M${CX-12} 156h24l-3-6h-18z" fill="#9a9c90" stroke="#2a2c26" stroke-width="1"/>
+<path d="M${CX-9} 150q0-8 9-8t9 8z" fill="#6a4a2a" stroke="#2a1a0c" stroke-width="1"/><circle cx="${CX}" cy="142" r="1.800" fill="#ff8a3a"/><circle cx="${CX}" cy="142" r="5" fill="#ffb060" opacity=".35" filter="url(#srb)"/>${smoke}
+${near}${grass}
+</svg>`;
+}
 const WILDS_GATE={t:"An Arch of Living Wood",tag:"The Wilds",rc:"#5a9a3a",go:()=>(sfx("portal"),{art:wildsGateScene(),
   text:"A whimsical looking arch grows out of the ground before you.... Should we go in?",
   opts:[{label:"Step Through the Arch",go:()=>{camp.wildsGate=1;camp.wildsIn=1;saveCamp();return "Your army ducks beneath the boughs, one by one. The air is thick and sweet and humming, and when you look back, the arch has already grown shut."}},
@@ -4459,14 +4506,35 @@ const ROAD_EVENTS=[
    return {art:()=>beggarScene(WORLD[to].b),text:named()?`Vasco ${seat} at the side of the road, his skull bare to the wind. He holds his old sack open with bony hands, and his eyes glow a faint, tired red.`:`A lonely, sorry-looking skeleton ${seat} at the side of the road. It holds an old sack open with ${unlocks.vgloves?"bony":"gloved"} hands, and its eyes glow a faint, tired red.`,opts:[
     give(5),give(10),give(25),
     {label:"Give nothing and quietly move on",go:()=>"You keep your eyes on the road. Behind you, the empty sack flaps in the wind."}]}}},
- {t:"Font of the Gods",go:()=>({art:fontScene(),text:"On a foggy night, as you travel along the road, a stone pedestal with an ornate font appears just off the trail. It has a faint green glow about it. As you get closer, you notice that the liquid within the font is bright green and radiates warmth. You see a small tribute bowl with some gold in it at the base of the pedestal. What will you do?",opts:[
-   {label:`Pay Tribute (${FONT_TRIBUTE} gold)`,cost:FONT_TRIBUTE,go:()=>{camp.hp=campHps().map((h,i)=>Math.min(campMax(i),h+FONT_HEAL));if(camp.merc&&camp.merc.hp>0)camp.merc.hp=Math.min(camp.merc.st.hp,camp.merc.hp+FONT_HEAL);sfx("heal");saveCamp();
-     return `You lay ${FONT_TRIBUTE} gold in the bowl. The green light swells, warm as a summer afternoon, and every one of your units recovers ${FONT_HEAL} HP. <em>The Gods are pleased...</em>`}},
-   {label:"Walk On",go:()=>"You leave the font to its glow and keep to the road. Behind you, the light dims a little. <em>The Gods are saddened...</em>"},
-   {label:`Take the Gold (+${FONT_GOLD})`,go:()=>{camp.gold+=FONT_GOLD;camp.wrath=1;sfx("coin");renderGold();saveCamp();
-     return `You scoop ${FONT_GOLD} gold from the bowl. The green light flares, then goes cold. <span class="wrath">The Gods are angry... The enemy will move first in your next battle.</span>`}}]})},
  {t:"Rockfall",go:()=>{const hp=campHps(),c=hp.map((h,i)=>h>1?i:-1).filter(i=>i>=0);if(!c.length)return "Stones clatter down the slope, but your army slips past unharmed.";const i=c[Math.floor(Math.random()*c.length)];hp[i]=Math.max(1,hp[i]-2);camp.hp=hp;return `Stones clatter down the slope. ${heroName(i)} is struck and loses 2 HP.`}}];
-const FONT_TRIBUTE=20,FONT_HEAL=3,FONT_GOLD=30; // the Font of the Gods: the tribute it asks, the HP it gives back, and the gold in its bowl
+const FONT_TRIBUTE=20,FONT_HEAL=3,FONT_GOLD=30,FONT_ROAD=.12; // the Font of the Gods: the tribute it asks, the HP it gives back, the gold in its bowl, and how often a new road brings it
+// the Font of the Gods turns up on any new road; camp.font remembers your latest choice this campaign ("paid", "walk" or "took") for the Favor of the Gods
+const FONT_EVENT={t:"Font of the Gods",go:()=>({art:fontScene(),text:"On a foggy night, as you travel along the road, a stone pedestal with an ornate font appears just off the trail. It has a faint green glow about it. As you get closer, you notice that the liquid within the font is bright green and radiates warmth. You see a small tribute bowl with some gold in it at the base of the pedestal. What will you do?",opts:[
+   {label:`Pay Tribute (${FONT_TRIBUTE} gold)`,cost:FONT_TRIBUTE,go:()=>{camp.font="paid";camp.hp=campHps().map((h,i)=>Math.min(campMax(i),h+FONT_HEAL));if(camp.merc&&camp.merc.hp>0)camp.merc.hp=Math.min(camp.merc.st.hp,camp.merc.hp+FONT_HEAL);sfx("heal");saveCamp();
+     return `You lay ${FONT_TRIBUTE} gold in the bowl. The green light swells, warm as a summer afternoon, and every one of your units recovers ${FONT_HEAL} HP. <em>The Gods are pleased...</em>`}},
+   {label:"Walk On",go:()=>(camp.font="walk",saveCamp(),"You leave the font to its glow and keep to the road. Behind you, the light dims a little. <em>The Gods are saddened...</em>")},
+   {label:`Take the Gold (+${FONT_GOLD})`,go:()=>{camp.font="took";camp.gold+=FONT_GOLD;camp.wrath=1;sfx("coin");renderGold();saveCamp();
+     return `You scoop ${FONT_GOLD} gold from the bowl. The green light flares, then goes cold. <span class="wrath">The Gods are angry... The enemy will move first in your next battle.</span>`}}]})};
+const FAVOR_ROAD=.08,FAVOR_REGION=3,FAVOR_HEAL=1,FAVOR_DRAUGHT=15,FEATHERS=["afeather","bangel"]; // the Favor of the Gods: how often a new road brings it (from region 3), the HP it gives, and its Healing Draught's price
+const FAVOR_TEXT="You happen across a shrine in the forest. It appears abandoned, save for the lonely incense burning atop a central pedestal beneath the statue of an angel. It smells of sage.";
+// each feather can be gained once per campaign (camp.feathers), and only one is carried at a time: a new one replaces the other
+const featherOk=id=>!(camp.feathers||[]).includes(id);
+function takeFeather(id){const old=FEATHERS.find(f=>f!==id&&camp.relics.includes(f));if(old)camp.relics=camp.relics.filter(r=>r!==old);
+  (camp.feathers=camp.feathers||[]).push(id);gainRelic(id);renderRelics();saveCamp();return old}
+const FAVOR={t:"Favor of the Gods",go:()=>{const f=camp.font;
+  if(f==="took"){
+    if(!featherOk("bangel"))return {art:shrineScene(true),text:`${FAVOR_TEXT} ...you faintly taste copper. The blood on the angel's right wing has dried. Whatever it wanted from you, it already has.`};
+    const old=takeFeather("bangel");
+    return {art:shrineScene(true),text:`${FAVOR_TEXT} ...you faintly taste copper. You notice what looks like blood on the angel's right wing... <span class="wrath">${old?`The white feather in your pack turns red, then wet. `:""}A red-stained feather drifts down and settles into your pack, and you can't seem to put it down: <strong>${RELICS.bangel.name}</strong>.</span>`}}
+  const full=camp.items.length>=itemCap(),opts=[];let text=FAVOR_TEXT;
+  if(f==="paid"){camp.hp=campHps().map((h,i)=>Math.min(campMax(i),h+FAVOR_HEAL));if(camp.merc&&camp.merc.hp>0)camp.merc.hp=Math.min(camp.merc.st.hp,camp.merc.hp+FAVOR_HEAL);sfx("heal");saveCamp();
+    text+=` A gentle warmth settles over your army, and every unit recovers ${FAVOR_HEAL} HP.`;
+    if(featherOk("afeather")){const bl=camp.relics.includes("bangel");text+=` At the statue's feet rests a single white feather.`;
+      opts.push({label:`Take the ${RELICS.afeather.name}`+(bl?` (replaces the ${RELICS.bangel.name})`:""),go:()=>{const old=takeFeather("afeather");return `You lift the feather. It's warm, and lighter than it should be: <strong>${RELICS.afeather.name}</strong>.`+(old?` The red-stained feather in your pack crumbles to dust.`:"")}})}}
+  text+=` Beside the pedestal, a Healing Draught sits on a small offering stone, blessed by the shrine. A note beneath it reads: ${FAVOR_DRAUGHT} gold.`;
+  opts.push({label:full?"Buy the Healing Draught (pack full)":`Buy the Healing Draught (${FAVOR_DRAUGHT} gold)`,cost:FAVOR_DRAUGHT,off:full,go:()=>{camp.items.push("draught");renderItems();saveCamp();return "You leave the coins on the stone and take the draught. It's still faintly warm."}},
+    {label:"Leave",go:()=>"You leave the shrine as you found it. The incense burns on."});
+  return {art:shrineScene(),text,opts}}};
 const campHps=()=>armyTypes().map((t,i)=>camp.hp&&camp.hp[i]!=null?camp.hp[i]:campMax(i));
 let riAfter=null;
 // The Beggar is Vasco, a fallen explorer: what he says and gives as the gold you've given him (over every campaign) adds up
@@ -4489,8 +4557,8 @@ const SELLSWORD={t:"A Sellsword",go:()=>{const m=rollMerc();
 function roadEvent(to,done,ev){
   const L=ROAD_EVENTS.filter(e=>!e.when||e.when()),E=ev||L[Math.floor(Math.random()*L.length)],r=E.go(to),card=t=>(r.art?`<div class="evart">${typeof r.art==="function"?r.art():r.art}</div>`:"")+`<div class="rcard" style="--rc:${E.rc||"#a08a64"}"><span class="rr">${E.tag||"On the road"}</span><small>${t}</small></div>`;saveCamp();
   $("rititle").textContent=E.t;relinfoFrom=null;riAfter=done;$("relinfo").hidden=false;
-  if(typeof r==="string"){$("ribody").innerHTML=card(r);$("riclose").hidden=false;$("riclose").focus();return}
-  $("ribody").innerHTML=card(r.text)+`<div class="menubtns">${r.opts.map((o,i)=>`<button class="b" data-i="${i}"${o.cost>camp.gold?" disabled":""}>${o.label}</button>`).join("")}</div>`;$("riclose").hidden=true; // a choice: pick one to carry on
+  if(typeof r==="string"||!r.opts){$("ribody").innerHTML=card(typeof r==="string"?r:r.text);$("riclose").hidden=false;$("riclose").focus();return} // no choice to make
+  $("ribody").innerHTML=card(r.text)+`<div class="menubtns">${r.opts.map((o,i)=>`<button class="b" data-i="${i}"${o.cost>camp.gold||o.off?" disabled":""}>${o.label}</button>`).join("")}</div>`;$("riclose").hidden=true; // a choice: pick one to carry on
   $("ribody").querySelectorAll("button").forEach(b=>b.onclick=()=>{const o=r.opts[+b.dataset.i];if(o.cost){camp.gold-=o.cost;sfx("coin");renderGold()}saveCamp();$("ribody").innerHTML=card(o.go());$("riclose").hidden=false;$("riclose").focus()});
   $("ribody").querySelector("button:not([disabled])").focus();
 }
@@ -4499,7 +4567,7 @@ function travel(id){
   const e=edgeOf(camp.pos,id);camp.mercNote="";
   if(e&&(camp.inSim||camp.inWilds)){e[3]=e[4]=1;saveCamp()} // no sellswords, beggars or carts inside the Sim or the Wilds
   if(e&&!e[4]){e[4]=1;saveCamp(); // any path, the first time you take it: sometimes a sellsword (or Vasco's expedition) waits along the way
-    const ev=Math.random()<(hasRel("vetseal")?VET_ROAD:MERC_ROAD)?SELLSWORD:unlocks.conquistador&&!camp.scout&&Math.random()<VASCO_ROAD?EXPEDITION:null;
+    const ev=Math.random()<(hasRel("vetseal")?VET_ROAD:MERC_ROAD)?SELLSWORD:unlocks.conquistador&&!camp.scout&&Math.random()<VASCO_ROAD?EXPEDITION:Math.random()<FONT_ROAD?FONT_EVENT:(camp.region||1)>=FAVOR_REGION&&Math.random()<FAVOR_ROAD?FAVOR:null;
     if(ev){e[3]=1;const A=WORLD[camp.pos],B=WORLD[id];worldLock=true;camp.sel=id;$("wm").style.transform=`translate(${Math.round((A.x+B.x)/2)}px,${Math.round((A.y+B.y)/2)-28}px)`;
       setTimeout(()=>roadEvent(id,()=>{worldLock=false;renderWorld();travel(id)},ev),700);return}}
   if(e&&e[2]&&!e[3]){e[3]=1;saveCamp(); // a one-way path: sometimes, something happens along the way
@@ -4617,7 +4685,7 @@ function resetBattle(){
 /* ---------- Relics? (a hidden reward for the first conquest): quick battles where both sides carry relics ----------
    You pick 3 of 6 (3 Common, 2-3 Uncommon, 0-1 Rare); the enemy gets one of each rarity. Relics that only pay off between campaign battles are left out. */
 const QR_KEY="skirmish_qrel",qrOn=()=>{if(!unlocks.qrelics)return false;try{return localStorage.getItem(QR_KEY)==="1"}catch(e){return false}};
-const QR_RARE=.5,QR_NO=["ruby","eight","invlog","birdseed","ggaunt","miser","mdiscount","vetseal","mercman","contracts","sack","coin","saddle","ledger","coffer","bottle","cross","chest","token","rations","bandages","luckycross","eldorado","vgloves","credits","warm","horseshoe","scube","mcube","lcube"];
+const QR_RARE=.5,QR_NO=["bangel","ruby","eight","invlog","birdseed","ggaunt","miser","mdiscount","vetseal","mercman","contracts","sack","coin","saddle","ledger","coffer","bottle","cross","chest","token","rations","bandages","luckycross","eldorado","vgloves","credits","warm","horseshoe","scube","mcube","lcube"];
 let QREL=null; // {y: your chosen relics} for the quick battle about to start (the enemy's are rolled in start)
 const QREL_ART='<svg viewBox="0 0 48 48" role="img" aria-hidden="true"><rect width="48" height="48" rx="8" fill="#3a2c1a"/><path d="M10 20h28v18H10z" fill="#9a6a34" stroke="#2a1a0a" stroke-width="1.400"/><path d="M8 14h32v7H8z" fill="#b8844a" stroke="#2a1a0a" stroke-width="1.400"/><path d="M22 14h4v24h-4z" fill="#e8b530"/><text x="24" y="33" text-anchor="middle" font-size="13" font-weight="800" fill="#fff6d8" stroke="#2a1a0a" stroke-width=".8" paint-order="stroke">?</text></svg>';
 function quickRelicChoices(){
@@ -4712,6 +4780,7 @@ function start(o={}){
   if(RELIC.has("druid"))spawnSquirrel();
   if(RELIC.has("wand"))warpWand();
   if(RELIC.has("canteen"))sipCanteen();
+  if(RELIC.has("bangel"))bleedFeather();
   if(RELIC.has("chaostome")||FOE_RELIC.has("chaostome")){TOME=Math.floor(Math.random()*3);later(()=>say(TOME_SAY[TOME]),900)}
   if(RELIC.has("jewel")&&camp.battle&&camp.jewel==null)camp.jewel=0; // never chosen (an old save): the first in line wears it
   if(camp.battle&&RELIC.has("miser"))units.filter(u=>u.team==="y"&&u.ci!=null).forEach(u=>{u.hp=Math.max(1,u.hp-1)}); // the Miser's Purse
@@ -5242,7 +5311,7 @@ function findRelics(nm){
 }
 /* ---------- Gold and relic rewards ---------- */
 const COFFER_GOLD=5,BOTTLE_GOLD=3; // Hoarder's Coffer: per 2 consumables still in the pack; Bottle Deposit: per consumable used in the battle
-const goldFor=n=>(n.type==="boss"?25+BOSS_GOLD_STEP*((camp.region||1)-1):10)+2*units.filter(u=>u.team==="y"&&u.ci!=null).length+(camp.relics.includes("ledger")?LEDGER_GOLD:0)+(camp.relics.includes("vgloves")?VGLOVES_GOLD:0)+(camp.relics.includes("miser")?MISER_GOLD:0)+(n.type==="boss"&&camp.relics.includes("credits")?CREDITS_BOSS:0)+(camp.relics.includes("luckycross")&&relicUsed.qkill?LUCKYCROSS_GOLD:0)+(camp.relics.includes("coffer")?COFFER_GOLD*Math.floor(camp.items.filter(id=>!ITEMS[id].passive).length/2):0)+(camp.relics.includes("bottle")?BOTTLE_GOLD*(relicUsed.used||0):0)+(camp.relics.includes("trophy")?TROPHY_GOLD*(relicUsed.foesDown||0):0)+(camp.relics.includes("bounty")&&relicUsed.bounty?BOUNTY_GOLD:0); // more for bringing your army home
+const goldFor=n=>(n.type==="boss"?25+BOSS_GOLD_STEP*((camp.region||1)-1):10)+(camp.relics.includes("bangel")?BANGEL_PAY*units.filter(u=>u.team==="y"&&u.ci!=null&&u.hp<=maxHp(u)/3).length:0)+2*units.filter(u=>u.team==="y"&&u.ci!=null).length+(camp.relics.includes("ledger")?LEDGER_GOLD:0)+(camp.relics.includes("vgloves")?VGLOVES_GOLD:0)+(camp.relics.includes("miser")?MISER_GOLD:0)+(n.type==="boss"&&camp.relics.includes("credits")?CREDITS_BOSS:0)+(camp.relics.includes("luckycross")&&relicUsed.qkill?LUCKYCROSS_GOLD:0)+(camp.relics.includes("coffer")?COFFER_GOLD*Math.floor(camp.items.filter(id=>!ITEMS[id].passive).length/2):0)+(camp.relics.includes("bottle")?BOTTLE_GOLD*(relicUsed.used||0):0)+(camp.relics.includes("trophy")?TROPHY_GOLD*(relicUsed.foesDown||0):0)+(camp.relics.includes("bounty")&&relicUsed.bounty?BOUNTY_GOLD:0); // more for bringing your army home
 // 2 or 3 relics the army doesn't have yet, drawn by rarity weight
 const relicCount=id=>camp.relics.filter(r=>r===id).length;
 // relics the shop may stock right now: sold there, unlocked, useful to this army, and not already carried as many times as allowed
@@ -5361,6 +5430,8 @@ const RICON={ // small 32-unit relic icons
  canteen:'<ellipse cx="16" cy="29" rx="9" ry="1.600" fill="rgba(0,0,0,.18)"/><path d="M7.500 18q-2-13 8.500-14q10.500 1 8.500 14" stroke="#6a4a2a" stroke-width="1.800" fill="none"/><rect x="14" y="5.500" width="4" height="4" rx="1" fill="#6a6f76" stroke="#2e3236" stroke-width=".8"/><circle cx="16" cy="18" r="9" fill="#a9b0b6" stroke="#4a5056" stroke-width="1.200"/><circle cx="16" cy="18" r="6.300" fill="none" stroke="#c8ced3" stroke-width="1.100"/><path d="M20.500 13.500q1.500 1.200 1.300 3" stroke="#7a8288" stroke-width="1" fill="none" stroke-linecap="round"/><path d="M10.500 15q1-3 4-4" stroke="#eef2f5" stroke-width="1.200" fill="none" stroke-linecap="round" opacity=".8"/>',
  wand:'<path d="M2 26l9-14l4 5l5-9l10 18z" fill="#7a8290" stroke="#3a3f48" stroke-width="1.100" stroke-linejoin="round"/><path d="M20 8l2.700 5l-1.500-.6l-1.200 1.400l-1.200-1.200l-1.200.6zM11 12l1.800 2.700l-1.100-.3l-.7.9l-.7-.6l-.9.2z" fill="#eef2f6"/><path d="M1 26h30" stroke="#5a7a3a" stroke-width="1.400" stroke-linecap="round"/><path d="M8 29l13-15" stroke="#5e3a1a" stroke-width="2.600" stroke-linecap="round"/><path d="M8 29l13-15" stroke="#a8703a" stroke-width="1" stroke-linecap="round"/><path d="M13.500 22.800l1.400.6" stroke="#5e3a1a" stroke-width="1" stroke-linecap="round"/><path d="M22.500 8.500l1 2.400l2.400 1l-2.400 1l-1 2.400l-1-2.400l-2.400-1l2.400-1z" fill="#ffe27a" stroke="#a0781a" stroke-width=".6"/><circle cx="27" cy="7" r="1" fill="#8ae08a"/><circle cx="18.500" cy="7" r=".8" fill="#8ae08a"/><circle cx="26" cy="15.500" r=".8" fill="#8ae08a"/>',
  wboots:'<path d="M3 29.500q2-1.400 4 0q2 1.400 4 0M20 29.500q2-1.400 4 0q2 1.400 4 0" stroke="#6ab4dc" stroke-width="1" fill="none" stroke-linecap="round"/><path d="M9.500 8h8v13q0 1 1 1h6q3.500 0 4 4v1H8.500v-4l1-2z" fill="#2f5f9a" stroke="#14284a" stroke-width="1.100" stroke-linejoin="round"/><path d="M7 4h13l-1.500 5H8.500z" fill="#3f76b8" stroke="#14284a" stroke-width="1" stroke-linejoin="round"/><path d="M8.500 26h20v1.700h-20z" fill="#3a2414"/><rect x="9.300" y="17" width="8.400" height="2.400" fill="#1e3e66"/><rect x="11.500" y="16.200" width="4" height="4" rx=".6" fill="none" stroke="#e6c35a" stroke-width="1.200"/><path d="M11 10v6" stroke="#6a9ad6" stroke-width="1" opacity=".6" stroke-linecap="round"/>',
+ afeather:'<circle cx="16" cy="16" r="13" fill="#fff6c8" opacity=".4"/><path d="M7 28q2-12 10-19q5-4 9-4q0 5-4 10q-6 9-15 13z" fill="#fbfaf2" stroke="#7a6a44" stroke-width="1.100" stroke-linejoin="round"/><path d="M7 28L24 9" stroke="#c9a24a" stroke-width="1.100"/><path d="M12 21l-1.500-4M15 18l-.5-5M18 15v-4M13 20l4.500 1M16 17h5M19 14l4-1" stroke="#cfc3a0" stroke-width=".8"/><ellipse cx="24" cy="5" rx="5" ry="1.600" fill="none" stroke="#e8c050" stroke-width="1.300"/>',
+ bangel:'<circle cx="16" cy="16" r="13" fill="#8a1a1a" opacity=".18"/><path d="M7 28q2-12 10-19q5-4 9-4q0 5-4 10q-6 9-15 13z" fill="#ece4da" stroke="#5a3a30" stroke-width="1.100" stroke-linejoin="round"/><path d="M7 28L24 9" stroke="#8a6a4a" stroke-width="1.100"/><path d="M12 21l-1.500-4M15 18l-.5-5M18 15v-4" stroke="#cbbfb0" stroke-width=".8"/><path d="M17 13q3-2 5-6q1 3-1 6q-2 3-6 5z" fill="#a8181e" opacity=".9"/><path d="M10 24q2.500-.5 3.500-3" stroke="#a8181e" stroke-width="1.300" fill="none" stroke-linecap="round"/><path d="M8.500 28q-.3 1.500.6 2.600" stroke="#a8181e" stroke-width="1.300" fill="none" stroke-linecap="round"/><circle cx="9.300" cy="31" r="1" fill="#a8181e"/>',
  golem:'<ellipse cx="16" cy="28.5" rx="10" ry="1.600" fill="rgba(0,0,0,.18)"/><path d="M5 16l3-1v6l-3-1zM27 16l-3-1v6l3-1z" fill="#7a7e84" stroke="#3f4248" stroke-width=".9"/><path d="M8 8l3-4h10l3 4v14l-3 5H11l-3-5z" fill="#8f9399" stroke="#3f4248" stroke-width="1.200" stroke-linejoin="round"/><path d="M8 13h16" stroke="#6c7076" stroke-width="1"/><rect x="11" y="14.500" width="3.200" height="2.400" fill="#7fe0c8"/><rect x="17.800" y="14.500" width="3.200" height="2.400" fill="#7fe0c8"/><path d="M13 22h6" stroke="#3f4248" stroke-width="1.200" stroke-linecap="round"/><path d="M12 7l2 3l-1 2M20 19l2 2" stroke="#5c6066" stroke-width=".8" fill="none"/><path d="M10.500 4.700q2 1.500 4 0q2 1.500 3.500 0" stroke="#5a9a4a" stroke-width="1.300" fill="none" stroke-linecap="round"/>',
  fcharm:'<path d="M6 4q10 6 20 0" stroke="#8a5a2a" stroke-width="1.200" fill="none"/><path d="M16 7v3" stroke="#8a5a2a" stroke-width="1.200"/><circle cx="16" cy="11" r="1.200" fill="none" stroke="#c9a24a" stroke-width="1"/><path d="M16 28q-10-6-10-12q0-4 4-4q4 0 6 4q2-4 6-4q4 0 4 4q0 6-10 12z" fill="#e0607a" stroke="#6a1a2a" stroke-width="1.200" stroke-linejoin="round"/><circle cx="13" cy="17" r="1.200" fill="#fff3e0"/><circle cx="16" cy="16" r="1.200" fill="#fff3e0"/><circle cx="19" cy="17" r="1.200" fill="#fff3e0"/><ellipse cx="16" cy="20.500" rx="2.600" ry="2" fill="#fff3e0"/><path d="M9 16q0-2 2-2.500" stroke="#ffb0c0" stroke-width="1" fill="none" stroke-linecap="round"/>',
  hive:'<ellipse cx="16" cy="29.5" rx="9" ry="1.600" fill="rgba(0,0,0,.18)"/><path d="M9 8h14v2q3 2 3 6v9q0 3-3 3H9q-3 0-3-3v-9q0-4 3-6z" fill="#cfe4ee" fill-opacity=".45" stroke="#4a6070" stroke-width="1.100" stroke-linejoin="round"/><path d="M16 12q-6 0-6 4q-1.500 1-1 3q-1 1.500 0 3.500q1 3 7 3q6 0 7-3q1-2 0-3.500q.5-2-1-3q0-4-6-4z" fill="#e2a83a" stroke="#7a5214" stroke-width=".9"/><path d="M10.200 16.500h11.600M9.400 19.500h13.200M9.600 22.500h12.800" stroke="#a8761e" stroke-width=".9"/><ellipse cx="16" cy="24" rx="1.600" ry="1.100" fill="#3e2c14"/><rect x="8.500" y="5" width="15" height="3.500" rx="1" fill="#8a6a3a" stroke="#3e2c14" stroke-width=".9"/><path d="M8.300 13v10" stroke="#fff" stroke-width="1.100" opacity=".55" stroke-linecap="round"/><g transform="translate(26.5 5.5)"><ellipse cx="-.4" cy="-1.800" rx="1.200" ry=".8" fill="#fff" opacity=".85"/><ellipse rx="2" ry="1.400" fill="#f2c230" stroke="#3a2a10" stroke-width=".6"/><path d="M-.5-1.300v2.600M.8-1.200v2.400" stroke="#3a2a10" stroke-width=".7"/></g><g transform="translate(5 4.5)"><ellipse cx="-.4" cy="-1.800" rx="1.200" ry=".8" fill="#fff" opacity=".85"/><ellipse rx="2" ry="1.400" fill="#f2c230" stroke="#3a2a10" stroke-width=".6"/><path d="M-.5-1.300v2.600M.8-1.200v2.400" stroke="#3a2a10" stroke-width=".7"/></g>',
@@ -6101,6 +6172,7 @@ $("end").onclick=()=>{
   units.forEach(u=>{if(u.team==="y"&&u.t==="P"&&rel(u,"robes")&&u.hp<maxHp(u)){u.hp+=1;floatText(u.x,u.y,"+1","heal")}}); // Blessed Robes
   if(RELIC.has("aura")){const low=units.filter(u=>u.team==="y"&&u.hp<maxHp(u)).sort((a,b)=>a.hp/maxHp(a)-b.hp/maxHp(b))[0]; // the Ring of a Healing Aura: the one in the most danger
     if(low){const h=Math.min(low.hp<=maxHp(low)/3?2:1,maxHp(low)-low.hp);low.hp+=h;floatText(low.x,low.y,"+"+h,"heal");mendFx(low)}}
+  units.forEach(u=>{if(haloed(u)&&u.hp<maxHp(u)){u.hp+=1;floatText(u.x,u.y,"+1","heal");mendFx(u)}}); // the Angel's Feather: the angel's watch
   units.forEach(u=>{if(u.team==="y"&&pure(u)&&u.hp<maxHp(u)){const h=Math.min(VIAL_HEAL,maxHp(u)-u.hp);u.hp+=h;floatText(u.x,u.y,"+"+h,"heal");mendFx(u)}}); // the Pure Water Vial
   units.forEach(u=>{if(u.cubeMend){if(u.hp<maxHp(u)){u.hp+=1;floatText(u.x,u.y,"+1","heal")}delete u.cubeMend}}); // the Small Glowing Cube
   units.forEach(u=>{if(u.team==="y"){delete u.weak;if(u.cursed){u.weak=1;delete u.cursed}delete u.slow;delete u.hex;delete u.hexPend;delete u.haste;delete u.stepOnly;if(u.slowNext){u.slow=1;delete u.slowNext}}});
