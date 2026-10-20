@@ -914,6 +914,7 @@ const RELICS={
  bluemagma:{name:"Blue Magma",r:2,lock:"bluemagma",find:1,desc:"Your units' attacks get +1 pierce. When used to fire a smith's furnace, the steel comes out with a faint blue glow."},
  druid:{name:"Druid's Bone Charm",r:2,lock:"druid",find:1,desc:"Wild animals would rather leave your units be: one that can reach an enemy goes for the enemy, and one that can only reach your units holds off half the time. Each battle also starts with a Loyal Squirrel beside one of your units (5 HP, 3 damage, 1 pierce, 20% evasion). It fights on its own, like the Angry Chicken, and scampers off at the end of your 4th turn."},
  fskull:{name:"Frowning Skull",r:2,lock:"fskull",find:1,desc:"Once per battle, one of your units can set the skull down on an open tile beside it, without using its move or action. The tile becomes Unsettling Ground, which blocks movement. An enemy that ends its turn on one of the 8 tiles around it takes 1 damage, ignoring armor, and is slowed on its next turn, though never two turns running, so it can crawl out."},
+ keystone:{name:"Keystone of the Last Gate",r:2,lock:"keystone",find:1,desc:"Your units standing on a Fortress strike first: when an enemy attacks one, it retaliates before the blow lands, and an attacker it kills never lands its blow. Only a unit that could retaliate strikes first. The keystone you removed seems to glow a bit. People around it feel energized."},
  voidshard:{name:"Shard of Empty Space",r:2,lock:"voidshard",find:1,desc:"Your units that start your turn with no other unit directly beside them (up, down, left or right; diagonals don't count) get +1 movement that turn. And while no unit stands directly beside them, they get +3% evasion. It weighs nothing, and holds even less."},
  mug:{name:"Herbert's Mug",r:2,desc:"Once per battle, the first of your units to fall survives with 1 HP instead."},
  cap:{name:"Herbert's Nightcap",r:2,desc:"Once per battle, the first of your units to drop to half HP or less (without falling) heals 2 HP."}};
@@ -1899,6 +1900,7 @@ function combat(a,b,from=a){
   return {dmg:Math.max(1,parts.reduce((t,p)=>t+p[1],0)),hit:sc?1:1-ev,parts,blk}; // every hit deals at least 1; a scouted first strike never misses
 }
 // a unit with `ret` retaliates against an attacker within its own range for half damage, at least 1 (the attacker may evade it); null when it can't
+const firstStrike=(att,def)=>att.team!==def.team&&rel(def,"keystone")&&FORT.has(def.x+","+def.y); // the Keystone of the Last Gate: a defender on a fortress retaliates before the blow lands
 function retaliation(att,def,from=att){
   const T=ST(def),dd=d(def,from);
   if(!canRetaliate(def.t)||dd<T.mn||dd>rgOf(def)||rel(def,"warpaint")||charging(att,from))return null; // nobody parries a lance at full gallop // Berserker's Warpaint: no parrying
@@ -2157,7 +2159,7 @@ function renderInfo(){
   if(rel(u,"trumpet")&&!relicUsed.trumpet&&!u.auto)notes.push("Trumpet of Encouragement: one of your units can sound it once this battle.");
   if(rel(u,"font")&&!u.blessUsed)notes.push("Font of the Wise Ones: can bless an adjacent ally once this battle.");
   if(fo)notes.push(`In a forest: +${pct(FOREST_EV)} evasion, and leaving costs 1 movement.`);
-  if(FORT.has(u.x+","+u.y))notes.push("On a fortress: +1 armor."+(rel(u,"pennant")?" Garrison Pennant: +5% evasion.":""));
+  if(FORT.has(u.x+","+u.y))notes.push("On a fortress: +1 armor."+(rel(u,"pennant")?" Garrison Pennant: +5% evasion.":"")+(rel(u,"keystone")&&canRetaliate(u.t)?" Keystone of the Last Gate: strikes first when attacked.":""));
   if(walled(u))notes.push(`Shield Wall Formations: +${walled(u)} armor while next to ${walled(u)>1?"two or more allies":"an ally"}, and it can't be pushed.`);
   if(u.gfhelm||u.gfshield||u.gfhammer)notes.push("Bears the Arms of Greek Fire: "+["gfhelm","gfshield","gfhammer"].filter(id=>u[id]).map(id=>RELICS[id].name.replace(" of Greek Fire","")).join(", ")+(u.gftrio?". All three: dealing damage stokes a heat haze (evasion) as your turn ends.":"."));
   if(u.gfEv)notes.push(`Heat haze: +${pct(u.gfEv)} evasion until your next turn.`);
@@ -2261,8 +2263,8 @@ function buildMenu(){
   const m=document.createElement("div");m.className="pmenu";
   const opt=(html,fn,off)=>{const b=document.createElement("button");b.innerHTML=html;b.onclick=fn;b.disabled=!!off;m.append(b)};
   const cm=pendingMove(),go=fn=>()=>{const a=sel;choice=null;if(cm)moveThen(a,cm,()=>fn(a));else fn(a)};
-  if(t.team!=="y"){const c=combat(sel,t,cm||sel),note=combatNote(c),r=c.dmg<t.hp?retaliation(sel,t,cm||sel):null;
-    opt(`<b>${cm?"Move &amp; Attack":"Attack"}</b><small>${c.dmg} damage${c.hit<1?` \u00b7 ${pct(c.hit)} to hit`:""}</small>${note?`<small class="bd">${note}</small>`:""}${r?`<small class="bd">Retaliates for ${r.dmg}${r.hit<1?` (${pct(r.hit)})`:""}</small>`:""}${longShot(sel,t,cm||sel)?`<small class="bd fatal">Blood Shot: costs ${BSHOT_DMG} HP${sel.hp<=BSHOT_DMG?` \u2620 it will kill your ${NAME[sel.t]}`:""}</small>`:""}`,go(a=>doAttack(a,t)))}
+  if(t.team!=="y"){const c=combat(sel,t,cm||sel),note=combatNote(c),fs=firstStrike(sel,t),r=c.dmg<t.hp||fs?retaliation(sel,t,cm||sel):null;
+    opt(`<b>${cm?"Move &amp; Attack":"Attack"}</b><small>${c.dmg} damage${c.hit<1?` \u00b7 ${pct(c.hit)} to hit`:""}</small>${note?`<small class="bd">${note}</small>`:""}${r?`<small class="bd">${fs?"Strikes first":"Retaliates"} for ${r.dmg}${r.hit<1?` (${pct(r.hit)})`:""}</small>`:""}${longShot(sel,t,cm||sel)?`<small class="bd fatal">Blood Shot: costs ${BSHOT_DMG} HP${sel.hp<=BSHOT_DMG?` \u2620 it will kill your ${NAME[sel.t]}`:""}</small>`:""}`,go(a=>doAttack(a,t)))}
   if(!cm&&sel.t==="K"&&t!==sel&&d(sel,t)===1){
     const ok=pushable(sel,t);
     opt(`<b>${!ok?"Can't Push":n?`Push ${n} Tile${n>1?"s":""}`:"Push (Blocked)"}</b><small>${!ok?"Too heavy":t.team==="y"?"Reposition ally":bruises(sel,t)?`Strikes for ${combat({...sel,bruise:1},t).dmg} \u00b7 instead of attacking`:"Instead of attacking"}</small>`,()=>{choice=null;doPush(sel,t)},!ok||!n);
@@ -3170,7 +3172,7 @@ function chickensAct(done){
       if(g!==gid||over)return;
       if(!units.includes(c)){if(!checkEnd())later(next,300);return}
       const pri=p=>(dmgTo(c,p)>=p.hp?100:0)+(VAL[p.t]||0)-p.hp*.5; // a mercenary takes the sure kill, then the soft, valuable target
-      const ts=c.merc||c.bribed?targets(c).filter(e=>e.team==="f"&&!(dmgTo(c,e)<e.hp&&(r=>r&&r.dmg>=c.hp&&r.hit>.5)(retaliation(c,e)))).sort((a,b)=>pri(b)-pri(a)):targets(c).filter(e=>e.team==="f").sort((a,b)=>a.hp-b.hp);
+      const ts=c.merc||c.bribed?targets(c).filter(e=>e.team==="f"&&!((dmgTo(c,e)<e.hp||firstStrike(c,e))&&(r=>r&&r.dmg>=c.hp&&r.hit>.5)(retaliation(c,e)))).sort((a,b)=>pri(b)-pri(a)):targets(c).filter(e=>e.team==="f").sort((a,b)=>a.hp-b.hp);
       if(!ts.length)return later(next,150);
       attack(c,ts[0],()=>{if(!checkEnd()){render();later(next,300)}});
     }),350);
@@ -3252,13 +3254,18 @@ function attack(a,b,done){
   const again=()=>{if(a.feral==="limbs"&&!a.twice&&!over&&units.includes(a)&&units.includes(b)&&targets(a).includes(b)){a.twice=1;later(()=>attack(a,b,()=>{delete a.twice;if(done)done()}),350)}else{delete a.twice;if(done)done()}}; // Warped Limbs: a second strike
   const g=gid,bx=b.x,by=b.y,fin=()=>{gridStep(a,bx,by);again()};
   const ls=longShot(a,b); // Blood Shot: a long shot costs the shooter
-  animAttack(a,b,()=>{
+  const back=(r,next)=>later(()=>{if(g!==gid)return;if(!units.includes(a)||!units.includes(b))return fin();animAttack(b,a,()=>{const hit=hitFor(b,a,r,true);if(hit&&r.dmg>0&&units.includes(a)&&rel(a,"bboots"))a.bootStep=1;next()})},300);
+  const strike=first=>animAttack(a,b,()=>{
     applyAttack(a,b);
     if(ls&&units.includes(a)){floatText(a.x,a.y-.4,"Blood Shot","slow");hurt(a,BSHOT_DMG);if(!units.includes(a)){checkEnd();return fin()}}
-    const r=units.includes(a)&&units.includes(b)?retaliation(a,b):null;
+    const r=!first&&units.includes(a)&&units.includes(b)?retaliation(a,b):null;
     if(!r)return fin();
-    later(()=>{if(g!==gid)return;if(!units.includes(a)||!units.includes(b))return fin();animAttack(b,a,()=>{const hit=hitFor(b,a,r,true);if(hit&&r.dmg>0&&units.includes(a)&&rel(a,"bboots"))a.bootStep=1;fin()})},300);
+    back(r,fin);
   });
+  const r0=firstStrike(a,b)?retaliation(a,b):null;
+  if(!r0)return strike();
+  floatText(b.x,b.y-.4,"First Strike","bless");
+  back(r0,()=>{if(!units.includes(a))return fin();later(()=>{if(g!==gid)return;if(!units.includes(a)||!units.includes(b))return fin();strike(1)},300)});
 }
 function burst(rb,bw){
   const s=document.createElement("div");s.className="burst";
@@ -3661,7 +3668,7 @@ function evalTile(u,x,y,D,foes,xv){
   let s=(threat+wt)*care+(WOODS(k)?(mods[u.team]==="FT"?-1.5:1.5):0)+(CHERRY.has(k)?.5-(1-u.hp/T.hp):0)+(FORT.has(k)?-2:0)+(SHALLOW.has(k)?1.5:0); // forests slow the next move, but Forest Tactics likes them
   s+=blastOf(k).filter(([a,b])=>XBAR.has(a+","+b)).length*2+(glowOf(k).length&&!u.slowNext?1.2:0); // don't loiter beside exploding barrels, or step into a Light Brick's glow
   s+=(u.team!=="y"&&skullZone(k)?SKULL_AVOID:0)+(MAGMA.has(k)?3:0)+(BLOOD.has(k)?3:0)+blastOf(k).filter(([a,b])=>VOLC.has(a+","+b)).length*.6+([...blastOf(k),pk(k)].filter(([a,b])=>WISP.has(a+","+b)).length)*.4; // ...and wisps might slow // magma burns at turn end; volcanoes might erupt
-  const atk=inR.length?20+Math.max(...inR.map(p=>{const c=combat(u,p,g),kill=c.dmg>=p.hp,r=kill?null:retaliation(u,p,g); // a kill avoids any retaliation
+  const atk=inR.length?20+Math.max(...inR.map(p=>{const c=combat(u,p,g),kill=c.dmg>=p.hp,r=kill&&!firstStrike(u,p)?null:retaliation(u,p,g); // a kill avoids any retaliation, unless the target strikes first
     return c.hit*(10*c.dmg/p.hp+(kill?12:0))+(VAL[p.t]||0)-(r?r.hit*(r.dmg*2.5+(r.dmg>=u.hp?15:0))*care:0)})):0;
   const bv=(xv||[]).reduce((m,[bk,v])=>{const[a,b]=pk(bk),dd=Math.abs(a-x)+Math.abs(b-y);return dd>=T.mn&&dd<=rg&&!(Math.abs(a-x)<=1&&Math.abs(b-y)<=1)?Math.max(m,14+v):m},0);
   if(atk||bv){
@@ -3727,9 +3734,9 @@ function enemyTurn(note=""){
   function act(u){
     if(g!==gid)return;
     const fin=()=>{u.acted=1;if(!checkEnd())render();later(step,500)};
-    const pri=p=>{const c=combat(u,p),kill=c.dmg>=p.hp,r=kill?null:retaliation(u,p);return (p.t==="V"?1000:0)+(kill?100*c.hit:0)+(VAL[p.t]||0)-p.hp*.5-(r?r.hit*r.dmg*2:0)}; // likely kills first, then soft, valuable targets that won't hit back hard
+    const pri=p=>{const c=combat(u,p),kill=c.dmg>=p.hp,r=kill&&!firstStrike(u,p)?null:retaliation(u,p);return (p.t==="V"?1000:0)+(kill?100*c.hit:0)+(VAL[p.t]||0)-p.hp*.5-(r?r.hit*r.dmg*2:0)}; // likely kills first, then soft, valuable targets that won't hit back hard
     const waited=u.idle||0;u.idle=0; // patience: kept only if the unit ends its turn without attacking (below)
-    const ts=targets(u).filter(p=>{const r=dmgTo(u,p)<p.hp&&retaliation(u,p);return waited>=PATIENCE_TRADE||!(r&&r.dmg>=u.hp&&r.hit>.5)}).sort((a,b)=>pri(b)-pri(a)); // never trade itself for nothing, until it has waited long enough
+    const ts=targets(u).filter(p=>{const r=(dmgTo(u,p)<p.hp||firstStrike(u,p))&&retaliation(u,p);return waited>=PATIENCE_TRADE||!(r&&r.dmg>=u.hp&&r.hit>.5)}).sort((a,b)=>pri(b)-pri(a)); // never trade itself for nothing, until it has waited long enough
     const hs=healTargets(u).sort((a,b)=>a.hp/maxHp(a)-b.hp/maxHp(b));
     if(hs.length&&(hs[0].hp<=ST(hs[0]).hp-2||!ts.length)){u.acted=1;applyHeal(u,hs[0]);say("Enemy "+NAME[u.t]+" healed an ally.");render();return later(step,600)}
     if(canMuster(u)&&!ts.some(p=>dmgTo(u,p)>=p.hp)){const n=muster(u);say(`Enemy captain mustered ${n} militia.`);render();return later(step,600+MUSTER_BEAT*n)} // muster unless a kill is on offer
@@ -5294,6 +5301,7 @@ const FINDS=[
  {relic:"sakurafan",when:n=>n.b==="sakura",story:who=>`Beneath the oldest cherry tree in the vale, your ${who} found a painted fan resting on a bed of petals.`},
  {relic:"druid",when:n=>n.b==="wild",story:who=>`Where the wild things had trampled a clearing, your ${who} found a charm of bone and twine hung from a branch. Something small watched from the leaves.`},
  {relic:"fskull",when:n=>n.b==="graveyard",story:who=>`Among the crooked headstones, your ${who} found a skull that seemed to frown back. The ground around it felt wrong.`},
+ {relic:"keystone",when:n=>n.b==="fort",story:who=>`In the rubble of a gate that never fell, your ${who} pried loose the stone that had held its arch: still warm, and humming like a bowstring.`},
  {relic:"voidshard",when:n=>n.b==="grid",story:who=>`Out in the Grid, where there was nothing at all, your ${who} closed a hand around a piece of it.`},
  {relic:"vial",when:n=>n.b==="wetlands",story:who=>`Where the reeds part around a clear, still pool, your ${who} found a stoppered vial of water. It sparkles. Slightly.`},
  {relic:"horn",when:n=>n.b==="forest",story:who=>`Beneath the roots of an ancient oak, your ${who} found a hunting horn, still warm as if just blown.`}
@@ -5516,6 +5524,7 @@ const RICON={ // small 32-unit relic icons
  bshot:'<path d="M5 27L23 9" stroke="#6a4426" stroke-width="2" stroke-linecap="round"/><path d="M23 9l5-4l-1 6z" fill="#b0181e" stroke="#4a0408" stroke-width="1" stroke-linejoin="round"/><path d="M5 27l-1 3l3-1M7 25l-3-1M7 25l1 3" stroke="#d8c8a0" stroke-width="1.300" stroke-linecap="round"/><path d="M26 12q1 3 0 5q-1 1-1-1z" fill="#c0101a"/><circle cx="25.500" cy="19.500" r="1" fill="#c0101a"/><path d="M14 18q-2 2-4 1" stroke="#c0101a" stroke-width=".9" fill="none" opacity=".7"/>',
  bboots:'<path d="M8 6h8v12l6 3q3 2 2 5H7z" fill="#6a4a2a" stroke="#2a1a0a" stroke-width="1.100" stroke-linejoin="round"/><path d="M7 6q4-3 10 0" fill="#c8b090" stroke="#2a1a0a" stroke-width="1"/><path d="M8 9q2-1 3 1M12 8q2 1 2 3M9 13q2-1 3 1" stroke="#c8b090" stroke-width="1.100" fill="none"/><path d="M24 26l3 1.500M22 26l2 3M20 26l1 3" stroke="#e8e0cc" stroke-width="1.400" stroke-linecap="round"/><path d="M7 26h17" stroke="#1a0e06" stroke-width="1.600"/>',
  bleaf:'<path d="M16 29q-11-6-9-17q8-1 13 4q5 6-4 13z" fill="#4a7a2a" stroke="#1e3a12" stroke-width="1.100"/><path d="M16 29q-3-8-6-15M12 19l3-1M11 15l3 .5" stroke="#1e3a12" stroke-width=".9" fill="none"/><path d="M19 16q-1-5 2-9q0 4 3 5q0-4 2-5q2 6-1 10q-3 3-6-1z" fill="#ff8a2a"/><path d="M20.500 15q0-3 1.500-5q.5 3 2 3.500q1-2 1-3q1 4-1 5q-2 1.500-3.500-.5z" fill="#ffd25a"/><circle cx="24" cy="5" r="1" fill="#ffb347" opacity=".7"/>',
+ keystone:'<circle cx="16" cy="16" r="13" fill="#ffa030" opacity=".15"/><path d="M5.400 8L10.400 28L5 31L0 24V12z M26.600 8L21.600 28L27 31L32 24V12z" fill="#5e584c" stroke="#2a2620" stroke-width="1.100" stroke-linejoin="round" opacity=".85"/><path d="M6 4H26L21 27H11z" fill="#8c8576" stroke="#2a2620" stroke-width="1.300" stroke-linejoin="round"/><path d="M26 4L21 27H18L22 4z" fill="#000" opacity=".2"/><path d="M7.200 9.500H24.800M10.300 22H21.700" stroke="#4a4438" stroke-width=".8" opacity=".7"/><path d="M8 5.200H24" stroke="#c8c0ae" stroke-width=".9" opacity=".8"/><path d="M16 11v9M13 15.500h6" stroke="#1a120a" stroke-width="2.600" stroke-linecap="round"/><path d="M16 11.600v7.800M13.700 15.500h4.600" stroke="#ffb84a" stroke-width="1" stroke-linecap="round"/><circle cx="16" cy="15.500" r="3.200" fill="#ffa030" opacity=".35"/><path d="M12.500 7l-1.200 1.300M20 24l1 1" stroke="#e8e0cc" stroke-width=".7" opacity=".7"/>',
  voidshard:'<circle cx="16" cy="15" r="13" fill="#a24aff" opacity=".16"/><path d="M10 6H22L28 12L16 28L4 12z" fill="#08060f" stroke="#c86aff" stroke-width="1.400" stroke-linejoin="round"/><path d="M4 12H28M10 6L13 12L16 6L19 12L22 6M13 12L16 28L19 12" fill="none" stroke="#c86aff" stroke-width=".7" opacity=".6"/><path d="M11 17q3-3 6-1t-1 4" stroke="#3a1a66" stroke-width="1.300" fill="none"/><path d="M11 7.500L9 11" stroke="#f0d0ff" stroke-width=".9" stroke-linecap="round" opacity=".8"/><circle cx="21" cy="9" r="1.100" fill="#3ad8ff"/><circle cx="12" cy="19" r=".9" fill="#ffe94a"/><circle cx="20" cy="16" r=".8" fill="#e7a6ff"/>',
  vial:'<ellipse cx="16" cy="29" rx="7" ry="1.500" fill="rgba(0,0,0,.18)"/><rect x="13.200" y="3" width="5.600" height="3.400" rx="1" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M13.800 6.400h4.400v5q4 2 4 7v6q0 4-6.200 4t-6.200-4v-6q0-5 4-7z" fill="rgba(210,240,255,.6)" stroke="#1a3a4a" stroke-width="1.100" stroke-linejoin="round"/><path d="M10.200 18q5.800 2 11.600 0v6q0 3.300-5.800 3.300t-5.800-3.300z" fill="#5ac0e6" opacity=".9"/><path d="M12 13q-1.500 3-1 7" stroke="#fff" stroke-width="1" fill="none" opacity=".6"/><g fill="#e6fbff"><path d="M24.500 5l.7 1.800l1.800.7l-1.800.7l-.7 1.800l-.7-1.800l-1.800-.7l1.800-.7z"/><path d="M7 10l.5 1.300l1.300.5l-1.300.5l-.5 1.300l-.5-1.300l-1.300-.5l1.300-.5z"/><path d="M18 20.500l.4 1l1 .4l-1 .4l-.4 1l-.4-1l-1-.4l1-.4z"/></g>',
  horn:'<path d="M6 8q2-5 10-4q8 1 10 9" fill="none" stroke="#5a3a1c" stroke-width="1.300"/><path d="M4 9Q6 26 25 25L25 13Q11 18 7 8z" fill="#e8dcbc" stroke="#3a2412" stroke-width="1.200" stroke-linejoin="round"/><path d="M8 11q2 8 12 9" fill="none" stroke="#fff8e6" stroke-width="1" opacity=".8"/><ellipse cx="25.500" cy="19" rx="3" ry="6.500" fill="#3a2a1a" stroke="#c9962a" stroke-width="1.600"/><path d="M19 16.500l.5 8M14 15l-.5 8" stroke="#c9962a" stroke-width="1.800"/><path d="M3 8.500l3-2l2 3l-3 1.500z" fill="#c9962a" stroke="#3a2412" stroke-width=".9"/><path d="M10 28q3-4 8-3q-3 3-8 3zM2 18q1-4 4-3q0 3-4 3z" fill="#3f7a3a" stroke="#1e4a1c" stroke-width=".9"/>',
@@ -6103,6 +6112,7 @@ const UNLOCKS=[
  {id:"warpedsim",sim:1,secret:1},
  {id:"druid",relic:"druid",hint:"The wild things know who walks their land."},
  {id:"fskull",relic:"fskull",hint:"Not every grave sleeps soundly."},
+ {id:"keystone",relic:"keystone",hint:"Some gates were never meant to fall."},
  {id:"voidshard",relic:"voidshard",secret:1,hint:"Even nothing can be something, if you know where to look."},
  {id:"qrelics",qrel:1,secret:1} // secret: not listed (or counted) until it's unlocked
 ];
