@@ -421,6 +421,7 @@ border-radius:50%;border:4px solid #fff;box-shadow:0 0 12px rgba(255,120,80,.9);
 .vwrap path{stroke-dasharray:40;stroke-dashoffset:40;animation:vwrap 1.200s ease-out forwards}.vleaf{opacity:0;animation:vleaf .6s 1.400s ease-out forwards}@keyframes vwrap{to{stroke-dashoffset:0}}@keyframes vleaf{to{opacity:1}}@media (prefers-reduced-motion:reduce){.vwrap path{animation:none;stroke-dashoffset:0}.vleaf{animation:none;opacity:1}} /* the Overgrown Arch wrapping itself shut */
 .u.wood{filter:sepia(.85) saturate(1.6) hue-rotate(-12deg) brightness(.85);box-shadow:0 0 0 2.500px #6a4426,0 0 0 4px #c0342a,var(--bev)} /* the Immortal Rose: turned to wood */
 .fatal{color:#b0181e;font-weight:800;white-space:nowrap} /* a relic that can kill your own units */
+.wrath{color:#b0181e;font-weight:800} /* the Font of the Gods: angered */
 .u.feral{box-shadow:0 0 0 2.500px #6ad08a,0 0 0 4px #b48aff,0 0 10px 3px rgba(150,240,170,.5),var(--bev)} /* the Warped Wilds' Warped Beasts */
 .u.elite.glitch{box-shadow:0 0 0 2.500px #c06aff,0 0 0 4px #3ad8ff,0 0 10px 3px rgba(122,232,255,.55),var(--bev)} /* the Sim's Corrupted Elites */
 .evart svg{display:block;width:100%;height:auto;border-radius:8px;border:2px solid #1a0f07;box-shadow:0 2px 0 #1a0f07;margin-bottom:10px}
@@ -543,7 +544,7 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 </section>
 <section id="world" hidden>
 <div class="hd"><h2 id="wtitle" class="sr">World Map</h2><div class="gold" id="wgold" aria-live="polite"></div></div>
-<p class="hint" id="wprog"></p>
+<p class="hint" id="wprog"></p><p class="hint wrath" id="wwrath" hidden>The Gods are angry: the enemy moves first in your next battle.</p>
 <div class="stats" id="warmy" aria-label="Army health"></div>
 <div class="relics" id="wrelics" aria-label="Relics and items"></div>
 <div class="wmap" id="wmap"></div>
@@ -904,6 +905,7 @@ const RELICS={
  pavise:{name:"Pavise",r:0,lock:"pavise",desc:"Archers take 1 less damage from ranged attacks. Pierce can't get past it."},
  font:{name:"Font of the Wise Ones",r:2,lock:"font",find:1,desc:"Once per battle, each of your units can spend its action to bless an adjacent ally: the ally gets +5% evasion until the end of your next turn."},
  mercy:{name:"Mercy Blade",r:2,desc:"Your units deal +2 damage to enemies at half health or less."},
+ vial:{name:"Pure Water Vial",r:2,lock:"vial",find:1,desc:"Your units standing in shallow water recover 2 HP at the end of each of your turns, and can't be slowed or hexed while they stand in it. The water wants you to live... Why is it sparkling slightly?"},
  horn:{name:"Hunter's Horn of the Old Wood",r:2,lock:"horn",find:1,desc:"Your units attacking from a forest tile deal +2 damage."},
  dandelion:{name:"Immortal Dandelion",r:2,lock:"dandelion",find:1,desc:"Your units with 2 or more HP that are within 2 tiles of an ally Apothecary or Enchanter have a 20% chance to survive a lethal blow with 1 HP."},
  sakurafan:{name:"Fan of Falling Petals",r:2,lock:"sakurafan",find:1,desc:"Your units standing in or beside a Cherry Grove get +10% evasion. Painted with a single bough in bloom; when it opens, a few petals always seem to fall."},
@@ -1010,12 +1012,13 @@ function doBribe(u,x,y){const e=at(x,y);if(!e)return;relicUsed.eight=1;camp.gold
 const canGong=u=>u.team==="y"&&!u.auto&&RELIC.has("gong")&&!relicUsed.gong&&turn==="y";
 function strikeGong(u){
   relicUsed.gong=1;sfx("gong");let n=0;
-  units.forEach(e=>{if(e.team!=="f"||d(u,e)>GONG_RANGE||calm(e)||muled(e))return;e.slow=1;n++;floatText(e.x,e.y,"Slowed","slow")});
+  units.forEach(e=>{if(e.team!=="f"||d(u,e)>GONG_RANGE||unfazed(e)||muled(e))return;e.slow=1;n++;floatText(e.x,e.y,"Slowed","slow")});
   say(`Your ${NAME[u.t]} struck the Thundering Gong`+(n?`: ${n} ${n>1?"enemies are":"enemy is"} slowed on their next turn.`:", but no enemy was close enough to care."));render();
 }
 const canTrumpet=u=>rel(u,"trumpet")&&!relicUsed.trumpet&&!u.acted&&!u.auto&&units.some(b=>b!==u&&b.team==="y"&&d(u,b)<=RALLY_RANGE);
 // Cherry Grove, Moment of Calm: counts as forest only for movement; no forest combat bonuses, no slowing, no retaliation in or out
 const WOODS=k=>FOREST.has(k)&&!CHERRY.has(k),calm=u=>CHERRY.has(u.x+","+u.y);
+const VIAL_HEAL=2,pure=u=>rel(u,"vial")&&SHALLOW.has(u.x+","+u.y),unfazed=u=>calm(u)||pure(u); // the Pure Water Vial: in shallow water; unfazed: can't be slowed or hexed (a Cherry Grove's calm, or the vial)
 const BLUSH_R=2,blush=(x,y)=>{if(!VALE||!/^(ground|forest|cherry|flowers|koi|meadow|greenwood)$/.test(terrainKey(x+","+y)))return"";let m=9;CHERRY.forEach(c=>{const[a,b]=pk(c);m=Math.min(m,Math.abs(a-x)+Math.abs(b-y))});return m<2?" bsh1":m<=BLUSH_R?" bsh2":""}; // Sakura Vale: the groves and the open ground, woods, wildflowers and koi ponds within a diamond of a cherry grove take a pink tint, deeper beside it
 const healOf=u=>ST(u).heal+(rel(u,"salts")?1:0); // how much a healer restores, with relics
 const rgOf=u=>ST(u).rg+(rel(u,"bshot")&&TYPES[u.t]&&TYPES[u.t].rg>1?BSHOT_RG:0)+(u.t==="A"&&rel(u,"long")?1:0)+(u.t==="Q"&&rel(u,"musket")?1:0)+(firstTurn&&ST(u).rg>1&&rel(u,"spyglass")?1:0); // a unit's attack range, with relics
@@ -1809,7 +1812,7 @@ const fellAt=f=>{const u=[...new Set(f)];if(u.length<3)return listAnd(u);for(let
 const limitNames=()=>listAnd(poolNow().split("").filter(t=>LIMIT1.includes(t)).map(t=>"the "+cap(NAME[t])));
 
 // a campaign with nothing in it yet: the one list of what a new campaign starts from
-const freshCamp=()=>({cfg:null,pos:0,cleared:[],done:false,battle:null,sel:null,hp:null,gold:0,relics:[],items:[],offer:null,offerBoss:false,offerStart:0,found:[],lastGold:0,kills:[],region:1,mapsPrior:0,bossUsed:{loc:[],name:[]},merc:null,scout:0,portal:0,portalIn:0,inSim:0,escaped:0,inWilds:0,wildsGate:0,wildsIn:0,wildsOut:0,mercNote:"",news:null});
+const freshCamp=()=>({cfg:null,pos:0,cleared:[],done:false,battle:null,sel:null,hp:null,gold:0,relics:[],items:[],offer:null,offerBoss:false,offerStart:0,found:[],lastGold:0,kills:[],region:1,mapsPrior:0,bossUsed:{loc:[],name:[]},merc:null,scout:0,wrath:0,portal:0,portalIn:0,inSim:0,escaped:0,inWilds:0,wildsGate:0,wildsIn:0,wildsOut:0,mercNote:"",news:null});
 let camp=freshCamp(),campSetup=false,endMode="quick",worldLock=false,choice=null,locked=false,tile=null,info=null,paused=false,gid=0,seed=0,col={y:"blue",f:"red"},insp=null,units=[],sel=null,turn="y",over=false,busy=false,mode=null,mods={y:null,f:null},tpUsed={y:0,f:0},pick={t:null,m:null};
 const prevPos=new WeakMap();
 const $=id=>document.getElementById(id),board=$("board");
@@ -1971,8 +1974,8 @@ function walk(u,x,y){
   const r=routes(u).get(x+","+y),rough=k=>FOREST.has(k)||SWAMP.has(k);if(u.t==="Q"&&[u.x+","+u.y,x+","+y,...(r?r.path:[])].some(rough))u.rough=1; // the Quilted Escaupil: it went through the brush this turn
   {const seq=[u.x+","+u.y,...(r?r.path:[x+","+y])];if(seq.some((k,i)=>i&&WOODS(seq[i-1])&&!WOODS(k)))u.leftWood=1;if(seq.some((k,i)=>i&&WOODS(seq[i-1])!==WOODS(k)))u.woodMove=1} // in and out of the trees (the Red Clothes)
   const hits=r?r.path.filter(k=>CALTROPS.has(k)&&(u.team!=="y"||Math.random()<CALTROP_ALLY)).length:0;
-  if(u.team==="f"&&!u.slowNext&&!calm(u)&&!muled(u)&&[x+","+y,...(r?r.path:[])].some(k=>{const[a,b]=pk(k);return sparkAura(a,b)})){u.slowNext=1;later(()=>{if(units.includes(u))floatText(u.x,u.y,"Sparked","slow")},150)} // the Friendly Spark's field
-  if([x+","+y,...(r?r.path:[])].some(k=>glowOf(k).length)&&!u.slowNext&&!calm(u)&&!muled(u)){u.slowNext=1;later(()=>{if(units.includes(u))floatText(u.x,u.y,"Dazzled","slow")},150)} // a Light Brick's glow: slowed next turn
+  if(u.team==="f"&&!u.slowNext&&!unfazed(u)&&!muled(u)&&[x+","+y,...(r?r.path:[])].some(k=>{const[a,b]=pk(k);return sparkAura(a,b)})){u.slowNext=1;later(()=>{if(units.includes(u))floatText(u.x,u.y,"Sparked","slow")},150)} // the Friendly Spark's field
+  if([x+","+y,...(r?r.path:[])].some(k=>glowOf(k).length)&&!u.slowNext&&!unfazed(u)&&!muled(u)){u.slowNext=1;later(()=>{if(units.includes(u))floatText(u.x,u.y,"Dazzled","slow")},150)} // a Light Brick's glow: slowed next turn
   u.x=x;u.y=y;
   if(DEN.size&&u.team!=="w"&&[x+","+y,...(r?r.path:[])].some(k=>{const[a,b]=pk(k);return denZone(a,b)}))units.filter(w=>w.team==="w"&&w.terr!==u&&denZone(w.x,w.y)).forEach(w=>{w.terr=u;later(()=>{if(units.includes(w))floatText(w.x,w.y,"Territorial","slow")},150)}); // the Hidden Den: trespassers become the animal's target
   if(!hits)return 0;
@@ -2022,7 +2025,7 @@ function terrainArt(){
 }
 function render(){
   units.forEach(u=>{if((u.slow||u.slowNext)&&u.team==="y"&&!u.slowRoll&&rel(u,"lcube")){u.slowRoll=1;if(Math.random()<CUBE_SLOW){delete u.slow;delete u.slowNext;floatText(u.x,u.y,"Shrugged off","bless")}}if(!u.slow&&!u.slowNext)delete u.slowRoll; // the Large Glowing Cube shrugs off a fifth of slows
-    if(u.slowNext&&calm(u))delete u.slowNext;if(u.slow&&calm(u)){delete u.slow;delete u.hex;delete u.hexPend;floatText(u.x,u.y,"Calm","bless")}});
+    if(u.slowNext&&unfazed(u))delete u.slowNext;if(u.slow&&unfazed(u)){delete u.slow;delete u.hex;delete u.hexPend;floatText(u.x,u.y,calm(u)?"Calm":"Pure water","bless")}});
   board.classList.toggle("murky",MURKY);board.classList.toggle("deepw",DEEPW);board.classList.toggle("haunted",HAUNTED);board.classList.toggle("volcanic",VOLCANIC);board.classList.toggle("sim",SIM);
   const mv=new Set(),tg=new Set(),ig=new Set(),ir=new Set(),pr=new Set(),hs=new Set(),bt=new Set(),it=mode==="bombard"&&sel?new Set(bombTargets(sel)):mode==="skull"&&sel?new Set(skullTargets(sel)):mode==="hive"&&sel?new Set(hiveTargets(sel)):mode==="hook"&&sel?new Set(hookTargets(sel)):mode==="flute"&&sel?new Set(fluteTargets()):mode==="bribe"&&sel?new Set(bribeTargets(sel)):mode==="decoy"&&sel?new Set(decoyTargets(sel)):mode&&mode.startsWith("item:")&&sel&&turn==="y"?itemTargets(sel,mode.slice(5)):new Set();
   if(sel&&turn==="y"&&!over){
@@ -2146,6 +2149,7 @@ function renderInfo(){
   if(u.bleed)notes.push("Bleeding Statue: loses 1 HP at the end of each of its side's turns (never the last).");
   if(muled(u))notes.push("Stubborn as a Mule: +2 armor and can't be pushed or slowed until the end of your next turn.");
   if(u.team==="y"&&SMOKE.has(u.x+","+u.y))notes.push("In smoke: +20% evasion until your next turn.");
+  if(pure(u))notes.push("Pure Water Vial: in shallow water, so it can't be slowed or hexed, and it recovers "+VIAL_HEAL+" HP at the end of your turn.");
   if(calm(u))notes.push("Moment of Calm: in a Cherry Grove, so it can't be slowed, and it neither retaliates nor suffers retaliation.");
   if(rel(u,"trumpet")&&!relicUsed.trumpet&&!u.auto)notes.push("Trumpet of Encouragement: one of your units can sound it once this battle.");
   if(rel(u,"font")&&!u.blessUsed)notes.push("Font of the Wise Ones: can bless an adjacent ally once this battle.");
@@ -2258,7 +2262,7 @@ function buildMenu(){
     const ok=pushable(sel,t);
     opt(`<b>${!ok?"Can't Push":n?`Push ${n} Tile${n>1?"s":""}`:"Push (Blocked)"}</b><small>${!ok?"Too heavy":t.team==="y"?"Reposition ally":bruises(sel,t)?`Strikes for ${combat({...sel,bruise:1},t).dmg} \u00b7 instead of attacking`:"Instead of attacking"}</small>`,()=>{choice=null;doPush(sel,t)},!ok||!n);
   }
-  if(sel.t==="E"&&t.team!==sel.team&&(cm||targets(sel).includes(t)))opt(`<b>${cm?"Move &amp; Hex":"Hex"}</b><small>${calm(t)?"Calm: can't be hexed":t.slow?"Already slowed":"Move 1, its targets +10% evasion"}</small>`,go(a=>doSlow(a,t)),!!t.slow||calm(t));
+  if(sel.t==="E"&&t.team!==sel.team&&(cm||targets(sel).includes(t)))opt(`<b>${cm?"Move &amp; Hex":"Hex"}</b><small>${unfazed(t)?(calm(t)?"Calm":"Pure water")+": can't be hexed":t.slow?"Already slowed":"Move 1, its targets +10% evasion"}</small>`,go(a=>doSlow(a,t)),!!t.slow||unfazed(t));
   if(!cm&&healable(sel,t)){const hn=Math.min(healOf(sel),maxHp(t)-t.hp);opt(`<b>Heal</b><small>+${hn} HP</small>`,()=>{choice=null;doHeal(sel,t)})}
   if(!cm&&canBless(sel,t))opt(`<b>Bless</b><small>${blessed(t)?"Already blessed":"+5% evasion until your next turn ends"}</small>`,()=>{choice=null;doBless(sel,t)},blessed(t));
   opt("<b>Cancel</b>",()=>{choice=null;say("Move, attack, or pick another unit.");render()});
@@ -2500,7 +2504,7 @@ function doBreak(a,t){
 }
 function applyHeal(a,b){const n=Math.min(healOf(a),maxHp(b)-b.hp);b.hp+=n;sfx("heal");floatText(b.x,b.y,"+"+n,"heal");mendFrom(a,b);return n}
 function doSlow(a,u){
-  if(calm(u))return; // Moment of Calm
+  if(unfazed(u))return; // Moment of Calm, or the Pure Water Vial
   a.acted=1;a.moved=1;sel=null;insp=null;locked=true;lastMove=null;
   animAttack(a,u,()=>{u.slow=1;u.hex=1;if(rel(a,"pendant"))u.hexPend=1;sfx("slow");floatText(u.x,u.y,"Hexed","slow");say("Hexed the "+NAME[u.t]+": on its next turn it moves only 1 tile, and its targets get +10% evasion.");locked=false;info=u;afterAction()});
 }
@@ -2783,7 +2787,7 @@ function itemTargets(u,id){
   else if(id==="flash")units.forEach(b=>{if(b.team!=="y"&&d(u,b)<=2)out.add(b.x+","+b.y)});
   else if(id==="incense")units.forEach(b=>{if(b.team==="y"&&!b.auto&&d(u,b)<=1&&!b.rage)out.add(b.x+","+b.y)});
   else if(id==="dryice")units.forEach(b=>{if(d(u,b)<=3)out.add(b.x+","+b.y)});
-  else if(id==="tangle")units.forEach(b=>{if(b.team!=="y"&&d(u,b)<=3&&!b.slow&&!calm(b))out.add(b.x+","+b.y)});
+  else if(id==="tangle")units.forEach(b=>{if(b.team!=="y"&&d(u,b)<=3&&!b.slow&&!unfazed(b))out.add(b.x+","+b.y)});
   else if(SNAP[id]){if(u.hp>SNAP[id][0])units.forEach(b=>{if(b.team!=="y")out.add(b.x+","+b.y)})} // anywhere on the field, but never the last HP
   else if(id==="honey")units.forEach(b=>{if(b.team==="y"&&d(u,b)<=1&&b.hp<maxHp(b))out.add(b.x+","+b.y)});
   else if(id==="bvines"){if(u.hp>BVINE_HP)units.forEach(b=>{if(b.team!=="y"&&d(u,b)===1&&!b.vined)out.add(b.x+","+b.y)})} // never the last HP
@@ -2932,7 +2936,7 @@ function useItem(a,id,x,y,rub,dir){
   }
   if(id==="honey"){ // a sticky heal: slowed on its next turn
     const b=at(x,y),n=Math.min(HONEY_HEAL,maxHp(b)-b.hp);b.hp+=n;sfx("heal");floatText(b.x,b.y,"+"+n,"heal");mendFx(b);info=b;
-    const stuck=!muled(b)&&!calm(b);if(stuck)b.slowNext=1;
+    const stuck=!muled(b)&&!unfazed(b);if(stuck)b.slowNext=1;
     say(`Your ${NAME[a.t]} shared the Wild Honeycomb${b===a?"":" with your "+NAME[b.t]}: +${n} HP`+(stuck?", but it's stuck: only 1 tile of movement on its next turn.":"."));return render();
   }
   if(id==="bvines"){ // the target is bound; the thrower pays in blood and gets thrown about
@@ -3151,7 +3155,7 @@ function chickensAct(done){
 }
 function thanks(u){later(()=>{if(units.includes(u))floatText(u.x,u.y,"Thanks Herbert","thanks")},450)} // a small, warm note that fades
 const HEX_SET=["hfeeble","hmeek","htorpid"];
-function charmHex(u,id){if(!RELIC.has(id)||relicUsed[id]||calm(u))return;relicUsed[id]=1;u.hexNext=HEX_SET.every(k=>RELIC.has(k))?2:1;later(()=>{if(units.includes(u))floatText(u.x,u.y,"Hex charm","slow")},350)} // hexed as its next turn begins
+function charmHex(u,id){if(!RELIC.has(id)||relicUsed[id]||unfazed(u))return;relicUsed[id]=1;u.hexNext=HEX_SET.every(k=>RELIC.has(k))?2:1;later(()=>{if(units.includes(u))floatText(u.x,u.y,"Hex charm","slow")},350)} // hexed as its next turn begins
 function hitFor(a,b,c,back){ // resolve one blow from a to b: dodge roll, damage, removal; true when it landed
   if(Math.random()<1-c.hit){floatText(b.x,b.y,"Evade",true);sfx(b.glitch==="flick"?"glitch":"evade");say(sent(who(b))+" evaded "+(back?"the retaliation.":"the attack."));
     if(!back&&mods[a.team]==="AIM"&&c.dmg>0){later(()=>{if(units.includes(b))floatText(b.x,b.y-.4,"Graze -1")},250);if(hurt(b,1)){credit(a,b);say(sent(who(b))+" evaded, but the graze finished it.")}} // Steady Aim: a miss still grazes
@@ -3375,7 +3379,7 @@ function hazards(team,done){
   }
   const haunted=team!=="y"&&SKULLS.size?units.filter(u=>mine(u)&&skullZone(u.x+","+u.y)):[]; // the Frowning Skull's zone
   units.forEach(u=>{if(mine(u)&&!haunted.includes(u))delete u.skullRest});
-  haunted.forEach(u=>{if(u.skullRest)delete u.skullRest;else if(!calm(u)){u.slowNext=1;u.skullRest=1}hurt(u,SKULL_DMG);floatText(u.x,u.y,"-"+SKULL_DMG,"slow")});
+  haunted.forEach(u=>{if(u.skullRest)delete u.skullRest;else if(!unfazed(u)){u.slowNext=1;u.skullRest=1}hurt(u,SKULL_DMG);floatText(u.x,u.y,"-"+SKULL_DMG,"slow")});
   if(haunted.length)msg.push(haunted.length===1?`The Unsettling Ground gnawed at ${who(haunted[0])}.`:`The Unsettling Ground gnawed at ${haunted.length} units.`);
   const fed=units.filter(u=>u.team===team&&!u.auto&&u.hp>1&&rel(u,"crown")),prey=fed[Math.floor(Math.random()*fed.length)]; // the Hollow King's Crown feeds (never the last HP)
   if(prey){prey.hp-=1;floatText(prey.x,prey.y,"-1");msg.push(`The Hollow King's Crown fed on ${who(prey)}.`)}
@@ -3390,7 +3394,7 @@ function hazards(team,done){
 function wispsAct(){
   const hit=[];
   WISP.forEach(k=>{
-    const near=[...blastOf(k),pk(k)].map(([x,y])=>at(x,y)).filter(u=>u&&!u.slow&&!calm(u)&&!muled(u)&&!hit.includes(u));
+    const near=[...blastOf(k),pk(k)].map(([x,y])=>at(x,y)).filter(u=>u&&!u.slow&&!unfazed(u)&&!muled(u)&&!hit.includes(u));
     if(!near.length)return;
     const u=near[Math.floor(Math.random()*near.length)];u.slow=1;hit.push(u);floatText(u.x,u.y,"Slow","slow");
   });
@@ -3468,7 +3472,7 @@ function foeUseItems(){
       const fell=best.filter(u=>hurt(u,LIGHTNING_DMG));if(fell.length)msg.push(fell.length===1?sent(who(fell[0]))+" fell.":fell.length+" units fell.");
     }
     else if(id==="tangle"){ // slows your fastest unit within its reach
-      const t=units.filter(u=>u.team==="y"&&!u.auto&&!u.slow&&!calm(u)&&!muled(u)&&mvOf(u)>=3&&units.some(e=>e.team==="f"&&d(e,u)<=3)).sort((a,b)=>mvOf(b)-mvOf(a))[0];if(!t)continue;
+      const t=units.filter(u=>u.team==="y"&&!u.auto&&!u.slow&&!unfazed(u)&&!muled(u)&&mvOf(u)>=3&&units.some(e=>e.team==="f"&&d(e,u)<=3)).sort((a,b)=>mvOf(b)-mvOf(a))[0];if(!t)continue;
       t.slow=1;sfx("slow");floatText(t.x,t.y,"Tangled","slow");msg.push(`The enemy threw a Tanglefoot Bag at your ${NAME[t.t]}: it can move only 1 tile on your next turn.`);
     }
     else{const t=units.filter(u=>u.team==="y"&&!u.auto&&units.some(e=>e.team==="f"&&d(e,u)<=3)).sort((a,b)=>a.hp-b.hp)[0];if(!t)continue;
@@ -3718,7 +3722,7 @@ function enemyTurn(note=""){
       animAttack(u,{x:cx,y:cy},()=>{CAMPS.delete(cs);floatText(cx,cy,"Broken");say("Enemy "+NAME[u.t]+" wrecked the camp site.");fin()});return;
     }
     if(u.t==="E"&&ts.length&&!ts.some(p=>dmgTo(u,p)>=p.hp)){
-      const sl=ts.filter(p=>!p.slow&&!calm(p)&&!muled(p)&&mvOf(p)>1).sort((a,b)=>ST(b).dmg-ST(a).dmg||ST(b).mv-ST(a).mv)[0];
+      const sl=ts.filter(p=>!p.slow&&!unfazed(p)&&!muled(p)&&mvOf(p)>1).sort((a,b)=>ST(b).dmg-ST(a).dmg||ST(b).mv-ST(a).mv)[0];
       if(sl){u.acted=1;animAttack(u,sl,()=>{sl.slow=1;sl.hex=1;if(rel(u,"pendant"))sl.hexPend=1;sfx("slow");floatText(sl.x,sl.y,"Hexed","slow");say("Enemy "+NAME[u.t]+" hexed your "+NAME[sl.t]+": it moves only 1 tile, and its targets get +10% evasion.");fin()});return}
     }
     if(ts.length){
@@ -3780,7 +3784,7 @@ function enemyTurn(note=""){
       if(roundEnds())return;
       SMOKE=new Set(); // the smoke drifts away as your turn begins
       const healed=mods.f==="REST"?rest("f"):0;
-      units.forEach(u=>{u.moved=u.acted=0;if(u.ctl)u.acted=1;delete u.wood;delete u.cubeAr;if(u.team==="y")delete u.ward;delete u.aim;delete u.mvFrom;delete u.amb;delete u.rough;delete u.chill;delete u.agile;delete u.ash;delete u.scram;delete u.link;if(u.team!=="y"){delete u.stun;delete u.vined;delete u.slow;delete u.hex;delete u.hexPend;delete u.weak;if(u.cursed){u.weak=1;delete u.cursed}if(u.slowNext){u.slow=1;delete u.slowNext}if(u.hexNext){if(!calm(u)){u.slow=1;u.hex=1}if(--u.hexNext<=0)delete u.hexNext}}});
+      units.forEach(u=>{u.moved=u.acted=0;if(u.ctl)u.acted=1;delete u.wood;delete u.cubeAr;if(u.team==="y")delete u.ward;delete u.aim;delete u.mvFrom;delete u.amb;delete u.rough;delete u.chill;delete u.agile;delete u.ash;delete u.scram;delete u.link;if(u.team!=="y"){delete u.stun;delete u.vined;delete u.slow;delete u.hex;delete u.hexPend;delete u.weak;if(u.cursed){u.weak=1;delete u.cursed}if(u.slowNext){u.slow=1;delete u.slowNext}if(u.hexNext){if(!unfazed(u)){u.slow=1;u.hex=1}if(--u.hexNext<=0)delete u.hexNext}}});
       units.forEach(u=>{if(u.team!=="y"||u.auto)return; // as your turn begins: the Sanguine Chalice drinks, the Mysterious Rosary mends
         if(rel(u,"chalice")&&u.hp>1){u.hp-=1;floatText(u.x,u.y,"-1","slow")}
         else if(pturn>=3&&rel(u,"rosary")&&u.hp<maxHp(u)&&Math.random()<ROSARY_HEAL){u.hp+=1;floatText(u.x,u.y,"+1","heal")}});
@@ -3980,8 +3984,8 @@ const edgeOf=(a,b)=>EDGES.find(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a)); /
 const canGo=(a,b)=>{const e=edgeOf(a,b);return !!e&&(!e[2]||b===e[1])};
 function reachFrom(id){const seen=new Set([id]),q=[id];while(q.length){const a=q.shift();WORLD.forEach(n=>{if(!seen.has(n.id)&&canGo(a,n.id)){seen.add(n.id);q.push(n.id)}})}return seen}
 const SAVE="skirmish-campaign";
-function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,items:camp.items,offer:camp.offer,offerBoss:camp.offerBoss,offerStart:camp.offerStart||0,found:camp.found,kills:camp.kills,names:camp.names,wounds:camp.wounds,honors:camp.honors,falls:camp.falls,news:camp.news,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,merc:camp.merc||null,scout:camp.scout||0,portal:camp.portal||0,portalIn:camp.portalIn||0,inSim:camp.inSim||0,escaped:camp.escaped||0,inWilds:camp.inWilds||0,wildsGate:camp.wildsGate||0,wildsIn:camp.wildsIn||0,wildsOut:camp.wildsOut||0,jewel:camp.jewel??null,ruby:camp.ruby??null,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
-function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],items:d.items||[],offer:d.offer||null,offerBoss:!!d.offerBoss,offerStart:d.offerStart||0,found:Array.isArray(d.found)?d.found:d.found?[d.found]:[],kills:d.kills||[],names:d.names||null,wounds:d.wounds||[],honors:d.honors||[],falls:d.falls||[],news:d.news||null,region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},merc:d.merc||null,scout:d.scout||0,portal:d.portal||0,portalIn:d.portalIn||0,inSim:d.inSim||0,escaped:d.escaped||0,inWilds:d.inWilds||0,wildsGate:d.wildsGate||0,wildsIn:d.wildsIn||0,wildsOut:d.wildsOut||0,jewel:d.jewel??null,ruby:d.ruby??null,mercNote:"",lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
+function saveCamp(){try{localStorage.setItem(SAVE,JSON.stringify({cfg:camp.cfg,pos:camp.pos,cleared:camp.cleared,done:camp.done,hp:camp.hp,gold:camp.gold,relics:camp.relics,items:camp.items,offer:camp.offer,offerBoss:camp.offerBoss,offerStart:camp.offerStart||0,found:camp.found,kills:camp.kills,names:camp.names,wounds:camp.wounds,honors:camp.honors,falls:camp.falls,news:camp.news,region:camp.region,mapsPrior:camp.mapsPrior,bossUsed:camp.bossUsed,merc:camp.merc||null,scout:camp.scout||0,wrath:camp.wrath||0,portal:camp.portal||0,portalIn:camp.portalIn||0,inSim:camp.inSim||0,escaped:camp.escaped||0,inWilds:camp.inWilds||0,wildsGate:camp.wildsGate||0,wildsIn:camp.wildsIn||0,wildsOut:camp.wildsOut||0,jewel:camp.jewel??null,ruby:camp.ruby??null,world:{nodes:WORLD,edges:EDGES,deco:DECO}}))}catch(e){}}
+function loadCamp(){try{const d=JSON.parse(localStorage.getItem(SAVE)||"null");if(d&&d.cfg&&d.world&&d.world.nodes){WORLD=d.world.nodes;WORLD.forEach(n=>{if(n.type==="heal")n.text=HEAL_TEXT});EDGES=d.world.edges;DECO=d.world.deco;d.cfg.x=d.cfg.x.filter((t,i,a)=>!LIMIT1.includes(t)||a.indexOf(t)===i);Object.assign(camp,{cfg:d.cfg,pos:d.pos,cleared:d.cleared,done:d.done,hp:d.hp||null,gold:d.gold||0,relics:d.relics||[],items:d.items||[],offer:d.offer||null,offerBoss:!!d.offerBoss,offerStart:d.offerStart||0,found:Array.isArray(d.found)?d.found:d.found?[d.found]:[],kills:d.kills||[],names:d.names||null,wounds:d.wounds||[],honors:d.honors||[],falls:d.falls||[],news:d.news||null,region:d.region||1,mapsPrior:d.mapsPrior||0,bossUsed:d.bossUsed||{loc:[],name:[]},merc:d.merc||null,scout:d.scout||0,wrath:d.wrath||0,portal:d.portal||0,portalIn:d.portalIn||0,inSim:d.inSim||0,escaped:d.escaped||0,inWilds:d.inWilds||0,wildsGate:d.wildsGate||0,wildsIn:d.wildsIn||0,wildsOut:d.wildsOut||0,jewel:d.jewel??null,ruby:d.ruby??null,mercNote:"",lastGold:0,battle:null,sel:null});return true}}catch(e){}return false}
 const nest=(str,x,y,w,style="")=>str.replace(/<svg[^>]*>/,`<svg x="${x}" y="${y}" width="${w}" height="${w}" viewBox="0 0 40 40" style="${style}">`);
 function mapArt(){
   let g='<defs><radialGradient id="pg" cx=".5" cy=".4" r=".85"><stop offset="0" stop-color="#eadfb8"/><stop offset="1" stop-color="#cbb78a"/></radialGradient><filter id="wsh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="1.200" dy="2.400" stdDeviation="1.600" flood-color="#3a2810" flood-opacity=".45"/></filter><radialGradient id="wnode" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></radialGradient><filter id="wblur"><feGaussianBlur stdDeviation="6"/></filter><filter id="wblur2" x="-50%" y="-100%" width="200%" height="300%"><feGaussianBlur stdDeviation="2.500"/></filter><linearGradient id="wmt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a7656"/><stop offset=".6" stop-color="#9c8762" stop-opacity=".9"/><stop offset="1" stop-color="#b8a27a" stop-opacity="0"/></linearGradient></defs><rect width="400" height="520" fill="url(#pg)"/>';
@@ -4134,7 +4138,7 @@ function renderWorld(){
     +(camp.merc?`<span class="stat" title="${mercLine(camp.merc)}">${camp.merc.name} <small>Mercenary ${NAME[camp.merc.t]}, ${camp.merc.left} battle${camp.merc.left>1?"s":""} left</small> <b>${camp.merc.hp}/${camp.merc.st.hp}</b></span>`:"");
   const total=WORLD.filter(n=>n.type!=="camp"&&(done.has(n.id)||reach.has(n.id))).length,lost=WORLD.filter(n=>n.type!=="camp"&&!done.has(n.id)&&!reach.has(n.id)).length;
   $("wtitle").textContent=`${SW?"The Warped Sim":camp.inWilds?"The Warped Wilds":"World Map"} \u2013 Region ${camp.region||1}${!SW&&isFinal()?" \u00b7 Final Region":""}`;
-  $("wprog").textContent=camp.done?"Campaign complete! You defeated the boss.":`Locations cleared: ${camp.cleared.length} of ${total}${lost?` (${lost} cut off)`:""}. Tap a glowing location to travel there.`+(camp.mercNote?" "+camp.mercNote:"");
+  $("wprog").textContent=camp.done?"Campaign complete! You defeated the boss.":`Locations cleared: ${camp.cleared.length} of ${total}${lost?` (${lost} cut off)`:""}. Tap a glowing location to travel there.`+(camp.mercNote?" "+camp.mercNote:"");$("wwrath").hidden=!camp.wrath; // the Font of the Gods' curse, until the next battle
   const n=WORLD[camp.sel],st=stOf(n),here=n.id===camp.pos,can=!here&&canGo(camp.pos,n.id),e=can&&edgeOf(camp.pos,n.id),cut=!here&&!done.has(n.id)&&!reach.has(n.id);
   const btn=can?(st==="cleared"?"Travel Here":n.type==="heal"?"Rest Here":n.type==="shop"?"Visit the Merchant":"Travel to Battle"):"";
   $("winfo").innerHTML=`<div class="lbl">Location</div><div class="ib"><div class="nm"><strong>${n.name}</strong><span>${here?"You are here":lab(n)}</span></div><small>${n.type==="boss"&&!SW&&isFinal()?FINAL_TEXT:n.text}</small>${e&&e[2]?"<small><b>One-way path:</b> there's no coming back this way.</small>":""}${here||can?"":cut?"<small>Cut off: no path from here leads there anymore.</small>":"<small>Not connected to your location. Travel along the paths.</small>"}</div>${btn?`<div class="bar"><button class="b pri" id="wgo">${btn}</button></div>`:""}`;
@@ -4412,6 +4416,26 @@ function wildsGateScene(){
 ${leaves}${vines}${shim}${motes}${grass}
 </svg>`;
 }
+function fontScene(){ // the Font of the Gods: a glowing green font on a stone pedestal, just off a foggy road at night
+  const rnd=(i,s)=>{const x=Math.sin(i*127.1+s*311.7)*43758.5453;return x-Math.floor(x)},f=n=>n.toFixed(1),CX=196;
+  let trees="";for(let i=0;i<10;i++){const x=i*34+rnd(i,1)*16-8,h=34+rnd(i,2)*34;trees+=`<path d="M${f(x)} 150l${f(9+rnd(i,3)*6)} ${f(-h)}l${f(9+rnd(i,4)*6)} ${f(h)}z" fill="#18241e" opacity=".85"/>`}
+  let fog="";for(let i=0;i<7;i++)fog+=`<ellipse cx="${f(rnd(i,5)*320)}" cy="${f(140+rnd(i,6)*60)}" rx="${f(60+rnd(i,7)*50)}" ry="${f(8+rnd(i,8)*6)}" fill="#a8b8b0" opacity="${f(.12+rnd(i,9)*.12)}" filter="url(#fgb)"/>`;
+  let motes="";for(let i=0;i<12;i++){const x=CX-30+rnd(i,10)*60,y=40+rnd(i,11)*60;motes+=`<circle cx="${f(x)}" cy="${f(y)}" r="${f(.8+rnd(i,12)*1.4)}" fill="#c8ff9a" opacity="${f(.4+rnd(i,13)*.5)}"/>`}
+  let grass="";for(let i=0;i<40;i++){const x=4+rnd(i,14)*312,y=176+rnd(i,15)*42;if(x>90&&x<150&&y<205)continue;grass+=`<path d="M${f(x)} ${f(y)}l-2-6M${f(x)} ${f(y)}l1-8M${f(x)} ${f(y)}l3-5" stroke="${y>196?"#16261a":"#22382a"}" stroke-width="1.100" stroke-linecap="round"/>`}
+  return `<svg viewBox="0 0 320 220" role="img" aria-label="A foggy night on the road. Just off the trail stands a stone pedestal topped with an ornate font, glowing faintly green. The liquid inside is bright green, and motes of light drift above it. At the pedestal's base sits a small bowl holding a few gold coins.">
+<defs><linearGradient id="fgsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0c1418"/><stop offset=".7" stop-color="#1e2e2c"/><stop offset="1" stop-color="#34463e"/></linearGradient><radialGradient id="fgglow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#d8ffb0" stop-opacity=".9"/><stop offset=".4" stop-color="#7ae05a" stop-opacity=".45"/><stop offset="1" stop-color="#3aa040" stop-opacity="0"/></radialGradient><linearGradient id="fgstone" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5a5e58"/><stop offset=".45" stop-color="#9a9e92"/><stop offset="1" stop-color="#4a4e48"/></linearGradient><linearGradient id="fgliq" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eaffc0"/><stop offset="1" stop-color="#5ad83a"/></linearGradient><filter id="fgb" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter></defs>
+<rect width="320" height="220" fill="url(#fgsky)"/><circle cx="62" cy="40" r="16" fill="#d8e4dc" opacity=".35" filter="url(#fgb)"/><circle cx="62" cy="40" r="10" fill="#e8f0ea" opacity=".45"/>${trees}
+<path d="M0 156q80-6 160-2t160 0v66H0z" fill="#22322a"/><path d="M60 220L104 156h22L118 220z" fill="#5a5040" opacity=".5"/>
+${fog}<circle cx="${CX}" cy="78" r="70" fill="url(#fgglow)"/><ellipse cx="${CX}" cy="190" rx="44" ry="7" fill="#9af07a" opacity=".22" filter="url(#fgb)"/>
+<path d="M${CX-26} 192h52l-4-8h-44z" fill="#4a4e48" stroke="#1a1c1a" stroke-width="1.200"/><path d="M${CX-12} 184v-74h24v74z" fill="url(#fgstone)" stroke="#1a1c1a" stroke-width="1.200"/><path d="M${CX-6} 116v62M${CX+5} 116v62" stroke="#3a3e3a" stroke-width="1" opacity=".6"/>
+<path d="M${CX-18} 110h36l-3-6h-30z" fill="#7a7e76" stroke="#1a1c1a" stroke-width="1.100"/><path d="M${CX-14} 104q-20-2-24-22h76q-4 20-24 22z" fill="url(#fgstone)" stroke="#1a1c1a" stroke-width="1.300" stroke-linejoin="round"/>
+<path d="M${CX-32} 88q32 8 64 0M${CX-26} 96q26 6 52 0" stroke="#3a3e3a" stroke-width="1" fill="none" opacity=".7"/><circle cx="${CX}" cy="93" r="3" fill="#7ae05a" stroke="#1a1c1a" stroke-width=".8"/>
+<ellipse cx="${CX}" cy="82" rx="38" ry="6" fill="#2a2e2a" stroke="#1a1c1a" stroke-width="1.200"/><ellipse cx="${CX}" cy="82" rx="34" ry="4.400" fill="url(#fgliq)"/><ellipse cx="${CX-8}" cy="81" rx="12" ry="1.400" fill="#fff" opacity=".55"/>
+<path d="M${CX-16} 76q4-10 0-20M${CX+4} 76q-4-12 2-24M${CX+18} 77q3-8 0-16" stroke="#b8ff8a" stroke-width="1.400" fill="none" opacity=".45" stroke-linecap="round"/>${motes}
+<ellipse cx="${CX+40}" cy="196" rx="12" ry="3" fill="#1a1c1a" opacity=".5"/><path d="M${CX+28} 190q12 10 24 0z" fill="#6a5a44" stroke="#2a1e12" stroke-width="1"/><g fill="#f2c94c" stroke="#8a6418" stroke-width=".5"><ellipse cx="${CX+36}" cy="190" rx="3" ry="1.300"/><ellipse cx="${CX+42}" cy="189.400" rx="3" ry="1.300"/><ellipse cx="${CX+46}" cy="190.400" rx="2.600" ry="1.200"/></g>
+${grass}
+</svg>`;
+}
 const WILDS_GATE={t:"An Arch of Living Wood",tag:"The Wilds",rc:"#5a9a3a",go:()=>(sfx("portal"),{art:wildsGateScene(),
   text:"A whimsical looking arch grows out of the ground before you.... Should we go in?",
   opts:[{label:"Step Through the Arch",go:()=>{camp.wildsGate=1;camp.wildsIn=1;saveCamp();return "Your army ducks beneath the boughs, one by one. The air is thick and sweet and humming, and when you look back, the arch has already grown shut."}},
@@ -4435,7 +4459,14 @@ const ROAD_EVENTS=[
    return {art:()=>beggarScene(WORLD[to].b),text:named()?`Vasco ${seat} at the side of the road, his skull bare to the wind. He holds his old sack open with bony hands, and his eyes glow a faint, tired red.`:`A lonely, sorry-looking skeleton ${seat} at the side of the road. It holds an old sack open with ${unlocks.vgloves?"bony":"gloved"} hands, and its eyes glow a faint, tired red.`,opts:[
     give(5),give(10),give(25),
     {label:"Give nothing and quietly move on",go:()=>"You keep your eyes on the road. Behind you, the empty sack flaps in the wind."}]}}},
+ {t:"Font of the Gods",go:()=>({art:fontScene(),text:"On a foggy night, as you travel along the road, a stone pedestal with an ornate font appears just off the trail. It has a faint green glow about it. As you get closer, you notice that the liquid within the font is bright green and radiates warmth. You see a small tribute bowl with some gold in it at the base of the pedestal. What will you do?",opts:[
+   {label:`Pay Tribute (${FONT_TRIBUTE} gold)`,cost:FONT_TRIBUTE,go:()=>{camp.hp=campHps().map((h,i)=>Math.min(campMax(i),h+FONT_HEAL));if(camp.merc&&camp.merc.hp>0)camp.merc.hp=Math.min(camp.merc.st.hp,camp.merc.hp+FONT_HEAL);sfx("heal");saveCamp();
+     return `You lay ${FONT_TRIBUTE} gold in the bowl. The green light swells, warm as a summer afternoon, and every one of your units recovers ${FONT_HEAL} HP. <em>The Gods are pleased...</em>`}},
+   {label:"Walk On",go:()=>"You leave the font to its glow and keep to the road. Behind you, the light dims a little. <em>The Gods are saddened...</em>"},
+   {label:`Take the Gold (+${FONT_GOLD})`,go:()=>{camp.gold+=FONT_GOLD;camp.wrath=1;sfx("coin");renderGold();saveCamp();
+     return `You scoop ${FONT_GOLD} gold from the bowl. The green light flares, then goes cold. <span class="wrath">The Gods are angry... The enemy will move first in your next battle.</span>`}}]})},
  {t:"Rockfall",go:()=>{const hp=campHps(),c=hp.map((h,i)=>h>1?i:-1).filter(i=>i>=0);if(!c.length)return "Stones clatter down the slope, but your army slips past unharmed.";const i=c[Math.floor(Math.random()*c.length)];hp[i]=Math.max(1,hp[i]-2);camp.hp=hp;return `Stones clatter down the slope. ${heroName(i)} is struck and loses 2 HP.`}}];
+const FONT_TRIBUTE=20,FONT_HEAL=3,FONT_GOLD=30; // the Font of the Gods: the tribute it asks, the HP it gives back, and the gold in its bowl
 const campHps=()=>armyTypes().map((t,i)=>camp.hp&&camp.hp[i]!=null?camp.hp[i]:campMax(i));
 let riAfter=null;
 // The Beggar is Vasco, a fallen explorer: what he says and gives as the gold you've given him (over every campaign) adds up
@@ -4699,6 +4730,7 @@ function start(o={}){
   BIOME_KEY=camp.battle?WORLD[camp.battle.node].b:guessBiome();$("biome").innerHTML=camp.battle?`${BIOME_NAME[BIOME_KEY]} \u2013 ${WORLD[camp.battle.node].name}<small>Region \u2013 ${camp.region||1}</small>`:BIOME_NAME[BIOME_KEY];
   const el=units.filter(u=>u.elite),carry=[...FOE_RELIC].map(id=>RELICS[id].name).concat(FOE_ITEMS.map(id=>ITEMS[id].name));
   show("game");say(loc+(carry.length?"The boss comes well equipped! ":"")+"Your turn. Select one of your units."+(!el.length?"":el.length===units.filter(u=>u.team==="f").length?" Their whole army is Elite.":el.length>3?` ${el.length} Elite enemies lead their army.`:` Elite enemy ${listAnd(el.map(u=>cap(NAME[u.t])))} ${el.length>1?"lead":"leads"} their army.`)+(wild?" A wild "+NAME[wild.t]+" roams the map.":""));render();
+  if(camp.battle&&camp.wrath){camp.wrath=0;saveCamp();busy=true;const g=gid;setTimeout(()=>{if(g===gid&&!over)enemyTurn("The Gods are angry: the enemy moves first. ")},900)} // the Font of the Gods: you took its gold
 }
 $("hero").innerHTML=[["K","blue"],["C","green"],["R","yellow"],["A","red"]].map(([t,c])=>`<div class="pv">${disc(t,COLORS[c])}</div>`).join("");
 $("play").onclick=()=>askHold("quick",init);
@@ -5183,8 +5215,9 @@ $("haenter").onclick=()=>{
 };
 /* ---------- Relics found in battle ----------
    One entry per relic that can turn up after a special campaign victory. when(node) decides if this win qualifies.
-   By default a find happens only while the relic is still locked (its first discovery), and the find also unlocks it;
-   repeat:true lets it be found again later. story(unit name) is the line shown on the "A Relic Found!" screen. */
+   The first win in its biome always finds it (and unlocks it); after that, each win there finds it FIND_AGAIN of the time,
+   at most one per campaign. repeat:true makes every win there find it. story(unit name) is the line shown on the "A Relic Found!" screen. */
+const FIND_AGAIN=.15; // chance a win in its biome finds an already-unlocked biome relic again
 const FINDS=[
  {relic:"font",when:n=>n.b==="swamp",story:who=>`Deep in the murky swamp, your ${who} pulled something strange from the dark water.`},
  {relic:"bluemagma",when:n=>n.b==="volcanic",story:who=>`At the edge of a cooling lava flow, your ${who} spotted a stone glowing a strange, cold blue.`},
@@ -5193,13 +5226,14 @@ const FINDS=[
  {relic:"druid",when:n=>n.b==="wild",story:who=>`Where the wild things had trampled a clearing, your ${who} found a charm of bone and twine hung from a branch. Something small watched from the leaves.`},
  {relic:"fskull",when:n=>n.b==="graveyard",story:who=>`Among the crooked headstones, your ${who} found a skull that seemed to frown back. The ground around it felt wrong.`},
  {relic:"voidshard",when:n=>n.b==="grid",story:who=>`Out in the Grid, where there was nothing at all, your ${who} closed a hand around a piece of it.`},
+ {relic:"vial",when:n=>n.b==="wetlands",story:who=>`Where the reeds part around a clear, still pool, your ${who} found a stoppered vial of water. It sparkles. Slightly.`},
  {relic:"horn",when:n=>n.b==="forest",story:who=>`Beneath the roots of an ancient oak, your ${who} found a hunting horn, still warm as if just blown.`}
 ];
 function findRelics(nm){
   const by=units.filter(u=>u.team==="y"&&u.ci!=null);
   FINDS.forEach(f=>{
     const R=RELICS[f.relic],locked=R.lock&&!unlocks[R.lock];
-    if(!f.when(nm)||(!locked&&!f.repeat))return;
+    if(!f.when(nm)||(!locked&&!f.repeat&&Math.random()>=FIND_AGAIN))return;
     if(R.lock)unlock(R.lock);
     if(camp.relics.includes(f.relic))return; // already carried in this campaign
     gainRelic(f.relic);
@@ -5412,6 +5446,7 @@ const RICON={ // small 32-unit relic icons
  bboots:'<path d="M8 6h8v12l6 3q3 2 2 5H7z" fill="#6a4a2a" stroke="#2a1a0a" stroke-width="1.100" stroke-linejoin="round"/><path d="M7 6q4-3 10 0" fill="#c8b090" stroke="#2a1a0a" stroke-width="1"/><path d="M8 9q2-1 3 1M12 8q2 1 2 3M9 13q2-1 3 1" stroke="#c8b090" stroke-width="1.100" fill="none"/><path d="M24 26l3 1.500M22 26l2 3M20 26l1 3" stroke="#e8e0cc" stroke-width="1.400" stroke-linecap="round"/><path d="M7 26h17" stroke="#1a0e06" stroke-width="1.600"/>',
  bleaf:'<path d="M16 29q-11-6-9-17q8-1 13 4q5 6-4 13z" fill="#4a7a2a" stroke="#1e3a12" stroke-width="1.100"/><path d="M16 29q-3-8-6-15M12 19l3-1M11 15l3 .5" stroke="#1e3a12" stroke-width=".9" fill="none"/><path d="M19 16q-1-5 2-9q0 4 3 5q0-4 2-5q2 6-1 10q-3 3-6-1z" fill="#ff8a2a"/><path d="M20.500 15q0-3 1.500-5q.5 3 2 3.500q1-2 1-3q1 4-1 5q-2 1.500-3.500-.5z" fill="#ffd25a"/><circle cx="24" cy="5" r="1" fill="#ffb347" opacity=".7"/>',
  voidshard:'<circle cx="16" cy="15" r="13" fill="#a24aff" opacity=".16"/><path d="M10 6H22L28 12L16 28L4 12z" fill="#08060f" stroke="#c86aff" stroke-width="1.400" stroke-linejoin="round"/><path d="M4 12H28M10 6L13 12L16 6L19 12L22 6M13 12L16 28L19 12" fill="none" stroke="#c86aff" stroke-width=".7" opacity=".6"/><path d="M11 17q3-3 6-1t-1 4" stroke="#3a1a66" stroke-width="1.300" fill="none"/><path d="M11 7.500L9 11" stroke="#f0d0ff" stroke-width=".9" stroke-linecap="round" opacity=".8"/><circle cx="21" cy="9" r="1.100" fill="#3ad8ff"/><circle cx="12" cy="19" r=".9" fill="#ffe94a"/><circle cx="20" cy="16" r=".8" fill="#e7a6ff"/>',
+ vial:'<ellipse cx="16" cy="29" rx="7" ry="1.500" fill="rgba(0,0,0,.18)"/><rect x="13.200" y="3" width="5.600" height="3.400" rx="1" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M13.800 6.400h4.400v5q4 2 4 7v6q0 4-6.200 4t-6.200-4v-6q0-5 4-7z" fill="rgba(210,240,255,.6)" stroke="#1a3a4a" stroke-width="1.100" stroke-linejoin="round"/><path d="M10.200 18q5.800 2 11.600 0v6q0 3.300-5.800 3.300t-5.800-3.300z" fill="#5ac0e6" opacity=".9"/><path d="M12 13q-1.500 3-1 7" stroke="#fff" stroke-width="1" fill="none" opacity=".6"/><g fill="#e6fbff"><path d="M24.500 5l.7 1.800l1.800.7l-1.800.7l-.7 1.800l-.7-1.800l-1.800-.7l1.800-.7z"/><path d="M7 10l.5 1.300l1.300.5l-1.300.5l-.5 1.300l-.5-1.300l-1.300-.5l1.300-.5z"/><path d="M18 20.500l.4 1l1 .4l-1 .4l-.4 1l-.4-1l-1-.4l1-.4z"/></g>',
  horn:'<path d="M6 8q2-5 10-4q8 1 10 9" fill="none" stroke="#5a3a1c" stroke-width="1.300"/><path d="M4 9Q6 26 25 25L25 13Q11 18 7 8z" fill="#e8dcbc" stroke="#3a2412" stroke-width="1.200" stroke-linejoin="round"/><path d="M8 11q2 8 12 9" fill="none" stroke="#fff8e6" stroke-width="1" opacity=".8"/><ellipse cx="25.500" cy="19" rx="3" ry="6.500" fill="#3a2a1a" stroke="#c9962a" stroke-width="1.600"/><path d="M19 16.500l.5 8M14 15l-.5 8" stroke="#c9962a" stroke-width="1.800"/><path d="M3 8.500l3-2l2 3l-3 1.500z" fill="#c9962a" stroke="#3a2412" stroke-width=".9"/><path d="M10 28q3-4 8-3q-3 3-8 3zM2 18q1-4 4-3q0 3-4 3z" fill="#3f7a3a" stroke="#1e4a1c" stroke-width=".9"/>',
  dandelion:'<path d="M16 29q-1-8 0-15" stroke="#4a8a3a" stroke-width="1.600" fill="none" stroke-linecap="round"/><path d="M16 25q-5-1-7-5q4 0 7 3M16 23q4-2 6-6q-4 1-6 4" fill="#5a9a48" stroke="#2e5a24" stroke-width=".8"/><circle cx="16" cy="10" r="8" fill="#fff" opacity=".35"/><g stroke="#bab6aa" stroke-width=".7"><path d="M16 10l7.00 0.00"/><path d="M16 10l6.06 3.50"/><path d="M16 10l3.50 6.06"/><path d="M16 10l0.00 7.00"/><path d="M16 10l-3.50 6.06"/><path d="M16 10l-6.06 3.50"/><path d="M16 10l-7.00 0.00"/><path d="M16 10l-6.06 -3.50"/><path d="M16 10l-3.50 -6.06"/><path d="M16 10l-0.00 -7.00"/><path d="M16 10l3.50 -6.06"/><path d="M16 10l6.06 -3.50"/></g><g fill="#fff" stroke="#a8a498" stroke-width=".4"><circle cx="23.00" cy="10.00" r="1.300"/><circle cx="22.06" cy="13.50" r="1.300"/><circle cx="19.50" cy="16.06" r="1.300"/><circle cx="16.00" cy="17.00" r="1.300"/><circle cx="12.50" cy="16.06" r="1.300"/><circle cx="9.94" cy="13.50" r="1.300"/><circle cx="9.00" cy="10.00" r="1.300"/><circle cx="9.94" cy="6.50" r="1.300"/><circle cx="12.50" cy="3.94" r="1.300"/><circle cx="16.00" cy="3.00" r="1.300"/><circle cx="19.50" cy="3.94" r="1.300"/><circle cx="22.06" cy="6.50" r="1.300"/></g><circle cx="16" cy="10" r="1.800" fill="#c9a83a" stroke="#6a5a1a" stroke-width=".6"/><path d="M26 5l3-2M27 9l3-.5" stroke="#bab6aa" stroke-width=".6"/><circle cx="29.300" cy="2.800" r="1" fill="#fff" stroke="#a8a498" stroke-width=".4"/><circle cx="30.300" cy="8.500" r="1" fill="#fff" stroke="#a8a498" stroke-width=".4"/>',
  bluemagma:'<circle cx="16" cy="17" r="13" fill="#4ab8ff" opacity=".18"/><path d="M6 20l4-9l8-4l8 3l3 8l-4 8l-9 3l-8-3z" fill="#1e2a44" stroke="#0a1020" stroke-width="1.200" stroke-linejoin="round"/><path d="M18 7l8 3l3 8l-4 8l-6 2z" fill="#000" opacity=".2"/><path d="M9 14l5 3l4-5M14 17l1 7l6 2M18 12l6 4l3-2M21 16l-1 5" stroke="#6ad8ff" stroke-width="1.600" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 14l5 3l4-5M14 17l1 7" stroke="#e8fbff" stroke-width=".6" fill="none" stroke-linecap="round"/><path d="M10 11l5-3" stroke="#8aa4c8" stroke-width="1" opacity=".6"/>',
@@ -5969,6 +6004,7 @@ const UNLOCKS=[
  {id:"drills",relic:"drills",hint:"Lose the long march often enough, and your troops learn to march faster."},
  {id:"salts",relic:"salts",hint:"Walk away from enough quick scraps, and someone starts packing remedies."},
  {id:"font",relic:"font",hint:"Darker realms can hide wonderful things."},
+ {id:"vial",relic:"vial",hint:"Some waters are clearer than others."},
  {id:"horn",relic:"horn",hint:"The oldest trees remember the hunt."},
  {id:"bluemagma",relic:"bluemagma",hint:"Even fire has a colder heart."},
  {id:"sakurafan",relic:"sakurafan",hint:"Where the petals fall thickest, something waits to be found."},
@@ -6065,6 +6101,7 @@ $("end").onclick=()=>{
   units.forEach(u=>{if(u.team==="y"&&u.t==="P"&&rel(u,"robes")&&u.hp<maxHp(u)){u.hp+=1;floatText(u.x,u.y,"+1","heal")}}); // Blessed Robes
   if(RELIC.has("aura")){const low=units.filter(u=>u.team==="y"&&u.hp<maxHp(u)).sort((a,b)=>a.hp/maxHp(a)-b.hp/maxHp(b))[0]; // the Ring of a Healing Aura: the one in the most danger
     if(low){const h=Math.min(low.hp<=maxHp(low)/3?2:1,maxHp(low)-low.hp);low.hp+=h;floatText(low.x,low.y,"+"+h,"heal");mendFx(low)}}
+  units.forEach(u=>{if(u.team==="y"&&pure(u)&&u.hp<maxHp(u)){const h=Math.min(VIAL_HEAL,maxHp(u)-u.hp);u.hp+=h;floatText(u.x,u.y,"+"+h,"heal");mendFx(u)}}); // the Pure Water Vial
   units.forEach(u=>{if(u.cubeMend){if(u.hp<maxHp(u)){u.hp+=1;floatText(u.x,u.y,"+1","heal")}delete u.cubeMend}}); // the Small Glowing Cube
   units.forEach(u=>{if(u.team==="y"){delete u.weak;if(u.cursed){u.weak=1;delete u.cursed}delete u.slow;delete u.hex;delete u.hexPend;delete u.haste;delete u.stepOnly;if(u.slowNext){u.slow=1;delete u.slowNext}}});
   lastMove=null;notify("You ended your turn");
