@@ -904,6 +904,7 @@ const RELICS={
  pavise:{name:"Pavise",r:0,lock:"pavise",desc:"Archers take 1 less damage from ranged attacks. Pierce can't get past it."},
  font:{name:"Font of the Wise Ones",r:2,lock:"font",find:1,desc:"Once per battle, each of your units can spend its action to bless an adjacent ally: the ally gets +5% evasion until the end of your next turn."},
  mercy:{name:"Mercy Blade",r:2,desc:"Your units deal +2 damage to enemies at half health or less."},
+ vial:{name:"Pure Water Vial",r:2,lock:"vial",find:1,desc:"Your units standing in shallow water recover 2 HP at the end of each of your turns, and can't be slowed or hexed while they stand in it. The water wants you to live... Why is it sparkling slightly?"},
  horn:{name:"Hunter's Horn of the Old Wood",r:2,lock:"horn",find:1,desc:"Your units attacking from a forest tile deal +2 damage."},
  dandelion:{name:"Immortal Dandelion",r:2,lock:"dandelion",find:1,desc:"Your units with 2 or more HP that are within 2 tiles of an ally Apothecary or Enchanter have a 20% chance to survive a lethal blow with 1 HP."},
  sakurafan:{name:"Fan of Falling Petals",r:2,lock:"sakurafan",find:1,desc:"Your units standing in or beside a Cherry Grove get +10% evasion. Painted with a single bough in bloom; when it opens, a few petals always seem to fall."},
@@ -1010,12 +1011,13 @@ function doBribe(u,x,y){const e=at(x,y);if(!e)return;relicUsed.eight=1;camp.gold
 const canGong=u=>u.team==="y"&&!u.auto&&RELIC.has("gong")&&!relicUsed.gong&&turn==="y";
 function strikeGong(u){
   relicUsed.gong=1;sfx("gong");let n=0;
-  units.forEach(e=>{if(e.team!=="f"||d(u,e)>GONG_RANGE||calm(e)||muled(e))return;e.slow=1;n++;floatText(e.x,e.y,"Slowed","slow")});
+  units.forEach(e=>{if(e.team!=="f"||d(u,e)>GONG_RANGE||unfazed(e)||muled(e))return;e.slow=1;n++;floatText(e.x,e.y,"Slowed","slow")});
   say(`Your ${NAME[u.t]} struck the Thundering Gong`+(n?`: ${n} ${n>1?"enemies are":"enemy is"} slowed on their next turn.`:", but no enemy was close enough to care."));render();
 }
 const canTrumpet=u=>rel(u,"trumpet")&&!relicUsed.trumpet&&!u.acted&&!u.auto&&units.some(b=>b!==u&&b.team==="y"&&d(u,b)<=RALLY_RANGE);
 // Cherry Grove, Moment of Calm: counts as forest only for movement; no forest combat bonuses, no slowing, no retaliation in or out
 const WOODS=k=>FOREST.has(k)&&!CHERRY.has(k),calm=u=>CHERRY.has(u.x+","+u.y);
+const VIAL_HEAL=2,pure=u=>rel(u,"vial")&&SHALLOW.has(u.x+","+u.y),unfazed=u=>calm(u)||pure(u); // the Pure Water Vial: in shallow water; unfazed: can't be slowed or hexed (a Cherry Grove's calm, or the vial)
 const BLUSH_R=2,blush=(x,y)=>{if(!VALE||!/^(ground|forest|cherry|flowers|koi|meadow|greenwood)$/.test(terrainKey(x+","+y)))return"";let m=9;CHERRY.forEach(c=>{const[a,b]=pk(c);m=Math.min(m,Math.abs(a-x)+Math.abs(b-y))});return m<2?" bsh1":m<=BLUSH_R?" bsh2":""}; // Sakura Vale: the groves and the open ground, woods, wildflowers and koi ponds within a diamond of a cherry grove take a pink tint, deeper beside it
 const healOf=u=>ST(u).heal+(rel(u,"salts")?1:0); // how much a healer restores, with relics
 const rgOf=u=>ST(u).rg+(rel(u,"bshot")&&TYPES[u.t]&&TYPES[u.t].rg>1?BSHOT_RG:0)+(u.t==="A"&&rel(u,"long")?1:0)+(u.t==="Q"&&rel(u,"musket")?1:0)+(firstTurn&&ST(u).rg>1&&rel(u,"spyglass")?1:0); // a unit's attack range, with relics
@@ -1971,8 +1973,8 @@ function walk(u,x,y){
   const r=routes(u).get(x+","+y),rough=k=>FOREST.has(k)||SWAMP.has(k);if(u.t==="Q"&&[u.x+","+u.y,x+","+y,...(r?r.path:[])].some(rough))u.rough=1; // the Quilted Escaupil: it went through the brush this turn
   {const seq=[u.x+","+u.y,...(r?r.path:[x+","+y])];if(seq.some((k,i)=>i&&WOODS(seq[i-1])&&!WOODS(k)))u.leftWood=1;if(seq.some((k,i)=>i&&WOODS(seq[i-1])!==WOODS(k)))u.woodMove=1} // in and out of the trees (the Red Clothes)
   const hits=r?r.path.filter(k=>CALTROPS.has(k)&&(u.team!=="y"||Math.random()<CALTROP_ALLY)).length:0;
-  if(u.team==="f"&&!u.slowNext&&!calm(u)&&!muled(u)&&[x+","+y,...(r?r.path:[])].some(k=>{const[a,b]=pk(k);return sparkAura(a,b)})){u.slowNext=1;later(()=>{if(units.includes(u))floatText(u.x,u.y,"Sparked","slow")},150)} // the Friendly Spark's field
-  if([x+","+y,...(r?r.path:[])].some(k=>glowOf(k).length)&&!u.slowNext&&!calm(u)&&!muled(u)){u.slowNext=1;later(()=>{if(units.includes(u))floatText(u.x,u.y,"Dazzled","slow")},150)} // a Light Brick's glow: slowed next turn
+  if(u.team==="f"&&!u.slowNext&&!unfazed(u)&&!muled(u)&&[x+","+y,...(r?r.path:[])].some(k=>{const[a,b]=pk(k);return sparkAura(a,b)})){u.slowNext=1;later(()=>{if(units.includes(u))floatText(u.x,u.y,"Sparked","slow")},150)} // the Friendly Spark's field
+  if([x+","+y,...(r?r.path:[])].some(k=>glowOf(k).length)&&!u.slowNext&&!unfazed(u)&&!muled(u)){u.slowNext=1;later(()=>{if(units.includes(u))floatText(u.x,u.y,"Dazzled","slow")},150)} // a Light Brick's glow: slowed next turn
   u.x=x;u.y=y;
   if(DEN.size&&u.team!=="w"&&[x+","+y,...(r?r.path:[])].some(k=>{const[a,b]=pk(k);return denZone(a,b)}))units.filter(w=>w.team==="w"&&w.terr!==u&&denZone(w.x,w.y)).forEach(w=>{w.terr=u;later(()=>{if(units.includes(w))floatText(w.x,w.y,"Territorial","slow")},150)}); // the Hidden Den: trespassers become the animal's target
   if(!hits)return 0;
@@ -2022,7 +2024,7 @@ function terrainArt(){
 }
 function render(){
   units.forEach(u=>{if((u.slow||u.slowNext)&&u.team==="y"&&!u.slowRoll&&rel(u,"lcube")){u.slowRoll=1;if(Math.random()<CUBE_SLOW){delete u.slow;delete u.slowNext;floatText(u.x,u.y,"Shrugged off","bless")}}if(!u.slow&&!u.slowNext)delete u.slowRoll; // the Large Glowing Cube shrugs off a fifth of slows
-    if(u.slowNext&&calm(u))delete u.slowNext;if(u.slow&&calm(u)){delete u.slow;delete u.hex;delete u.hexPend;floatText(u.x,u.y,"Calm","bless")}});
+    if(u.slowNext&&unfazed(u))delete u.slowNext;if(u.slow&&unfazed(u)){delete u.slow;delete u.hex;delete u.hexPend;floatText(u.x,u.y,calm(u)?"Calm":"Pure water","bless")}});
   board.classList.toggle("murky",MURKY);board.classList.toggle("deepw",DEEPW);board.classList.toggle("haunted",HAUNTED);board.classList.toggle("volcanic",VOLCANIC);board.classList.toggle("sim",SIM);
   const mv=new Set(),tg=new Set(),ig=new Set(),ir=new Set(),pr=new Set(),hs=new Set(),bt=new Set(),it=mode==="bombard"&&sel?new Set(bombTargets(sel)):mode==="skull"&&sel?new Set(skullTargets(sel)):mode==="hive"&&sel?new Set(hiveTargets(sel)):mode==="hook"&&sel?new Set(hookTargets(sel)):mode==="flute"&&sel?new Set(fluteTargets()):mode==="bribe"&&sel?new Set(bribeTargets(sel)):mode==="decoy"&&sel?new Set(decoyTargets(sel)):mode&&mode.startsWith("item:")&&sel&&turn==="y"?itemTargets(sel,mode.slice(5)):new Set();
   if(sel&&turn==="y"&&!over){
@@ -2146,6 +2148,7 @@ function renderInfo(){
   if(u.bleed)notes.push("Bleeding Statue: loses 1 HP at the end of each of its side's turns (never the last).");
   if(muled(u))notes.push("Stubborn as a Mule: +2 armor and can't be pushed or slowed until the end of your next turn.");
   if(u.team==="y"&&SMOKE.has(u.x+","+u.y))notes.push("In smoke: +20% evasion until your next turn.");
+  if(pure(u))notes.push("Pure Water Vial: in shallow water, so it can't be slowed or hexed, and it recovers "+VIAL_HEAL+" HP at the end of your turn.");
   if(calm(u))notes.push("Moment of Calm: in a Cherry Grove, so it can't be slowed, and it neither retaliates nor suffers retaliation.");
   if(rel(u,"trumpet")&&!relicUsed.trumpet&&!u.auto)notes.push("Trumpet of Encouragement: one of your units can sound it once this battle.");
   if(rel(u,"font")&&!u.blessUsed)notes.push("Font of the Wise Ones: can bless an adjacent ally once this battle.");
@@ -2258,7 +2261,7 @@ function buildMenu(){
     const ok=pushable(sel,t);
     opt(`<b>${!ok?"Can't Push":n?`Push ${n} Tile${n>1?"s":""}`:"Push (Blocked)"}</b><small>${!ok?"Too heavy":t.team==="y"?"Reposition ally":bruises(sel,t)?`Strikes for ${combat({...sel,bruise:1},t).dmg} \u00b7 instead of attacking`:"Instead of attacking"}</small>`,()=>{choice=null;doPush(sel,t)},!ok||!n);
   }
-  if(sel.t==="E"&&t.team!==sel.team&&(cm||targets(sel).includes(t)))opt(`<b>${cm?"Move &amp; Hex":"Hex"}</b><small>${calm(t)?"Calm: can't be hexed":t.slow?"Already slowed":"Move 1, its targets +10% evasion"}</small>`,go(a=>doSlow(a,t)),!!t.slow||calm(t));
+  if(sel.t==="E"&&t.team!==sel.team&&(cm||targets(sel).includes(t)))opt(`<b>${cm?"Move &amp; Hex":"Hex"}</b><small>${unfazed(t)?(calm(t)?"Calm":"Pure water")+": can't be hexed":t.slow?"Already slowed":"Move 1, its targets +10% evasion"}</small>`,go(a=>doSlow(a,t)),!!t.slow||unfazed(t));
   if(!cm&&healable(sel,t)){const hn=Math.min(healOf(sel),maxHp(t)-t.hp);opt(`<b>Heal</b><small>+${hn} HP</small>`,()=>{choice=null;doHeal(sel,t)})}
   if(!cm&&canBless(sel,t))opt(`<b>Bless</b><small>${blessed(t)?"Already blessed":"+5% evasion until your next turn ends"}</small>`,()=>{choice=null;doBless(sel,t)},blessed(t));
   opt("<b>Cancel</b>",()=>{choice=null;say("Move, attack, or pick another unit.");render()});
@@ -2500,7 +2503,7 @@ function doBreak(a,t){
 }
 function applyHeal(a,b){const n=Math.min(healOf(a),maxHp(b)-b.hp);b.hp+=n;sfx("heal");floatText(b.x,b.y,"+"+n,"heal");mendFrom(a,b);return n}
 function doSlow(a,u){
-  if(calm(u))return; // Moment of Calm
+  if(unfazed(u))return; // Moment of Calm, or the Pure Water Vial
   a.acted=1;a.moved=1;sel=null;insp=null;locked=true;lastMove=null;
   animAttack(a,u,()=>{u.slow=1;u.hex=1;if(rel(a,"pendant"))u.hexPend=1;sfx("slow");floatText(u.x,u.y,"Hexed","slow");say("Hexed the "+NAME[u.t]+": on its next turn it moves only 1 tile, and its targets get +10% evasion.");locked=false;info=u;afterAction()});
 }
@@ -2783,7 +2786,7 @@ function itemTargets(u,id){
   else if(id==="flash")units.forEach(b=>{if(b.team!=="y"&&d(u,b)<=2)out.add(b.x+","+b.y)});
   else if(id==="incense")units.forEach(b=>{if(b.team==="y"&&!b.auto&&d(u,b)<=1&&!b.rage)out.add(b.x+","+b.y)});
   else if(id==="dryice")units.forEach(b=>{if(d(u,b)<=3)out.add(b.x+","+b.y)});
-  else if(id==="tangle")units.forEach(b=>{if(b.team!=="y"&&d(u,b)<=3&&!b.slow&&!calm(b))out.add(b.x+","+b.y)});
+  else if(id==="tangle")units.forEach(b=>{if(b.team!=="y"&&d(u,b)<=3&&!b.slow&&!unfazed(b))out.add(b.x+","+b.y)});
   else if(SNAP[id]){if(u.hp>SNAP[id][0])units.forEach(b=>{if(b.team!=="y")out.add(b.x+","+b.y)})} // anywhere on the field, but never the last HP
   else if(id==="honey")units.forEach(b=>{if(b.team==="y"&&d(u,b)<=1&&b.hp<maxHp(b))out.add(b.x+","+b.y)});
   else if(id==="bvines"){if(u.hp>BVINE_HP)units.forEach(b=>{if(b.team!=="y"&&d(u,b)===1&&!b.vined)out.add(b.x+","+b.y)})} // never the last HP
@@ -2932,7 +2935,7 @@ function useItem(a,id,x,y,rub,dir){
   }
   if(id==="honey"){ // a sticky heal: slowed on its next turn
     const b=at(x,y),n=Math.min(HONEY_HEAL,maxHp(b)-b.hp);b.hp+=n;sfx("heal");floatText(b.x,b.y,"+"+n,"heal");mendFx(b);info=b;
-    const stuck=!muled(b)&&!calm(b);if(stuck)b.slowNext=1;
+    const stuck=!muled(b)&&!unfazed(b);if(stuck)b.slowNext=1;
     say(`Your ${NAME[a.t]} shared the Wild Honeycomb${b===a?"":" with your "+NAME[b.t]}: +${n} HP`+(stuck?", but it's stuck: only 1 tile of movement on its next turn.":"."));return render();
   }
   if(id==="bvines"){ // the target is bound; the thrower pays in blood and gets thrown about
@@ -3151,7 +3154,7 @@ function chickensAct(done){
 }
 function thanks(u){later(()=>{if(units.includes(u))floatText(u.x,u.y,"Thanks Herbert","thanks")},450)} // a small, warm note that fades
 const HEX_SET=["hfeeble","hmeek","htorpid"];
-function charmHex(u,id){if(!RELIC.has(id)||relicUsed[id]||calm(u))return;relicUsed[id]=1;u.hexNext=HEX_SET.every(k=>RELIC.has(k))?2:1;later(()=>{if(units.includes(u))floatText(u.x,u.y,"Hex charm","slow")},350)} // hexed as its next turn begins
+function charmHex(u,id){if(!RELIC.has(id)||relicUsed[id]||unfazed(u))return;relicUsed[id]=1;u.hexNext=HEX_SET.every(k=>RELIC.has(k))?2:1;later(()=>{if(units.includes(u))floatText(u.x,u.y,"Hex charm","slow")},350)} // hexed as its next turn begins
 function hitFor(a,b,c,back){ // resolve one blow from a to b: dodge roll, damage, removal; true when it landed
   if(Math.random()<1-c.hit){floatText(b.x,b.y,"Evade",true);sfx(b.glitch==="flick"?"glitch":"evade");say(sent(who(b))+" evaded "+(back?"the retaliation.":"the attack."));
     if(!back&&mods[a.team]==="AIM"&&c.dmg>0){later(()=>{if(units.includes(b))floatText(b.x,b.y-.4,"Graze -1")},250);if(hurt(b,1)){credit(a,b);say(sent(who(b))+" evaded, but the graze finished it.")}} // Steady Aim: a miss still grazes
@@ -3375,7 +3378,7 @@ function hazards(team,done){
   }
   const haunted=team!=="y"&&SKULLS.size?units.filter(u=>mine(u)&&skullZone(u.x+","+u.y)):[]; // the Frowning Skull's zone
   units.forEach(u=>{if(mine(u)&&!haunted.includes(u))delete u.skullRest});
-  haunted.forEach(u=>{if(u.skullRest)delete u.skullRest;else if(!calm(u)){u.slowNext=1;u.skullRest=1}hurt(u,SKULL_DMG);floatText(u.x,u.y,"-"+SKULL_DMG,"slow")});
+  haunted.forEach(u=>{if(u.skullRest)delete u.skullRest;else if(!unfazed(u)){u.slowNext=1;u.skullRest=1}hurt(u,SKULL_DMG);floatText(u.x,u.y,"-"+SKULL_DMG,"slow")});
   if(haunted.length)msg.push(haunted.length===1?`The Unsettling Ground gnawed at ${who(haunted[0])}.`:`The Unsettling Ground gnawed at ${haunted.length} units.`);
   const fed=units.filter(u=>u.team===team&&!u.auto&&u.hp>1&&rel(u,"crown")),prey=fed[Math.floor(Math.random()*fed.length)]; // the Hollow King's Crown feeds (never the last HP)
   if(prey){prey.hp-=1;floatText(prey.x,prey.y,"-1");msg.push(`The Hollow King's Crown fed on ${who(prey)}.`)}
@@ -3390,7 +3393,7 @@ function hazards(team,done){
 function wispsAct(){
   const hit=[];
   WISP.forEach(k=>{
-    const near=[...blastOf(k),pk(k)].map(([x,y])=>at(x,y)).filter(u=>u&&!u.slow&&!calm(u)&&!muled(u)&&!hit.includes(u));
+    const near=[...blastOf(k),pk(k)].map(([x,y])=>at(x,y)).filter(u=>u&&!u.slow&&!unfazed(u)&&!muled(u)&&!hit.includes(u));
     if(!near.length)return;
     const u=near[Math.floor(Math.random()*near.length)];u.slow=1;hit.push(u);floatText(u.x,u.y,"Slow","slow");
   });
@@ -3468,7 +3471,7 @@ function foeUseItems(){
       const fell=best.filter(u=>hurt(u,LIGHTNING_DMG));if(fell.length)msg.push(fell.length===1?sent(who(fell[0]))+" fell.":fell.length+" units fell.");
     }
     else if(id==="tangle"){ // slows your fastest unit within its reach
-      const t=units.filter(u=>u.team==="y"&&!u.auto&&!u.slow&&!calm(u)&&!muled(u)&&mvOf(u)>=3&&units.some(e=>e.team==="f"&&d(e,u)<=3)).sort((a,b)=>mvOf(b)-mvOf(a))[0];if(!t)continue;
+      const t=units.filter(u=>u.team==="y"&&!u.auto&&!u.slow&&!unfazed(u)&&!muled(u)&&mvOf(u)>=3&&units.some(e=>e.team==="f"&&d(e,u)<=3)).sort((a,b)=>mvOf(b)-mvOf(a))[0];if(!t)continue;
       t.slow=1;sfx("slow");floatText(t.x,t.y,"Tangled","slow");msg.push(`The enemy threw a Tanglefoot Bag at your ${NAME[t.t]}: it can move only 1 tile on your next turn.`);
     }
     else{const t=units.filter(u=>u.team==="y"&&!u.auto&&units.some(e=>e.team==="f"&&d(e,u)<=3)).sort((a,b)=>a.hp-b.hp)[0];if(!t)continue;
@@ -3718,7 +3721,7 @@ function enemyTurn(note=""){
       animAttack(u,{x:cx,y:cy},()=>{CAMPS.delete(cs);floatText(cx,cy,"Broken");say("Enemy "+NAME[u.t]+" wrecked the camp site.");fin()});return;
     }
     if(u.t==="E"&&ts.length&&!ts.some(p=>dmgTo(u,p)>=p.hp)){
-      const sl=ts.filter(p=>!p.slow&&!calm(p)&&!muled(p)&&mvOf(p)>1).sort((a,b)=>ST(b).dmg-ST(a).dmg||ST(b).mv-ST(a).mv)[0];
+      const sl=ts.filter(p=>!p.slow&&!unfazed(p)&&!muled(p)&&mvOf(p)>1).sort((a,b)=>ST(b).dmg-ST(a).dmg||ST(b).mv-ST(a).mv)[0];
       if(sl){u.acted=1;animAttack(u,sl,()=>{sl.slow=1;sl.hex=1;if(rel(u,"pendant"))sl.hexPend=1;sfx("slow");floatText(sl.x,sl.y,"Hexed","slow");say("Enemy "+NAME[u.t]+" hexed your "+NAME[sl.t]+": it moves only 1 tile, and its targets get +10% evasion.");fin()});return}
     }
     if(ts.length){
@@ -3780,7 +3783,7 @@ function enemyTurn(note=""){
       if(roundEnds())return;
       SMOKE=new Set(); // the smoke drifts away as your turn begins
       const healed=mods.f==="REST"?rest("f"):0;
-      units.forEach(u=>{u.moved=u.acted=0;if(u.ctl)u.acted=1;delete u.wood;delete u.cubeAr;if(u.team==="y")delete u.ward;delete u.aim;delete u.mvFrom;delete u.amb;delete u.rough;delete u.chill;delete u.agile;delete u.ash;delete u.scram;delete u.link;if(u.team!=="y"){delete u.stun;delete u.vined;delete u.slow;delete u.hex;delete u.hexPend;delete u.weak;if(u.cursed){u.weak=1;delete u.cursed}if(u.slowNext){u.slow=1;delete u.slowNext}if(u.hexNext){if(!calm(u)){u.slow=1;u.hex=1}if(--u.hexNext<=0)delete u.hexNext}}});
+      units.forEach(u=>{u.moved=u.acted=0;if(u.ctl)u.acted=1;delete u.wood;delete u.cubeAr;if(u.team==="y")delete u.ward;delete u.aim;delete u.mvFrom;delete u.amb;delete u.rough;delete u.chill;delete u.agile;delete u.ash;delete u.scram;delete u.link;if(u.team!=="y"){delete u.stun;delete u.vined;delete u.slow;delete u.hex;delete u.hexPend;delete u.weak;if(u.cursed){u.weak=1;delete u.cursed}if(u.slowNext){u.slow=1;delete u.slowNext}if(u.hexNext){if(!unfazed(u)){u.slow=1;u.hex=1}if(--u.hexNext<=0)delete u.hexNext}}});
       units.forEach(u=>{if(u.team!=="y"||u.auto)return; // as your turn begins: the Sanguine Chalice drinks, the Mysterious Rosary mends
         if(rel(u,"chalice")&&u.hp>1){u.hp-=1;floatText(u.x,u.y,"-1","slow")}
         else if(pturn>=3&&rel(u,"rosary")&&u.hp<maxHp(u)&&Math.random()<ROSARY_HEAL){u.hp+=1;floatText(u.x,u.y,"+1","heal")}});
@@ -5194,6 +5197,7 @@ const FINDS=[
  {relic:"druid",when:n=>n.b==="wild",story:who=>`Where the wild things had trampled a clearing, your ${who} found a charm of bone and twine hung from a branch. Something small watched from the leaves.`},
  {relic:"fskull",when:n=>n.b==="graveyard",story:who=>`Among the crooked headstones, your ${who} found a skull that seemed to frown back. The ground around it felt wrong.`},
  {relic:"voidshard",when:n=>n.b==="grid",story:who=>`Out in the Grid, where there was nothing at all, your ${who} closed a hand around a piece of it.`},
+ {relic:"vial",when:n=>n.b==="wetlands",story:who=>`Where the reeds part around a clear, still pool, your ${who} found a stoppered vial of water. It sparkles. Slightly.`},
  {relic:"horn",when:n=>n.b==="forest",story:who=>`Beneath the roots of an ancient oak, your ${who} found a hunting horn, still warm as if just blown.`}
 ];
 function findRelics(nm){
@@ -5413,6 +5417,7 @@ const RICON={ // small 32-unit relic icons
  bboots:'<path d="M8 6h8v12l6 3q3 2 2 5H7z" fill="#6a4a2a" stroke="#2a1a0a" stroke-width="1.100" stroke-linejoin="round"/><path d="M7 6q4-3 10 0" fill="#c8b090" stroke="#2a1a0a" stroke-width="1"/><path d="M8 9q2-1 3 1M12 8q2 1 2 3M9 13q2-1 3 1" stroke="#c8b090" stroke-width="1.100" fill="none"/><path d="M24 26l3 1.500M22 26l2 3M20 26l1 3" stroke="#e8e0cc" stroke-width="1.400" stroke-linecap="round"/><path d="M7 26h17" stroke="#1a0e06" stroke-width="1.600"/>',
  bleaf:'<path d="M16 29q-11-6-9-17q8-1 13 4q5 6-4 13z" fill="#4a7a2a" stroke="#1e3a12" stroke-width="1.100"/><path d="M16 29q-3-8-6-15M12 19l3-1M11 15l3 .5" stroke="#1e3a12" stroke-width=".9" fill="none"/><path d="M19 16q-1-5 2-9q0 4 3 5q0-4 2-5q2 6-1 10q-3 3-6-1z" fill="#ff8a2a"/><path d="M20.500 15q0-3 1.500-5q.5 3 2 3.500q1-2 1-3q1 4-1 5q-2 1.500-3.500-.5z" fill="#ffd25a"/><circle cx="24" cy="5" r="1" fill="#ffb347" opacity=".7"/>',
  voidshard:'<circle cx="16" cy="15" r="13" fill="#a24aff" opacity=".16"/><path d="M10 6H22L28 12L16 28L4 12z" fill="#08060f" stroke="#c86aff" stroke-width="1.400" stroke-linejoin="round"/><path d="M4 12H28M10 6L13 12L16 6L19 12L22 6M13 12L16 28L19 12" fill="none" stroke="#c86aff" stroke-width=".7" opacity=".6"/><path d="M11 17q3-3 6-1t-1 4" stroke="#3a1a66" stroke-width="1.300" fill="none"/><path d="M11 7.500L9 11" stroke="#f0d0ff" stroke-width=".9" stroke-linecap="round" opacity=".8"/><circle cx="21" cy="9" r="1.100" fill="#3ad8ff"/><circle cx="12" cy="19" r=".9" fill="#ffe94a"/><circle cx="20" cy="16" r=".8" fill="#e7a6ff"/>',
+ vial:'<ellipse cx="16" cy="29" rx="7" ry="1.500" fill="rgba(0,0,0,.18)"/><rect x="13.200" y="3" width="5.600" height="3.400" rx="1" fill="#8a5a2a" stroke="#2a1410" stroke-width=".8"/><path d="M13.800 6.400h4.400v5q4 2 4 7v6q0 4-6.200 4t-6.200-4v-6q0-5 4-7z" fill="rgba(210,240,255,.6)" stroke="#1a3a4a" stroke-width="1.100" stroke-linejoin="round"/><path d="M10.200 18q5.800 2 11.600 0v6q0 3.300-5.800 3.300t-5.800-3.300z" fill="#5ac0e6" opacity=".9"/><path d="M12 13q-1.500 3-1 7" stroke="#fff" stroke-width="1" fill="none" opacity=".6"/><g fill="#e6fbff"><path d="M24.500 5l.7 1.800l1.800.7l-1.800.7l-.7 1.800l-.7-1.800l-1.800-.7l1.800-.7z"/><path d="M7 10l.5 1.300l1.300.5l-1.300.5l-.5 1.300l-.5-1.300l-1.300-.5l1.300-.5z"/><path d="M18 20.500l.4 1l1 .4l-1 .4l-.4 1l-.4-1l-1-.4l1-.4z"/></g>',
  horn:'<path d="M6 8q2-5 10-4q8 1 10 9" fill="none" stroke="#5a3a1c" stroke-width="1.300"/><path d="M4 9Q6 26 25 25L25 13Q11 18 7 8z" fill="#e8dcbc" stroke="#3a2412" stroke-width="1.200" stroke-linejoin="round"/><path d="M8 11q2 8 12 9" fill="none" stroke="#fff8e6" stroke-width="1" opacity=".8"/><ellipse cx="25.500" cy="19" rx="3" ry="6.500" fill="#3a2a1a" stroke="#c9962a" stroke-width="1.600"/><path d="M19 16.500l.5 8M14 15l-.5 8" stroke="#c9962a" stroke-width="1.800"/><path d="M3 8.500l3-2l2 3l-3 1.500z" fill="#c9962a" stroke="#3a2412" stroke-width=".9"/><path d="M10 28q3-4 8-3q-3 3-8 3zM2 18q1-4 4-3q0 3-4 3z" fill="#3f7a3a" stroke="#1e4a1c" stroke-width=".9"/>',
  dandelion:'<path d="M16 29q-1-8 0-15" stroke="#4a8a3a" stroke-width="1.600" fill="none" stroke-linecap="round"/><path d="M16 25q-5-1-7-5q4 0 7 3M16 23q4-2 6-6q-4 1-6 4" fill="#5a9a48" stroke="#2e5a24" stroke-width=".8"/><circle cx="16" cy="10" r="8" fill="#fff" opacity=".35"/><g stroke="#bab6aa" stroke-width=".7"><path d="M16 10l7.00 0.00"/><path d="M16 10l6.06 3.50"/><path d="M16 10l3.50 6.06"/><path d="M16 10l0.00 7.00"/><path d="M16 10l-3.50 6.06"/><path d="M16 10l-6.06 3.50"/><path d="M16 10l-7.00 0.00"/><path d="M16 10l-6.06 -3.50"/><path d="M16 10l-3.50 -6.06"/><path d="M16 10l-0.00 -7.00"/><path d="M16 10l3.50 -6.06"/><path d="M16 10l6.06 -3.50"/></g><g fill="#fff" stroke="#a8a498" stroke-width=".4"><circle cx="23.00" cy="10.00" r="1.300"/><circle cx="22.06" cy="13.50" r="1.300"/><circle cx="19.50" cy="16.06" r="1.300"/><circle cx="16.00" cy="17.00" r="1.300"/><circle cx="12.50" cy="16.06" r="1.300"/><circle cx="9.94" cy="13.50" r="1.300"/><circle cx="9.00" cy="10.00" r="1.300"/><circle cx="9.94" cy="6.50" r="1.300"/><circle cx="12.50" cy="3.94" r="1.300"/><circle cx="16.00" cy="3.00" r="1.300"/><circle cx="19.50" cy="3.94" r="1.300"/><circle cx="22.06" cy="6.50" r="1.300"/></g><circle cx="16" cy="10" r="1.800" fill="#c9a83a" stroke="#6a5a1a" stroke-width=".6"/><path d="M26 5l3-2M27 9l3-.5" stroke="#bab6aa" stroke-width=".6"/><circle cx="29.300" cy="2.800" r="1" fill="#fff" stroke="#a8a498" stroke-width=".4"/><circle cx="30.300" cy="8.500" r="1" fill="#fff" stroke="#a8a498" stroke-width=".4"/>',
  bluemagma:'<circle cx="16" cy="17" r="13" fill="#4ab8ff" opacity=".18"/><path d="M6 20l4-9l8-4l8 3l3 8l-4 8l-9 3l-8-3z" fill="#1e2a44" stroke="#0a1020" stroke-width="1.200" stroke-linejoin="round"/><path d="M18 7l8 3l3 8l-4 8l-6 2z" fill="#000" opacity=".2"/><path d="M9 14l5 3l4-5M14 17l1 7l6 2M18 12l6 4l3-2M21 16l-1 5" stroke="#6ad8ff" stroke-width="1.600" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 14l5 3l4-5M14 17l1 7" stroke="#e8fbff" stroke-width=".6" fill="none" stroke-linecap="round"/><path d="M10 11l5-3" stroke="#8aa4c8" stroke-width="1" opacity=".6"/>',
@@ -5970,6 +5975,7 @@ const UNLOCKS=[
  {id:"drills",relic:"drills",hint:"Lose the long march often enough, and your troops learn to march faster."},
  {id:"salts",relic:"salts",hint:"Walk away from enough quick scraps, and someone starts packing remedies."},
  {id:"font",relic:"font",hint:"Darker realms can hide wonderful things."},
+ {id:"vial",relic:"vial",hint:"Some waters are clearer than others."},
  {id:"horn",relic:"horn",hint:"The oldest trees remember the hunt."},
  {id:"bluemagma",relic:"bluemagma",hint:"Even fire has a colder heart."},
  {id:"sakurafan",relic:"sakurafan",hint:"Where the petals fall thickest, something waits to be found."},
@@ -6066,6 +6072,7 @@ $("end").onclick=()=>{
   units.forEach(u=>{if(u.team==="y"&&u.t==="P"&&rel(u,"robes")&&u.hp<maxHp(u)){u.hp+=1;floatText(u.x,u.y,"+1","heal")}}); // Blessed Robes
   if(RELIC.has("aura")){const low=units.filter(u=>u.team==="y"&&u.hp<maxHp(u)).sort((a,b)=>a.hp/maxHp(a)-b.hp/maxHp(b))[0]; // the Ring of a Healing Aura: the one in the most danger
     if(low){const h=Math.min(low.hp<=maxHp(low)/3?2:1,maxHp(low)-low.hp);low.hp+=h;floatText(low.x,low.y,"+"+h,"heal");mendFx(low)}}
+  units.forEach(u=>{if(u.team==="y"&&pure(u)&&u.hp<maxHp(u)){const h=Math.min(VIAL_HEAL,maxHp(u)-u.hp);u.hp+=h;floatText(u.x,u.y,"+"+h,"heal");mendFx(u)}}); // the Pure Water Vial
   units.forEach(u=>{if(u.cubeMend){if(u.hp<maxHp(u)){u.hp+=1;floatText(u.x,u.y,"+1","heal")}delete u.cubeMend}}); // the Small Glowing Cube
   units.forEach(u=>{if(u.team==="y"){delete u.weak;if(u.cursed){u.weak=1;delete u.cursed}delete u.slow;delete u.hex;delete u.hexPend;delete u.haste;delete u.stepOnly;if(u.slowNext){u.slow=1;delete u.slowNext}}});
   lastMove=null;notify("You ended your turn");
