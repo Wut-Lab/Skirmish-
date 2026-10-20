@@ -5183,8 +5183,9 @@ $("haenter").onclick=()=>{
 };
 /* ---------- Relics found in battle ----------
    One entry per relic that can turn up after a special campaign victory. when(node) decides if this win qualifies.
-   By default a find happens only while the relic is still locked (its first discovery), and the find also unlocks it;
-   repeat:true lets it be found again later. story(unit name) is the line shown on the "A Relic Found!" screen. */
+   The first win in its biome always finds it (and unlocks it); after that, each win there finds it FIND_AGAIN of the time,
+   at most one per campaign. repeat:true makes every win there find it. story(unit name) is the line shown on the "A Relic Found!" screen. */
+const FIND_AGAIN=.15; // chance a win in its biome finds an already-unlocked biome relic again
 const FINDS=[
  {relic:"font",when:n=>n.b==="swamp",story:who=>`Deep in the murky swamp, your ${who} pulled something strange from the dark water.`},
  {relic:"bluemagma",when:n=>n.b==="volcanic",story:who=>`At the edge of a cooling lava flow, your ${who} spotted a stone glowing a strange, cold blue.`},
@@ -5199,7 +5200,7 @@ function findRelics(nm){
   const by=units.filter(u=>u.team==="y"&&u.ci!=null);
   FINDS.forEach(f=>{
     const R=RELICS[f.relic],locked=R.lock&&!unlocks[R.lock];
-    if(!f.when(nm)||(!locked&&!f.repeat))return;
+    if(!f.when(nm)||(!locked&&!f.repeat&&Math.random()>=FIND_AGAIN))return;
     if(R.lock)unlock(R.lock);
     if(camp.relics.includes(f.relic))return; // already carried in this campaign
     gainRelic(f.relic);
