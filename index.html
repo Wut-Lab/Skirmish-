@@ -182,7 +182,6 @@ button.b:not(:disabled):active{transform:translateY(1px);box-shadow:0 1px 0 var(
 .t.a::after{content:"";position:absolute;inset:6%;border:3px solid rgba(255,255,255,.92);border-radius:50%;z-index:2;pointer-events:none;animation:ring 1.2s ease-in-out infinite}
 @keyframes ring{50%{transform:scale(.92);opacity:.65}}
 .u::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.3),rgba(255,255,255,0) 55%),linear-gradient(rgba(0,0,0,0),rgba(0,0,0,.25))}
-@keyframes selp{50%{box-shadow:0 0 0 5px var(--ink)}}
 .u[data-team=w]{outline:2px dashed rgba(255,255,255,.8);outline-offset:1px}
 .card,.panel,#info,#prules{box-shadow:0 2px 8px rgba(0,0,0,.15)}
 /* ---- depth ---- */
@@ -190,8 +189,9 @@ button.b:not(:disabled):active{transform:translateY(1px);box-shadow:0 1px 0 var(
 #board,#eboard{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:2px;background:var(--ink);padding:2px;border-radius:6px;box-shadow:0 7px 0 rgba(0,0,0,.4),0 16px 26px rgba(0,0,0,.35)}
 .t.w{background:var(--wall);cursor:default;box-shadow:inset 0 4px 0 rgba(255,255,255,.28),inset 0 -7px 0 rgba(0,0,0,.4)}
 .u{--bev:inset 0 0 0 2.600px rgba(255,255,255,.13),inset 0 0 0 3.800px rgba(0,0,0,.22);position:absolute;inset:9%;border-radius:50%;display:grid;place-items:center;transform:translateY(-3px);box-shadow:0 3px 0 rgba(0,0,0,.45),0 7px 6px rgba(0,0,0,.3),0 0 0 1.5px rgba(255,255,255,.6)} /* --bev: a bevelled inner rim, like the mercenary shield's, under whatever trim the piece wears */
-.u.sel{box-shadow:0 3px 0 rgba(0,0,0,.45),0 0 0 3px var(--ink),var(--bev);animation:selp 1.4s ease-in-out infinite}
-@keyframes selp{50%{box-shadow:0 3px 0 rgba(0,0,0,.45),0 0 0 5px var(--ink)}}
+.u.sel{box-shadow:0 3px 0 rgba(0,0,0,.45),0 0 0 3px var(--ink),var(--bev)}
+.u.sel::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;box-shadow:0 0 0 5px var(--ink);opacity:0;will-change:opacity;animation:selp 1.4s ease-in-out infinite} /* the pulse fades a ring in and out: opacity runs on the compositor, a box-shadow would repaint every frame */
+@keyframes selp{50%{opacity:1}}
 /* ---- terrain guide ---- */
 #tguide .panel{width:min(420px,100%)}
 #tguide h3{margin:14px 0 0;font-size:1.3rem;text-align:left}
@@ -208,7 +208,7 @@ button.b:not(:disabled):active{transform:translateY(1px);box-shadow:0 1px 0 var(
 .tsw i.plus{position:absolute;top:3px;right:3px;width:16px;height:16px;border-radius:50%;background:#2f9e6a;color:#fff;font-style:normal;font-weight:800;font-size:.85rem;line-height:16px;text-align:center}
 .tsw{position:relative;width:44px;height:44px;flex:none;border-radius:6px;overflow:hidden;background:var(--tile);box-shadow:inset 0 0 0 1px rgba(255,255,255,.2),0 2px 0 rgba(0,0,0,.3)}
 .tsw i.rg{position:absolute;inset:6%;border:3px solid rgba(255,255,255,.92);border-radius:50%}
-@media (prefers-reduced-motion:reduce){.discs .pv,.t.a::after,.u.sel{animation:none}}
+@media (prefers-reduced-motion:reduce){.discs .pv,.t.a::after,.u.sel::before{animation:none}}
 #tinfo{min-height:64px;margin-top:10px;background:var(--panel);border:2px solid var(--ink);border-radius:8px;padding:8px 12px;display:flex;gap:12px;align-items:center;box-sizing:border-box;font-size:.9rem;box-shadow:0 2px 8px rgba(0,0,0,.15)}
 #tinfo.empty{justify-content:center;opacity:.75}
 #info{min-height:88px;background:var(--panel);border:2px solid var(--ink);border-radius:8px;padding:10px 12px;display:flex;gap:12px;align-items:center;box-sizing:border-box;font-size:.9rem;margin-top:8px}
@@ -251,7 +251,6 @@ button.b.sm2{padding:8px 12px;font-size:.85rem}
 .t{aspect-ratio:1;border:0;padding:0;background:var(--tile);position:relative;font:inherit;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 -3px 0 rgba(0,0,0,.14);overflow:visible}
 button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opacity:1;box-shadow:none;transform:none}
 .u.mv{animation:slide var(--dur,.3s) ease-out;z-index:6}
-.u.sel.mv{animation:slide var(--dur,.3s) ease-out,selp 1.4s ease-in-out infinite}
 @keyframes slide{from{transform:translate(var(--dx),calc(var(--dy) - 3px))}to{transform:translate(0,-3px)}}
 .u.tpin{animation:pin .35s ease-out backwards;z-index:6}
 @keyframes pin{from{transform:translateY(-3px) scale(.2);opacity:0}to{transform:translateY(-3px) scale(1);opacity:1}}
@@ -260,6 +259,8 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .strike{position:absolute;z-index:7;pointer-events:none;overflow:hidden;background:rgba(255,255,255,.5)} /* a landed blow: the target blanches... */
 .strike i{position:absolute;left:-30%;top:44%;width:160%;height:12%;min-height:3px;transform:rotate(-38deg);opacity:0;background:linear-gradient(90deg,rgba(255,255,255,0),#fff 25%,#fff 75%,rgba(255,255,255,0));box-shadow:0 0 3px 1px rgba(120,170,255,.95),0 0 9px 2px rgba(255,255,255,.9);border-radius:50%} /* ...and a sword streak cuts across it */
 .mend{position:absolute;z-index:7;pointer-events:none}
+.fall{position:absolute;z-index:6;pointer-events:none;margin:0!important;animation:none!important;transform-origin:50% 90%} /* a fallen unit's last moment */
+.scorch{position:absolute;z-index:1;pointer-events:none;border-radius:50%;background:radial-gradient(rgba(0,0,0,.38),rgba(0,0,0,.18) 45%,transparent 70%)}
 .mend b{position:absolute;inset:6%;border-radius:50%;background:conic-gradient(rgba(140,240,170,.75),rgba(90,210,130,.15),rgba(170,255,195,.7),rgba(90,210,130,.15),rgba(140,240,170,.75));-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));filter:drop-shadow(0 0 3px rgba(120,230,150,.7))} /* a healing ring: a soft green that flows round as it spreads */
 .mend i{position:absolute;width:24%;height:24%;background:linear-gradient(rgba(170,255,195,.85),rgba(170,255,195,.85)) center/100% 30% no-repeat,linear-gradient(rgba(170,255,195,.85),rgba(170,255,195,.85)) center/30% 100% no-repeat;filter:drop-shadow(0 0 2px rgba(60,170,90,.9))} /* two little plus signs, on a diagonal */
 .mend i:first-of-type{right:3%;top:6%}.mend i:last-of-type{left:4%;bottom:8%}
@@ -489,8 +490,8 @@ border-radius:50%;border:4px solid #fff;box-shadow:0 0 12px rgba(255,120,80,.9);
 .t.bl{outline:3px solid #ff8a1c;outline-offset:-3px;background-image:repeating-linear-gradient(45deg,rgba(255,120,30,.55) 0 5px,rgba(255,120,30,.12) 5px 10px)}
 .boom{position:absolute;width:13%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,#fff6c2 0,#ffb43c 35%,#e2482a 62%,rgba(226,72,42,0) 72%);z-index:5;pointer-events:none;transform:translate(-50%,-50%);animation:boom .65s ease-out forwards}
 @keyframes boom{0%{transform:translate(-50%,-50%) scale(.3);opacity:1}100%{transform:translate(-50%,-50%) scale(3.2);opacity:0}}
-button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
-@keyframes rdy{50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--you) 40%,transparent)}}
+button.b.pri.ready{position:relative}button.b.pri.ready::after{content:"";position:absolute;inset:-2px;border-radius:inherit;pointer-events:none;box-shadow:0 0 0 6px color-mix(in srgb,var(--you) 40%,transparent);opacity:0;will-change:opacity;animation:rdy 1.2s ease-in-out infinite}
+@keyframes rdy{50%{opacity:1}}
 .ulist{display:grid;gap:10px}
 .rcard.qsel{outline:3px solid var(--rc);outline-offset:2px;box-shadow:0 0 0 6px color-mix(in srgb,var(--rc) 30%,transparent)}.qrtog{width:100%;text-align:left}
 .hallsum{margin-bottom:10px}.hstat{grid-template-columns:auto 1fr}.hstat b{text-align:right}.hstat small{opacity:.75}.hch{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:4px}.hch small,.hloss small{opacity:.7}
@@ -503,7 +504,7 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 .ulist small{display:block;font-size:.78rem;opacity:.85}
 .uprog{height:6px;background:rgba(128,128,128,.3);border-radius:3px;overflow:hidden;margin-top:6px}
 .uprog i{display:block;height:100%;background:var(--you)}
-@media (prefers-reduced-motion:reduce){button.b.pri.ready{animation:none}.boom{animation-duration:.2s}}
+@media (prefers-reduced-motion:reduce){button.b.pri.ready::after{animation:none}.boom{animation-duration:.2s}}
 </style>
 </head>
 <body>
@@ -2292,15 +2293,15 @@ $("undo").onclick=()=>{if(!$("undo").disabled)undoMove()};
 // the selected unit's actions, listed only when they can be done right now
 const itemsFor=u=>camp.battle&&!chal&&camp.items&&!u.auto&&u.team==="y"?[...new Set(camp.items)].filter(id=>!ITEMS[id].passive&&(!u.acted||ITEMS[id].free)&&itemTargets(u,id).size):[];
 function unitActs(u){
-  const L=[],add=(t,sm,f)=>L.push([t,sm,f]),hide=msg=>()=>{umHide={u,m:u.moved,a:u.acted};say(msg);render()};
+  const L=[],add=(t,sm,f,tap)=>L.push([t,sm,f,tap]),hide=msg=>()=>{umHide={u,m:u.moved,a:u.acted};say(msg);render()};
   if(mode==="items"){
     itemsFor(u).forEach(id=>{const k=camp.items.filter(i=>i===id).length;add(ITEMS[id].name+(k>1?" \u00d7"+k:""),ITEMS[id].free?"Doesn't use an action":"Uses this unit's action",()=>{mode="item:"+id;say(itemPrompt(id));render()})});
     add("Back","",()=>{mode=null;say("Move, attack, or pick another unit.");render()});return L;
   }
   if(mode){add("Cancel","",()=>{mode=null;say("Move, attack, or pick another unit.");render()});return L}
-  if(!u.moved&&reach(u).length)add("Move","Tap a green tile",hide("Tap a green tile to move."));
-  if(!u.acted&&targets(u).length)add("Attack","Tap a red enemy",hide("Tap a red enemy to attack."+(u.t==="E"?" You can hex it from there too.":"")));
-  if(!u.acted&&healTargets(u).length)add("Heal","Tap a marked ally",hide("Tap a marked ally to heal it."));
+  if(!u.moved&&reach(u).length)add("Move","Tap a green tile",hide("Tap a green tile to move."),1);
+  if(!u.acted&&targets(u).length)add("Attack","Tap a red enemy",hide("Tap a red enemy to attack."+(u.t==="E"?" You can hex it from there too.":"")),1);
+  if(!u.acted&&healTargets(u).length)add("Heal","Tap a marked ally",hide("Tap a marked ally to heal it."),1);
   if(u.cloak&&!u.cloakUsed&&!u.moved)add("Teleport (Cloak)","Once per battle",()=>{mode="ctp";say("Choose an open tile on the far edge.");render()});
   if(mods.y==="TP"&&!tpUsed.y&&!u.moved&&!u.ctl)add("Teleport","To the far edge",()=>{mode="tp";say("Choose an open tile on the far edge.");render()});
   if(u.t==="K"&&!u.acted&&units.some(b=>b.team==="y"&&pushable(u,b)))add("Push Ally","Reposition an ally",()=>{mode="push";say("Choose an adjacent ally to push.");render()});
@@ -2343,7 +2344,7 @@ function unitMenu(){
   const u=sel;
   if(!u||over||busy||locked||turn!=="y"||u.team!=="y"||u.auto&&!u.ctl||mode==="ushove"||!units.includes(u))return;
   if(umHide&&umHide.u===u&&umHide.m===u.moved&&umHide.a===u.acted&&!mode)return; // tucked away to see the board; back after the unit's next step
-  const L=unitActs(u);if(!L.length)return;
+  const L=unitActs(u);if(L.every(e=>e[3]))return; // only moves, attacks and heals: the marked tiles already say so, so no menu
   const m=document.createElement("div");m.className="pmenu umenu";m.style.visibility="hidden";
   L.forEach(([t,sm,f])=>{const b=document.createElement("button");b.innerHTML=`<b>${t}</b>${sm?`<small>${sm}</small>`:""}`;b.onclick=f;m.append(b)});
   $("fx").append(m);placeUnitMenu(m,u);m.style.visibility="";
@@ -3010,7 +3011,7 @@ function hurt(u,n){
     camp.items.splice(camp.items.indexOf("phoenix"),1);saveCamp();u.hp=1;u.ash=1;later(()=>{if(units.includes(u)){floatText(u.x,u.y,"Rises from the ashes","heal");sfx("flame")}},250);
   }
   if(u.hp>0){sfx("hit");return false}
-  sfx("kill");units=units.filter(v=>v!==u);if(u.team==="f")relicUsed.foesDown=(relicUsed.foesDown||0)+1;if(u.bounty)relicUsed.bounty=1; // for the Trophy Pouch and the Bounty Notice
+  sfx("kill");fallFx(u);units=units.filter(v=>v!==u);if(u.team==="f")relicUsed.foesDown=(relicUsed.foesDown||0)+1;if(u.bounty)relicUsed.bounty=1; // for the Trophy Pouch and the Bounty Notice
   units.filter(v=>v.team===u.team&&v.utrio&&!v.vengeance).forEach(v=>{v.vengeance=1;later(()=>{if(units.includes(v))floatText(v.x,v.y,"Vengeance +1","bless")},450)}); // The Usurper: the first comrade to fall
   if(ownUnit(u)&&rel(u,"smallforces")&&(relicUsed["sf_"+u.team]=(relicUsed["sf_"+u.team]||0)+1)===2) // Small Forces Combat Tactics: the second to fall steels the rest
     units.filter(v=>v.team===u.team&&ownUnit(v)).forEach(v=>{v.sforce=1;if(v.hp<maxHp(v))v.hp++;later(()=>{if(units.includes(v))floatText(v.x,v.y,"Small Forces","bless")},400)});
@@ -3313,6 +3314,16 @@ function pushFx(u,sx,sy){
     const to=sx>0?"right":sx<0?"left":sy>0?"bottom":"top",cl=sx>0?"0 100% 0 0":sx<0?"0 0 0 100%":sy>0?"0 0 100% 0":"100% 0 0 0",f=document.createElement("i");
     f.className="pflash";f.style.background=`linear-gradient(to ${to},rgba(255,255,255,.85),rgba(255,255,255,.4) 55%,rgba(255,255,255,0))`;e.append(f);
     f.animate([{clipPath:`inset(${cl})`,opacity:1},{clipPath:"inset(0 0 0 0)",opacity:.9,offset:.4},{clipPath:"inset(0 0 0 0)",opacity:0}],{duration:420,easing:"ease-out",fill:"forwards"}).onfinish=()=>f.remove();
+  }catch(err){}
+}
+// a fallen unit tips over, greys and fades, leaving a faint scorch that lingers a moment
+function fallFx(u){
+  try{
+    const t=board.children[u.y*W+u.x],eu=t&&t.querySelector(".u");if(!eu||!eu.animate)return;
+    const r=eu.getBoundingClientRect(),bw=$("bw").getBoundingClientRect(),c=eu.cloneNode(true),tilt=Math.random()<.5?-1:1,sm=still();c.classList.add("fall");
+    Object.assign(c.style,{left:(r.left-bw.left)+"px",top:(r.top-bw.top)+"px",width:r.width+"px",height:r.height+"px",transform:"none"});$("fx").append(c);
+    c.animate(sm?[{opacity:1},{opacity:0}]:[{transform:"none",filter:"none",opacity:1},{transform:`rotate(${tilt*10}deg)`,filter:"grayscale(.6) brightness(.9)",opacity:1,offset:.3},{transform:`translateY(5px) rotate(${tilt*28}deg) scale(.82)`,filter:"grayscale(1) brightness(.6)",opacity:0}],{duration:sm?400:650,delay:sm?0:120,easing:"ease-in",fill:"both"}).onfinish=()=>c.remove();
+    const s=tileFx(u.x,u.y,"scorch");if(s)s.animate([{opacity:0,transform:"scale(.4)"},{opacity:1,transform:"scale(.8)",offset:.3},{opacity:0,transform:"scale(.9)"}],{duration:1400,delay:sm?0:350,easing:"ease-out",fill:"both"}).onfinish=()=>s.remove();
   }catch(err){}
 }
 // the muster call: a trumpet rises over the captain and fades
