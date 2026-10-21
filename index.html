@@ -395,6 +395,18 @@ border-radius:50%;border:4px solid #fff;box-shadow:0 0 12px rgba(255,120,80,.9);
 .rchip{display:grid;place-items:center;width:36px;height:36px;padding:0;border:0;border-radius:50%;cursor:pointer;background:radial-gradient(circle at 40% 35%,#fffaf0,#d8c49a);box-shadow:0 0 0 2px var(--rc,#8a8f96),0 2px 0 rgba(0,0,0,.25);transition:transform .12s}
 .rchip:hover,.rchip:focus-visible{transform:translateY(-2px);outline:none;box-shadow:0 0 0 3px var(--rc,#8a8f96),0 3px 0 rgba(0,0,0,.3)}
 #relinfo .panel{width:min(360px,100%)}#relinfo #ribody{width:100%}#relinfo .rcard{cursor:default;box-sizing:border-box;width:100%}#relinfo .rcard:hover{transform:none}#relinfo .plbl{display:flex;justify-content:space-between;width:100%;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#e8d6ae;margin:2px 0 4px}#relinfo .plbl span{opacity:.75}#relinfo .pgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:7px;width:100%;max-height:min(50vh,420px);overflow-y:auto;padding:3px;box-sizing:border-box}#relinfo .prow{display:flex;justify-content:space-evenly;flex-wrap:wrap;gap:7px;width:100%;padding:3px;margin-bottom:8px;box-sizing:border-box}.ptile{display:grid;place-items:center;aspect-ratio:1;padding:0;border:2px solid #1a0f07;border-radius:7px;background:#f3e6c4;box-shadow:inset 0 0 0 2px var(--rc),inset 0 0 8px rgba(120,80,30,.25);cursor:pointer;font:inherit}.prow .ptile{width:calc((100% - 35px)/6)}.ptile svg{width:72%;height:auto;display:block;filter:drop-shadow(0 1px 1.200px rgba(0,0,0,.35))}.ptile:hover,.ptile:focus-visible{filter:brightness(1.07);outline:2px solid var(--rc);outline-offset:1px}.ptile.pempty{background:rgba(243,230,196,.12);border:2px dashed rgba(232,214,174,.45);box-shadow:none;cursor:default;box-sizing:border-box}
+/* flavor text: a relic's or consumable's picture becomes a button (with a small quote badge) that opens a parchment note */
+.flavbtn{position:relative;display:grid;place-items:center;width:100%;height:100%;padding:0;border:0;background:none;border-radius:50%;cursor:pointer;color:inherit}
+.flavbtn::after{content:"\201C";position:absolute;right:-5px;bottom:-5px;width:18px;height:18px;border-radius:50%;background:#3a2616;color:#f3d9a0;border:1.5px solid #f3e6c4;font:700 15px/22px Georgia,"Times New Roman",serif;text-align:center;box-sizing:border-box}
+.flavbtn:hover,.flavbtn:focus-visible{outline:2px solid #c9962a;outline-offset:2px}
+#flavbox{z-index:12}
+.flav{position:relative;width:min(320px,100%);box-sizing:border-box;padding:22px 22px 16px;display:grid;justify-items:center;gap:8px;text-align:center;color:#3a2a1a;background:radial-gradient(ellipse at 50% 30%,#fbf3dc,#ecd9ad);border:2px solid #1a0f07;border-radius:6px;box-shadow:inset 0 0 0 3px #f3e6c4,inset 0 0 0 4px var(--rc,#a08a64),inset 0 0 30px rgba(120,80,30,.3),0 10px 30px rgba(0,0,0,.45)}
+.flico{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 40% 35%,#fffaf0,#d8c49a);box-shadow:0 0 0 2px var(--rc,#a08a64)}
+.flico svg{filter:drop-shadow(0 1px 1.200px rgba(0,0,0,.35))}
+.flav h3{margin:2px 0 0;font:700 1.1rem/1.25 Georgia,"Times New Roman",serif;color:#3a2616}
+.flav p{position:relative;margin:0;padding:6px 8px 4px;font:italic 1.02rem/1.5 Georgia,"Times New Roman",serif;color:#4a3420}
+.flav p::before{content:"";display:block;width:60%;height:1px;margin:0 auto 10px;background:linear-gradient(90deg,transparent,#8a6a3a,transparent)}
+.flav .b{margin-top:6px;background:#3a2616;color:#f1e4c6;border-color:#1a0f07}
 #riclose{justify-self:center;background:#3a2616;color:#f1e4c6;border-color:#1a0f07}
 .rchip svg,.rcard svg{display:block}
 .rpan{width:min(460px,100%)}#relicv{overflow-y:auto;place-items:safe center} /* up to five choices with Copper Coins: let a short screen scroll */
@@ -677,6 +689,14 @@ button.b.pri.ready{position:relative}button.b.pri.ready::after{content:"";positi
 <button class="b big" id="riclose">Close</button>
 </div>
 </div>
+<div class="ov" id="flavbox" hidden>
+<div class="flav" role="dialog" aria-labelledby="fltitle" aria-describedby="fltext">
+<div class="flico" id="flico"></div>
+<h3 id="fltitle"></h3>
+<p id="fltext"></p>
+<button class="b" id="flclose">Close</button>
+</div>
+</div>
 <div class="ov" id="rubask" hidden>
 <div class="panel cpan" role="alertdialog" aria-labelledby="rbtitle">
 <h2 id="rbtitle">Rub the Horseshoe?</h2>
@@ -854,7 +874,7 @@ const RELICS={
  keen:{name:"Keen Eye Charm",r:0,desc:"Your ranged attacks (range 2 or more) ignore 3% of the target's evasion."},
  pendant:{name:"Glowing Pendant",r:0,src:"both",need:"E",desc:"Enemies your Enchanters hex also get 5% less evasion while the hex lasts.",flavor:"It glows brighter the closer it gets to a curse."},
  hexbook:{name:"Book of Combat Hexes",r:2,src:"both",need:"E",hpUp:"E",desc:"Enchanters get +1 max HP and +5% evasion. An adjacent enemy that attacks an Enchanter takes 1 damage, ignoring armor, whether or not it hits, and deals 1 less damage on its next turn. Gaining it doesn't heal them."},
- redtome:{name:"Tome of the Red Mages' College",r:1,set:"tomes",src:"both",need:"E",desc:"Your Enchanters glow a faint red. Their attacks deal +1 damage, but cost them 1 HP each (never the last). Slowing is unaffected."},
+ redtome:{name:"Tome of the Red Mages' College",r:1,set:"tomes",src:"both",need:"E",desc:"Your Enchanters' attacks deal +1 damage, but cost them 1 HP each (never the last). Slowing is unaffected.",flavor:"Your Enchanters glow a faint red."},
  blacktome:{name:"Tome of the Black Mages' College",r:1,set:"tomes",src:"both",need:"E",desc:"Your Enchanters siphon life: a landed attack heals them 1 HP, and they deal +1 damage to a target that is already slowed."},
  whet:{name:"Whetstones",r:0,src:"both",desc:"Archers deal +1 damage."},
  shield:{name:"Sturdy Shields",r:0,desc:"Knights get +1 armor."},
@@ -907,7 +927,7 @@ const RELICS={
  bboots:{name:"Boots of Bestial Speed",r:0,src:"wilds",lock:"wildwilds",desc:"When one of your units is hurt by a retaliation, it can step 1 tile afterward.",flavor:"Lined with fur that isn't quite any animal's."},
  bleaf:{name:"Burning Leaf",r:0,src:"wilds",lock:"wildwilds",desc:"Once each turn, as your turn ends, one of your units standing in a forest sets a random enemy beside it burning: it takes 1 damage, ignoring armor, as its next turn begins.",flavor:"It smoulders, and never burns away."},
  gbook:{name:"Glitchy Book",r:0,src:"sim",lock:"warpedsim",desc:"Corrupted Pages: as each battle begins, one random unit of yours gets a random glitch for that battle: Flickering (+10% evasion), Overclocked (+1 movement) or Chaos Code (a unit that hits it in melee takes 1 damage)."},
- pavise:{name:"Pavise",r:0,lock:"pavise",desc:"Archers take 1 less damage from ranged attacks. Pierce can't get past it."},
+ pavise:{name:"Pavise",r:0,lock:"pavise",desc:"Archers take 1 less damage from ranged attacks, and pierce doesn't reduce it.",flavor:"Pierce can't get past it."},
  font:{name:"Font of the Wise Ones",r:2,lock:"font",find:1,desc:"Once per battle, each of your units can spend its action to bless an adjacent ally: the ally gets +5% evasion until the end of your next turn."},
  mercy:{name:"Mercy Blade",r:2,desc:"Your units deal +2 damage to enemies at half health or less."},
  vial:{name:"Pure Water Vial",r:2,lock:"vial",find:1,desc:"Your units standing in shallow water recover 2 HP at the end of each of your turns, and can't be slowed or hexed while they stand in it.",flavor:"The water wants you to live... Why is it sparkling slightly?"},
@@ -5579,7 +5599,7 @@ const relicIcon=(id,sz=32)=>`<svg viewBox="0 0 32 32" width="${sz}" height="${sz
 function renderGold(){$("wgold").innerHTML=PURSE+`<b aria-label="${camp.gold} gold">${camp.gold}</b>`+(camp.lastGold?`<span class="gplus" aria-hidden="true">+${camp.lastGold}</span>`:"");camp.lastGold=0}
 /* ---------- The shop: Marcus's wagon ---------- */
 const SHOP_TEXT="Marcus the pedlar and his mule Parsnip have set up shop by the road. Spend your gold on potions, bombs and relics. One visit only.";
-const ITEMS={ // consumables, used in battle (campaign only); using one takes the unit's action
+const ITEMS={ // consumables, used in battle (campaign only); using one takes the unit's action; flavor: as for relics
  hsplash:{name:"Weak Healing Splash Potion",price:15,staple:1,desc:"Shatter it at this unit's feet: it and every ally in the 8 tiles around it recover 1 HP."},
  asplash:{name:"Weak Agility Splash Potion",price:10,staple:1,free:1,desc:"Shatter it at this unit's feet: it and every ally in the 8 tiles around it get +3% evasion until your next turn. Using it doesn't use the unit's move or action."},
  draught:{name:"Healing Draught",price:25,foe:1,desc:"Heal this unit or an adjacent ally for 5 HP."},
@@ -5592,29 +5612,29 @@ const ITEMS={ // consumables, used in battle (campaign only); using one takes th
  tonic:{name:"Courier's Tonic",price:40,r:1,free:1,desc:"Drink before moving: this unit gets +2 movement this turn. Drinking it doesn't use the unit's action."},
  koijar:{name:"Jar of Koi",price:50,r:1,lock:"sakura",desc:"Pour it out on an empty tile next to this unit to make a Koi Pond: it blocks movement, and each side's units beside it recover 1 HP at the end of their turn. Can't go on impassable terrain, or where it would cut off part of the field."},
  medkit:{name:"Advanced Med Kit",price:45,r:1,desc:"Mend 1 wound on this unit or an adjacent ally (campaign wounds, restoring 1 max HP). An Apothecary using it has a 25% chance to mend 2."},
- wake:{name:"Waking Herbs",price:20,free:1,desc:"Crush them under this unit's nose or an adjacent ally's: it shakes off being slowed, hexed or cursed. Using them doesn't use either unit's move or action. One sniff and you're wide awake, and possibly crying."},
+ wake:{name:"Waking Herbs",price:20,free:1,desc:"Crush them under this unit's nose or an adjacent ally's: it shakes off being slowed, hexed or cursed. Using them doesn't use either unit's move or action.",flavor:"One sniff and you're wide awake, and possibly crying."},
  acid:{name:"Acid Flask",price:40,r:1,desc:"Throw at an enemy within 3: the acid eats into its armor, giving it 1 less armor until the end of your next turn. It can't take armor below 0."},
- viper:{name:"Viper's Blood Oil",price:40,r:1,free:1,desc:"Coat this unit's weapon before it attacks: its next attack this turn deals +2 damage. Coating it doesn't use the unit's move or action. Smells awful. Works wonderfully."},
+ viper:{name:"Viper's Blood Oil",price:40,r:1,free:1,desc:"Coat this unit's weapon before it attacks: its next attack this turn deals +2 damage. Coating it doesn't use the unit's move or action.",flavor:"Smells awful. Works wonderfully."},
  phoenix:{name:"Ward of a Phoenix's Flames",price:85,r:2,max:1,passive:1,desc:"You can carry only one. It works on its own: the first time one of your units would fall in a battle, it survives in place with 1 HP and gets +5% evasion until the end of that turn. Then the ward burns to ash."},
- dryice:{name:"Bucket of Dry Ice",price:15,desc:"Tip it out by a unit within 3: cold fog rolls over it and every unit in the 8 tiles around it, friend or foe, giving each +3% evasion until your next turn. Mostly, it just looks spooky."},
+ dryice:{name:"Bucket of Dry Ice",price:15,desc:"Tip it out by a unit within 3: cold fog rolls over it and every unit in the 8 tiles around it, friend or foe, giving each +3% evasion until your next turn.",flavor:"Mostly, it just looks spooky."},
  flash:{name:"Flash Vial",price:70,r:2,desc:"Throw at an enemy within 2: a blinding burst deals 1 damage, ignoring armor, and the target can't move or attack on its next turn."},
- incense:{name:"Enraging Incense",price:80,r:2,max:1,desc:"You can carry only one. Burn it beside this unit or an adjacent ally: for the rest of the battle it gets +1 damage, +1 movement and +1 pierce, but 5% less evasion. The smoke smells of iron and bad decisions."},
+ incense:{name:"Enraging Incense",price:80,r:2,max:1,desc:"You can carry only one. Burn it beside this unit or an adjacent ally: for the rest of the battle it gets +1 damage, +1 movement and +1 pierce, but 5% less evasion.",flavor:"The smoke smells of iron and bad decisions."},
  pixel:{name:"Pixel Bomb",r:2,sim:1,desc:"Found only in the Warped Sim. Throw at an enemy within 3: it takes 3 damage, ignoring armor, then it and every enemy beside it glitch to random empty tiles within 2. Fortresses and forests won't save them."},
- snapper:{name:"Blood Snapper",r:0,wilds:1,free:1,desc:"Found only in the Warped Wilds. Light its fuse with 1 of this unit's HP and it bursts on an enemy anywhere on the field for 1 damage, ignoring armor. It never takes the unit's last HP, so a unit on 1 HP can't use it. Using it doesn't use the unit's move or action. Blood makes a better fuse than you'd think."},
- lsnapper:{name:"Large Blood Snapper",r:1,wilds:1,free:1,desc:"Found only in the Warped Wilds. Light its fuses with 2 of this unit's HP and it bursts on an enemy anywhere on the field for 3 damage, ignoring armor. It never takes the unit's last HP, so a unit needs 3 HP or more to use it. Using it doesn't use the unit's move or action. Stand well back."},
+ snapper:{name:"Blood Snapper",r:0,wilds:1,free:1,desc:"Found only in the Warped Wilds. Light its fuse with 1 of this unit's HP and it bursts on an enemy anywhere on the field for 1 damage, ignoring armor. It never takes the unit's last HP, so a unit on 1 HP can't use it. Using it doesn't use the unit's move or action.",flavor:"Blood makes a better fuse than you'd think."},
+ lsnapper:{name:"Large Blood Snapper",r:1,wilds:1,free:1,desc:"Found only in the Warped Wilds. Light its fuses with 2 of this unit's HP and it bursts on an enemy anywhere on the field for 3 damage, ignoring armor. It never takes the unit's last HP, so a unit needs 3 HP or more to use it. Using it doesn't use the unit's move or action.",flavor:"Stand well back."},
  shroom:{name:"Enraging Mushroom",r:2,wilds:1,free:1,max:1,desc:FATAL+"Found only in the Warped Wilds. You can carry only one. Crush it and it bursts into enraging spores: every one of your own units (not friends or mercenaries) takes 2 damage, ignoring armor, then gets +2 damage, +2 pierce and +1 movement until the end of this turn. Use it whenever you like, before or after any unit moves or attacks; using it doesn't use the unit's move or action."},
- acorn:{name:"Blood Acorn",r:0,wilds:1,desc:"Found only in the Warped Wilds. Throw at a tile within 3 that isn't impassable: a Blood Oak sprouts there for the rest of the battle. It plays like a forest (leaving costs 1 movement, +10% evasion), but a unit that ends its turn on it takes 1 damage, ignoring armor. Whatever grew there before is pushed aside. It's already thirsty."},
- thicket:{name:"Heart of the Thicket",r:2,wilds:1,desc:"Found only in the Warped Wilds. Throw at a tile within 3: it and the 8 tiles around it (all but impassable ones) become Tanglevine Patches for the rest of the battle. Entering a patch costs 1 extra movement, and a unit standing in one can't retaliate. Plant it and step back. Further. Further."},
- honey:{name:"Wild Honeycomb",r:0,wilds:1,desc:"Found only in the Warped Wilds. This unit or an adjacent ally recovers 3 HP, but the honey is sticky: that unit is slowed on its next turn, moving only 1 tile. The bees will want it back."},
+ acorn:{name:"Blood Acorn",r:0,wilds:1,desc:"Found only in the Warped Wilds. Throw at a tile within 3 that isn't impassable: a Blood Oak sprouts there for the rest of the battle. It plays like a forest (leaving costs 1 movement, +10% evasion), but a unit that ends its turn on it takes 1 damage, ignoring armor. Whatever grew there before is pushed aside.",flavor:"It's already thirsty."},
+ thicket:{name:"Heart of the Thicket",r:2,wilds:1,desc:"Found only in the Warped Wilds. Throw at a tile within 3: it and the 8 tiles around it (all but impassable ones) become Tanglevine Patches for the rest of the battle. Entering a patch costs 1 extra movement, and a unit standing in one can't retaliate.",flavor:"Plant it and step back. Further. Further."},
+ honey:{name:"Wild Honeycomb",r:0,wilds:1,desc:"Found only in the Warped Wilds. This unit or an adjacent ally recovers 3 HP, but the honey is sticky: that unit is slowed on its next turn, moving only 1 tile.",flavor:"The bees will want it back."},
  bvines:{name:"Bag of Bloody Vines",r:1,wilds:1,desc:"Found only in the Warped Wilds. Loose the vines on an enemy beside this unit: it can't move, attack or retaliate from now until the end of its next turn. The vines drink 2 HP from the unit that loosed them (never its last, so it needs 3 HP or more), and their thrashing shoves it 1 tile in a random open direction, hazards and all. If there's nowhere to go, it stays put."},
- whistle:{name:"Brittle Whistle of the Eldritch Gods",r:2,wilds:1,max:1,desc:"Found only in the Warped Wilds. You can carry only one. Blow it and every unit on the field, friend or foe, drops to a quarter of its max HP (rounded up; anyone already lower stays where they are). In a boss battle, the enemy drops only to half. Then one of your units, chosen at random, is restored to full HP. Blowing it ends your turn. It won't survive a second note."},
+ whistle:{name:"Brittle Whistle of the Eldritch Gods",r:2,wilds:1,max:1,desc:"Found only in the Warped Wilds. You can carry only one. Blow it and every unit on the field, friend or foe, drops to a quarter of its max HP (rounded up; anyone already lower stays where they are). In a boss battle, the enemy drops only to half. Then one of your units, chosen at random, is restored to full HP. Blowing it ends your turn.",flavor:"It won't survive a second note."},
  whip:{name:"Whipvine Sack",r:1,wilds:1,desc:"Found only in the Warped Wilds. Throw at a tile within 3 that isn't impassable: the vines take root and it becomes a Tanglevine Patch for the rest of the battle (entering costs 1 extra movement, and a unit standing in it can't retaliate). Whatever grew there before is choked out."},
  warp:{name:"Warp Cube",r:0,sim:1,free:1,desc:"Found only in the Warped Sim. This unit swaps places with an ally on one of the 8 tiles around it. Neither unit uses its move or action."},
- vrations:{name:"Virtual Rations",r:0,sim:1,free:1,desc:"Found only in the Warped Sim. This unit or an adjacent ally recovers 2 HP and shakes off being slowed. Using them doesn't use either unit's move or action. Tastes exactly like bread. Suspiciously exactly."},
+ vrations:{name:"Virtual Rations",r:0,sim:1,free:1,desc:"Found only in the Warped Sim. This unit or an adjacent ally recovers 2 HP and shakes off being slowed. Using them doesn't use either unit's move or action.",flavor:"Tastes exactly like bread. Suspiciously exactly."},
  scramble:{name:"Scramble Protocol",r:1,sim:1,desc:"Found only in the Warped Sim. Run it on an enemy on one of the 8 tiles around this unit: its base damage and armor swap until the start of your next turn. Bonuses still add on top."},
  dtl:{name:"Data Transfer Line",r:1,sim:1,desc:"Found only in the Warped Sim. Plug this unit into an ally on one of the 8 tiles around it: until the start of your next turn, both have the higher base armor and the higher base evasion of the two."},
  motherboard:{name:"Broken Motherboard",r:2,sim:1,max:1,desc:"Found only in the Warped Sim. You can carry only one. Smash it: every unit on the field, friend or foe, glitches to an open tile beside it, then every unit takes 2 damage, ignoring armor."},
- mule:{name:"Mule Hair Potion",price:40,r:1,lock:"mule",desc:"The drinker turns stubborn as a mule: +2 armor, and it can't be pushed or slowed, until the end of your next turn. Brewed from genuine mule hair. Marcus swears Parsnip had nothing to do with it."}};
+ mule:{name:"Mule Hair Potion",price:40,r:1,lock:"mule",desc:"The drinker turns stubborn as a mule: +2 armor, and it can't be pushed or slowed, until the end of your next turn.",flavor:"Brewed from genuine mule hair. Marcus swears Parsnip had nothing to do with it."}};
 // sim: never sold; only turns up in the Warped Sim's rewards
 // r: rarity (an uncommon is drawn half as often as a common, a rare a quarter as often); max: how many the pack can hold at once; passive: works from the pack by itself, never used by hand; free: using it costs the unit nothing; lock: the unlock it waits for
 const SNAP={snapper:[1,1],lsnapper:[2,3]},SHROOM_HP=2,HONEY_HEAL=3,BVINE_HP=2,WHISTLE_CUT=.25,WHISTLE_BOSS=.5,SHROOM_DMG=2,SHROOM_PI=2,THICKET_R=1, // the Blood Snappers: [HP fed, damage dealt]; the Enraging Mushroom; Heart of the Thicket: its reach around the tile it lands on
@@ -5760,7 +5780,7 @@ function buy(kind,id){
 }
 $("shleave").onclick=()=>{marcusSays(MARCUS.bye);$("shopv").hidden=true;shopNode=null;renderWorld()};
 const renderItems=()=>renderRelics(); // relics and items share one card on the world map
-function showItemInfo(id,from){const I=ITEMS[id];relinfoFrom=from;$("rititle").textContent=I.name;$("ribody").innerHTML=`<div class="rcard" style="--rc:#a08a64"><span class="ri">${itemIcon(id,38)}</span><span class="rr">Consumable \u00b7 one use</span><small>${I.desc} In battle, select a unit and tap Use Item.</small></div>`;$("relinfo").hidden=false;$("riclose").focus()}
+function showItemInfo(id,from){const I=ITEMS[id];relinfoFrom=from;$("rititle").textContent=I.name;$("ribody").innerHTML=`<div class="rcard" style="--rc:#a08a64"><span class="ri">${flavArt("i",id,itemIcon(id,38))}</span><span class="rr">Consumable \u00b7 one use</span><small>${I.desc} In battle, select a unit and tap Use Item.</small></div>`;$("relinfo").hidden=false;$("riclose").focus()}
 // a full pack: pick a consumable to discard for the new one (id), then confirm; take() then adds it as usual. "Keep my pack" changes nothing
 function swapItem(id,from,take){
   const end=()=>{$("riclose").hidden=false;closeRelicInfo()},card=(k,rr,i)=>`<button class="rcard" data-i="${i}" style="--rc:${ITEMS[k].r?RARITY[ITEMS[k].r][1]:"#a08a64"}"><span class="ri">${itemIcon(k,38)}</span><span class="rr">${rr}</span><b>${ITEMS[k].name}</b><small>${ITEMS[k].desc}</small></button>`;
@@ -5775,8 +5795,8 @@ function swapItem(id,from,take){
   relinfoFrom=from;$("rititle").textContent="Your Pack Is Full";$("riclose").hidden=true;$("relinfo").hidden=false;pick();
 }
 function showPack(from,foe){ // every relic and item you (or the garrison) carry, from the "...": a slim list, tap one for its details
-  const by=foe?"Carried by the enemy \u00b7 ":"",all=[...(foe?[...FOE_RELIC]:packRelics()).map(id=>{const R=RELICS[id];return {ic:relicIcon(id,38),sm:relicIcon(id,26),rr:by+RARITY[R.r][0]+" relic"+(!foe&&R.set?" \u00b7 "+RELIC_SETS[R.set].name:""),rc:RARITY[R.r][1],nm:R.name,desc:R.desc}}),
-    ...(foe?FOE_ITEMS:camp.items).map(id=>({ic:itemIcon(id,38),sm:itemIcon(id,26),rr:by+(foe?"consumable":"Consumable \u00b7 one use"),rc:"#a08a64",nm:ITEMS[id].name,desc:ITEMS[id].desc}))];
+  const by=foe?"Carried by the enemy \u00b7 ":"",all=[...(foe?[...FOE_RELIC]:packRelics()).map(id=>{const R=RELICS[id];return {ic:flavArt("r",id,relicIcon(id,38)),sm:relicIcon(id,26),rr:by+RARITY[R.r][0]+" relic"+(!foe&&R.set?" \u00b7 "+RELIC_SETS[R.set].name:""),rc:RARITY[R.r][1],nm:R.name,desc:R.desc}}),
+    ...(foe?FOE_ITEMS:camp.items).map(id=>({ic:flavArt("i",id,itemIcon(id,38)),sm:itemIcon(id,26),rr:by+(foe?"consumable":"Consumable \u00b7 one use"),rc:"#a08a64",nm:ITEMS[id].name,desc:ITEMS[id].desc}))];
   const title=foe?"Garrison Carries":"Your Relics and Items",nr=(foe?FOE_RELIC.size:packRelics().length),ni=all.length-nr,cap=foe?ni:Math.max(itemCap(),ni);
   const tile=(e,i)=>`<button class="ptile" data-i="${i}" style="--rc:${e.rc}" title="${e.nm}" aria-label="${e.nm}">${e.sm}</button>`;
   const list=at=>{$("rititle").textContent=title; // consumables on their own line on top (empty slots show the room left), then the relics in rows of six
@@ -5792,7 +5812,7 @@ function showPack(from,foe){ // every relic and item you (or the garrison) carry
 function showGarrisonItem(k,id){
   const R=k==="r"?RELICS[id]:ITEMS[id],rc=k==="r"?RARITY[R.r][1]:"#a08a64";
   $("rititle").textContent=R.name;
-  $("ribody").innerHTML=`<div class="rcard" style="--rc:${rc}"><span class="ri">${k==="r"?relicIcon(id,38):itemIcon(id,38)}</span><span class="rr">Carried by the enemy \u00b7 ${k==="r"?RARITY[R.r][0]+" relic":"consumable"}</span><small>${R.desc}</small></div>`;
+  $("ribody").innerHTML=`<div class="rcard" style="--rc:${rc}"><span class="ri">${k==="r"?flavArt("r",id,relicIcon(id,38)):flavArt("i",id,itemIcon(id,38))}</span><span class="rr">Carried by the enemy \u00b7 ${k==="r"?RARITY[R.r][0]+" relic":"consumable"}</span><small>${R.desc}</small></div>`;
   relinfoFrom=null;$("relinfo").hidden=false;$("riclose").focus();
 }
 // your relics and items as one card, on the battle header and the world map: just the symbols, tap one for its details
@@ -5807,11 +5827,25 @@ function fitPack(root){ // wire up the cards, and where more than one row holds,
   });
 }
 function renderRelics(){$("wrelics").innerHTML=packChip();fitPack($("wrelics"))}
+// flavor text (RELICS/ITEMS .flavor): tap the picture of a relic or consumable, in its details or on the Unlocks list, to read it
+const flavOf=(k,id)=>((k==="r"?RELICS:ITEMS)[id]||{}).flavor,flavName=(k,id)=>k==="r"&&!unlocks.vmorion?RELICS[id].name.replace(/^Vasco's/,"???'s"):(k==="r"?RELICS:ITEMS)[id].name; // Vasco's name stays hidden until he gives it
+const flavArt=(k,id,art)=>flavOf(k,id)?`<button class="flavbtn" data-fk="${k}" data-fid="${id}" title="Read about it" aria-label="Read about the ${flavName(k,id)}">${art}</button>`:art;
+let flavFrom=null;
+function showFlavor(k,id,from){
+  const X=k==="r"?RELICS[id]:ITEMS[id];flavFrom=from;
+  $("flavbox").querySelector(".flav").style.setProperty("--rc",k==="r"?RARITY[X.r][1]:X.r?RARITY[X.r][1]:"#a08a64");
+  $("flico").innerHTML=k==="r"?relicIcon(id,46):itemIcon(id,46);$("fltitle").textContent=flavName(k,id);$("fltext").textContent=flavOf(k,id);
+  $("flavbox").hidden=false;$("flclose").focus();
+}
+function closeFlavor(){$("flavbox").hidden=true;if(flavFrom&&flavFrom.isConnected)flavFrom.focus();flavFrom=null}
+$("flclose").onclick=closeFlavor;
+$("flavbox").onclick=e=>{if(e.target===$("flavbox"))closeFlavor()};
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest(".flavbtn");if(b){e.stopPropagation();showFlavor(b.dataset.fk,b.dataset.fid,b)}});
 let relinfoFrom=null;
 function showRelicInfo(id,from){
   const R=RELICS[id],[rn,rc]=RARITY[R.r];relinfoFrom=from;
   $("rititle").textContent=R.name;
-  $("ribody").innerHTML=`<div class="rcard" style="--rc:${rc}"><span class="ri">${relicIcon(id,38)}</span><span class="rr">${rn} relic${R.set?" \u00b7 "+RELIC_SETS[R.set].name:""}</span><small>${R.desc}</small></div>`;
+  $("ribody").innerHTML=`<div class="rcard" style="--rc:${rc}"><span class="ri">${flavArt("r",id,relicIcon(id,38))}</span><span class="rr">${rn} relic${R.set?" \u00b7 "+RELIC_SETS[R.set].name:""}</span><small>${R.desc}</small></div>`;
   $("relinfo").hidden=false;$("riclose").focus();
 }
 function closeRelicInfo(){$("relinfo").hidden=true;if(relinfoFrom&&relinfoFrom.isConnected)relinfoFrom.focus();relinfoFrom=null;if(riAfter){const f=riAfter;riAfter=null;f()}}
@@ -6145,7 +6179,7 @@ function unlockView(){
   r.innerHTML=`<h2 class="htitle">Unlocks</h2><p class="hint" style="text-align:center">${got} of ${UL.length} unlocked</p><div class="ulist">`
    +UL.map(o=>{
      const on=!!unlocks[o.id],pr=!on&&o.prog&&o.prog(),hint=typeof o.hint==="function"?o.hint():o.hint,T=unlockInfo(o);
-     return `<div class="hcard${on?"":" ulock"}" aria-label="${T.name}, ${on?"unlocked":"locked"}">`+hRow(on?T.art:LOCK_ART,`<b>${T.name}</b><small>${on?"Unlocked":"Locked"}</small>${on?T.desc:"How to unlock: "+hint}${pr?`<div class="uprog"><i style="width:${100*pr[0]/pr[1]}%"></i></div><small>${pr[0]} of ${pr[1]} ${pr[2]}</small>`:""}`)+"</div>";
+     return `<div class="hcard${on?"":" ulock"}" aria-label="${T.name}, ${on?"unlocked":"locked"}">`+hRow(!on?LOCK_ART:o.relic?flavArt("r",o.relic,T.art):o.item?flavArt("i",o.item,T.art):T.art,`<b>${T.name}</b><small>${on?"Unlocked":"Locked"}</small>${on?T.desc:"How to unlock: "+hint}${pr?`<div class="uprog"><i style="width:${100*pr[0]/pr[1]}%"></i></div><small>${pr[0]} of ${pr[1]} ${pr[2]}</small>`:""}`)+"</div>";
    }).join("")+"</div>";
   const box=document.createElement("div");box.className="menubtns";
   mk(box,"b big","Back to Main Menu",()=>{r.hidden=true;$("mbtns").hidden=false;$("unl").focus()});r.append(box);
@@ -6222,6 +6256,7 @@ $("tclose").onclick=closeGuide;
 if(document.addEventListener)document.addEventListener("keydown",e=>{
   if(e.key!=="Escape")return;
   if(!$("tguide").hidden)return closeGuide();
+  if(!$("flavbox").hidden)return closeFlavor();
   if(!$("relinfo").hidden)return closeRelicInfo();
   if($("game").hidden||paused||locked||busy||over)return;
   if(mode==="ushove"&&shoveT)return endShove(-1,-1); // Esc leaves the target where it stands
