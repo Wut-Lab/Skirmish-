@@ -260,6 +260,8 @@ button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opac
 .strike{position:absolute;z-index:7;pointer-events:none;overflow:hidden;background:rgba(255,255,255,.5)} /* a landed blow: the target blanches... */
 .strike i{position:absolute;left:-30%;top:44%;width:160%;height:12%;min-height:3px;transform:rotate(-38deg);opacity:0;background:linear-gradient(90deg,rgba(255,255,255,0),#fff 25%,#fff 75%,rgba(255,255,255,0));box-shadow:0 0 3px 1px rgba(120,170,255,.95),0 0 9px 2px rgba(255,255,255,.9);border-radius:50%} /* ...and a sword streak cuts across it */
 .mend{position:absolute;z-index:7;pointer-events:none}
+.fall{position:absolute;z-index:6;pointer-events:none;margin:0!important;animation:none!important;transform-origin:50% 90%} /* a fallen unit's last moment */
+.scorch{position:absolute;z-index:1;pointer-events:none;border-radius:50%;background:radial-gradient(rgba(0,0,0,.38),rgba(0,0,0,.18) 45%,transparent 70%)}
 .mend b{position:absolute;inset:6%;border-radius:50%;background:conic-gradient(rgba(140,240,170,.75),rgba(90,210,130,.15),rgba(170,255,195,.7),rgba(90,210,130,.15),rgba(140,240,170,.75));-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));filter:drop-shadow(0 0 3px rgba(120,230,150,.7))} /* a healing ring: a soft green that flows round as it spreads */
 .mend i{position:absolute;width:24%;height:24%;background:linear-gradient(rgba(170,255,195,.85),rgba(170,255,195,.85)) center/100% 30% no-repeat,linear-gradient(rgba(170,255,195,.85),rgba(170,255,195,.85)) center/30% 100% no-repeat;filter:drop-shadow(0 0 2px rgba(60,170,90,.9))} /* two little plus signs, on a diagonal */
 .mend i:first-of-type{right:3%;top:6%}.mend i:last-of-type{left:4%;bottom:8%}
@@ -3010,7 +3012,7 @@ function hurt(u,n){
     camp.items.splice(camp.items.indexOf("phoenix"),1);saveCamp();u.hp=1;u.ash=1;later(()=>{if(units.includes(u)){floatText(u.x,u.y,"Rises from the ashes","heal");sfx("flame")}},250);
   }
   if(u.hp>0){sfx("hit");return false}
-  sfx("kill");units=units.filter(v=>v!==u);if(u.team==="f")relicUsed.foesDown=(relicUsed.foesDown||0)+1;if(u.bounty)relicUsed.bounty=1; // for the Trophy Pouch and the Bounty Notice
+  sfx("kill");fallFx(u);units=units.filter(v=>v!==u);if(u.team==="f")relicUsed.foesDown=(relicUsed.foesDown||0)+1;if(u.bounty)relicUsed.bounty=1; // for the Trophy Pouch and the Bounty Notice
   units.filter(v=>v.team===u.team&&v.utrio&&!v.vengeance).forEach(v=>{v.vengeance=1;later(()=>{if(units.includes(v))floatText(v.x,v.y,"Vengeance +1","bless")},450)}); // The Usurper: the first comrade to fall
   if(ownUnit(u)&&rel(u,"smallforces")&&(relicUsed["sf_"+u.team]=(relicUsed["sf_"+u.team]||0)+1)===2) // Small Forces Combat Tactics: the second to fall steels the rest
     units.filter(v=>v.team===u.team&&ownUnit(v)).forEach(v=>{v.sforce=1;if(v.hp<maxHp(v))v.hp++;later(()=>{if(units.includes(v))floatText(v.x,v.y,"Small Forces","bless")},400)});
@@ -3313,6 +3315,16 @@ function pushFx(u,sx,sy){
     const to=sx>0?"right":sx<0?"left":sy>0?"bottom":"top",cl=sx>0?"0 100% 0 0":sx<0?"0 0 0 100%":sy>0?"0 0 100% 0":"100% 0 0 0",f=document.createElement("i");
     f.className="pflash";f.style.background=`linear-gradient(to ${to},rgba(255,255,255,.85),rgba(255,255,255,.4) 55%,rgba(255,255,255,0))`;e.append(f);
     f.animate([{clipPath:`inset(${cl})`,opacity:1},{clipPath:"inset(0 0 0 0)",opacity:.9,offset:.4},{clipPath:"inset(0 0 0 0)",opacity:0}],{duration:420,easing:"ease-out",fill:"forwards"}).onfinish=()=>f.remove();
+  }catch(err){}
+}
+// a fallen unit tips over, greys and fades, leaving a faint scorch that lingers a moment
+function fallFx(u){
+  try{
+    const t=board.children[u.y*W+u.x],eu=t&&t.querySelector(".u");if(!eu||!eu.animate)return;
+    const r=eu.getBoundingClientRect(),bw=$("bw").getBoundingClientRect(),c=eu.cloneNode(true),tilt=Math.random()<.5?-1:1,sm=still();c.classList.add("fall");
+    Object.assign(c.style,{left:(r.left-bw.left)+"px",top:(r.top-bw.top)+"px",width:r.width+"px",height:r.height+"px",transform:"none"});$("fx").append(c);
+    c.animate(sm?[{opacity:1},{opacity:0}]:[{transform:"none",filter:"none",opacity:1},{transform:`rotate(${tilt*10}deg)`,filter:"grayscale(.6) brightness(.9)",opacity:1,offset:.3},{transform:`translateY(5px) rotate(${tilt*28}deg) scale(.82)`,filter:"grayscale(1) brightness(.6)",opacity:0}],{duration:sm?400:650,delay:sm?0:120,easing:"ease-in",fill:"both"}).onfinish=()=>c.remove();
+    const s=tileFx(u.x,u.y,"scorch");if(s)s.animate([{opacity:0,transform:"scale(.4)"},{opacity:1,transform:"scale(.8)",offset:.3},{opacity:0,transform:"scale(.9)"}],{duration:1400,delay:sm?0:350,easing:"ease-out",fill:"both"}).onfinish=()=>s.remove();
   }catch(err){}
 }
 // the muster call: a trumpet rises over the captain and fades
