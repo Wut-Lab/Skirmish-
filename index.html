@@ -2294,15 +2294,15 @@ $("undo").onclick=()=>{if(!$("undo").disabled)undoMove()};
 // the selected unit's actions, listed only when they can be done right now
 const itemsFor=u=>camp.battle&&!chal&&camp.items&&!u.auto&&u.team==="y"?[...new Set(camp.items)].filter(id=>!ITEMS[id].passive&&(!u.acted||ITEMS[id].free)&&itemTargets(u,id).size):[];
 function unitActs(u){
-  const L=[],add=(t,sm,f)=>L.push([t,sm,f]),hide=msg=>()=>{umHide={u,m:u.moved,a:u.acted};say(msg);render()};
+  const L=[],add=(t,sm,f,tap)=>L.push([t,sm,f,tap]),hide=msg=>()=>{umHide={u,m:u.moved,a:u.acted};say(msg);render()};
   if(mode==="items"){
     itemsFor(u).forEach(id=>{const k=camp.items.filter(i=>i===id).length;add(ITEMS[id].name+(k>1?" \u00d7"+k:""),ITEMS[id].free?"Doesn't use an action":"Uses this unit's action",()=>{mode="item:"+id;say(itemPrompt(id));render()})});
     add("Back","",()=>{mode=null;say("Move, attack, or pick another unit.");render()});return L;
   }
   if(mode){add("Cancel","",()=>{mode=null;say("Move, attack, or pick another unit.");render()});return L}
-  if(!u.moved&&reach(u).length)add("Move","Tap a green tile",hide("Tap a green tile to move."));
-  if(!u.acted&&targets(u).length)add("Attack","Tap a red enemy",hide("Tap a red enemy to attack."+(u.t==="E"?" You can hex it from there too.":"")));
-  if(!u.acted&&healTargets(u).length)add("Heal","Tap a marked ally",hide("Tap a marked ally to heal it."));
+  if(!u.moved&&reach(u).length)add("Move","Tap a green tile",hide("Tap a green tile to move."),1);
+  if(!u.acted&&targets(u).length)add("Attack","Tap a red enemy",hide("Tap a red enemy to attack."+(u.t==="E"?" You can hex it from there too.":"")),1);
+  if(!u.acted&&healTargets(u).length)add("Heal","Tap a marked ally",hide("Tap a marked ally to heal it."),1);
   if(u.cloak&&!u.cloakUsed&&!u.moved)add("Teleport (Cloak)","Once per battle",()=>{mode="ctp";say("Choose an open tile on the far edge.");render()});
   if(mods.y==="TP"&&!tpUsed.y&&!u.moved&&!u.ctl)add("Teleport","To the far edge",()=>{mode="tp";say("Choose an open tile on the far edge.");render()});
   if(u.t==="K"&&!u.acted&&units.some(b=>b.team==="y"&&pushable(u,b)))add("Push Ally","Reposition an ally",()=>{mode="push";say("Choose an adjacent ally to push.");render()});
@@ -2345,7 +2345,7 @@ function unitMenu(){
   const u=sel;
   if(!u||over||busy||locked||turn!=="y"||u.team!=="y"||u.auto&&!u.ctl||mode==="ushove"||!units.includes(u))return;
   if(umHide&&umHide.u===u&&umHide.m===u.moved&&umHide.a===u.acted&&!mode)return; // tucked away to see the board; back after the unit's next step
-  const L=unitActs(u);if(!L.length)return;
+  const L=unitActs(u);if(L.every(e=>e[3]))return; // only moves, attacks and heals: the marked tiles already say so, so no menu
   const m=document.createElement("div");m.className="pmenu umenu";m.style.visibility="hidden";
   L.forEach(([t,sm,f])=>{const b=document.createElement("button");b.innerHTML=`<b>${t}</b>${sm?`<small>${sm}</small>`:""}`;b.onclick=f;m.append(b)});
   $("fx").append(m);placeUnitMenu(m,u);m.style.visibility="";
