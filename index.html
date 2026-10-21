@@ -182,7 +182,6 @@ button.b:not(:disabled):active{transform:translateY(1px);box-shadow:0 1px 0 var(
 .t.a::after{content:"";position:absolute;inset:6%;border:3px solid rgba(255,255,255,.92);border-radius:50%;z-index:2;pointer-events:none;animation:ring 1.2s ease-in-out infinite}
 @keyframes ring{50%{transform:scale(.92);opacity:.65}}
 .u::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.3),rgba(255,255,255,0) 55%),linear-gradient(rgba(0,0,0,0),rgba(0,0,0,.25))}
-@keyframes selp{50%{box-shadow:0 0 0 5px var(--ink)}}
 .u[data-team=w]{outline:2px dashed rgba(255,255,255,.8);outline-offset:1px}
 .card,.panel,#info,#prules{box-shadow:0 2px 8px rgba(0,0,0,.15)}
 /* ---- depth ---- */
@@ -190,8 +189,9 @@ button.b:not(:disabled):active{transform:translateY(1px);box-shadow:0 1px 0 var(
 #board,#eboard{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:2px;background:var(--ink);padding:2px;border-radius:6px;box-shadow:0 7px 0 rgba(0,0,0,.4),0 16px 26px rgba(0,0,0,.35)}
 .t.w{background:var(--wall);cursor:default;box-shadow:inset 0 4px 0 rgba(255,255,255,.28),inset 0 -7px 0 rgba(0,0,0,.4)}
 .u{--bev:inset 0 0 0 2.600px rgba(255,255,255,.13),inset 0 0 0 3.800px rgba(0,0,0,.22);position:absolute;inset:9%;border-radius:50%;display:grid;place-items:center;transform:translateY(-3px);box-shadow:0 3px 0 rgba(0,0,0,.45),0 7px 6px rgba(0,0,0,.3),0 0 0 1.5px rgba(255,255,255,.6)} /* --bev: a bevelled inner rim, like the mercenary shield's, under whatever trim the piece wears */
-.u.sel{box-shadow:0 3px 0 rgba(0,0,0,.45),0 0 0 3px var(--ink),var(--bev);animation:selp 1.4s ease-in-out infinite}
-@keyframes selp{50%{box-shadow:0 3px 0 rgba(0,0,0,.45),0 0 0 5px var(--ink)}}
+.u.sel{box-shadow:0 3px 0 rgba(0,0,0,.45),0 0 0 3px var(--ink),var(--bev)}
+.u.sel::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;box-shadow:0 0 0 5px var(--ink);opacity:0;will-change:opacity;animation:selp 1.4s ease-in-out infinite} /* the pulse fades a ring in and out: opacity runs on the compositor, a box-shadow would repaint every frame */
+@keyframes selp{50%{opacity:1}}
 /* ---- terrain guide ---- */
 #tguide .panel{width:min(420px,100%)}
 #tguide h3{margin:14px 0 0;font-size:1.3rem;text-align:left}
@@ -208,7 +208,7 @@ button.b:not(:disabled):active{transform:translateY(1px);box-shadow:0 1px 0 var(
 .tsw i.plus{position:absolute;top:3px;right:3px;width:16px;height:16px;border-radius:50%;background:#2f9e6a;color:#fff;font-style:normal;font-weight:800;font-size:.85rem;line-height:16px;text-align:center}
 .tsw{position:relative;width:44px;height:44px;flex:none;border-radius:6px;overflow:hidden;background:var(--tile);box-shadow:inset 0 0 0 1px rgba(255,255,255,.2),0 2px 0 rgba(0,0,0,.3)}
 .tsw i.rg{position:absolute;inset:6%;border:3px solid rgba(255,255,255,.92);border-radius:50%}
-@media (prefers-reduced-motion:reduce){.discs .pv,.t.a::after,.u.sel{animation:none}}
+@media (prefers-reduced-motion:reduce){.discs .pv,.t.a::after,.u.sel::before{animation:none}}
 #tinfo{min-height:64px;margin-top:10px;background:var(--panel);border:2px solid var(--ink);border-radius:8px;padding:8px 12px;display:flex;gap:12px;align-items:center;box-sizing:border-box;font-size:.9rem;box-shadow:0 2px 8px rgba(0,0,0,.15)}
 #tinfo.empty{justify-content:center;opacity:.75}
 #info{min-height:88px;background:var(--panel);border:2px solid var(--ink);border-radius:8px;padding:10px 12px;display:flex;gap:12px;align-items:center;box-sizing:border-box;font-size:.9rem;margin-top:8px}
@@ -251,7 +251,6 @@ button.b.sm2{padding:8px 12px;font-size:.85rem}
 .t{aspect-ratio:1;border:0;padding:0;background:var(--tile);position:relative;font:inherit;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 -3px 0 rgba(0,0,0,.14);overflow:visible}
 button.b.pri:disabled{background:#8a939c;border-color:#8a939c;color:#e9edf0;opacity:1;box-shadow:none;transform:none}
 .u.mv{animation:slide var(--dur,.3s) ease-out;z-index:6}
-.u.sel.mv{animation:slide var(--dur,.3s) ease-out,selp 1.4s ease-in-out infinite}
 @keyframes slide{from{transform:translate(var(--dx),calc(var(--dy) - 3px))}to{transform:translate(0,-3px)}}
 .u.tpin{animation:pin .35s ease-out backwards;z-index:6}
 @keyframes pin{from{transform:translateY(-3px) scale(.2);opacity:0}to{transform:translateY(-3px) scale(1);opacity:1}}
@@ -491,8 +490,8 @@ border-radius:50%;border:4px solid #fff;box-shadow:0 0 12px rgba(255,120,80,.9);
 .t.bl{outline:3px solid #ff8a1c;outline-offset:-3px;background-image:repeating-linear-gradient(45deg,rgba(255,120,30,.55) 0 5px,rgba(255,120,30,.12) 5px 10px)}
 .boom{position:absolute;width:13%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,#fff6c2 0,#ffb43c 35%,#e2482a 62%,rgba(226,72,42,0) 72%);z-index:5;pointer-events:none;transform:translate(-50%,-50%);animation:boom .65s ease-out forwards}
 @keyframes boom{0%{transform:translate(-50%,-50%) scale(.3);opacity:1}100%{transform:translate(-50%,-50%) scale(3.2);opacity:0}}
-button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
-@keyframes rdy{50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--you) 40%,transparent)}}
+button.b.pri.ready{position:relative}button.b.pri.ready::after{content:"";position:absolute;inset:-2px;border-radius:inherit;pointer-events:none;box-shadow:0 0 0 6px color-mix(in srgb,var(--you) 40%,transparent);opacity:0;will-change:opacity;animation:rdy 1.2s ease-in-out infinite}
+@keyframes rdy{50%{opacity:1}}
 .ulist{display:grid;gap:10px}
 .rcard.qsel{outline:3px solid var(--rc);outline-offset:2px;box-shadow:0 0 0 6px color-mix(in srgb,var(--rc) 30%,transparent)}.qrtog{width:100%;text-align:left}
 .hallsum{margin-bottom:10px}.hstat{grid-template-columns:auto 1fr}.hstat b{text-align:right}.hstat small{opacity:.75}.hch{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:4px}.hch small,.hloss small{opacity:.7}
@@ -505,7 +504,7 @@ button.b.pri.ready{animation:rdy 1.2s ease-in-out infinite}
 .ulist small{display:block;font-size:.78rem;opacity:.85}
 .uprog{height:6px;background:rgba(128,128,128,.3);border-radius:3px;overflow:hidden;margin-top:6px}
 .uprog i{display:block;height:100%;background:var(--you)}
-@media (prefers-reduced-motion:reduce){button.b.pri.ready{animation:none}.boom{animation-duration:.2s}}
+@media (prefers-reduced-motion:reduce){button.b.pri.ready::after{animation:none}.boom{animation-duration:.2s}}
 </style>
 </head>
 <body>
